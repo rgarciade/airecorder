@@ -1,5 +1,6 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -33,4 +34,32 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') app.quit();
+});
+
+// Ruta del archivo de configuración
+const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+
+// Manejador para guardar configuración
+ipcMain.handle('save-settings', async (event, settings) => {
+  try {
+    await fs.promises.writeFile(settingsPath, JSON.stringify(settings, null, 2));
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving settings:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Manejador para cargar configuración
+ipcMain.handle('load-settings', async () => {
+  try {
+    if (fs.existsSync(settingsPath)) {
+      const data = await fs.promises.readFile(settingsPath, 'utf8');
+      return { success: true, settings: JSON.parse(data) };
+    }
+    return { success: true, settings: null };
+  } catch (error) {
+    console.error('Error loading settings:', error);
+    return { success: false, error: error.message };
+  }
 }); 
