@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const AudioRecorder = require('./audioRecorder');
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -62,4 +63,51 @@ ipcMain.handle('load-settings', async () => {
     console.error('Error loading settings:', error);
     return { success: false, error: error.message };
   }
-}); 
+});
+
+// Inicializar AudioRecorder
+const audioRecorder = new AudioRecorder();
+
+// Manejador para obtener dispositivos de audio
+ipcMain.handle('get-audio-devices', async () => {
+  try {
+    const devices = await audioRecorder.getAudioDevices();
+    return { success: true, devices };
+  } catch (error) {
+    console.error('Error getting audio devices:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Manejador para iniciar grabación de prueba
+ipcMain.handle('start-test-recording', async (event, microphoneId, duration = 4) => {
+  try {
+    const result = await audioRecorder.startTestRecording(microphoneId, duration);
+    return { success: true, result };
+  } catch (error) {
+    console.error('Error starting test recording:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Manejador para detener grabación
+ipcMain.handle('stop-recording', async () => {
+  try {
+    audioRecorder.stopRecording();
+    return { success: true };
+  } catch (error) {
+    console.error('Error stopping recording:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Manejador para obtener archivos de grabación
+ipcMain.handle('get-recording-files', async () => {
+  try {
+    const files = await audioRecorder.getRecordingFiles();
+    return { success: true, files };
+  } catch (error) {
+    console.error('Error getting recording files:', error);
+    return { success: false, error: error.message };
+  }
+});
