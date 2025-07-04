@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getSystemMicrophones } from '../../services/audioService';
+import { getSettings, updateSettings } from '../../services/settingsService';
 
 const mockLanguages = [
   { value: 'es', label: 'Español' },
@@ -6,15 +8,55 @@ const mockLanguages = [
   { value: 'fr', label: 'Français' },
 ];
 
-const mockMicrophones = [
-  { value: 'default', label: 'Micrófono por defecto' },
-  { value: 'built-in', label: 'Micrófono integrado' },
-  { value: 'external', label: 'Micrófono externo' },
-];
-
 export default function Settings({ onBack }) {
   const [selectedLanguage, setSelectedLanguage] = useState('');
   const [selectedMicrophone, setSelectedMicrophone] = useState('');
+  const [microphones, setMicrophones] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        setIsLoading(true);
+        // Cargar micrófonos
+        const systemMicrophones = await getSystemMicrophones();
+        setMicrophones(systemMicrophones);
+        
+        // Cargar configuración guardada
+        const savedSettings = await getSettings();
+        if (savedSettings) {
+          setSelectedLanguage(savedSettings.language || '');
+          setSelectedMicrophone(savedSettings.microphone || (systemMicrophones.length > 0 ? systemMicrophones[0].value : ''));
+        } else if (systemMicrophones.length > 0) {
+          setSelectedMicrophone(systemMicrophones[0].value);
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  // Guardar configuración cuando cambia
+  useEffect(() => {
+    const saveSettings = async () => {
+      if (selectedLanguage || selectedMicrophone) {
+        try {
+          await updateSettings({
+            language: selectedLanguage,
+            microphone: selectedMicrophone
+          });
+        } catch (error) {
+          console.error('Error saving settings:', error);
+        }
+      }
+    };
+
+    saveSettings();
+  }, [selectedLanguage, selectedMicrophone]);
 
   return (
     <div
@@ -68,9 +110,12 @@ export default function Settings({ onBack }) {
               <select
                 value={selectedLanguage}
                 onChange={(e) => setSelectedLanguage(e.target.value)}
-                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#663336] bg-[#331a1b] focus:border-[#663336] h-14 bg-[image:--select-button-svg] bg-[length:24px] bg-no-repeat bg-[center_right_1rem] appearance-none placeholder:text-[#c89295] p-[15px] text-base font-normal leading-normal"
+                disabled={isLoading}
+                className={`form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#663336] bg-[#331a1b] focus:border-[#663336] h-14 bg-[image:--select-button-svg] bg-[length:24px] bg-no-repeat bg-[center_right_1rem] appearance-none placeholder:text-[#c89295] p-[15px] text-base font-normal leading-normal ${isLoading ? 'opacity-50' : ''}`}
               >
-                <option value="" disabled>Select a language</option>
+                <option value="" disabled>
+                  {isLoading ? 'Charging...' : 'Select a language'}
+                </option>
                 {mockLanguages.map((lang) => (
                   <option key={lang.value} value={lang.value}>
                     {lang.label}
@@ -85,10 +130,13 @@ export default function Settings({ onBack }) {
               <select
                 value={selectedMicrophone}
                 onChange={(e) => setSelectedMicrophone(e.target.value)}
-                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#663336] bg-[#331a1b] focus:border-[#663336] h-14 bg-[image:--select-button-svg] bg-[length:24px] bg-no-repeat bg-[center_right_1rem] appearance-none placeholder:text-[#c89295] p-[15px] text-base font-normal leading-normal"
+                disabled={isLoading}
+                className={`form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#663336] bg-[#331a1b] focus:border-[#663336] h-14 bg-[image:--select-button-svg] bg-[length:24px] bg-no-repeat bg-[center_right_1rem] appearance-none placeholder:text-[#c89295] p-[15px] text-base font-normal leading-normal ${isLoading ? 'opacity-50' : ''}`}
               >
-                <option value="" disabled>Select a microphone</option>
-                {mockMicrophones.map((mic) => (
+                <option value="" disabled>
+                  {isLoading ? 'Charging...' : 'Select a microphone'}
+                </option>
+                {microphones.map((mic) => (
                   <option key={mic.value} value={mic.value}>
                     {mic.label}
                   </option>
