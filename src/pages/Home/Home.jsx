@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { startRecording } from '../../store/recordingSlice';
+import RecordingList from '../../components/RecordingList/RecordingList';
 
 const mockRecordings = [
   { id: 1, name: 'Project Kickoff Meeting', date: 'July 12, 2024' },
@@ -16,6 +17,16 @@ export default function Home({ onSettings, onSelectRecording, onTestRecorder }) 
     if (!isRecording) {
       dispatch(startRecording());
     }
+  };
+
+  const handleDownload = (recording) => {
+    // Aquí irá la lógica de descarga
+    console.log('Descargando grabación:', recording.name);
+  };
+
+  const handleDelete = (recording) => {
+    // Aquí irá la lógica real de eliminación
+    console.log('Eliminando grabación:', recording.name);
   };
 
   return (
@@ -79,27 +90,13 @@ export default function Home({ onSettings, onSelectRecording, onTestRecorder }) 
           </div>
           <span className="truncate">Test Recorder</span>
         </button>
-        <div className="w-full max-w-2xl">
-          <h2 className="text-white text-2xl font-bold mb-4">Past recordings</h2>
-          <div className="space-y-4">
-            {mockRecordings.map((recording) => (
-              <div
-                key={recording.id}
-                onClick={() => onSelectRecording(recording)}
-                className="flex items-center justify-between bg-[#472426] rounded-xl p-4 cursor-pointer hover:bg-[#663336] transition-colors"
-              >
-                <div>
-                  <h3 className="text-white font-medium">{recording.name}</h3>
-                  <p className="text-[#c89295] text-sm">{recording.date}</p>
-                </div>
-                <button className="text-white hover:text-[#e92932] transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256">
-                    <path d="M240,128a15.74,15.74,0,0,1-7.6,13.51L88.32,229.65a16,16,0,0,1-16.2.3A15.86,15.86,0,0,1,64,216.13V39.87a15.86,15.86,0,0,1,8.12-13.82,16,16,0,0,1,16.2.3L232.4,114.49A15.74,15.74,0,0,1,240,128Z"></path>
-                  </svg>
-                </button>
-              </div>
-            ))}
-          </div>
+        <div className="w-full max-w-2xl flex justify-center">
+          <RecordingList 
+            recordings={mockRecordings}
+            onSelect={onSelectRecording}
+            onDownload={handleDownload}
+            onDelete={handleDelete}
+          />
         </div>
       </main>
     </div>
