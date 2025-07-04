@@ -1,0 +1,29 @@
+.recordBtn {
+  position: fixed;
+  left: 50%;
+  bottom: 2.5rem;
+  transform: translateX(-50%);
+  background: #e53935;
+  color: #fff;
+  border: none;
+  border-radius: 2rem;
+  padding: 1rem 2.5rem;
+  font-size: 1.3rem;
+  font-weight: 600;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  cursor: pointer;
+  z-index: 1000;
+  transition: background 0.2s;
+}
+.recordBtn:hover {
+  background: #b71c1c;
+}
+.recordBtn.active {
+  background: #b71c1c;
+}
+.icon {
+  font-size: 1.5rem;
+} 
