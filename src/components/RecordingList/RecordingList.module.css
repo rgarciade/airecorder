@@ -62,17 +62,152 @@ ul {
   font-size: 0.95rem;
   color: #cbbebe;
 }
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: 1.5rem;
+}
+
 .download {
   background: none;
   border: none;
   color: #fff;
   font-size: 1.4rem;
   cursor: pointer;
-  padding: 0 0.5rem;
+  padding: 0.5rem;
   border-radius: 50%;
   transition: background 0.2s;
-  margin-left: 1.5rem;
 }
 .download:hover {
   background: #2a1919;
+}
+
+.delete {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+.delete:hover {
+  background: #8b2635;
+  color: #ff6b6b;
+}
+
+/* Modal styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #331a1b;
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  margin: 0 1rem;
+  border: 1px solid #472426;
+}
+
+.modalTitle {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.modalText {
+  color: #cbbebe;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.modalInput {
+  margin-bottom: 1.5rem;
+}
+
+.modalLabel {
+  display: block;
+  color: #fff;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.confirmInput {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #472426;
+  border-radius: 8px;
+  background: #221112;
+  color: #fff;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.confirmInput:focus {
+  outline: none;
+  border-color: #663336;
+}
+
+.confirmInput::placeholder {
+  color: #7a6b6c;
+}
+
+.modalButtons {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.cancelButton {
+  background: #472426;
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.cancelButton:hover {
+  background: #663336;
+}
+
+.deleteButton {
+  background: #e92932;
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.deleteButton:hover:not(.disabled) {
+  background: #d41f27;
+}
+
+.deleteButton.disabled {
+  background: #7a4a4c;
+  cursor: not-allowed;
+  opacity: 0.6;
 } 

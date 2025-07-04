@@ -8,6 +8,12 @@ const mockTopics = [
   { name: 'Action Items', timestamp: '28:30', timestampSeconds: 1710 },
 ];
 
+const mockInitialParticipants = [
+  { id: 1, name: 'Ana García', role: 'Organizadora' },
+  { id: 2, name: 'Carlos Mendoza', role: 'Participante' },
+  { id: 3, name: 'María López', role: 'Participante' },
+];
+
 const mockMessages = [
   {
     id: 1,
@@ -35,12 +41,32 @@ export default function RecordingDetail({ onBack }) {
   const [question, setQuestion] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTimestamp, setCurrentTimestamp] = useState(null);
+  const [participants, setParticipants] = useState(mockInitialParticipants);
+  const [newParticipantName, setNewParticipantName] = useState('');
+  const [showParticipantForm, setShowParticipantForm] = useState(false);
 
   const handlePlayFromTimestamp = (timestampSeconds) => {
     setIsPlaying(true);
     setCurrentTimestamp(timestampSeconds);
     // Aquí irá la lógica real de reproducción
     console.log(`Playing from ${timestampSeconds} seconds`);
+  };
+
+  const handleAddParticipant = () => {
+    if (newParticipantName.trim()) {
+      const newParticipant = {
+        id: Date.now(),
+        name: newParticipantName.trim(),
+        role: 'Participante'
+      };
+      setParticipants([...participants, newParticipant]);
+      setNewParticipantName('');
+      setShowParticipantForm(false);
+    }
+  };
+
+  const handleRemoveParticipant = (participantId) => {
+    setParticipants(participants.filter(p => p.id !== participantId));
   };
 
   return (
@@ -104,6 +130,72 @@ export default function RecordingDetail({ onBack }) {
               </div>
             </div>
           ))}
+          
+          <h2 className="text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">Participantes</h2>
+          <div className="px-4 pb-4">
+            {participants.map((participant) => (
+              <div key={participant.id} className="flex items-center justify-between bg-[#221112] px-4 py-3 mb-2 rounded-lg hover:bg-[#331a1b] transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-[#e92932] rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">
+                      {participant.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-white text-sm font-medium">{participant.name}</p>
+                    <p className="text-[#c89295] text-xs">{participant.role}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleRemoveParticipant(participant.id)}
+                  className="text-[#c89295] hover:text-[#e92932] transition-colors p-1"
+                  title="Eliminar participante"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256">
+                    <path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path>
+                  </svg>
+                </button>
+              </div>
+            ))}
+            
+            {showParticipantForm ? (
+              <div className="flex items-center gap-2 mt-3">
+                <input
+                  type="text"
+                  value={newParticipantName}
+                  onChange={(e) => setNewParticipantName(e.target.value)}
+                  placeholder="Nombre del participante"
+                  className="flex-1 px-3 py-2 text-white bg-[#331a1b] border border-[#472426] rounded-lg focus:outline-none focus:border-[#663336]"
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddParticipant()}
+                />
+                <button
+                  onClick={handleAddParticipant}
+                  className="px-3 py-2 bg-[#e92932] text-white rounded-lg hover:bg-[#d41f27] transition-colors"
+                >
+                  ✓
+                </button>
+                <button
+                  onClick={() => {
+                    setShowParticipantForm(false);
+                    setNewParticipantName('');
+                  }}
+                  className="px-3 py-2 bg-[#472426] text-white rounded-lg hover:bg-[#663336] transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowParticipantForm(true)}
+                className="flex items-center gap-2 w-full px-4 py-3 mt-2 bg-[#331a1b] text-[#c89295] rounded-lg hover:bg-[#472426] hover:text-white transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256">
+                  <path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"></path>
+                </svg>
+                <span className="text-sm">Agregar participante</span>
+              </button>
+            )}
+          </div>
         </div>
         <div className="layout-content-container flex flex-col max-w-[960px] flex-1">
           <div className="flex flex-wrap justify-between gap-3 p-4">
