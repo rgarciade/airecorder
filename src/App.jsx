@@ -1,22 +1,41 @@
 import React, { useState } from 'react'
+import { useSelector } from 'react-redux'
 import Home from './pages/Home/Home'
 import RecordingDetail from './pages/RecordingDetail/RecordingDetail'
 import Settings from './pages/Settings/Settings'
+import Recording from './components/Recording/Recording'
 import './App.css'
 
 export default function App() {
-  const [page, setPage] = useState('home')
+  const [currentView, setCurrentView] = useState('home')
+  const [selectedRecording, setSelectedRecording] = useState(null)
+  const { isRecording } = useSelector((state) => state.recording)
 
-  // Por ahora solo Home, luego añadiremos Detalle y Settings
-  if (page === 'home') {
-    return <Home onSettings={() => setPage('settings')} onSelectRecording={() => setPage('detail')} />
+  const handleSelectRecording = (recording) => {
+    setSelectedRecording(recording)
+    setCurrentView('recording-detail')
   }
-  // Placeholder para las otras páginas
-  if (page === 'settings') {
-    return <Settings onBack={() => setPage('home')} />
+
+  const handleBack = () => {
+    setCurrentView('home')
+    setSelectedRecording(null)
   }
-  if (page === 'detail') {
-    return <RecordingDetail onBack={() => setPage('home')} />
-  }
-  return null
+
+  return (
+    <>
+      {currentView === 'home' && (
+        <Home
+          onSettings={() => setCurrentView('settings')}
+          onSelectRecording={handleSelectRecording}
+        />
+      )}
+      {currentView === 'settings' && (
+        <Settings onBack={handleBack} />
+      )}
+      {currentView === 'recording-detail' && selectedRecording && (
+        <RecordingDetail recording={selectedRecording} onBack={handleBack} />
+      )}
+      {isRecording && <Recording />}
+    </>
+  )
 }
