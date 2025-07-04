@@ -11,9 +11,11 @@
     "electron:dev": "NODE_ENV=development electron ."
   },
   "dependencies": {
+    "@reduxjs/toolkit": "^2.8.2",
     "electron": "^29.1.4",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-redux": "^9.2.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.64",
