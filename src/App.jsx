@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux'
 import Home from './pages/Home/Home'
 import RecordingDetail from './pages/RecordingDetail/RecordingDetail'
 import Settings from './pages/Settings/Settings'
+import TestRecorderPage from './pages/TestRecorder/TestRecorder'
 import Recording from './components/Recording/Recording'
 import './App.css'
 
@@ -27,10 +28,14 @@ export default function App() {
         <Home
           onSettings={() => setCurrentView('settings')}
           onSelectRecording={handleSelectRecording}
+          onTestRecorder={() => setCurrentView('test-recorder')}
         />
       )}
       {currentView === 'settings' && (
         <Settings onBack={handleBack} />
+      )}
+      {currentView === 'test-recorder' && (
+        <TestRecorderPage onBack={handleBack} />
       )}
       {currentView === 'recording-detail' && selectedRecording && (
         <RecordingDetail recording={selectedRecording} onBack={handleBack} />

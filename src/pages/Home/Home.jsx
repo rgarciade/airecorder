@@ -8,7 +8,7 @@ const mockRecordings = [
   { id: 3, name: 'Team Sync', date: 'July 8, 2024' },
 ];
 
-export default function Home({ onSettings, onSelectRecording }) {
+export default function Home({ onSettings, onSelectRecording, onTestRecorder }) {
   const dispatch = useDispatch();
   const { isRecording } = useSelector((state) => state.recording);
 
@@ -59,7 +59,7 @@ export default function Home({ onSettings, onSelectRecording }) {
         <h1 className="text-white text-4xl font-bold mb-8">Record your meetings</h1>
         <button
           onClick={handleRecord}
-          className="flex cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-5 bg-[#e92932] text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#d41f27] transition-colors mb-12"
+          className="flex cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-5 bg-[#e92932] text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#d41f27] transition-colors mb-4"
         >
           <div className="text-white">
             <svg xmlns="http://www.w3.org/2000/svg" width="24px" height="24px" fill="currentColor" viewBox="0 0 256 256">
@@ -67,6 +67,17 @@ export default function Home({ onSettings, onSelectRecording }) {
             </svg>
           </div>
           <span className="truncate">{isRecording ? 'Stop Recording' : 'Start Recording'}</span>
+        </button>
+        <button
+          onClick={onTestRecorder}
+          className="flex cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-5 bg-[#472426] text-white gap-2 text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#663336] transition-colors mb-12"
+        >
+          <div className="text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24px" height="24px" fill="currentColor" viewBox="0 0 256 256">
+              <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm40-68a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,148ZM96,116h64a8,8,0,0,0,0-16H96a8,8,0,0,0,0,16Z"></path>
+            </svg>
+          </div>
+          <span className="truncate">Test Recorder</span>
         </button>
         <div className="w-full max-w-2xl">
           <h2 className="text-white text-2xl font-bold mb-4">Past recordings</h2>
