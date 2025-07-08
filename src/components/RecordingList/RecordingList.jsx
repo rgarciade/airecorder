@@ -6,16 +6,16 @@ function DeleteConfirmationModal({ recording, isOpen, onClose, onConfirm }) {
   const [inputName, setInputName] = useState('');
   
   const handleConfirm = () => {
-    if (inputName.trim() === recording.name) {
+    if (recording && inputName.trim() === recording.name) {
       onConfirm(recording);
       setInputName('');
       onClose();
     }
   };
 
-  const isNameMatch = inputName.trim() === recording.name;
+  const isNameMatch = recording && inputName.trim() === recording.name;
 
-  if (!isOpen) return null;
+  if (!isOpen || !recording) return null;
 
   return (
     <div className={styles.modalOverlay}>
