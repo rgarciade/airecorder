@@ -68,10 +68,28 @@ export default function RecordingList({ onRecordingSelect }) {
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, recording: null });
   const [transcribingId, setTranscribingId] = useState(null);
   const [transcribeError, setTranscribeError] = useState(null);
+  const [durations, setDurations] = useState({});
 
   useEffect(() => {
     loadRecordings();
   }, []);
+
+  useEffect(() => {
+    // Calcular duración para grabaciones que no la tengan
+    if (recordings.length > 0) {
+      recordings.forEach((rec) => {
+        if (!rec.duration && rec.files && rec.files.length > 0 && !durations[rec.id]) {
+          const audioFile = rec.files.find(f => f && f.name && (f.name.endsWith('.webm') || f.name.endsWith('.mp3') || f.name.endsWith('.wav')));
+          if (audioFile && audioFile.url) {
+            const audio = new window.Audio(audioFile.url);
+            audio.addEventListener('loadedmetadata', () => {
+              setDurations(prev => ({ ...prev, [rec.id]: audio.duration }));
+            });
+          }
+        }
+      });
+    }
+  }, [recordings]);
 
   const loadRecordings = async () => {
     try {
@@ -129,7 +147,7 @@ export default function RecordingList({ onRecordingSelect }) {
         <div className={styles.listHeader}>
           <h2 className={styles.title}>📁 Grabaciones</h2>
           <button onClick={loadRecordings} className={styles.refreshButton}>
-            🔄 Actualizar
+            <span role="img" aria-label="refresh">🔄</span> Actualizar
           </button>
         </div>
         {loading && (
@@ -159,50 +177,74 @@ export default function RecordingList({ onRecordingSelect }) {
         )}
         {!loading && !error && recordings.length > 0 && (
           <ul className={styles.recordingsList}>
-            {recordings.map((recording) => (
-              <li key={recording.id} className={styles.item}>
-                <div className={styles.icon}>
-                  <span role="img" aria-label="recording">🎬</span>
-                </div>
-                <div className={styles.info} onClick={() => onRecordingSelect(recording)}>
-                  <div className={styles.name}>{recording.name}</div>
-                  <div className={styles.date}>{recording.date}</div>
-                  {recording.hasTranscription && (
-                    <div className={styles.transcriptionBadge}>📝 Transcripción disponible</div>
-                  )}
-                </div>
-                <div className={styles.actions}>
-                  {!recording.hasTranscription && (
+            {recordings.map((recording) => {
+              // Icono según nombre
+              let icon = '🎤';
+              if (/podcast/i.test(recording.name)) icon = '🎧';
+              else if (/gama|clapper|video|cine/i.test(recording.name)) icon = '🎬';
+              else if (/micro/i.test(recording.name)) icon = '🎙️';
+              else if (/voz|voice/i.test(recording.name)) icon = '🔊';
+              else if (/audio/i.test(recording.name)) icon = '🔈';
+
+              // Duración
+              let duration = recording.duration || durations[recording.id];
+              let durationStr = duration ? `${Math.floor(duration/60).toString().padStart(2,'0')}:${Math.floor(duration%60).toString().padStart(2,'0')}` : '';
+
+              return (
+                <li key={recording.id} className={styles.item}>
+                  <div className={styles.icon}>
+                    <span role="img" aria-label="icon">{icon}</span>
+                  </div>
+                  <div className={styles.info} onClick={() => onRecordingSelect(recording)}>
+                    <div className={styles.name}>{recording.name}</div>
+                    <div className={styles.date}>{recording.date}{durationStr && <span className={styles.duration}> · {durationStr}</span>}</div>
+                    {recording.hasTranscription && (
+                      <div className={styles.transcriptionBadge}><span role="img" aria-label="document">📄</span> Transcripción disponible</div>
+                    )}
+                  </div>
+                  <div className={styles.actions}>
+                    {!recording.hasTranscription && (
+                      <button
+                        className={styles.transcribe}
+                        onClick={(e) => handleTranscribe(e, recording)}
+                        disabled={!!transcribingId}
+                        title={transcribingId ? 'Ya hay una transcripción en curso' : 'Transcribir grabación'}
+                      >
+                        {transcribingId === recording.id ? (
+                          <span role="img" aria-label="transcribing">⏳</span>
+                        ) : (
+                          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="14" cy="14" r="14" fill="#f7b731"/>
+                            <path d="M14 8a3 3 0 0 1 3 3v4a3 3 0 0 1-6 0v-4a3 3 0 0 1 3-3zm5 7a5 5 0 0 1-10 0" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M14 19v2m-3 0h6" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+                          </svg>
+                        )}
+                      </button>
+                    )}
                     <button
-                      className={styles.download}
-                      onClick={(e) => handleTranscribe(e, recording)}
-                      disabled={!!transcribingId}
-                      title={transcribingId ? 'Ya hay una transcripción en curso' : 'Transcribir grabación'}
+                      className={styles.play}
+                      onClick={() => onRecordingSelect(recording)}
+                      title="Reproducir o ver detalles"
                     >
-                      {transcribingId === recording.id ? (
-                        <span role="img" aria-label="transcribing">⏳ Transcribiendo...</span>
-                      ) : (
-                        <span role="img" aria-label="transcribe">📝 Transcribir</span>
-                      )}
+                      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="14" cy="14" r="14" fill="#2563eb"/>
+                        <polygon points="11,8 21,14 11,20" fill="#fff"/>
+                      </svg>
                     </button>
-                  )}
-                  <button 
-                    className={styles.download} 
-                    onClick={(e) => handleDownload(e, recording)}
-                    title="Descargar grabación"
-                  >
-                    <span role="img" aria-label="download">⬇️</span>
-                  </button>
-                  <button 
-                    className={styles.delete} 
-                    onClick={(e) => handleDeleteClick(e, recording)}
-                    title="Eliminar grabación"
-                  >
-                    <span role="img" aria-label="delete">🗑️</span>
-                  </button>
-                </div>
-              </li>
-            ))}
+                    <button
+                      className={styles.delete}
+                      onClick={(e) => handleDeleteClick(e, recording)}
+                      title="Eliminar grabación"
+                    >
+                      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="14" cy="14" r="14" fill="#e92932"/>
+                        <path d="M10 18L18 10M10 10l8 8" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
