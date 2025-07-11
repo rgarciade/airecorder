@@ -48,7 +48,7 @@ class AudioRecorder {
     }
 
     try {
-      // Usar duración especificada o la por defecto
+      // Usar duración especificada o la por defecto, o sin timeout si es null
       const recordingDuration = duration || this.options.duration;
 
       // Crear contexto de audio para grabar solo el micrófono
@@ -60,7 +60,11 @@ class AudioRecorder {
           deviceId: deviceId ? { exact: deviceId } : undefined,
           sampleRate: this.options.frequency,
           channelCount: this.options.channels,
-          sampleSize: this.options.bitwidth
+          sampleSize: this.options.bitwidth,
+          echoCancellation: true,        // Cancelación de eco
+          noiseSuppression: true,        // Supresión de ruido
+          autoGainControl: true,            // Baja latencia
+          volume: 0.8                   // Reducir volumen del micrófono
         }
       };
 
@@ -92,12 +96,14 @@ class AudioRecorder {
 
       // Iniciar grabación
       this.mediaRecorder.start();
-      console.log(`Grabación iniciada por ${recordingDuration} segundos (solo micrófono)`);
+      console.log(`Grabación iniciada ${duration ? `por ${recordingDuration} segundos` : 'manualmente'} (solo micrófono)`);
 
-      // Configurar timeout para detener automáticamente
-      this.recordingTimeout = setTimeout(() => {
-        this.stop();
-      }, recordingDuration * 1000);
+      // Configurar timeout para detener automáticamente solo si hay duración
+      if (duration && duration > 0) {
+        this.recordingTimeout = setTimeout(() => {
+          this.stop();
+        }, recordingDuration * 1000);
+      }
 
     } catch (error) {
       console.error('Error al iniciar la grabación:', error);
@@ -279,12 +285,14 @@ class SystemAudioRecorder {
 
       // Iniciar grabación
       this.mediaRecorder.start();
-      console.log(`Grabación de audio del sistema iniciada por ${duration} segundos`);
+      console.log(`Grabación de audio del sistema iniciada ${duration ? `por ${duration} segundos` : 'manualmente'}`);
 
-      // Configurar timeout para detener automáticamente
-      this.recordingTimeout = setTimeout(() => {
-        this.stopSystemRecording();
-      }, duration * 1000);
+      // Configurar timeout para detener automáticamente solo si hay duración
+      if (duration && duration > 0) {
+        this.recordingTimeout = setTimeout(() => {
+          this.stopSystemRecording();
+        }, duration * 1000);
+      }
 
       return { success: true, message: 'Grabación del sistema iniciada' };
 
@@ -392,3 +400,303 @@ export async function recordSystemAudio(duration = 4) {
 
 // Exportar la nueva clase
 export { SystemAudioRecorder }; 
+
+// Nueva clase para grabación mezclada (micrófono + sistema)
+class MixedAudioRecorder {
+  constructor() {
+    this.audioRecorder = null;
+    this.systemRecorder = null;
+    this.isRecording = false;
+    this.recordingStartTime = null;
+    this.recordingTimeout = null;
+    this.onStopCallback = null;
+    this.microphoneAudioData = null;
+    this.systemAudioData = null;
+    this.audioContext = null;
+    this.recordingName = null; // Para guardar el nombre de la grabación
+  }
+
+  async startMixedRecording(deviceId = null, duration = 4) {
+    if (this.isRecording) {
+      console.log('Ya está grabando audio dual');
+      return;
+    }
+
+    try {
+      console.log('Iniciando grabación dual (micrófono + sistema por separado)...');
+      
+      this.isRecording = true;
+      this.recordingStartTime = Date.now();
+      this.microphoneAudioData = null;
+      this.systemAudioData = null;
+
+      // Crear contexto de audio
+      this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+      // Inicializar ambos grabadores
+      this.audioRecorder = new AudioRecorder();
+      this.systemRecorder = new SystemAudioRecorder();
+
+      // Configurar callbacks para cuando terminen las grabaciones
+      let completedRecordings = 0;
+      const totalRecordings = 2;
+
+      const checkCompletion = () => {
+        completedRecordings++;
+        console.log(`Grabación completada: ${completedRecordings}/${totalRecordings}`);
+        
+        if (completedRecordings === totalRecordings) {
+          console.log('Ambas grabaciones completadas, guardando archivos por separado...');
+          this.handleSeparateRecordingStop();
+        }
+      };
+
+      // Configurar callback para micrófono
+      this.audioRecorder.onStop((recordingData) => {
+        console.log('Grabación de micrófono completada');
+        this.microphoneAudioData = recordingData;
+        checkCompletion();
+      });
+
+      // Iniciar la grabación del sistema primero
+      console.log('Iniciando grabación del sistema...');
+      await this.systemRecorder.startSystemRecording(duration);
+      
+      // Configurar callback personalizado para sistema
+      if (this.systemRecorder.mediaRecorder) {
+        const originalOnStop = this.systemRecorder.mediaRecorder.onstop;
+        
+        this.systemRecorder.mediaRecorder.onstop = () => {
+          console.log('Grabación del sistema completada');
+          if (this.systemRecorder.audioChunks.length > 0) {
+            const audioBlob = new Blob(this.systemRecorder.audioChunks, { type: 'audio/webm;codecs=opus' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const duration = this.systemRecorder.recordingStartTime ? (Date.now() - this.systemRecorder.recordingStartTime) / 1000 : 0;
+            
+            this.systemAudioData = {
+              blob: audioBlob,
+              url: audioUrl,
+              duration: duration,
+              size: audioBlob.size,
+              timestamp: new Date().toISOString(),
+              type: 'system'
+            };
+          }
+          checkCompletion();
+        };
+      } else {
+        throw new Error('No se pudo inicializar la grabación del sistema');
+      }
+
+      // Iniciar la grabación del micrófono
+      console.log('Iniciando grabación del micrófono...');
+      await this.audioRecorder.start(deviceId, duration);
+      
+      console.log('Ambas grabaciones iniciadas correctamente');
+
+      // Solo configurar timeout si se especifica una duración
+      if (duration && duration > 0) {
+        this.recordingTimeout = setTimeout(() => {
+          this.stopMixedRecording();
+        }, duration * 1000);
+      }
+
+      return { success: true, message: 'Grabación dual iniciada' };
+
+    } catch (error) {
+      console.error('Error al iniciar la grabación dual:', error);
+      this.stopMixedRecording();
+      throw error;
+    }
+  }
+
+  stopMixedRecording() {
+    if (!this.isRecording) {
+      return;
+    }
+
+    try {
+      console.log('Deteniendo grabación dual...');
+      
+      if (this.recordingTimeout) {
+        clearTimeout(this.recordingTimeout);
+        this.recordingTimeout = null;
+      }
+
+      // Detener ambas grabaciones
+      if (this.audioRecorder) {
+        this.audioRecorder.stop();
+      }
+      
+      if (this.systemRecorder) {
+        this.systemRecorder.stopSystemRecording();
+      }
+
+      this.isRecording = false;
+      console.log('Grabación dual detenida');
+
+    } catch (error) {
+      console.error('Error al detener la grabación dual:', error);
+    }
+  }
+
+  async handleSeparateRecordingStop() {
+    try {
+      console.log('Procesando archivos de grabación separados...');
+      
+      if (!this.microphoneAudioData || !this.systemAudioData) {
+        throw new Error('Faltan datos de audio para guardar');
+      }
+
+      const timestamp = new Date().toISOString();
+      const folderName = this.recordingName || `grabacion_${timestamp.replace(/[:.]/g, '-')}`;
+
+      // Guardar ambos archivos en la misma carpeta
+      const results = await Promise.all([
+        this.saveSeparateAudioFile(this.microphoneAudioData.blob, folderName, 'microphone'),
+        this.saveSeparateAudioFile(this.systemAudioData.blob, folderName, 'system')
+      ]);
+
+      const recordingData = {
+        success: true,
+        folderName: folderName,
+        files: {
+          microphone: results[0],
+          system: results[1]
+        },
+        duration: Math.max(this.microphoneAudioData.duration, this.systemAudioData.duration),
+        timestamp: timestamp,
+        type: 'separate'
+      };
+
+      console.log('Grabación dual completada:', recordingData);
+      
+      if (this.onStopCallback) {
+        this.onStopCallback(recordingData);
+      }
+
+      // Limpiar recursos
+      this.cleanup();
+
+    } catch (error) {
+      console.error('Error al guardar archivos separados:', error);
+      if (this.onStopCallback) {
+        this.onStopCallback({ error: error.message });
+      }
+      this.cleanup();
+    }
+  }
+
+  async saveSeparateAudioFile(audioBlob, folderName, audioType) {
+    // Usar la API de Electron para guardar archivos separados
+    if (window.electronAPI && window.electronAPI.saveSeparateAudio) {
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const fileName = `${folderName}-${audioType}.webm`;
+      
+      console.log(`Guardando archivo de ${audioType}:`, fileName);
+      const result = await window.electronAPI.saveSeparateAudio(uint8Array, folderName, fileName);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      console.log(`Archivo de ${audioType} guardado exitosamente en:`, result.filePath);
+      return result;
+    } else {
+      throw new Error('API de Electron no disponible para guardar archivos separados');
+    }
+  }
+
+  // Nuevo método para detener y guardar con nombre personalizado
+  async stopAndSave(customFolderName) {
+    if (!this.isRecording) {
+      throw new Error('No hay grabación activa');
+    }
+
+    // Guardar el nombre personalizado para usar en handleSeparateRecordingStop
+    this.recordingName = customFolderName;
+
+    return new Promise((resolve, reject) => {
+      // Configurar callback temporal para manejar el guardado personalizado
+      const originalCallback = this.onStopCallback;
+      
+      this.onStopCallback = async (recordingData) => {
+        try {
+          if (recordingData.error) {
+            reject(new Error(recordingData.error));
+            return;
+          }
+
+          // Restaurar callback original si existía
+          this.onStopCallback = originalCallback;
+          
+          resolve(recordingData);
+          
+          // Llamar al callback original si existía
+          if (originalCallback) {
+            originalCallback(recordingData);
+          }
+        } catch (error) {
+          this.onStopCallback = originalCallback;
+          reject(error);
+        }
+      };
+
+      // Detener la grabación
+      this.stopMixedRecording();
+    });
+  }
+
+  cleanup() {
+    // Limpiar recursos
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
+    
+    this.audioRecorder = null;
+    this.systemRecorder = null;
+    this.microphoneAudioData = null;
+    this.systemAudioData = null;
+  }
+
+  // Métodos para configurar callbacks
+  onStop(callback) {
+    this.onStopCallback = callback;
+  }
+
+  // Método para obtener estadísticas
+  getStats() {
+    if (!this.isRecording) return null;
+    
+    const elapsedTime = (Date.now() - this.recordingStartTime) / 1000;
+    
+    return {
+      elapsedTime: elapsedTime.toFixed(2),
+      isRecording: this.isRecording,
+      type: 'mixed'
+    };
+  }
+}
+
+// Función de conveniencia para grabación dual (archivos separados)
+export async function recordMixedAudio(deviceId = null, duration = 4) {
+  const recorder = new MixedAudioRecorder();
+  
+  return new Promise((resolve, reject) => {
+    recorder.onStop((recordingData) => {
+      if (recordingData.error) {
+        reject(new Error(recordingData.error));
+      } else {
+        resolve(recordingData);
+      }
+    });
+
+    recorder.startMixedRecording(deviceId, duration).catch(reject);
+  });
+}
+
+// Exportar la clase con el nuevo nombre más descriptivo
+export { MixedAudioRecorder as DualAudioRecorder };
+
+// Mantener la exportación original para compatibilidad
+export { MixedAudioRecorder }; 

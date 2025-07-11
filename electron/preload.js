@@ -22,4 +22,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // Nueva función para guardar audio del sistema
   saveSystemAudio: (audioData, fileName) => ipcRenderer.invoke('save-system-audio', audioData, fileName),
+  
+  // Nueva función para guardar audios por separado en carpetas
+  saveSeparateAudio: (audioData, folderName, fileName) => ipcRenderer.invoke('save-separate-audio', audioData, folderName, fileName),
+
+  // NUEVAS FUNCIONES para gestión de grabaciones
+  // Obtener todas las carpetas de grabación
+  getRecordingFolders: () => ipcRenderer.invoke('get-recording-folders'),
+  
+  // Obtener transcripción de una grabación específica
+  getTranscription: (recordingId) => ipcRenderer.invoke('get-transcription', recordingId),
+  
+  // Eliminar una grabación completa
+  deleteRecording: (recordingId) => ipcRenderer.invoke('delete-recording', recordingId),
+  
+  // Descargar/exportar una grabación
+  downloadRecording: (recordingId) => ipcRenderer.invoke('download-recording', recordingId),
+
+  // Lanzar transcripción de una grabación
+  transcribeRecording: (recordingId) => ipcRenderer.invoke('transcribe-recording', recordingId),
 }); 
