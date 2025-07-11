@@ -3,6 +3,11 @@ const { app, BrowserWindow, ipcMain, systemPreferences, desktopCapturer, session
 const path = require('path');
 const fs = require('fs');
 const AudioRecorder = require('./audioRecorder');
+const { spawn } = require('child_process');
+
+// Estado global para evitar transcripciones simultáneas
+let isTranscribing = false;
+let currentTranscribingId = null;
 
 // Verificar permisos de micrófono al inicio
 function checkMicrophonePermission() {
@@ -210,6 +215,194 @@ ipcMain.handle('save-system-audio', async (event, audioData, fileName) => {
     return { success: true, filePath, message: `Archivo guardado en ${filePath}` };
   } catch (error) {
     console.error('Error saving system audio:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Manejador para guardar audios por separado en carpetas
+ipcMain.handle('save-separate-audio', async (event, audioData, folderName, fileName) => {
+  try {
+    const baseOutputDir = '/Users/raul.garciad/Desktop/recorder';
+    const recordingDir = path.join(baseOutputDir, folderName);
+    
+    // Crear el directorio base si no existe
+    if (!fs.existsSync(baseOutputDir)) {
+      fs.mkdirSync(baseOutputDir, { recursive: true });
+    }
+    
+    // Crear el directorio de la grabación específica si no existe
+    if (!fs.existsSync(recordingDir)) {
+      fs.mkdirSync(recordingDir, { recursive: true });
+    }
+    
+    const filePath = path.join(recordingDir, fileName);
+    
+    // Convertir Uint8Array a Buffer y guardar
+    const buffer = Buffer.from(audioData);
+    await fs.promises.writeFile(filePath, buffer);
+    
+    console.log(`Audio separado guardado en: ${filePath}`);
+    return { success: true, filePath, folderPath: recordingDir, message: `Archivo guardado en ${filePath}` };
+  } catch (error) {
+    console.error('Error saving separate audio:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// NUEVOS HANDLERS para gestión de grabaciones
+
+// Obtener todas las carpetas de grabación con metadata
+ipcMain.handle('get-recording-folders', async () => {
+  try {
+    const baseOutputDir = '/Users/raul.garciad/Desktop/recorder';
+    
+    if (!fs.existsSync(baseOutputDir)) {
+      return { success: true, folders: [] };
+    }
+    
+    const items = await fs.promises.readdir(baseOutputDir);
+    const folders = [];
+    
+    for (const item of items) {
+      const itemPath = path.join(baseOutputDir, item);
+      const stats = await fs.promises.stat(itemPath);
+      
+      if (stats.isDirectory()) {
+        // Verificar si tiene archivos de audio
+        const folderContents = await fs.promises.readdir(itemPath);
+        const audioFiles = folderContents.filter(file => 
+          file.endsWith('.webm') || file.endsWith('.wav') || file.endsWith('.mp3')
+        );
+        
+        // Verificar si tiene análisis (carpeta analysis con transcripción)
+        const analysisPath = path.join(itemPath, 'analysis');
+        const hasAnalysis = fs.existsSync(analysisPath) && 
+          fs.existsSync(path.join(analysisPath, 'transcripcion_combinada.json'));
+        
+        if (audioFiles.length > 0) {
+          folders.push({
+            name: item,
+            path: itemPath,
+            createdAt: stats.birthtime.toISOString(),
+            modifiedAt: stats.mtime.toISOString(),
+            files: audioFiles,
+            hasAnalysis: hasAnalysis
+          });
+        }
+      }
+    }
+    
+    // Ordenar por fecha de creación (más recientes primero)
+    folders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    return { success: true, folders };
+  } catch (error) {
+    console.error('Error getting recording folders:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Obtener transcripción de una grabación específica
+ipcMain.handle('get-transcription', async (event, recordingId) => {
+  try {
+    const transcriptionPath = path.join(
+      '/Users/raul.garciad/Desktop/recorder',
+      recordingId,
+      'analysis',
+      'transcripcion_combinada.json'
+    );
+    
+    if (!fs.existsSync(transcriptionPath)) {
+      return { success: false, error: 'Transcripción no encontrada' };
+    }
+    
+    const transcriptionData = await fs.promises.readFile(transcriptionPath, 'utf8');
+    const transcription = JSON.parse(transcriptionData);
+    
+    return { success: true, transcription };
+  } catch (error) {
+    console.error('Error getting transcription:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Eliminar una grabación completa (carpeta y contenido)
+ipcMain.handle('delete-recording', async (event, recordingId) => {
+  try {
+    const recordingPath = path.join('/Users/raul.garciad/Desktop/recorder', recordingId);
+    
+    if (!fs.existsSync(recordingPath)) {
+      return { success: false, error: 'Grabación no encontrada' };
+    }
+    
+    // Eliminar recursivamente toda la carpeta
+    await fs.promises.rm(recordingPath, { recursive: true, force: true });
+    
+    console.log(`Grabación eliminada: ${recordingPath}`);
+    return { success: true, message: 'Grabación eliminada correctamente' };
+  } catch (error) {
+    console.error('Error deleting recording:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Descargar/exportar una grabación (abrir en Finder)
+ipcMain.handle('download-recording', async (event, recordingId) => {
+  try {
+    const recordingPath = path.join('/Users/raul.garciad/Desktop/recorder', recordingId);
+    
+    if (!fs.existsSync(recordingPath)) {
+      return { success: false, error: 'Grabación no encontrada' };
+    }
+    
+    // En macOS, abrir la carpeta en Finder
+    const { shell } = require('electron');
+    await shell.openPath(recordingPath);
+    
+    console.log(`Abriendo carpeta en Finder: ${recordingPath}`);
+    return { success: true, message: 'Carpeta abierta en Finder' };
+  } catch (error) {
+    console.error('Error opening recording folder:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('transcribe-recording', async (event, recordingId) => {
+  if (isTranscribing) {
+    return { success: false, error: 'Ya hay una transcripción en curso', inProgress: true, currentTranscribingId };
+  }
+  isTranscribing = true;
+  currentTranscribingId = recordingId;
+  try {
+    const scriptPath = path.join(__dirname, '../audio_sync_analyzer.py');
+    // Usa el Python del entorno virtual
+    const pythonPath = '/Users/raul.garciad/Proyectos/personal/airecorder/venv/bin/python';
+
+    await new Promise((resolve, reject) => {
+      const py = spawn(
+        pythonPath,
+        [
+          scriptPath,
+          '--basename', recordingId
+        ]
+      );
+      py.stdout.on('data', (data) => {
+        console.log(`[Transcripción][stdout]: ${data}`);
+      });
+      py.stderr.on('data', (data) => {
+        console.error(`[Transcripción][stderr]: ${data}`);
+      });
+      py.on('close', (code) => {
+        if (code === 0) resolve();
+        else reject(new Error('El script terminó con código ' + code));
+      });
+    });
+    isTranscribing = false;
+    currentTranscribingId = null;
+    return { success: true };
+  } catch (error) {
+    isTranscribing = false;
+    currentTranscribingId = null;
     return { success: false, error: error.message };
   }
 });

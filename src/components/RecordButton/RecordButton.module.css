@@ -1,29 +1,95 @@
-.recordBtn {
-  position: fixed;
-  left: 50%;
-  bottom: 2.5rem;
-  transform: translateX(-50%);
-  background: #e53935;
-  color: #fff;
-  border: none;
-  border-radius: 2rem;
-  padding: 1rem 2.5rem;
-  font-size: 1.3rem;
-  font-weight: 600;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.controls {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: 1rem;
+}
+
+.recordButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 50px;
+  font-size: 1.1rem;
+  font-weight: 600;
   cursor: pointer;
-  z-index: 1000;
-  transition: background 0.2s;
+  transition: all 0.3s ease;
+  color: white;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
-.recordBtn:hover {
-  background: #b71c1c;
+
+.recordButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
 }
-.recordBtn.active {
-  background: #b71c1c;
+
+.recordButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
 }
-.icon {
-  font-size: 1.5rem;
+
+.start {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+}
+
+.start:hover:not(:disabled) {
+  background: linear-gradient(135deg, #c82333, #a71e2a);
+}
+
+.recordIcon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: white;
+  position: relative;
+}
+
+.recordIcon::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #dc3545;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+.error {
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  border-radius: 10px;
+  font-weight: 500;
+  text-align: center;
+  margin-top: 1rem;
+  box-shadow: 0 2px 10px rgba(220, 53, 69, 0.2);
 } 

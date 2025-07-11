@@ -1,0 +1,252 @@
+/* Contenedor principal */
+.container {
+  width: 100%;
+  height: 100vh;
+  background: #1a0e0f;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header con título y estadísticas */
+.header {
+  background: #2a1719;
+  padding: 1.5rem;
+  border-bottom: 1px solid #472426;
+  flex-shrink: 0;
+}
+
+.title {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 1rem 0;
+}
+
+.stats {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.stat {
+  color: #cbbebe;
+  font-size: 0.9rem;
+  background: #331a1b;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  border: 1px solid #472426;
+}
+
+/* Área de conversación */
+.conversation {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  scrollbar-width: thin;
+  scrollbar-color: #663336 #2a1719;
+}
+
+.conversation::-webkit-scrollbar {
+  width: 6px;
+}
+
+.conversation::-webkit-scrollbar-track {
+  background: #2a1719;
+}
+
+.conversation::-webkit-scrollbar-thumb {
+  background: #663336;
+  border-radius: 3px;
+}
+
+.conversation::-webkit-scrollbar-thumb:hover {
+  background: #8b4449;
+}
+
+/* Mensajes */
+.message {
+  max-width: 80%;
+  padding: 1rem;
+  border-radius: 12px;
+  margin-bottom: 0.5rem;
+  animation: fadeIn 0.3s ease-in;
+  position: relative;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mensajes del micrófono (izquierda - usuario) */
+.message.microphone {
+  align-self: flex-start;
+  background: #2a4a5c;
+  border: 1px solid #3a5a6c;
+  border-bottom-left-radius: 4px;
+}
+
+.message.microphone::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -8px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 8px 8px 0;
+  border-color: transparent #2a4a5c transparent transparent;
+}
+
+/* Mensajes del sistema (derecha - otros participantes) */
+.message.system {
+  align-self: flex-end;
+  background: #4a2a3c;
+  border: 1px solid #6a3a4c;
+  border-bottom-right-radius: 4px;
+}
+
+.message.system::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: -8px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 0 8px 8px;
+  border-color: transparent transparent #4a2a3c transparent;
+}
+
+/* Header del mensaje */
+.messageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.speaker {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.message.microphone .speaker {
+  color: #8cc8ff;
+}
+
+.message.system .speaker {
+  color: #ff8cc8;
+}
+
+.timestamp {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.75rem;
+  font-family: 'Courier New', monospace;
+}
+
+/* Texto del mensaje */
+.messageText {
+  color: #fff;
+  line-height: 1.5;
+  font-size: 1rem;
+  word-wrap: break-word;
+}
+
+/* Estados de carga y error */
+.loading, .error, .noTranscription {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: #cbbebe;
+  padding: 2rem;
+}
+
+.loading .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #472426;
+  border-top: 3px solid #663336;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error {
+  color: #ff6b6b;
+}
+
+.error h3 {
+  color: #ff8585;
+  margin-bottom: 1rem;
+}
+
+.noTranscription h3 {
+  color: #fff;
+  margin-bottom: 1rem;
+}
+
+.noTranscription p {
+  margin-bottom: 0.5rem;
+  max-width: 400px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .message {
+    max-width: 95%;
+  }
+  
+  .stats {
+    gap: 1rem;
+  }
+  
+  .stat {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+  }
+  
+  .header {
+    padding: 1rem;
+  }
+  
+  .title {
+    font-size: 1.3rem;
+  }
+}
+
+/* Hover effects para mejor UX */
+.message:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.message.microphone:hover {
+  border-color: #4a6a7c;
+}
+
+.message.system:hover {
+  border-color: #7a4a5c;
+} 

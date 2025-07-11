@@ -1,20 +1,59 @@
+/* Contenedor principal */
+.container {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #1a0e0f;
+}
+
+/* Lista de grabaciones */
 .list {
   margin-top: 0;
   width: 100%;
   max-width: 700px;
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
 }
+
+.listHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
 .title {
   color: #fff;
   font-size: 1.5rem;
-  margin-bottom: 2rem;
+  margin: 0;
   font-weight: 700;
   text-align: left;
 }
-ul {
+
+.refreshButton {
+  background: #472426;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.refreshButton:hover {
+  background: #663336;
+}
+
+/* Lista de grabaciones */
+.recordingsList {
   list-style: none;
   padding: 0;
   margin: 0;
 }
+
 .item {
   display: flex;
   align-items: center;
@@ -23,15 +62,19 @@ ul {
   padding: 0.7rem 1.5rem;
   margin-bottom: 1.2rem;
   gap: 1.5rem;
-  transition: background 0.2s;
+  transition: all 0.2s;
   cursor: pointer;
   min-width: 500px;
   max-width: 700px;
   width: 100%;
 }
+
 .item:hover {
   background: #5a3535;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
+
 .icon {
   background: #2a1919;
   border-radius: 8px;
@@ -42,7 +85,9 @@ ul {
   justify-content: center;
   font-size: 1.6rem;
   color: #fff;
+  flex-shrink: 0;
 }
+
 .info {
   flex: 1;
   color: #fff;
@@ -51,39 +96,40 @@ ul {
   justify-content: center;
   min-width: 0;
 }
+
 .name {
   font-weight: 500;
   font-size: 1.1rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-bottom: 0.2rem;
 }
+
 .date {
   font-size: 0.95rem;
   color: #cbbebe;
+  margin-bottom: 0.2rem;
+}
+
+.transcriptionBadge {
+  font-size: 0.8rem;
+  color: #8cc8ff;
+  background: rgba(140, 200, 255, 0.1);
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(140, 200, 255, 0.3);
+  width: fit-content;
 }
 
 .actions {
   display: flex;
   gap: 0.5rem;
   margin-left: 1.5rem;
+  flex-shrink: 0;
 }
 
-.download {
-  background: none;
-  border: none;
-  color: #fff;
-  font-size: 1.4rem;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 50%;
-  transition: background 0.2s;
-}
-.download:hover {
-  background: #2a1919;
-}
-
-.delete {
+.download, .delete {
   background: none;
   border: none;
   color: #fff;
@@ -93,12 +139,135 @@ ul {
   border-radius: 50%;
   transition: all 0.2s;
 }
+
+.download:hover {
+  background: #2a1919;
+}
+
 .delete:hover {
   background: #8b2635;
   color: #ff6b6b;
 }
 
-/* Modal styles */
+/* Estados de carga y error */
+.loading, .error, .noRecordings {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  text-align: center;
+  color: #cbbebe;
+  padding: 2rem;
+}
+
+.loading .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #472426;
+  border-top: 3px solid #663336;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error {
+  color: #ff6b6b;
+}
+
+.error p {
+  margin-bottom: 1rem;
+}
+
+.retryButton {
+  background: #663336;
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.2s;
+}
+
+.retryButton:hover {
+  background: #8b4449;
+}
+
+.noRecordings h3 {
+  color: #fff;
+  margin-bottom: 1rem;
+}
+
+.noRecordings p {
+  max-width: 400px;
+}
+
+/* Vista de transcripción */
+.transcriptionContainer {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #1a0e0f;
+}
+
+.transcriptionHeader {
+  background: #2a1719;
+  padding: 1.5rem;
+  border-bottom: 1px solid #472426;
+  flex-shrink: 0;
+}
+
+.backButton {
+  background: #472426;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  transition: background 0.2s;
+}
+
+.backButton:hover {
+  background: #663336;
+}
+
+.recordingTitle {
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+}
+
+.recordingInfo {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.recordingDate {
+  color: #cbbebe;
+  font-size: 0.9rem;
+}
+
+.hasTranscription {
+  font-size: 0.8rem;
+  color: #8cc8ff;
+  background: rgba(140, 200, 255, 0.1);
+  padding: 0.25rem 0.75rem;
+  border-radius: 15px;
+  border: 1px solid rgba(140, 200, 255, 0.3);
+}
+
+/* Modal styles (mantenidos de la versión original) */
 .modalOverlay {
   position: fixed;
   top: 0;
@@ -210,4 +379,41 @@ ul {
   background: #7a4a4c;
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .item {
+    min-width: auto;
+    max-width: none;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .actions {
+    margin-left: 0;
+    align-self: flex-end;
+  }
+  
+  .listHeader {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .transcriptionHeader {
+    padding: 1rem;
+  }
+  
+  .recordingTitle {
+    font-size: 1.1rem;
+  }
+  
+  .recordingInfo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
 } 
