@@ -41,4 +41,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Lanzar transcripción de una grabación
   transcribeRecording: (recordingId) => ipcRenderer.invoke('transcribe-recording', recordingId),
+
+  // Obtener transcripción en texto plano de una grabación específica
+  getTranscriptionTxt: (recordingId) => ipcRenderer.invoke('get-transcription-txt', recordingId),
+
+  // Guardar y leer resumen de Gemini
+  saveGeminiSummary: (recordingId, summaryJson) => ipcRenderer.invoke('save-gemini-summary', recordingId, summaryJson),
+  getGeminiSummary: (recordingId) => ipcRenderer.invoke('get-gemini-summary', recordingId),
+  // Guardar y leer histórico de preguntas
+  saveQuestionHistory: (recordingId, qa) => ipcRenderer.invoke('save-question-history', recordingId, qa),
+  getQuestionHistory: (recordingId) => ipcRenderer.invoke('get-question-history', recordingId),
+  // Guardar y leer participantes
+  saveParticipants: (recordingId, participants) => ipcRenderer.invoke('save-participants', recordingId, participants),
+  getParticipants: (recordingId) => ipcRenderer.invoke('get-participants', recordingId),
 }); 

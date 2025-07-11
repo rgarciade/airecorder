@@ -326,6 +326,26 @@ ipcMain.handle('get-transcription', async (event, recordingId) => {
   }
 });
 
+// Obtener transcripción de una grabación específica (texto plano)
+ipcMain.handle('get-transcription-txt', async (event, recordingId) => {
+  try {
+    const txtPath = path.join(
+      '/Users/raul.garciad/Desktop/recorder',
+      recordingId,
+      'analysis',
+      'transcripcion_combinada.txt'
+    );
+    if (!fs.existsSync(txtPath)) {
+      return { success: false, error: 'Archivo TXT no encontrado' };
+    }
+    const txtData = await fs.promises.readFile(txtPath, 'utf8');
+    return { success: true, text: txtData };
+  } catch (error) {
+    console.error('Error leyendo TXT de transcripción:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // Eliminar una grabación completa (carpeta y contenido)
 ipcMain.handle('delete-recording', async (event, recordingId) => {
   try {
@@ -403,6 +423,138 @@ ipcMain.handle('transcribe-recording', async (event, recordingId) => {
   } catch (error) {
     isTranscribing = false;
     currentTranscribingId = null;
+    return { success: false, error: error.message };
+  }
+});
+
+// Guardar resumen de Gemini
+ipcMain.handle('save-gemini-summary', async (event, recordingId, summaryJson) => {
+  try {
+    const summaryPath = path.join(
+      '/Users/raul.garciad/Desktop/recorder',
+      recordingId,
+      'analysis',
+      'gemini_summary.json'
+    );
+    // Crear la carpeta analysis si no existe
+    const analysisDir = path.dirname(summaryPath);
+    if (!fs.existsSync(analysisDir)) {
+      fs.mkdirSync(analysisDir, { recursive: true });
+    }
+    await fs.promises.writeFile(summaryPath, JSON.stringify(summaryJson, null, 2), 'utf8');
+    console.log(`[Gemini] Resumen guardado en: ${summaryPath}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error guardando resumen Gemini:', error);
+    return { success: false, error: error.message };
+  }
+});
+// Leer resumen de Gemini
+ipcMain.handle('get-gemini-summary', async (event, recordingId) => {
+  try {
+    const summaryPath = path.join(
+      '/Users/raul.garciad/Desktop/recorder',
+      recordingId,
+      'analysis',
+      'gemini_summary.json'
+    );
+    if (!fs.existsSync(summaryPath)) {
+      return { success: false, error: 'No existe resumen Gemini' };
+    }
+    const data = await fs.promises.readFile(summaryPath, 'utf8');
+    return { success: true, summary: JSON.parse(data) };
+  } catch (error) {
+    console.error('Error leyendo resumen Gemini:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Guardar pregunta/respuesta en el histórico
+ipcMain.handle('save-question-history', async (event, recordingId, qa) => {
+  try {
+    const historyPath = path.join(
+      '/Users/raul.garciad/Desktop/recorder',
+      recordingId,
+      'analysis',
+      'questions_history.json'
+    );
+    // Crear la carpeta analysis si no existe
+    const analysisDir = path.dirname(historyPath);
+    if (!fs.existsSync(analysisDir)) {
+      fs.mkdirSync(analysisDir, { recursive: true });
+    }
+    let history = [];
+    if (fs.existsSync(historyPath)) {
+      const data = await fs.promises.readFile(historyPath, 'utf8');
+      history = JSON.parse(data);
+    }
+    history.push(qa);
+    await fs.promises.writeFile(historyPath, JSON.stringify(history, null, 2), 'utf8');
+    console.log(`[Gemini] Pregunta/Respuesta guardada en: ${historyPath}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error guardando histórico de preguntas:', error);
+    return { success: false, error: error.message };
+  }
+});
+// Leer histórico de preguntas
+ipcMain.handle('get-question-history', async (event, recordingId) => {
+  try {
+    const historyPath = path.join(
+      '/Users/raul.garciad/Desktop/recorder',
+      recordingId,
+      'analysis',
+      'questions_history.json'
+    );
+    if (!fs.existsSync(historyPath)) {
+      return { success: true, history: [] };
+    }
+    const data = await fs.promises.readFile(historyPath, 'utf8');
+    return { success: true, history: JSON.parse(data) };
+  } catch (error) {
+    console.error('Error leyendo histórico de preguntas:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Guardar participantes
+ipcMain.handle('save-participants', async (event, recordingId, participants) => {
+  try {
+    const participantsPath = path.join(
+      '/Users/raul.garciad/Desktop/recorder',
+      recordingId,
+      'analysis',
+      'participants.json'
+    );
+    // Crear la carpeta analysis si no existe
+    const analysisDir = path.dirname(participantsPath);
+    if (!fs.existsSync(analysisDir)) {
+      fs.mkdirSync(analysisDir, { recursive: true });
+    }
+    await fs.promises.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
+    console.log(`[Meeting] Participantes guardados en: ${participantsPath}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error guardando participantes:', error);
+    return { success: false, error: error.message };
+  }
+});
+// Leer participantes
+ipcMain.handle('get-participants', async (event, recordingId) => {
+  try {
+    const participantsPath = path.join(
+      '/Users/raul.garciad/Desktop/recorder',
+      recordingId,
+      'analysis',
+      'participants.json'
+    );
+    if (!fs.existsSync(participantsPath)) {
+      return { success: true, participants: [] };
+    }
+    const data = await fs.promises.readFile(participantsPath, 'utf8');
+    return { success: true, participants: JSON.parse(data) };
+  } catch (error) {
+    console.error('Error leyendo participantes:', error);
     return { success: false, error: error.message };
   }
 });

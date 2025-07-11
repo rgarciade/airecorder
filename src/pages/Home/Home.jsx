@@ -2,9 +2,11 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import RecordingList from '../../components/RecordingList/RecordingList';
 import RecordButton from '../../components/RecordButton/RecordButton';
+import { useRef } from 'react';
 
 export default function Home({ onSettings, onRecordingStart, onRecordingSelect }) {
   const { isRecording } = useSelector((state) => state.recording);
+  const recordingListRef = useRef();
 
   return (
     <div
@@ -43,16 +45,14 @@ export default function Home({ onSettings, onRecordingStart, onRecordingSelect }
           ></div>
         </div>
       </header>
-      <main className="flex flex-col items-center justify-center flex-1 p-8">
-        <h1 className="text-white text-4xl font-bold mb-8">Record your meetings</h1>
-        
-        {/* Componente RecordButton simplificado */}
-        <div className="mb-12">
+      <main className="flex flex-col flex-1 p-8 items-center">
+        <h1 className="text-white text-4xl font-bold mb-2 text-center w-full">Record your meetings</h1>
+        <p className="text-[#cbbebe] text-lg mb-8 max-w-2xl text-center w-full">Capture every detail of your conversations and get instant transcriptions.<br/>Focus on the conversation, we'll take care of the notes.</p>
+        <div className="mb-12 flex justify-center w-full">
           <RecordButton onRecordingStart={onRecordingStart} />
         </div>
-
-        <div className="w-full max-w-2xl flex justify-center">
-          <RecordingList onRecordingSelect={onRecordingSelect} />
+        <div className="w-full max-w-3xl flex justify-start pl-8">
+          <RecordingList ref={recordingListRef} onRecordingSelect={onRecordingSelect} />
         </div>
       </main>
     </div>

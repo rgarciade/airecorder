@@ -13,6 +13,7 @@ export default function Settings({ onBack }) {
   const [selectedMicrophone, setSelectedMicrophone] = useState('');
   const [microphones, setMicrophones] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [geminiApiKey, setGeminiApiKey] = useState('');
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -27,6 +28,7 @@ export default function Settings({ onBack }) {
         if (savedSettings) {
           setSelectedLanguage(savedSettings.language || '');
           setSelectedMicrophone(savedSettings.microphone || (systemMicrophones.length > 0 ? systemMicrophones[0].value : ''));
+          setGeminiApiKey(savedSettings.geminiApiKey || '');
         } else if (systemMicrophones.length > 0) {
           setSelectedMicrophone(systemMicrophones[0].value);
         }
@@ -43,11 +45,12 @@ export default function Settings({ onBack }) {
   // Guardar configuración cuando cambia
   useEffect(() => {
     const saveSettings = async () => {
-      if (selectedLanguage || selectedMicrophone) {
+      if (selectedLanguage || selectedMicrophone || geminiApiKey) {
         try {
           await updateSettings({
             language: selectedLanguage,
-            microphone: selectedMicrophone
+            microphone: selectedMicrophone,
+            geminiApiKey: geminiApiKey
           });
         } catch (error) {
           console.error('Error saving settings:', error);
@@ -56,7 +59,7 @@ export default function Settings({ onBack }) {
     };
 
     saveSettings();
-  }, [selectedLanguage, selectedMicrophone]);
+  }, [selectedLanguage, selectedMicrophone, geminiApiKey]);
 
   return (
     <div
@@ -142,6 +145,19 @@ export default function Settings({ onBack }) {
                   </option>
                 ))}
               </select>
+            </label>
+          </div>
+          <h3 className="text-white text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Gemini</h3>
+          <div className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
+            <label className="flex flex-col min-w-40 flex-1">
+              <p className="text-white text-base font-medium leading-normal pb-2">Gemini API Key</p>
+              <input
+                type="text"
+                value={geminiApiKey}
+                onChange={e => setGeminiApiKey(e.target.value)}
+                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#663336] bg-[#331a1b] focus:border-[#663336] h-14 placeholder:text-[#c89295] p-[15px] text-base font-normal leading-normal"
+                placeholder="Introduce tu Gemini API Key"
+              />
             </label>
           </div>
         </div>

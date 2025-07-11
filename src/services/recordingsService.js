@@ -74,6 +74,28 @@ class RecordingsService {
   }
 
   /**
+   * Obtiene la transcripción combinada en texto plano de una grabación específica
+   * @param {string} recordingId - ID de la grabación
+   * @returns {Promise<string|null>} Texto plano o null si no existe
+   */
+  async getTranscriptionTxt(recordingId) {
+    try {
+      if (!window.electronAPI?.getTranscriptionTxt) {
+        throw new Error('API de Electron no disponible');
+      }
+      const result = await window.electronAPI.getTranscriptionTxt(recordingId);
+      if (!result.success) {
+        console.warn(`No se encontró TXT para ${recordingId}:`, result.error);
+        return null;
+      }
+      return result.text;
+    } catch (error) {
+      console.error('Error obteniendo TXT de transcripción:', error);
+      return null;
+    }
+  }
+
+  /**
    * Elimina una grabación completa (carpeta y análisis)
    * @param {string} recordingId - ID de la grabación a eliminar
    * @returns {Promise<boolean>} True si se eliminó correctamente
@@ -197,6 +219,94 @@ class RecordingsService {
       system: systemSegments,
       all: segments.sort((a, b) => a.startTime - b.startTime)
     };
+  }
+
+  /**
+   * Guarda el resumen de Gemini en la carpeta de análisis
+   */
+  async saveGeminiSummary(recordingId, summaryJson) {
+    try {
+      if (!window.electronAPI?.saveGeminiSummary) throw new Error('API de Electron no disponible');
+      console.log('summaryJson', summaryJson);
+      const result = await window.electronAPI.saveGeminiSummary(recordingId, summaryJson);
+      return result.success;
+    } catch (error) {
+      console.error('Error guardando resumen Gemini:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Lee el resumen de Gemini de la carpeta de análisis
+   */
+  async getGeminiSummary(recordingId) {
+    try {
+      if (!window.electronAPI?.getGeminiSummary) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.getGeminiSummary(recordingId);
+      if (!result.success) return null;
+      return result.summary;
+    } catch (error) {
+      console.error('Error leyendo resumen Gemini:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Guarda una pregunta/respuesta en el histórico
+   */
+  async saveQuestionHistory(recordingId, qa) {
+    try {
+      if (!window.electronAPI?.saveQuestionHistory) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.saveQuestionHistory(recordingId, qa);
+      return result.success;
+    } catch (error) {
+      console.error('Error guardando histórico de preguntas:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Lee el histórico de preguntas y respuestas
+   */
+  async getQuestionHistory(recordingId) {
+    try {
+      if (!window.electronAPI?.getQuestionHistory) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.getQuestionHistory(recordingId);
+      if (!result.success) return [];
+      return result.history;
+    } catch (error) {
+      console.error('Error leyendo histórico de preguntas:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Guarda los participantes de la reunión
+   */
+  async saveParticipants(recordingId, participants) {
+    try {
+      if (!window.electronAPI?.saveParticipants) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.saveParticipants(recordingId, participants);
+      return result.success;
+    } catch (error) {
+      console.error('Error guardando participantes:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Lee los participantes de la reunión
+   */
+  async getParticipants(recordingId) {
+    try {
+      if (!window.electronAPI?.getParticipants) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.getParticipants(recordingId);
+      if (!result.success) return [];
+      return result.participants;
+    } catch (error) {
+      console.error('Error leyendo participantes:', error);
+      return [];
+    }
   }
 }
 
