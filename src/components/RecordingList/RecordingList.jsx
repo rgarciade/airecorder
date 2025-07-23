@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styles from './RecordingList.module.css';
+import { Clapperboard, Download, Trash2 } from 'lucide-react';
 
 // Modal de confirmación para borrar grabación
 function DeleteConfirmationModal({ recording, isOpen, onClose, onConfirm }) {
@@ -81,7 +82,7 @@ export default function RecordingList({ recordings = [], onDownload, onSelect, o
       <ul>
         {recordings.map((rec) => (
           <li key={rec.id} className={styles.item}>
-            <div className={styles.icon}><span role="img" aria-label="recording">🎬</span></div>
+            <div className={styles.icon}><Clapperboard size={24} /></div>
             <div className={styles.info} onClick={() => onSelect(rec)}>
               <div className={styles.name}>{rec.name}</div>
               <div className={styles.date}>{rec.date}</div>
@@ -91,14 +92,14 @@ export default function RecordingList({ recordings = [], onDownload, onSelect, o
                 e.stopPropagation();
                 onDownload(rec);
               }}>
-                <span role="img" aria-label="download">⬇️</span>
+                <Download size={20} />
               </button>
               <button 
                 className={styles.delete} 
                 onClick={(e) => handleDeleteClick(e, rec)}
                 title="Eliminar grabación"
               >
-                <span role="img" aria-label="delete">🗑️</span>
+                <Trash2 size={20} />
               </button>
             </div>
           </li>
