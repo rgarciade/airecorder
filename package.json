@@ -8,11 +8,36 @@
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "electron:dev": "NODE_ENV=development electron ."
+    "electron:dev": "NODE_ENV=development electron .",
+    "electron:build": "vite build && electron-builder --mac",
+    "electron:build:dir": "vite build && electron-builder --mac --dir"
   },
+  "build": {
+    "appId": "com.airecorder.app",
+    "productName": "AIRecorder",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.icns"
+    }
+  },
+  "description": "AI-powered audio recorder and transcription tool",
+  "author": "Raul Garcia",
   "dependencies": {
     "@reduxjs/toolkit": "^2.8.2",
-    "electron": "^29.1.4",
     "ffmpeg-static": "^5.2.0",
     "node-audiorecorder": "^3.0.0",
     "node-microphone": "^0.1.6",
@@ -29,6 +54,8 @@
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.19",
     "concurrently": "^8.2.2",
+    "electron": "^29.1.4",
+    "electron-builder": "^26.0.12",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.34.0",
     "eslint-plugin-react-hooks": "^4.6.0",

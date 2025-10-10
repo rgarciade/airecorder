@@ -75,12 +75,13 @@ function createWindow() {
   // En desarrollo, carga la URL de desarrollo de Vite
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173');
-    // Abre las DevTools automáticamente
-    mainWindow.webContents.openDevTools();
   } else {
     // En producción, carga el archivo HTML construido
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
+  
+  // Abre las DevTools automáticamente (siempre, para debugging)
+  mainWindow.webContents.openDevTools();
 }
 
 app.whenReady().then(() => {

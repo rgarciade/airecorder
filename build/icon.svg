@@ -1,0 +1,77 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="waveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0.6" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded square background -->
+  <rect width="1024" height="1024" rx="220" fill="url(#bgGradient)"/>
+  
+  <!-- Microphone icon -->
+  <g transform="translate(512, 512)">
+    <!-- Mic body -->
+    <rect x="-80" y="-200" width="160" height="240" rx="80" fill="url(#waveGradient)" opacity="0.95"/>
+    
+    <!-- Mic stand -->
+    <path d="M 0 80 L 0 180" stroke="url(#waveGradient)" stroke-width="24" stroke-linecap="round" opacity="0.95"/>
+    <path d="M -100 180 L 100 180" stroke="url(#waveGradient)" stroke-width="24" stroke-linecap="round" opacity="0.95"/>
+    
+    <!-- Mic arc -->
+    <path d="M -150 -20 Q -150 80 0 80 Q 150 80 150 -20" 
+          stroke="url(#waveGradient)" 
+          stroke-width="24" 
+          fill="none" 
+          stroke-linecap="round"
+          opacity="0.95"/>
+    
+    <!-- AI spark/star elements -->
+    <g opacity="0.9">
+      <!-- Top right spark -->
+      <circle cx="180" cy="-180" r="12" fill="white"/>
+      <path d="M 180 -220 L 180 -140" stroke="white" stroke-width="8" stroke-linecap="round"/>
+      <path d="M 140 -180 L 220 -180" stroke="white" stroke-width="8" stroke-linecap="round"/>
+      
+      <!-- Top left spark -->
+      <circle cx="-180" cy="-140" r="10" fill="white"/>
+      <path d="M -180 -170 L -180 -110" stroke="white" stroke-width="6" stroke-linecap="round"/>
+      <path d="M -210 -140 L -150 -140" stroke="white" stroke-width="6" stroke-linecap="round"/>
+      
+      <!-- Bottom right spark -->
+      <circle cx="160" cy="100" r="8" fill="white"/>
+      <path d="M 160 120 L 160 80" stroke="white" stroke-width="5" stroke-linecap="round"/>
+      <path d="M 140 100 L 180 100" stroke="white" stroke-width="5" stroke-linecap="round"/>
+    </g>
+    
+    <!-- Sound waves -->
+    <g opacity="0.7">
+      <path d="M -200 -100 Q -220 -60 -200 -20" 
+            stroke="white" 
+            stroke-width="16" 
+            fill="none" 
+            stroke-linecap="round"/>
+      <path d="M -260 -120 Q -290 -60 -260 0" 
+            stroke="white" 
+            stroke-width="14" 
+            fill="none" 
+            stroke-linecap="round"/>
+      
+      <path d="M 200 -100 Q 220 -60 200 -20" 
+            stroke="white" 
+            stroke-width="16" 
+            fill="none" 
+            stroke-linecap="round"/>
+      <path d="M 260 -120 Q 290 -60 260 0" 
+            stroke="white" 
+            stroke-width="14" 
+            fill="none" 
+            stroke-linecap="round"/>
+    </g>
+  </g>
+</svg>
