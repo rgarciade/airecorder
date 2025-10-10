@@ -3,6 +3,8 @@ import recordingsService from '../../services/recordingsService';
 import projectsService from '../../services/projectsService';
 import TranscriptionViewer from '../../components/TranscriptionViewer/TranscriptionViewer';
 import { generateWithContext } from '../../services/aiService';
+import { getSettings, updateSettings } from '../../services/settingsService';
+import { getAvailableModels } from '../../services/ollamaService';
 import ProjectSelector from '../../components/ProjectSelector/ProjectSelector';
 import ChatInterface from '../../components/ChatInterface/ChatInterface';
 
@@ -32,6 +34,12 @@ Responde en formato JSON con la siguiente estructura:
 
 Si la transcripción está vacía, responde con un JSON vacío.`;
 
+const detailedPrompt = `Eres un asistente de IA experto en generar resúmenes detallados de conversaciones para futuros usos.
+
+Concéntrate solo en el diálogo relevante para generar tu respuesta.
+
+DEVUELVE UN RESUMEN DETALLADO SIN FALTA DE DETALLES Y EN español para un mejor uso en futuras llamadas a este asistente. QE QUEDE CLARO QUIEN DICE CADA COSA`
+
 export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject }) {
   const [question, setQuestion] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
@@ -51,16 +59,23 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [geminiError, setGeminiError] = useState(null);
   const [geminiResult, setGeminiResult] = useState(null);
   const [geminiChecked, setGeminiChecked] = useState(false); // Para evitar doble llamada
+  const [geminiSlowWarning, setGeminiSlowWarning] = useState(false); // Para mostrar advertencia de lentitud
 
   // Estado para el histórico de preguntas
   const [qaHistory, setQaHistory] = useState([]);
   const [questionLoading, setQuestionLoading] = useState(false);
   const [questionError, setQuestionError] = useState(null);
   const [questionAnswer, setQuestionAnswer] = useState(null);
+  const [questionSlowWarning, setQuestionSlowWarning] = useState(false); // Para mostrar advertencia de lentitud
   
   // Estado para el proyecto
   const [currentProject, setCurrentProject] = useState(null);
   const [showProjectSelector, setShowProjectSelector] = useState(false);
+  
+  // Estado para configuración de IA
+  const [aiProvider, setAiProvider] = useState('gemini');
+  const [ollamaModels, setOllamaModels] = useState([]);
+  const [selectedOllamaModel, setSelectedOllamaModel] = useState('');
 
   useEffect(() => {
     if (!recording) return;
@@ -100,7 +115,16 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           setGeminiLoading(false);
           return;
         }
+        
+        // Configurar timeout de 10 segundos
+        const timeoutId = setTimeout(() => {
+          setGeminiSlowWarning(true);
+        }, 10000);
+        
         const response = await generateWithContext(defaultPrompt, txt);
+        clearTimeout(timeoutId);
+        setGeminiSlowWarning(false);
+        
         let text = response.text || 'Sin respuesta de IA';
         // Limpiar bloque de código Markdown antes de parsear
         let cleanText = text.replace(/^\s*```(?:json)?\s*([\s\S]*?)\s*```\s*$/i, '$1').trim();
@@ -117,6 +141,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         }
       } catch (error) {
         setGeminiError('Error al obtener respuesta de IA: ' + error.message);
+        setGeminiSlowWarning(false);
       } finally {
         setGeminiLoading(false);
       }
@@ -171,11 +196,52 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     });
   }, [recording]);
 
+  // Cargar configuración de IA
+  useEffect(() => {
+    const loadAiConfig = async () => {
+      try {
+        const settings = await getSettings();
+        setAiProvider(settings.aiProvider || 'gemini');
+        setSelectedOllamaModel(settings.ollamaModel || '');
+        
+        // Si el proveedor es Ollama, cargar modelos
+        if (settings.aiProvider === 'ollama') {
+          try {
+            const models = await getAvailableModels();
+            setOllamaModels(models);
+          } catch (error) {
+            console.error('Error cargando modelos de Ollama:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Error cargando configuración de IA:', error);
+      }
+    };
+
+    loadAiConfig();
+  }, []);
+
+  // Handler para cambiar modelo de Ollama
+  const handleOllamaModelChange = async (modelName) => {
+    setSelectedOllamaModel(modelName);
+    try {
+      // Obtener la configuración actual para preservar el aiProvider
+      const currentSettings = await getSettings();
+      await updateSettings({
+        ...currentSettings,
+        ollamaModel: modelName
+      });
+    } catch (error) {
+      console.error('Error actualizando modelo de Ollama:', error);
+    }
+  };
+
   // Handler para enviar pregunta
   const handleAskQuestion = async (questionText) => {
     setQuestionLoading(true);
     setQuestionError(null);
     setQuestionAnswer(null);
+    setQuestionSlowWarning(false);
     try {
       const txt = await recordingsService.getTranscriptionTxt(recording.id);
       if (!txt) {
@@ -183,19 +249,27 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         setQuestionLoading(false);
         return;
       }
-      // Prompt personalizado
-      const prompt = `${questionText}\n\nResponde de forma concisa.`;
+      
+      // Configurar timeout de 10 segundos
+      const timeoutId = setTimeout(() => {
+        setQuestionSlowWarning(true);
+      }, 10000);
+      
+      // Prompt personalizado con instrucción de formato Markdown
+      const prompt = `${questionText}\n\nResponde de forma concisa usando formato Markdown para mejorar la legibilidad (usa negritas, listas, encabezados, etc. cuando sea apropiado).`;
       const response = await generateWithContext(prompt, txt);
+      clearTimeout(timeoutId);
+      setQuestionSlowWarning(false);
+      
       let text = response.text || 'Sin respuesta de IA';
-      // Limpiar bloque de código Markdown si lo hay
-      let cleanText = text.replace(/^```[a-z]*\n?/i, '').replace(/```$/i, '').trim();
-      setQuestionAnswer(cleanText);
+      setQuestionAnswer(text);
       // Guardar en histórico
-      const qa = { pregunta: questionText, respuesta: cleanText, fecha: new Date().toISOString() };
+      const qa = { pregunta: questionText, respuesta: text, fecha: new Date().toISOString() };
       await recordingsService.saveQuestionHistory(recording.id, qa);
       setQaHistory(prev => [...prev, qa]);
     } catch (error) {
       setQuestionError(error.message || 'Error al obtener respuesta de IA');
+      setQuestionSlowWarning(false);
     } finally {
       setQuestionLoading(false);
     }
@@ -253,38 +327,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   };
 
   // Handler para el botón de IA
-  const handleGeminiClick = async () => {
-    setGeminiLoading(true);
-    setGeminiError(null);
-    setGeminiResult(null);
-    try {
-      const txt = await recordingsService.getTranscriptionTxt(recording.id);
-      if (!txt) {
-        setGeminiError('No se pudo obtener el texto de la transcripción.');
-        setGeminiLoading(false);
-        return;
-      }
-      const response = await generateWithContext(defaultPrompt, txt);
-      const text = response.text || 'Sin respuesta de IA';
-      let parsed = null;
-      try {
-        parsed = JSON.parse(text);
-      } catch (e) {
-        // Si no es JSON válido, mostrar el texto original
-      }
-      if (parsed && parsed.resumen_breve && parsed.resumen_extenso && Array.isArray(parsed.ideas)) {
-        setGeminiData(parsed);
-        setGeminiResult(null);
-      } else {
-        setGeminiResult(text);
-        setGeminiData({ resumen_breve: '', resumen_extenso: '', ideas: [] });
-      }
-    } catch (error) {
-      setGeminiError('Error al obtener respuesta de IA: ' + error.message);
-    } finally {
-      setGeminiLoading(false);
-    }
-  };
+
 
   return (
     <div
@@ -451,8 +494,17 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
               isLoading={questionLoading}
               placeholder="Haz una pregunta sobre la reunión"
               title="Chat de la Reunión"
+              aiProvider={aiProvider}
+              ollamaModels={ollamaModels}
+              selectedOllamaModel={selectedOllamaModel}
+              onOllamaModelChange={handleOllamaModelChange}
             />
           </div>
+          {questionSlowWarning && (
+            <div className="text-yellow-400 py-2 text-sm bg-yellow-900/20 border border-yellow-600/30 rounded-lg px-4 mx-4 my-2">
+              ⏳ La respuesta puede tardar más tiempo dependiendo del modelo de IA seleccionado. Por favor, espera...
+            </div>
+          )}
           {questionError && <div className="text-red-400 px-4">{questionError}</div>}
           {/* Transcripción debajo del input */}
           <div className="w-full flex-1 px-4 pb-4">
@@ -460,6 +512,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             <div className="mb-4">
               {geminiLoading && (
                 <div className="text-[#e92932] font-bold py-2">Generando resumen...</div>
+              )}
+              {geminiSlowWarning && (
+                <div className="text-yellow-400 py-2 text-sm bg-yellow-900/20 border border-yellow-600/30 rounded-lg px-3 my-2">
+                  ⏳ La respuesta puede tardar más tiempo dependiendo del modelo de IA seleccionado. Por favor, espera...
+                </div>
               )}
               {geminiError && (
                 <div className="text-red-400 mt-2">{geminiError}</div>

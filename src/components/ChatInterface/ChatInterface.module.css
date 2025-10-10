@@ -163,8 +163,15 @@
   display: flex;
   gap: 12px;
   padding: 16px 20px;
-  border-top: 1px solid #472426;
+  border-bottom: 1px solid #472426;
   background: #221112;
+  flex-shrink: 0;
+}
+
+.messageInputContainer {
+  display: flex;
+  gap: 8px;
+  flex: 1;
 }
 
 .messageInput {
@@ -176,7 +183,32 @@
   color: white;
   font-size: 14px;
   outline: none;
+}
+
+.ollamaModelSelector {
+  min-width: 120px;
+  padding: 12px 16px;
+  background: #331a1b;
+  border: 1px solid #472426;
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
   transition: border-color 0.2s;
+}
+
+.ollamaModelSelector:hover {
+  border-color: #663336;
+}
+
+.ollamaModelSelector:focus {
+  border-color: #e92932;
+}
+
+.ollamaModelSelector:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .messageInput:focus {
@@ -241,4 +273,142 @@
 
 .chatHistory::-webkit-scrollbar-thumb:hover {
   background: #663336;
+}
+
+/* Estilos para elementos Markdown */
+.messageBold {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.messageItalic {
+  font-style: italic;
+  color: #e5e7eb;
+}
+
+.messageInlineCode {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9em;
+  color: #fbbf24;
+}
+
+.messageCodeBlock {
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.messageCodeBlock code {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9em;
+  color: #a5f3fc;
+  line-height: 1.5;
+}
+
+.messageHeading1 {
+  font-size: 1.5em;
+  font-weight: 700;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  color: #ffffff;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 0.3em;
+}
+
+.messageHeading2 {
+  font-size: 1.3em;
+  font-weight: 600;
+  margin-top: 0.5em;
+  margin-bottom: 0.4em;
+  color: #ffffff;
+}
+
+.messageHeading3 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin-top: 0.4em;
+  margin-bottom: 0.3em;
+  color: #e5e7eb;
+}
+
+/* Estilos para tablas Markdown */
+.messageTableWrapper {
+  overflow-x: auto;
+  margin: 12px 0;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.messageTable {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: rgba(0, 0, 0, 0.2);
+  font-size: 0.9em;
+}
+
+.messageTableHead {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.messageTableBody {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.messageTableRow {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.messageTableRow:last-child {
+  border-bottom: none;
+}
+
+.messageTableRow:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.messageTableHeader {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #ffffff;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+}
+
+.messageTableHeader:last-child {
+  border-right: none;
+}
+
+.messageTableCell {
+  padding: 12px 16px;
+  color: #e5e7eb;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  vertical-align: top;
+  word-wrap: break-word;
+  max-width: 300px;
+  line-height: 1.5;
+}
+
+.messageTableCell:last-child {
+  border-right: none;
+}
+
+/* Responsive para tablas */
+@media (max-width: 768px) {
+  .messageTableWrapper {
+    font-size: 0.8em;
+  }
+  
+  .messageTableHeader,
+  .messageTableCell {
+    padding: 8px 12px;
+    max-width: 200px;
+  }
 }
