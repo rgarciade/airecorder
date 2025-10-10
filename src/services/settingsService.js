@@ -19,7 +19,10 @@ export const getSettings = async () => {
     }
     return result.settings || {
       language: '',
-      microphone: ''
+      microphone: '',
+      geminiApiKey: '',
+      aiProvider: 'gemini', // 'gemini' | 'ollama'
+      ollamaModel: ''
     };
   } catch (error) {
     console.error('Error getting settings:', error);
