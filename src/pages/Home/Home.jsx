@@ -13,9 +13,9 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
       className="flex min-h-screen flex-col bg-[#221112] w-full"
       style={{ fontFamily: '"Plus Jakarta Sans", "Noto Sans", sans-serif' }}
     >
-      <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#472426] px-10 py-3">
+      <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#472426] px-10 py-4">
         <div className="flex items-center gap-4 text-white">
-          <div className="size-4">
+          <div className="size-5">
             <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path
                 d="M4 42.4379C4 42.4379 14.0962 36.0744 24 41.1692C35.0664 46.8624 44 42.2078 44 42.2078L44 7.01134C44 7.01134 35.068 11.6577 24.0031 5.96913C14.0971 0.876274 4 7.27094 4 7.27094L4 42.4379Z"
@@ -23,23 +23,23 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
               ></path>
             </svg>
           </div>
-          <h2 className="text-white text-lg font-bold leading-tight tracking-[-0.015em]">VoiceNote</h2>
+          <h2 className="text-white text-xl font-bold leading-tight tracking-[-0.015em]">VoiceNote</h2>
         </div>
-        <div className="flex flex-1 justify-end gap-8">
+        <div className="flex flex-1 justify-end gap-4">
           <button
             onClick={onProjects}
-            className="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 bg-[#472426] text-white gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-2.5"
+            className="flex cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 bg-[#472426] text-white gap-2 text-sm font-semibold leading-normal tracking-[0.015em] px-4 transition-all hover:bg-[#663336]"
           >
             <div className="text-white" data-icon="FolderOpen" data-size="20px" data-weight="regular">
               <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" fill="currentColor" viewBox="0 0 256 256">
                 <path d="M245,110.64A16,16,0,0,0,232,104H216V88a16,16,0,0,0-16-16H130.67L102.94,51.2a16.14,16.14,0,0,0-9.6-3.2H40A16,16,0,0,0,24,64V208h0a8,8,0,0,0,8,8H211.1a8,8,0,0,0,7.59-5.47l28.49-85.47A16.05,16.05,0,0,0,245,110.64ZM93.34,64l27.73,20.8a16.12,16.12,0,0,0,9.6,3.2H200v16H69.77a16,16,0,0,0-15.18,10.94L40,158.7V64Zm112,136H43.1l26.67-80H232Z"></path>
               </svg>
             </div>
-            <span className="truncate">Proyectos</span>
+            <span>Proyectos</span>
           </button>
           <button
             onClick={onSettings}
-            className="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 bg-[#e92932] text-white gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-2.5"
+            className="flex cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 bg-[#e92932] text-white gap-2 text-sm font-semibold leading-normal tracking-[0.015em] px-4 transition-all hover:bg-[#d41f27]"
           >
             <div className="text-white" data-icon="Gear" data-size="20px" data-weight="regular">
               <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" fill="currentColor" viewBox="0 0 256 256">
@@ -47,27 +47,30 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
               </svg>
             </div>
           </button>
-          <div
-            className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10"
-            style={{
-              backgroundImage:
-                'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAogyadNUeGL36ivwWfecIbkXtQgBfVQeOlMBPDuo96aaTlM9NBlwpxPPZO8BPgTUK4kU85TvtZesaONhHFtVUv55Put8hqzQgkVFr2GKxPe0Z5_QkH8TSa1aRiTPzYV3PzZ16GuRU0TN3_rt4NooSThdUdWpvMYvFrRgtxoXnIQbQCxqXmVggpEtpXRPCeL0hrP1O8v3JD0eeSEOefzzO8SPQxS_EQ9f_7ecMTpM9T6eL0B5KM9R0OqyJNcKlaK6C8V4qnp3E")',
-            }}
-          ></div>
         </div>
       </header>
       <main className="flex flex-col flex-1 p-8 items-center">
-        <h1 className="text-white text-4xl font-bold mb-2 text-center w-full">Record your meetings</h1>
-        <p className="text-[#cbbebe] text-lg mb-8 max-w-2xl text-center w-full">Capture every detail of your conversations and get instant transcriptions.<br/>Focus on the conversation, we'll take care of the notes.</p>
-        <div className="mb-12 flex justify-center w-full">
-          <RecordButton onRecordingStart={onRecordingStart} />
-        </div>
-        <div className="w-full max-w-3xl flex justify-start pl-8">
-          <RecordingList 
-            ref={recordingListRef} 
-            onRecordingSelect={onRecordingSelect}
-            onNavigateToProject={onNavigateToProject}
-          />
+        <div className="w-full max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h1 className="text-white text-5xl font-bold mb-4 tracking-tight">Graba tus Reuniones</h1>
+            <p className="text-[#cbbebe] text-lg max-w-2xl mx-auto">
+              Captura cada detalle de tus conversaciones y obtén transcripciones instantáneas.
+              <br />
+              Concéntrate en la conversación, nosotros nos encargamos de las notas.
+            </p>
+          </div>
+          
+          <div className="mb-16 flex justify-center">
+            <RecordButton onRecordingStart={onRecordingStart} />
+          </div>
+          
+          <div className="w-full">
+            <RecordingList 
+              ref={recordingListRef} 
+              onRecordingSelect={onRecordingSelect}
+              onNavigateToProject={onNavigateToProject}
+            />
+          </div>
         </div>
       </main>
     </div>
