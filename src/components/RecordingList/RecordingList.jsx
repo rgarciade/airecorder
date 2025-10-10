@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import styles from './RecordingList.module.css';
 import recordingsService from '../../services/recordingsService';
+import projectsService from '../../services/projectsService';
 import TranscriptionViewer from '../TranscriptionViewer/TranscriptionViewer';
 
 // Modal de confirmación para borrar grabación
 function DeleteConfirmationModal({ recording, isOpen, onClose, onConfirm }) {
-  const [inputName, setInputName] = useState('');
+  const [inputText, setInputText] = useState('');
   
   const handleConfirm = () => {
-    if (recording && inputName.trim() === recording.name) {
+    if (recording && inputText.trim().toLowerCase() === 'borrar') {
       onConfirm(recording);
-      setInputName('');
+      setInputText('');
       onClose();
     }
   };
 
-  const isNameMatch = recording && inputName.trim() === recording.name;
+  const isTextMatch = inputText.trim().toLowerCase() === 'borrar';
 
   if (!isOpen || !recording) return null;
 
@@ -31,13 +32,13 @@ function DeleteConfirmationModal({ recording, isOpen, onClose, onConfirm }) {
         </p>
         <div className={styles.modalInput}>
           <label className={styles.modalLabel}>
-            Escribe el nombre de la grabación para confirmar:
+            Escribe "Borrar" para confirmar:
           </label>
           <input
             type="text"
-            value={inputName}
-            onChange={(e) => setInputName(e.target.value)}
-            placeholder={recording.name}
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            placeholder="Borrar"
             className={styles.confirmInput}
           />
         </div>
@@ -50,8 +51,8 @@ function DeleteConfirmationModal({ recording, isOpen, onClose, onConfirm }) {
           </button>
           <button 
             onClick={handleConfirm}
-            disabled={!isNameMatch}
-            className={`${styles.deleteButton} ${!isNameMatch ? styles.disabled : ''}`}
+            disabled={!isTextMatch}
+            className={`${styles.deleteButton} ${!isTextMatch ? styles.disabled : ''}`}
           >
             Eliminar
           </button>
@@ -61,7 +62,7 @@ function DeleteConfirmationModal({ recording, isOpen, onClose, onConfirm }) {
   );
 }
 
-export default function RecordingList({ onRecordingSelect }) {
+export default function RecordingList({ onRecordingSelect, onNavigateToProject }) {
   const [recordings, setRecordings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -69,6 +70,7 @@ export default function RecordingList({ onRecordingSelect }) {
   const [transcribingId, setTranscribingId] = useState(null);
   const [transcribeError, setTranscribeError] = useState(null);
   const [durations, setDurations] = useState({});
+  const [recordingProjects, setRecordingProjects] = useState({});
 
   useEffect(() => {
     loadRecordings();
@@ -97,6 +99,16 @@ export default function RecordingList({ onRecordingSelect }) {
       setError(null);
       const recordingsList = await recordingsService.getRecordings();
       setRecordings(recordingsList);
+      
+      // Cargar proyectos para cada grabación
+      const projectsMap = {};
+      for (const recording of recordingsList) {
+        const project = await projectsService.getRecordingProject(recording.id);
+        if (project) {
+          projectsMap[recording.id] = project;
+        }
+      }
+      setRecordingProjects(projectsMap);
     } catch (err) {
       setError('Error al cargar las grabaciones');
     } finally {
@@ -195,11 +207,27 @@ export default function RecordingList({ onRecordingSelect }) {
                   <div className={styles.icon}>
                     <span role="img" aria-label="icon">{icon}</span>
                   </div>
-                  <div className={styles.info} onClick={() => onRecordingSelect(recording)}>
-                    <div className={styles.name}>{recording.name}</div>
-                    <div className={styles.date}>{recording.date}{durationStr && <span className={styles.duration}> · {durationStr}</span>}</div>
+                  <div className={styles.info}>
+                    <div className={styles.name} onClick={() => onRecordingSelect(recording)}>{recording.name}</div>
+                    <div className={styles.date} onClick={() => onRecordingSelect(recording)}>{recording.date}{durationStr && <span className={styles.duration}> · {durationStr}</span>}</div>
+                    {recordingProjects[recording.id] && (
+                      <div 
+                        className={styles.projectBadge}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onNavigateToProject && onNavigateToProject(recordingProjects[recording.id]);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                        title="Ir al proyecto"
+                      >
+                        <span role="img" aria-label="folder">📁</span> {recordingProjects[recording.id].name}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256" style={{ display: 'inline-block', marginLeft: '4px', opacity: 0.7 }}>
+                          <path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"></path>
+                        </svg>
+                      </div>
+                    )}
                     {recording.hasTranscription && (
-                      <div className={styles.transcriptionBadge}><span role="img" aria-label="document">📄</span> Transcripción disponible</div>
+                      <div className={styles.transcriptionBadge} onClick={() => onRecordingSelect(recording)}><span role="img" aria-label="document">📄</span> Transcripción disponible</div>
                     )}
                   </div>
                   <div className={styles.actions}>

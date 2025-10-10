@@ -54,4 +54,29 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Guardar y leer participantes
   saveParticipants: (recordingId, participants) => ipcRenderer.invoke('save-participants', recordingId, participants),
   getParticipants: (recordingId) => ipcRenderer.invoke('get-participants', recordingId),
+
+  // FUNCIONES DE PROYECTOS
+  // Obtener todos los proyectos
+  getProjects: () => ipcRenderer.invoke('get-projects'),
+  
+  // Crear un nuevo proyecto
+  createProject: (projectData) => ipcRenderer.invoke('create-project', projectData),
+  
+  // Actualizar un proyecto existente
+  updateProject: (projectId, projectData) => ipcRenderer.invoke('update-project', projectId, projectData),
+  
+  // Eliminar un proyecto
+  deleteProject: (projectId) => ipcRenderer.invoke('delete-project', projectId),
+  
+  // Agregar una grabación a un proyecto
+  addRecordingToProject: (projectId, recordingId) => ipcRenderer.invoke('add-recording-to-project', projectId, recordingId),
+  
+  // Eliminar una grabación de un proyecto
+  removeRecordingFromProject: (projectId, recordingId) => ipcRenderer.invoke('remove-recording-from-project', projectId, recordingId),
+  
+  // Obtener todas las grabaciones de un proyecto
+  getProjectRecordings: (projectId) => ipcRenderer.invoke('get-project-recordings', projectId),
+  
+  // Obtener el proyecto de una grabación
+  getRecordingProject: (recordingId) => ipcRenderer.invoke('get-recording-project', recordingId),
 }); 

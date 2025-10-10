@@ -27,7 +27,10 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ],
       "category": "public.app-category.productivity",
@@ -38,6 +41,7 @@
   "author": "Raul Garcia",
   "dependencies": {
     "@reduxjs/toolkit": "^2.8.2",
+    "data_file_database": "^1.0.2",
     "ffmpeg-static": "^5.2.0",
     "node-audiorecorder": "^3.0.0",
     "node-microphone": "^0.1.6",

@@ -4,7 +4,7 @@ import RecordingList from '../../components/RecordingList/RecordingList';
 import RecordButton from '../../components/RecordButton/RecordButton';
 import { useRef } from 'react';
 
-export default function Home({ onSettings, onRecordingStart, onRecordingSelect }) {
+export default function Home({ onSettings, onProjects, onRecordingStart, onRecordingSelect, onNavigateToProject }) {
   const { isRecording } = useSelector((state) => state.recording);
   const recordingListRef = useRef();
 
@@ -26,6 +26,17 @@ export default function Home({ onSettings, onRecordingStart, onRecordingSelect }
           <h2 className="text-white text-lg font-bold leading-tight tracking-[-0.015em]">VoiceNote</h2>
         </div>
         <div className="flex flex-1 justify-end gap-8">
+          <button
+            onClick={onProjects}
+            className="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 bg-[#472426] text-white gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-2.5"
+          >
+            <div className="text-white" data-icon="FolderOpen" data-size="20px" data-weight="regular">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" fill="currentColor" viewBox="0 0 256 256">
+                <path d="M245,110.64A16,16,0,0,0,232,104H216V88a16,16,0,0,0-16-16H130.67L102.94,51.2a16.14,16.14,0,0,0-9.6-3.2H40A16,16,0,0,0,24,64V208h0a8,8,0,0,0,8,8H211.1a8,8,0,0,0,7.59-5.47l28.49-85.47A16.05,16.05,0,0,0,245,110.64ZM93.34,64l27.73,20.8a16.12,16.12,0,0,0,9.6,3.2H200v16H69.77a16,16,0,0,0-15.18,10.94L40,158.7V64Zm112,136H43.1l26.67-80H232Z"></path>
+              </svg>
+            </div>
+            <span className="truncate">Proyectos</span>
+          </button>
           <button
             onClick={onSettings}
             className="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 bg-[#e92932] text-white gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-2.5"
@@ -52,7 +63,11 @@ export default function Home({ onSettings, onRecordingStart, onRecordingSelect }
           <RecordButton onRecordingStart={onRecordingStart} />
         </div>
         <div className="w-full max-w-3xl flex justify-start pl-8">
-          <RecordingList ref={recordingListRef} onRecordingSelect={onRecordingSelect} />
+          <RecordingList 
+            ref={recordingListRef} 
+            onRecordingSelect={onRecordingSelect}
+            onNavigateToProject={onNavigateToProject}
+          />
         </div>
       </main>
     </div>

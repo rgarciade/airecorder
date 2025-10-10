@@ -118,6 +118,31 @@
   margin-bottom: 0.1rem;
   font-weight: 400;
 }
+.projectBadge {
+  font-size: 0.92rem;
+  color: #fff;
+  background: #8b5cf6;
+  padding: 0.22rem 1.1rem 0.22rem 0.7rem;
+  border-radius: 999px;
+  font-weight: 600;
+  margin-top: 0.18rem;
+  box-shadow: none;
+  display: inline-block;
+  letter-spacing: 0.01em;
+  vertical-align: middle;
+  line-height: 1.2;
+  transition: all 0.2s ease;
+}
+.projectBadge:hover {
+  background: #7c3aed;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+  transform: translateY(-1px);
+}
+.projectBadge span {
+  margin-right: 0.5em;
+  font-size: 1.1em;
+  vertical-align: middle;
+}
 .transcriptionBadge {
   font-size: 0.92rem;
   color: #fff;

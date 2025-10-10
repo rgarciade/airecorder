@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const AudioRecorder = require('./audioRecorder');
 const { spawn } = require('child_process');
+const ProjectsDatabase = require('./projectsDatabase');
 
 // Estado global para evitar transcripciones simultáneas
 let isTranscribing = false;
@@ -556,6 +557,112 @@ ipcMain.handle('get-participants', async (event, recordingId) => {
     return { success: true, participants: JSON.parse(data) };
   } catch (error) {
     console.error('Error leyendo participantes:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// ========================================
+// MANEJADORES DE PROYECTOS
+// ========================================
+
+// Obtener todos los proyectos
+ipcMain.handle('get-projects', async () => {
+  try {
+    const projects = await ProjectsDatabase.projects.getAll();
+    return { success: true, projects };
+  } catch (error) {
+    console.error('Error obteniendo proyectos:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Crear un nuevo proyecto
+ipcMain.handle('create-project', async (event, projectData) => {
+  try {
+    const project = await ProjectsDatabase.projects.create(projectData);
+    console.log(`Proyecto creado: ${project.name} (${project.id})`);
+    return { success: true, project };
+  } catch (error) {
+    console.error('Error creando proyecto:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Actualizar un proyecto existente
+ipcMain.handle('update-project', async (event, projectId, projectData) => {
+  try {
+    const project = await ProjectsDatabase.projects.update(projectId, projectData);
+    console.log(`Proyecto actualizado: ${project.name} (${projectId})`);
+    return { success: true, project };
+  } catch (error) {
+    console.error('Error actualizando proyecto:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Eliminar un proyecto
+ipcMain.handle('delete-project', async (event, projectId) => {
+  try {
+    await ProjectsDatabase.deleteProjectWithRelations(projectId);
+    console.log(`Proyecto eliminado: ${projectId}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error eliminando proyecto:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Agregar una grabación a un proyecto
+ipcMain.handle('add-recording-to-project', async (event, projectId, recordingId) => {
+  try {
+    const { wasReassigned, previousProject } = await ProjectsDatabase.relations.upsert(
+      projectId,
+      recordingId
+    );
+    
+    console.log(`Grabación ${recordingId} agregada al proyecto ${projectId}`);
+    return { success: true, wasReassigned, previousProject };
+  } catch (error) {
+    console.error('Error agregando grabación al proyecto:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Eliminar una grabación de un proyecto
+ipcMain.handle('remove-recording-from-project', async (event, projectId, recordingId) => {
+  try {
+    await ProjectsDatabase.relations.delete(recordingId);
+    console.log(`Grabación ${recordingId} eliminada del proyecto ${projectId}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error eliminando grabación del proyecto:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Obtener todas las grabaciones de un proyecto
+ipcMain.handle('get-project-recordings', async (event, projectId) => {
+  try {
+    const recordings = await ProjectsDatabase.relations.getRecordingIds(projectId);
+    return { success: true, recordings };
+  } catch (error) {
+    console.error('Error obteniendo grabaciones del proyecto:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Obtener el proyecto de una grabación
+ipcMain.handle('get-recording-project', async (event, recordingId) => {
+  try {
+    const project = await ProjectsDatabase.getRecordingProject(recordingId);
+    
+    if (!project) {
+      return { success: false, error: 'Grabación no pertenece a ningún proyecto' };
+    }
+    
+    return { success: true, project };
+  } catch (error) {
+    console.error('Error obteniendo proyecto de la grabación:', error);
     return { success: false, error: error.message };
   }
 });

@@ -414,6 +414,7 @@ class MixedAudioRecorder {
     this.systemAudioData = null;
     this.audioContext = null;
     this.recordingName = null; // Para guardar el nombre de la grabación
+    this.shouldDiscard = false; // Flag para indicar si se debe descartar la grabación
   }
 
   async startMixedRecording(deviceId = null, duration = 4) {
@@ -429,6 +430,7 @@ class MixedAudioRecorder {
       this.recordingStartTime = Date.now();
       this.microphoneAudioData = null;
       this.systemAudioData = null;
+      this.shouldDiscard = false; // Resetear flag de descarte
 
       // Crear contexto de audio
       this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -540,9 +542,57 @@ class MixedAudioRecorder {
     }
   }
 
+  stopAndDiscard() {
+    if (!this.isRecording) {
+      return;
+    }
+
+    try {
+      console.log('Descartando grabación...');
+      
+      // Marcar que no se debe guardar
+      this.shouldDiscard = true;
+      
+      if (this.recordingTimeout) {
+        clearTimeout(this.recordingTimeout);
+        this.recordingTimeout = null;
+      }
+
+      // Detener ambas grabaciones
+      if (this.audioRecorder) {
+        this.audioRecorder.stop();
+      }
+      
+      if (this.systemRecorder) {
+        this.systemRecorder.stopSystemRecording();
+      }
+
+      // Limpiar datos de audio
+      this.microphoneAudioData = null;
+      this.systemAudioData = null;
+      this.recordingName = null;
+
+      this.isRecording = false;
+      console.log('Grabación descartada');
+
+    } catch (error) {
+      console.error('Error al descartar la grabación:', error);
+    }
+  }
+
   async handleSeparateRecordingStop() {
     try {
       console.log('Procesando archivos de grabación separados...');
+      
+      // Si se marcó para descartar, no guardar nada
+      if (this.shouldDiscard) {
+        console.log('Grabación marcada para descarte, no se guardará');
+        this.shouldDiscard = false;
+        this.microphoneAudioData = null;
+        this.systemAudioData = null;
+        this.recordingName = null;
+        return;
+      }
       
       if (!this.microphoneAudioData || !this.systemAudioData) {
         throw new Error('Faltan datos de audio para guardar');
