@@ -34,6 +34,8 @@ export default function Settings({ onBack }) {
         
         // Cargar configuración guardada
         const savedSettings = await getSettings();
+        console.log('Settings cargados:', savedSettings); // Debug
+        
         if (savedSettings) {
           setSelectedLanguage(savedSettings.language || '');
           setSelectedMicrophone(savedSettings.microphone || (systemMicrophones.length > 0 ? systemMicrophones[0].value : ''));
@@ -46,6 +48,7 @@ export default function Settings({ onBack }) {
             try {
               const models = await getAvailableModels();
               setOllamaModels(models);
+              console.log('Modelos de Ollama cargados:', models); // Debug
             } catch (error) {
               console.error('Error cargando modelos de Ollama:', error);
             }
@@ -53,8 +56,12 @@ export default function Settings({ onBack }) {
         } else if (systemMicrophones.length > 0) {
           setSelectedMicrophone(systemMicrophones[0].value);
         }
+        
+        // Marcar que los settings se han cargado
+        setHasLoadedSettings(true);
       } catch (error) {
         console.error('Error loading settings:', error);
+        setHasLoadedSettings(true); // Marcar como cargado incluso si hay error
       } finally {
         setIsLoading(false);
       }
@@ -70,8 +77,11 @@ export default function Settings({ onBack }) {
         try {
           const models = await getAvailableModels();
           setOllamaModels(models);
+          console.log('Modelos cargados en useEffect:', models); // Debug
+          
           // Si no hay modelo seleccionado y hay modelos disponibles, seleccionar el primero
           if (!ollamaModel && models.length > 0) {
+            console.log('Seleccionando primer modelo:', models[0].name); // Debug
             setOllamaModel(models[0].name);
           }
         } catch (error) {
@@ -81,28 +91,37 @@ export default function Settings({ onBack }) {
     };
 
     loadOllamaModels();
-  }, [aiProvider, ollamaAvailable]);
+  }, [aiProvider, ollamaAvailable, ollamaModel]);
 
-  // Guardar configuración cuando cambia
-  useEffect(() => {
-    const saveSettings = async () => {
-      if (selectedLanguage || selectedMicrophone || geminiApiKey || aiProvider) {
-        try {
-          await updateSettings({
-            language: selectedLanguage,
-            microphone: selectedMicrophone,
-            geminiApiKey: geminiApiKey,
-            aiProvider: aiProvider,
-            ollamaModel: ollamaModel
-          });
-        } catch (error) {
-          console.error('Error saving settings:', error);
-        }
-      }
-    };
+  // Estado para controlar si es la carga inicial
+  const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
 
-    saveSettings();
-  }, [selectedLanguage, selectedMicrophone, geminiApiKey, aiProvider, ollamaModel]);
+  // Función para guardar configuración manualmente
+  const handleSaveSettings = async () => {
+    setIsSaving(true);
+    setSaveMessage('');
+    
+    try {
+      console.log('Guardando settings:', { selectedLanguage, selectedMicrophone, geminiApiKey, aiProvider, ollamaModel }); // Debug
+      await updateSettings({
+        language: selectedLanguage,
+        microphone: selectedMicrophone,
+        geminiApiKey: geminiApiKey,
+        aiProvider: aiProvider,
+        ollamaModel: ollamaModel
+      });
+      setSaveMessage('Configuración guardada correctamente');
+      setTimeout(() => setSaveMessage(''), 3000); // Ocultar mensaje después de 3 segundos
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      setSaveMessage('Error al guardar la configuración');
+      setTimeout(() => setSaveMessage(''), 5000); // Ocultar mensaje de error después de 5 segundos
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div
@@ -253,6 +272,44 @@ export default function Settings({ onBack }) {
               </label>
             </div>
           )}
+
+          {/* Botón de guardar y mensaje de estado */}
+          <div className="flex flex-col gap-4 px-4 py-6">
+            <button
+              onClick={handleSaveSettings}
+              disabled={isSaving || !hasLoadedSettings}
+              className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-white font-medium transition-all ${
+                isSaving || !hasLoadedSettings
+                  ? 'bg-gray-600 cursor-not-allowed opacity-50'
+                  : 'bg-[#e92932] hover:bg-[#d41f27] hover:shadow-lg'
+              }`}
+            >
+              {isSaving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256">
+                    <path d="M224,48H176V40a24,24,0,0,0-48,0v8H80A16,16,0,0,0,64,64V208a16,16,0,0,0,16,16H176a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48ZM128,24a16,16,0,0,1,16,16v8H112V40A16,16,0,0,1,128,24Zm80,184H80V64H96V96a8,8,0,0,0,8,8h48a8,8,0,0,0,8-8V64h16V208Z"></path>
+                  </svg>
+                  Guardar Configuración
+                </>
+              )}
+            </button>
+
+            {/* Mensaje de estado */}
+            {saveMessage && (
+              <div className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                saveMessage.includes('Error') 
+                  ? 'bg-red-900/20 border border-red-600/30 text-red-400'
+                  : 'bg-green-900/20 border border-green-600/30 text-green-400'
+              }`}>
+                {saveMessage}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -30,9 +30,20 @@ export const getSettings = async () => {
   }
 };
 
-export const updateSettings = async (settings) => {
+export const updateSettings = async (newSettings) => {
   try {
-    return await saveSettings(settings);
+    // Obtener configuración actual para preservar valores existentes
+    const currentSettings = await getSettings();
+    
+    // Combinar configuración actual con los nuevos valores
+    const updatedSettings = {
+      ...currentSettings,
+      ...newSettings
+    };
+    
+    console.log('Actualizando settings:', { currentSettings, newSettings, updatedSettings }); // Debug
+    
+    return await saveSettings(updatedSettings);
   } catch (error) {
     console.error('Error updating settings:', error);
     throw error;

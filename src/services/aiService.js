@@ -13,7 +13,7 @@ const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/
 export async function generateContent(prompt) {
   const settings = await getSettings();
   const provider = settings.aiProvider || 'gemini';
-
+debugger
   if (provider === 'ollama') {
     return await generateWithOllama(prompt, settings);
   } else if (provider === 'gemini'){
@@ -82,7 +82,7 @@ async function generateWithOllama(prompt, settings) {
   if (!model) {
     throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
   }
-
+console.log('Generating with Ollama', model, prompt);
   const response = await ollamaGenerate(model, prompt);
   
   // Normalizar respuesta de Ollama

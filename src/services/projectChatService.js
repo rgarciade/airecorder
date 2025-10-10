@@ -156,10 +156,12 @@ class ProjectChatService {
 
   /**
    * Simula una respuesta de la IA para una pregunta del proyecto
+   * TODO: Implementar con aiService.generateContent() usando el contexto del proyecto
+   * Las respuestas deben estar en formato Markdown
    * @param {string} projectId - ID del proyecto
    * @param {string} question - Pregunta del usuario
    * @param {string} chatId - ID del chat
-   * @returns {Promise<string>} Respuesta simulada de la IA
+   * @returns {Promise<string>} Respuesta simulada de la IA en formato Markdown
    */
   async generateAiResponse(projectId, question, chatId) {
     // Simular delay de procesamiento de IA
@@ -167,72 +169,75 @@ class ProjectChatService {
     
     // Respuestas de ejemplo basadas en la pregunta
     const responses = {
-      'estado': `El proyecto está actualmente en progreso con un 25% de completitud.
+      'estado': `El proyecto está actualmente **en progreso** con un **25% de completitud**.
 
-Según las grabaciones analizadas, se han completado las siguientes fases:
+**Fases completadas:**
 - Planificación inicial y definición de objetivos
 - Estructura del proyecto y asignación de recursos
 
-Actualmente se está trabajando en:
+**En desarrollo:**
 - Desarrollo de contenido para la campaña
 - Diseño de materiales promocionales
 
-El próximo hito importante es la activación de canales digitales, programado para la semana 5.`,
+*Próximo hito:* Activación de canales digitales, programado para la **semana 5**.`,
 
-      'presupuesto': `El presupuesto asignado para este proyecto es de $50,000.
+      'presupuesto': `El presupuesto asignado para este proyecto es de **$50,000**.
 
-Distribución actual:
-- Presupuesto utilizado: $15,000 (30%)
-- Presupuesto restante: $35,000 (70%)
+**Distribución actual:**
+- Presupuesto utilizado: **$15,000** (30%)
+- Presupuesto restante: **$35,000** (70%)
 
-Gastos principales hasta la fecha:
+**Gastos principales:**
 - Recursos de diseño: $8,000
 - Desarrollo de contenido: $5,000
 - Herramientas y software: $2,000
 
-El presupuesto está dentro del rango esperado para esta fase del proyecto.`,
+✅ El presupuesto está dentro del rango esperado para esta fase del proyecto.`,
 
-      'fechas': `El proyecto tiene el siguiente cronograma:
+      'fechas': `## Cronograma del Proyecto
 
-Fechas clave:
-- Inicio: 1 de julio de 2024
-- Finalización prevista: 30 de septiembre de 2024
-- Duración total: 12 semanas
+**Fechas clave:**
+- 📅 Inicio: **1 de julio de 2024**
+- 🎯 Finalización prevista: **30 de septiembre de 2024**
+- ⏱️ Duración total: **12 semanas**
 
-Estado actual:
-- Semana actual: Semana 2
-- Progreso: 25% completado
-- Próximo hito: Desarrollo de contenido (15 de julio)
+**Estado actual:**
+- Semana actual: **Semana 2**
+- Progreso: **25% completado**
+- Próximo hito: *Desarrollo de contenido* (15 de julio)
 
-El proyecto está avanzando según lo programado.`,
+✅ El proyecto está avanzando según lo programado.`,
 
-      'miembros': `El equipo está compuesto por 4 miembros principales:
+      'miembros': `## Equipo del Proyecto
 
-- Ana García (Project Manager)
-  - Participaciones: 8 reuniones
-  - Responsabilidades: Coordinación general y seguimiento
+El equipo está compuesto por **4 miembros principales**:
 
-- Carlos Ruiz (Diseñador)
-  - Participaciones: 6 reuniones
-  - Responsabilidades: Diseño visual y materiales
+### 👤 Ana García (Project Manager)
+- Participaciones: **8 reuniones**
+- Responsabilidades: Coordinación general y seguimiento
 
-- María López (Desarrolladora)
-  - Participaciones: 5 reuniones
-  - Responsabilidades: Desarrollo técnico y implementación
+### 🎨 Carlos Ruiz (Diseñador)
+- Participaciones: **6 reuniones**
+- Responsabilidades: Diseño visual y materiales
 
-- David Torres (Analista)
-  - Participaciones: 4 reuniones
-  - Responsabilidades: Análisis de datos y métricas
+### 💻 María López (Desarrolladora)
+- Participaciones: **5 reuniones**
+- Responsabilidades: Desarrollo técnico y implementación
 
-Todos han participado activamente en las reuniones registradas.`,
+### 📊 David Torres (Analista)
+- Participaciones: **4 reuniones**
+- Responsabilidades: Análisis de datos y métricas
+
+✅ Todos han participado activamente en las reuniones registradas.`,
 
       'default': `Basándome en el análisis de todas las grabaciones del proyecto, puedo proporcionarte información detallada sobre:
 
-- Estado actual y progreso del proyecto
-- Cronograma y próximos hitos
-- Presupuesto y distribución de recursos
-- Miembros del equipo y sus responsabilidades
-- Grabaciones y reuniones registradas
+**Información disponible:**
+- 📈 Estado actual y progreso del proyecto
+- 📅 Cronograma y próximos hitos
+- 💰 Presupuesto y distribución de recursos
+- 👥 Miembros del equipo y sus responsabilidades
+- 🎙️ Grabaciones y reuniones registradas
 
 ¿Hay algún aspecto específico que te interese conocer con más detalle?`
     };

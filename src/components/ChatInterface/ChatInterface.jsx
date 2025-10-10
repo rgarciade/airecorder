@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import styles from './ChatInterface.module.css';
 
 export default function ChatInterface({ 
@@ -6,7 +7,11 @@ export default function ChatInterface({
   onSendMessage, 
   isLoading = false, 
   placeholder = "Haz una pregunta...",
-  title = "Chat"
+  title = "Chat",
+  aiProvider = 'gemini',
+  ollamaModels = [],
+  selectedOllamaModel = '',
+  onOllamaModelChange = () => {}
 }) {
   const [newMessage, setNewMessage] = useState('');
 
@@ -26,62 +31,33 @@ export default function ChatInterface({
     });
   };
 
-  const formatMessageContent = (content) => {
-    if (!content) return '';
-    
-    // Dividir el contenido en párrafos
-    const paragraphs = content.split('\n\n');
-    
-    return paragraphs.map((paragraph, index) => {
-      // Si el párrafo está vacío, no renderizar nada
-      if (!paragraph.trim()) return null;
-      
-      // Detectar si es una lista (líneas que empiezan con - o números)
-      const lines = paragraph.split('\n');
-      const isList = lines.some(line => 
-        line.trim().match(/^[-•*]\s+/) || 
-        line.trim().match(/^\d+\.\s+/) ||
-        line.trim().match(/^[a-zA-Z]\.\s+/)
-      );
-      
-      if (isList) {
-        return (
-          <ul key={index} className={styles.messageList}>
-            {lines.map((line, lineIndex) => {
-              const trimmedLine = line.trim();
-              if (!trimmedLine) return null;
-              
-              // Detectar diferentes tipos de listas
-              const listItemMatch = trimmedLine.match(/^[-•*]\s+(.+)$/) || 
-                                   trimmedLine.match(/^\d+\.\s+(.+)$/) ||
-                                   trimmedLine.match(/^[a-zA-Z]\.\s+(.+)$/);
-              
-              if (listItemMatch) {
-                return (
-                  <li key={lineIndex} className={styles.messageListItem}>
-                    {listItemMatch[1]}
-                  </li>
-                );
-              }
-              
-              // Si no coincide con el patrón de lista, mostrar como párrafo normal
-              return (
-                <li key={lineIndex} className={styles.messageListItem}>
-                  {trimmedLine}
-                </li>
-              );
-            })}
-          </ul>
-        );
-      }
-      
-      // Si no es una lista, renderizar como párrafo normal
-      return (
-        <p key={index} className={styles.messageParagraph}>
-          {paragraph.trim()}
-        </p>
-      );
-    }).filter(Boolean);
+  // Componentes personalizados para el renderizado de Markdown
+  const markdownComponents = {
+    p: ({ children }) => <p className={styles.messageParagraph}>{children}</p>,
+    ul: ({ children }) => <ul className={styles.messageList}>{children}</ul>,
+    ol: ({ children }) => <ol className={styles.messageList}>{children}</ol>,
+    li: ({ children }) => <li className={styles.messageListItem}>{children}</li>,
+    strong: ({ children }) => <strong className={styles.messageBold}>{children}</strong>,
+    em: ({ children }) => <em className={styles.messageItalic}>{children}</em>,
+    code: ({ inline, children }) => 
+      inline ? (
+        <code className={styles.messageInlineCode}>{children}</code>
+      ) : (
+        <pre className={styles.messageCodeBlock}><code>{children}</code></pre>
+      ),
+    h1: ({ children }) => <h1 className={styles.messageHeading1}>{children}</h1>,
+    h2: ({ children }) => <h2 className={styles.messageHeading2}>{children}</h2>,
+    h3: ({ children }) => <h3 className={styles.messageHeading3}>{children}</h3>,
+    table: ({ children }) => (
+      <div className={styles.messageTableWrapper}>
+        <table className={styles.messageTable}>{children}</table>
+      </div>
+    ),
+    thead: ({ children }) => <thead className={styles.messageTableHead}>{children}</thead>,
+    tbody: ({ children }) => <tbody className={styles.messageTableBody}>{children}</tbody>,
+    tr: ({ children }) => <tr className={styles.messageTableRow}>{children}</tr>,
+    th: ({ children }) => <th className={styles.messageTableHeader}>{children}</th>,
+    td: ({ children }) => <td className={styles.messageTableCell}>{children}</td>,
   };
 
   return (
@@ -89,43 +65,32 @@ export default function ChatInterface({
       <div className={styles.chatContainer}>
         <h2 className={styles.chatTitle}>{title}</h2>
         
-        {/* Historial de mensajes */}
-        <div className={styles.chatHistory}>
-          {chatHistory.length === 0 ? (
-            <div className={styles.emptyState}>
-              <div className={styles.emptyIcon}>💬</div>
-              <p className={styles.emptyText}>No hay mensajes aún</p>
-              <p className={styles.emptySubtext}>Haz una pregunta para comenzar</p>
-            </div>
-          ) : (
-            chatHistory.map((message) => (
-              <div key={message.id} className={`${styles.message} ${styles[message.tipo]}`}>
-                <div className={styles.messageAvatar}>
-                  {message.avatar || (message.tipo === 'asistente' ? '🤖' : '👤')}
-                </div>
-                <div className={styles.messageContent}>
-                  <div className={styles.messageText}>
-                    {formatMessageContent(message.contenido)}
-                  </div>
-                  <div className={styles.messageTime}>
-                    {formatMessageTime(message.fecha)}
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
         {/* Input para enviar mensaje */}
         <form onSubmit={handleSubmit} className={styles.messageForm}>
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder={placeholder}
-            className={styles.messageInput}
-            disabled={isLoading}
-          />
+          <div className={styles.messageInputContainer}>
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder={placeholder}
+              className={styles.messageInput}
+              disabled={isLoading}
+            />
+            {aiProvider === 'ollama' && ollamaModels.length > 0 && (
+              <select
+                value={selectedOllamaModel}
+                onChange={(e) => onOllamaModelChange(e.target.value)}
+                className={styles.ollamaModelSelector}
+                disabled={isLoading}
+              >
+                {ollamaModels.map((model) => (
+                  <option key={model.name} value={model.name}>
+                    {model.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
           <button
             type="submit"
             disabled={!newMessage.trim() || isLoading}
@@ -140,6 +105,35 @@ export default function ChatInterface({
             )}
           </button>
         </form>
+
+        {/* Historial de mensajes */}
+        <div className={styles.chatHistory}>
+          {chatHistory.length === 0 ? (
+            <div className={styles.emptyState}>
+              <div className={styles.emptyIcon}>💬</div>
+              <p className={styles.emptyText}>No hay mensajes aún</p>
+              <p className={styles.emptySubtext}>Haz una pregunta para comenzar</p>
+            </div>
+          ) : (
+            [...chatHistory].reverse().map((message) => (
+              <div key={message.id} className={`${styles.message} ${styles[message.tipo]}`}>
+                <div className={styles.messageAvatar}>
+                  {message.avatar || (message.tipo === 'asistente' ? '🤖' : '👤')}
+                </div>
+                <div className={styles.messageContent}>
+                  <div className={styles.messageText}>
+                    <ReactMarkdown components={markdownComponents}>
+                      {message.contenido}
+                    </ReactMarkdown>
+                  </div>
+                  <div className={styles.messageTime}>
+                    {formatMessageTime(message.fecha)}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
