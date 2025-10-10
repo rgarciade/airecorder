@@ -1,0 +1,162 @@
+.container {
+  background: #221112;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.title {
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.emptyText {
+  color: #8b5a5d;
+  font-size: 14px;
+  margin: 0;
+}
+
+.membersGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.memberCard {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background: #331a1b;
+  border: 1px solid #472426;
+  border-radius: 8px;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.memberCard:hover {
+  background: #3d2122;
+  border-color: #663336;
+}
+
+.memberAvatar {
+  position: relative;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.avatarCircle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  border: 2px solid #221112;
+}
+
+.onlineIndicator {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  background: #10b981;
+  border: 2px solid #221112;
+  border-radius: 50%;
+}
+
+.memberInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.memberName {
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.memberRole {
+  color: #c89295;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.memberStats {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.participations {
+  color: #8b5a5d;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.lastActivity {
+  color: #6b7280;
+  font-size: 11px;
+}
+
+/* Responsive para pantallas más pequeñas */
+@media (max-width: 768px) {
+  .membersGrid {
+    gap: 8px;
+  }
+  
+  .memberCard {
+    padding: 10px;
+  }
+  
+  .avatarCircle {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+  }
+  
+  .memberName {
+    font-size: 14px;
+  }
+  
+  .memberRole {
+    font-size: 12px;
+  }
+  
+  .memberStats {
+    gap: 1px;
+  }
+  
+  .participations {
+    font-size: 11px;
+  }
+  
+  .lastActivity {
+    font-size: 10px;
+  }
+}
+
+/* Grid layout para pantallas más grandes */
+@media (min-width: 1200px) {
+  .membersGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+}
