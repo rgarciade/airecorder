@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import recordingsService from '../../services/recordingsService';
 import projectsService from '../../services/projectsService';
 import TranscriptionViewer from '../../components/TranscriptionViewer/TranscriptionViewer';
-import { sendToGemini } from '../../services/geminiService';
+import { generateWithContext } from '../../services/aiService';
 import ProjectSelector from '../../components/ProjectSelector/ProjectSelector';
+import ChatInterface from '../../components/ChatInterface/ChatInterface';
 
 // Puedes reemplazar estos mocks si tienes datos reales en la grabación
 const mockTopics = [
@@ -13,6 +14,23 @@ const mockTopics = [
   { name: 'Launch Date', timestamp: '20:10', timestampSeconds: 1210 },
   { name: 'Action Items', timestamp: '28:30', timestampSeconds: 1710 },
 ];
+
+// Prompt fijo en español para resumen e ideas
+const defaultPrompt = `A continuación tienes una transcripción. Quiero que me des dos resúmenes y una lista de ideas principales o temas destacados que se mencionan.
+
+Responde en formato JSON con la siguiente estructura:
+
+{
+  "resumen_breve": "Resumen muy breve (1-2 frases)",
+  "resumen_extenso": "Resumen más detallado (varios párrafos si es necesario)",
+  "ideas": [
+    "Idea o tema 1",
+    "Idea o tema 2",
+    "Idea o tema 3"
+  ]
+}
+
+Si la transcripción está vacía, responde con un JSON vacío.`;
 
 export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject }) {
   const [question, setQuestion] = useState('');
@@ -36,7 +54,6 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
   // Estado para el histórico de preguntas
   const [qaHistory, setQaHistory] = useState([]);
-  const [questionInput, setQuestionInput] = useState('');
   const [questionLoading, setQuestionLoading] = useState(false);
   const [questionError, setQuestionError] = useState(null);
   const [questionAnswer, setQuestionAnswer] = useState(null);
@@ -75,7 +92,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         setGeminiLoading(false);
         return;
       }
-      // 2. Si no existe, llamar a Gemini
+      // 2. Si no existe, llamar a IA
       try {
         const txt = await recordingsService.getTranscriptionTxt(recording.id);
         if (!txt) {
@@ -83,8 +100,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           setGeminiLoading(false);
           return;
         }
-        const data = await sendToGemini(txt);
-        let text = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta de Gemini';
+        const response = await generateWithContext(defaultPrompt, txt);
+        let text = response.text || 'Sin respuesta de IA';
         // Limpiar bloque de código Markdown antes de parsear
         let cleanText = text.replace(/^\s*```(?:json)?\s*([\s\S]*?)\s*```\s*$/i, '$1').trim();
         let parsed = null;
@@ -99,7 +116,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           setGeminiData({ resumen_breve: '', resumen_extenso: '', ideas: [] });
         }
       } catch (error) {
-        setGeminiError('Error al obtener respuesta de Gemini');
+        setGeminiError('Error al obtener respuesta de IA: ' + error.message);
       } finally {
         setGeminiLoading(false);
       }
@@ -113,6 +130,30 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     if (!recording?.id) return;
     recordingsService.getQuestionHistory(recording.id).then(setQaHistory);
   }, [recording]);
+
+  // Convertir historial de preguntas y respuestas al formato del chat
+  const convertQaHistoryToChatHistory = () => {
+    const chatHistory = [];
+    qaHistory.forEach((qa, index) => {
+      // Agregar pregunta del usuario
+      chatHistory.push({
+        id: `user_${index}`,
+        tipo: 'usuario',
+        contenido: qa.pregunta,
+        fecha: qa.fecha,
+        avatar: '👤'
+      });
+      // Agregar respuesta del asistente
+      chatHistory.push({
+        id: `assistant_${index}`,
+        tipo: 'asistente',
+        contenido: qa.respuesta,
+        fecha: qa.fecha,
+        avatar: '🤖'
+      });
+    });
+    return chatHistory;
+  };
 
   // Participantes
   useEffect(() => {
@@ -131,8 +172,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   }, [recording]);
 
   // Handler para enviar pregunta
-  const handleAskQuestion = async (e) => {
-    e.preventDefault();
+  const handleAskQuestion = async (questionText) => {
     setQuestionLoading(true);
     setQuestionError(null);
     setQuestionAnswer(null);
@@ -144,43 +184,18 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         return;
       }
       // Prompt personalizado
-      const prompt = `${questionInput}\n\nResponde de forma concisa.`;
-      const body = {
-        contents: [
-          { parts: [
-              { text: `${prompt}\n\nTranscripción:\n${txt}` }
-            ]
-          }
-        ]
-      };
-      // Obtener la clave de settings
-      const settings = await import('../../services/settingsService');
-      const { getSettings } = settings;
-      const s = await getSettings();
-      const GEMINI_API_KEY = s.geminiApiKey;
-      if (!GEMINI_API_KEY) throw new Error('No se ha configurado la Gemini API Key en los ajustes.');
-      const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
-      const response = await fetch(GEMINI_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-goog-api-key': GEMINI_API_KEY,
-        },
-        body: JSON.stringify(body),
-      });
-      if (!response.ok) throw new Error('Error en la API de Gemini: ' + response.status);
-      const data = await response.json();
-      let text = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta de Gemini';
+      const prompt = `${questionText}\n\nResponde de forma concisa.`;
+      const response = await generateWithContext(prompt, txt);
+      let text = response.text || 'Sin respuesta de IA';
       // Limpiar bloque de código Markdown si lo hay
       let cleanText = text.replace(/^```[a-z]*\n?/i, '').replace(/```$/i, '').trim();
       setQuestionAnswer(cleanText);
       // Guardar en histórico
-      const qa = { pregunta: questionInput, respuesta: cleanText, fecha: new Date().toISOString() };
+      const qa = { pregunta: questionText, respuesta: cleanText, fecha: new Date().toISOString() };
       await recordingsService.saveQuestionHistory(recording.id, qa);
       setQaHistory(prev => [...prev, qa]);
-      setQuestionInput('');
     } catch (error) {
-      setQuestionError(error.message || 'Error al obtener respuesta de Gemini');
+      setQuestionError(error.message || 'Error al obtener respuesta de IA');
     } finally {
       setQuestionLoading(false);
     }
@@ -237,7 +252,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
   };
 
-  // Handler para el botón de Gemini
+  // Handler para el botón de IA
   const handleGeminiClick = async () => {
     setGeminiLoading(true);
     setGeminiError(null);
@@ -249,8 +264,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         setGeminiLoading(false);
         return;
       }
-      const data = await sendToGemini(txt);
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta de Gemini';
+      const response = await generateWithContext(defaultPrompt, txt);
+      const text = response.text || 'Sin respuesta de IA';
       let parsed = null;
       try {
         parsed = JSON.parse(text);
@@ -265,7 +280,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         setGeminiData({ resumen_breve: '', resumen_extenso: '', ideas: [] });
       }
     } catch (error) {
-      setGeminiError('Error al obtener respuesta de Gemini');
+      setGeminiError('Error al obtener respuesta de IA: ' + error.message);
     } finally {
       setGeminiLoading(false);
     }
@@ -428,41 +443,17 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
               )}
             </div>
           </div>
-          {/* Input de pregunta y respuesta */}
-          <form className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3" onSubmit={handleAskQuestion}>
-            <label className="flex flex-col min-w-40 flex-1">
-              <input
-                placeholder="Haz una pregunta sobre la reunión"
-                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#663336] bg-[#331a1b] focus:border-[#663336] h-14 placeholder:text-[#c89295] p-[15px] text-base font-normal leading-normal"
-                value={questionInput}
-                onChange={e => setQuestionInput(e.target.value)}
-                disabled={questionLoading}
-              />
-            </label>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-[#e92932] text-white rounded-lg hover:bg-[#d41f27] transition-colors font-bold"
-              disabled={questionLoading || !questionInput.trim()}
-            >
-              {questionLoading ? 'Consultando...' : 'Preguntar'}
-            </button>
-          </form>
+          {/* Chat Interface */}
+          <div className="px-4 py-3">
+            <ChatInterface
+              chatHistory={convertQaHistoryToChatHistory()}
+              onSendMessage={handleAskQuestion}
+              isLoading={questionLoading}
+              placeholder="Haz una pregunta sobre la reunión"
+              title="Chat de la Reunión"
+            />
+          </div>
           {questionError && <div className="text-red-400 px-4">{questionError}</div>}
-          {/* Eliminar visualización de respuesta individual */}
-          {/* Histórico de preguntas y respuestas, sin título */}
-          {qaHistory.length > 0 && (
-            <div className="bg-[#221112] text-white rounded-lg p-4 mt-6 mx-4 max-h-[350px] overflow-y-auto">
-              <ul className="space-y-2">
-                {[...qaHistory].reverse().map((qa, idx) => (
-                  <li key={idx} className="border-b border-[#472426] pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
-                    <div className="text-[#e92932] font-semibold">{qa.pregunta}</div>
-                    <div className="text-white whitespace-pre-line">{qa.respuesta}</div>
-                    <div className="text-xs text-[#c89295] mt-1">{new Date(qa.fecha).toLocaleString('es-ES')}</div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
           {/* Transcripción debajo del input */}
           <div className="w-full flex-1 px-4 pb-4">
             {/* Indicador de generación de resumen */}
