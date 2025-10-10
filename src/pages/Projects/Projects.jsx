@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import projectsService from '../../services/projectsService';
 import recordingsService from '../../services/recordingsService';
 
-export default function Projects({ onBack, onRecordingSelect, initialProjectId = null }) {
+export default function Projects({ onBack, onRecordingSelect, onProjectDetail, initialProjectId = null }) {
   const [projects, setProjects] = useState([]);
   const [recordings, setRecordings] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
@@ -246,9 +246,14 @@ export default function Projects({ onBack, onRecordingSelect, initialProjectId =
                   <h3 className="text-white text-2xl font-bold">{selectedProject.name}</h3>
                   {selectedProject.description && <p className="text-[#c89295] mt-1">{selectedProject.description}</p>}
                 </div>
-                <button onClick={() => setShowAddRecordingModal(true)} className="px-3 py-2 bg-[#e92932] text-white rounded-lg hover:bg-[#d41f27] transition-colors">
-                  + Agregar Grabación
-                </button>
+                <div className="flex gap-2">
+                  <button onClick={() => onProjectDetail && onProjectDetail(selectedProject)} className="px-3 py-2 bg-[#8b5cf6] text-white rounded-lg hover:bg-[#7c3aed] transition-colors">
+                    Chat del proyecto
+                  </button>
+                  <button onClick={() => setShowAddRecordingModal(true)} className="px-3 py-2 bg-[#e92932] text-white rounded-lg hover:bg-[#d41f27] transition-colors">
+                    + Agregar Grabación
+                  </button>
+                </div>
               </div>
 
               <h4 className="text-white text-lg font-bold mb-3">Grabaciones del Proyecto</h4>
