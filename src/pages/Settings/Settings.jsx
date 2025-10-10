@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getSystemMicrophones } from '../../services/audioService';
 import { getSettings, updateSettings } from '../../services/settingsService';
+import { getAvailableModels, checkOllamaAvailability } from '../../services/ollamaService';
 
 const mockLanguages = [
   { value: 'es', label: 'Español' },
@@ -14,6 +15,10 @@ export default function Settings({ onBack }) {
   const [microphones, setMicrophones] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [aiProvider, setAiProvider] = useState('gemini');
+  const [ollamaModel, setOllamaModel] = useState('');
+  const [ollamaModels, setOllamaModels] = useState([]);
+  const [ollamaAvailable, setOllamaAvailable] = useState(false);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -23,12 +28,28 @@ export default function Settings({ onBack }) {
         const systemMicrophones = await getSystemMicrophones();
         setMicrophones(systemMicrophones);
         
+        // Verificar disponibilidad de Ollama
+        const isOllamaAvailable = await checkOllamaAvailability();
+        setOllamaAvailable(isOllamaAvailable);
+        
         // Cargar configuración guardada
         const savedSettings = await getSettings();
         if (savedSettings) {
           setSelectedLanguage(savedSettings.language || '');
           setSelectedMicrophone(savedSettings.microphone || (systemMicrophones.length > 0 ? systemMicrophones[0].value : ''));
           setGeminiApiKey(savedSettings.geminiApiKey || '');
+          setAiProvider(savedSettings.aiProvider || 'gemini');
+          setOllamaModel(savedSettings.ollamaModel || '');
+          
+          // Si el proveedor es Ollama y está disponible, cargar modelos
+          if (savedSettings.aiProvider === 'ollama' && isOllamaAvailable) {
+            try {
+              const models = await getAvailableModels();
+              setOllamaModels(models);
+            } catch (error) {
+              console.error('Error cargando modelos de Ollama:', error);
+            }
+          }
         } else if (systemMicrophones.length > 0) {
           setSelectedMicrophone(systemMicrophones[0].value);
         }
@@ -42,15 +63,37 @@ export default function Settings({ onBack }) {
     loadSettings();
   }, []);
 
+  // Cargar modelos de Ollama cuando se selecciona ese proveedor
+  useEffect(() => {
+    const loadOllamaModels = async () => {
+      if (aiProvider === 'ollama' && ollamaAvailable) {
+        try {
+          const models = await getAvailableModels();
+          setOllamaModels(models);
+          // Si no hay modelo seleccionado y hay modelos disponibles, seleccionar el primero
+          if (!ollamaModel && models.length > 0) {
+            setOllamaModel(models[0].name);
+          }
+        } catch (error) {
+          console.error('Error cargando modelos de Ollama:', error);
+        }
+      }
+    };
+
+    loadOllamaModels();
+  }, [aiProvider, ollamaAvailable]);
+
   // Guardar configuración cuando cambia
   useEffect(() => {
     const saveSettings = async () => {
-      if (selectedLanguage || selectedMicrophone || geminiApiKey) {
+      if (selectedLanguage || selectedMicrophone || geminiApiKey || aiProvider) {
         try {
           await updateSettings({
             language: selectedLanguage,
             microphone: selectedMicrophone,
-            geminiApiKey: geminiApiKey
+            geminiApiKey: geminiApiKey,
+            aiProvider: aiProvider,
+            ollamaModel: ollamaModel
           });
         } catch (error) {
           console.error('Error saving settings:', error);
@@ -59,7 +102,7 @@ export default function Settings({ onBack }) {
     };
 
     saveSettings();
-  }, [selectedLanguage, selectedMicrophone, geminiApiKey]);
+  }, [selectedLanguage, selectedMicrophone, geminiApiKey, aiProvider, ollamaModel]);
 
   return (
     <div
@@ -147,19 +190,69 @@ export default function Settings({ onBack }) {
               </select>
             </label>
           </div>
-          <h3 className="text-white text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Gemini</h3>
+          <h3 className="text-white text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Proveedor de IA</h3>
           <div className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
             <label className="flex flex-col min-w-40 flex-1">
-              <p className="text-white text-base font-medium leading-normal pb-2">Gemini API Key</p>
-              <input
-                type="text"
-                value={geminiApiKey}
-                onChange={e => setGeminiApiKey(e.target.value)}
-                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#663336] bg-[#331a1b] focus:border-[#663336] h-14 placeholder:text-[#c89295] p-[15px] text-base font-normal leading-normal"
-                placeholder="Introduce tu Gemini API Key"
-              />
+              <p className="text-white text-base font-medium leading-normal pb-2">Seleccionar Proveedor</p>
+              <select
+                value={aiProvider}
+                onChange={(e) => setAiProvider(e.target.value)}
+                disabled={isLoading}
+                className={`form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#663336] bg-[#331a1b] focus:border-[#663336] h-14 bg-[image:--select-button-svg] bg-[length:24px] bg-no-repeat bg-[center_right_1rem] appearance-none placeholder:text-[#c89295] p-[15px] text-base font-normal leading-normal ${isLoading ? 'opacity-50' : ''}`}
+              >
+                <option value="gemini">Gemini</option>
+                <option value="ollama">Ollama</option>
+              </select>
             </label>
           </div>
+
+          {aiProvider === 'gemini' && (
+            <div className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
+              <label className="flex flex-col min-w-40 flex-1">
+                <p className="text-white text-base font-medium leading-normal pb-2">Gemini API Key</p>
+                <input
+                  type="text"
+                  value={geminiApiKey}
+                  onChange={e => setGeminiApiKey(e.target.value)}
+                  className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#663336] bg-[#331a1b] focus:border-[#663336] h-14 placeholder:text-[#c89295] p-[15px] text-base font-normal leading-normal"
+                  placeholder="Introduce tu Gemini API Key"
+                />
+              </label>
+            </div>
+          )}
+
+          {aiProvider === 'ollama' && (
+            <div className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
+              <label className="flex flex-col min-w-40 flex-1">
+                <p className="text-white text-base font-medium leading-normal pb-2">Modelo de Ollama</p>
+                {!ollamaAvailable ? (
+                  <div className="text-[#c89295] text-sm p-4 bg-[#331a1b] rounded-xl border border-[#663336]">
+                    Ollama no está disponible. Asegúrate de que esté corriendo en http://localhost:11434
+                  </div>
+                ) : ollamaModels.length === 0 ? (
+                  <div className="text-[#c89295] text-sm p-4 bg-[#331a1b] rounded-xl border border-[#663336]">
+                    No hay modelos disponibles. Instala un modelo con: ollama pull llama2
+                  </div>
+                ) : (
+                  <select
+                    value={ollamaModel}
+                    onChange={(e) => setOllamaModel(e.target.value)}
+                    disabled={isLoading}
+                    className={`form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border border-[#663336] bg-[#331a1b] focus:border-[#663336] h-14 bg-[image:--select-button-svg] bg-[length:24px] bg-no-repeat bg-[center_right_1rem] appearance-none placeholder:text-[#c89295] p-[15px] text-base font-normal leading-normal ${isLoading ? 'opacity-50' : ''}`}
+                  >
+                    <option value="" disabled>
+                      Selecciona un modelo
+                    </option>
+                    {ollamaModels.map((model) => (
+                      <option key={model.name} value={model.name}>
+                        {model.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </label>
+            </div>
+          )}
         </div>
       </div>
     </div>
