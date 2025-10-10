@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { saveAndExit } from '../../store/recordingSlice';
 import styles from './RecordingOverlay.module.css';
+import ProjectSelector from '../ProjectSelector/ProjectSelector';
+import projectsService from '../../services/projectsService';
 
 const RecordingOverlay = ({ recorder, onFinish }) => {
   const dispatch = useDispatch();
@@ -12,6 +14,9 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
   const [showProcessing, setShowProcessing] = useState(false);
   const [processingComplete, setProcessingComplete] = useState(false);
   const [isDiscarding, setIsDiscarding] = useState(false);
+  const [showProjectSelector, setShowProjectSelector] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [recordingId, setRecordingId] = useState(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -47,12 +52,13 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
       await recorder.stopAndSave(fileName);
       
       setProcessingComplete(true);
+      setRecordingId(fileName);
+      
       setTimeout(() => {
         setShowProcessing(false);
         setProcessingComplete(false);
-        // Actualizar Redux para cerrar el overlay
-        dispatch(saveAndExit(fileName));
-        onFinish();
+        // Mostrar selector de proyecto
+        setShowProjectSelector(true);
       }, 2000);
     } catch (error) {
       console.error('Error al guardar:', error);
@@ -61,6 +67,22 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
       dispatch(saveAndExit(''));
       onFinish();
     }
+  };
+
+  const handleProjectSelected = async (project) => {
+    if (project && recordingId) {
+      try {
+        await projectsService.addRecordingToProject(project.id, recordingId);
+        console.log(`Grabación ${recordingId} agregada al proyecto ${project.name}`);
+      } catch (error) {
+        console.error('Error al agregar grabación al proyecto:', error);
+      }
+    }
+    
+    setShowProjectSelector(false);
+    // Actualizar Redux para cerrar el overlay
+    dispatch(saveAndExit(fileName));
+    onFinish();
   };
 
   const handleDiscard = () => {
@@ -72,8 +94,11 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
     setIsDiscarding(true);
     setShowProcessing(true);
     
-    // Detener la grabación sin guardar
-    if (recorder && recorder.stopMixedRecording) {
+    // Descartar la grabación sin guardar
+    if (recorder && recorder.stopAndDiscard) {
+      recorder.stopAndDiscard();
+    } else if (recorder && recorder.stopMixedRecording) {
+      // Fallback para compatibilidad
       recorder.stopMixedRecording();
     }
     
@@ -213,6 +238,14 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
             )}
           </div>
         </div>
+      )}
+
+      {/* Selector de proyecto */}
+      {showProjectSelector && (
+        <ProjectSelector
+          onSelect={handleProjectSelected}
+          onCancel={() => handleProjectSelected(null)}
+        />
       )}
     </>
   );

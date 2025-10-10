@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import recordingsService from '../../services/recordingsService';
+import projectsService from '../../services/projectsService';
 import TranscriptionViewer from '../../components/TranscriptionViewer/TranscriptionViewer';
 import { sendToGemini } from '../../services/geminiService';
+import ProjectSelector from '../../components/ProjectSelector/ProjectSelector';
 
 // Puedes reemplazar estos mocks si tienes datos reales en la grabación
 const mockTopics = [
@@ -12,7 +14,7 @@ const mockTopics = [
   { name: 'Action Items', timestamp: '28:30', timestampSeconds: 1710 },
 ];
 
-export default function RecordingDetailWithTranscription({ recording, onBack }) {
+export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject }) {
   const [question, setQuestion] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTimestamp, setCurrentTimestamp] = useState(null);
@@ -38,6 +40,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack }) 
   const [questionLoading, setQuestionLoading] = useState(false);
   const [questionError, setQuestionError] = useState(null);
   const [questionAnswer, setQuestionAnswer] = useState(null);
+  
+  // Estado para el proyecto
+  const [currentProject, setCurrentProject] = useState(null);
+  const [showProjectSelector, setShowProjectSelector] = useState(false);
 
   useEffect(() => {
     if (!recording) return;
@@ -113,6 +119,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack }) 
     if (!recording?.id) return;
     recordingsService.getParticipants(recording.id).then((saved) => {
       if (saved && saved.length > 0) setParticipants(saved);
+    });
+  }, [recording]);
+
+  // Cargar proyecto actual
+  useEffect(() => {
+    if (!recording?.id) return;
+    projectsService.getRecordingProject(recording.id).then((project) => {
+      if (project) setCurrentProject(project);
     });
   }, [recording]);
 
@@ -198,6 +212,29 @@ export default function RecordingDetailWithTranscription({ recording, onBack }) 
     const updated = participants.filter(p => p.id !== participantId);
     setParticipants(updated);
     await recordingsService.saveParticipants(recording.id, updated);
+  };
+
+  const handleMoveToProject = async (project) => {
+    if (project && recording?.id) {
+      try {
+        await projectsService.addRecordingToProject(project.id, recording.id);
+        setCurrentProject(project);
+        setShowProjectSelector(false);
+      } catch (error) {
+        console.error('Error moviendo grabación al proyecto:', error);
+      }
+    } else {
+      // Eliminar de proyecto actual
+      if (currentProject && recording?.id) {
+        try {
+          await projectsService.removeRecordingFromProject(currentProject.id, recording.id);
+          setCurrentProject(null);
+          setShowProjectSelector(false);
+        } catch (error) {
+          console.error('Error eliminando grabación del proyecto:', error);
+        }
+      }
+    }
   };
 
   // Handler para el botón de Gemini
@@ -358,8 +395,38 @@ export default function RecordingDetailWithTranscription({ recording, onBack }) 
               {geminiData.resumen_extenso}
             </div>
           )}
-          <div className="flex flex-wrap justify-between gap-3 p-4">
-            <p className="text-white tracking-light text-[32px] font-bold leading-tight min-w-72">{recording?.title || 'Product Launch Meeting'}</p>
+          <div className="flex flex-wrap justify-between gap-3 p-4 items-start">
+            <div>
+              <p className="text-white tracking-light text-[32px] font-bold leading-tight min-w-72">{recording?.title || 'Product Launch Meeting'}</p>
+              {currentProject && (
+                <div className="flex items-center gap-2 mt-3">
+                  <button
+                    onClick={() => onNavigateToProject && onNavigateToProject(currentProject)}
+                    className="bg-[#8b5cf6] text-white px-3 py-1 rounded-full text-sm font-medium hover:bg-[#7c3aed] transition-all hover:shadow-lg flex items-center gap-1.5 group"
+                    title="Ir al proyecto"
+                  >
+                    📁 {currentProject.name}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256" className="opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                      <path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"></path>
+                    </svg>
+                  </button>
+                  <button 
+                    onClick={() => setShowProjectSelector(true)}
+                    className="text-[#c89295] hover:text-white text-sm underline"
+                  >
+                    Cambiar
+                  </button>
+                </div>
+              )}
+              {!currentProject && (
+                <button 
+                  onClick={() => setShowProjectSelector(true)}
+                  className="mt-3 bg-[#472426] text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-[#663336] transition-colors"
+                >
+                  + Agregar a Proyecto
+                </button>
+              )}
+            </div>
           </div>
           {/* Input de pregunta y respuesta */}
           <form className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3" onSubmit={handleAskQuestion}>
@@ -423,6 +490,15 @@ export default function RecordingDetailWithTranscription({ recording, onBack }) 
           </div>
         </div>
       </div>
+
+      {/* Selector de proyecto */}
+      {showProjectSelector && (
+        <ProjectSelector
+          selectedProjectId={currentProject?.id}
+          onSelect={handleMoveToProject}
+          onCancel={() => setShowProjectSelector(false)}
+        />
+      )}
     </div>
   );
 } 
