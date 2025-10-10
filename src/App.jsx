@@ -1,21 +1,66 @@
 import React, { useState } from 'react'
+import { useSelector } from 'react-redux'
 import Home from './pages/Home/Home'
+import RecordingDetailWithTranscription from './pages/RecordingDetail/RecordingDetailWithTranscription';
+import Settings from './pages/Settings/Settings'
+import RecordingOverlay from './components/RecordingOverlay/RecordingOverlay'
 import './App.css'
 
 export default function App() {
-  const [page, setPage] = useState('home')
+  const [currentView, setCurrentView] = useState('home')
   const [selectedRecording, setSelectedRecording] = useState(null)
+  const [currentRecorder, setCurrentRecorder] = useState(null)
+  const { isRecording } = useSelector((state) => state.recording)
 
-  // Por ahora solo Home, luego añadiremos Detalle y Settings
-  if (page === 'home') {
-    return <Home onSettings={() => setPage('settings')} onSelectRecording={(rec) => { setSelectedRecording(rec); setPage('detail') }} />
+  const handleBack = () => {
+    setCurrentView('home')
+    setSelectedRecording(null)
   }
-  // Placeholder para las otras páginas
-  if (page === 'settings') {
-    return <div style={{ color: '#fff', background: '#2a1919', minHeight: '100vh' }}>Settings (en construcción) <button onClick={() => setPage('home')}>Volver</button></div>
+
+  const handleRecordingStart = (recorder) => {
+    setCurrentRecorder(recorder)
   }
-  if (page === 'detail') {
-    return <div style={{ color: '#fff', background: '#2a1919', minHeight: '100vh' }}>Detalle de grabación: {selectedRecording?.name} <button onClick={() => setPage('home')}>Volver</button></div>
+
+  const handleSaveAndExit = async (recordingName) => {
+    if (currentRecorder && currentRecorder.isRecording) {
+      // Detener la grabación mezclada
+      currentRecorder.stopMixedRecording()
+    }
+    
+    // Limpiar el recorder
+    setCurrentRecorder(null)
+    
+    console.log('Grabación guardada:', recordingName)
   }
-  return null
+
+  return (
+    <>
+      {currentView === 'home' && (
+        <Home
+          onSettings={() => setCurrentView('settings')}
+          onRecordingStart={handleRecordingStart}
+          onRecordingSelect={(recording) => {
+            setSelectedRecording(recording);
+            setCurrentView('recording-detail');
+          }}
+        />
+      )}
+      {currentView === 'settings' && (
+        <Settings onBack={handleBack} />
+      )}
+      {currentView === 'recording-detail' && selectedRecording && (
+        <RecordingDetailWithTranscription recording={selectedRecording} onBack={handleBack} />
+      )}
+      
+      {/* Mostrar RecordingOverlay cuando está grabando */}
+      {isRecording && (
+        <RecordingOverlay
+          recorder={currentRecorder}
+          onFinish={() => {
+            setCurrentRecorder(null);
+          }}
+        />
+      )}
+    </>
+  )
 }
