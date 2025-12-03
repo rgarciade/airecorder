@@ -430,14 +430,15 @@ ipcMain.handle('transcribe-recording', async (event, recordingId) => {
 });
 
 // Guardar resumen de Gemini
-ipcMain.handle('save-gemini-summary', async (event, recordingId, summaryJson) => {
+ipcMain.handle('save-ai-summary', async (event, recordingId, summaryJson) => {
   try {
     const summaryPath = path.join(
       '/Users/raul.garciad/Desktop/recorder',
       recordingId,
       'analysis',
-      'gemini_summary.json'
+      'ai_summary.json'
     );
+    
     // Crear la carpeta analysis si no existe
     const analysisDir = path.dirname(summaryPath);
     if (!fs.existsSync(analysisDir)) {
@@ -452,7 +453,7 @@ ipcMain.handle('save-gemini-summary', async (event, recordingId, summaryJson) =>
   }
 });
 // Leer resumen de Gemini
-ipcMain.handle('get-gemini-summary', async (event, recordingId) => {
+ipcMain.handle('get-ai-summary', async (event, recordingId) => {
   try {
     const summaryPath = path.join(
       '/Users/raul.garciad/Desktop/recorder',
@@ -461,7 +462,16 @@ ipcMain.handle('get-gemini-summary', async (event, recordingId) => {
       'gemini_summary.json'
     );
     if (!fs.existsSync(summaryPath)) {
-      return { success: false, error: 'No existe resumen Gemini' };
+      // para preserva los antiguos archivos gemini_summary.json
+      summaryPath = path.join(
+        '/Users/raul.garciad/Desktop/recorder',
+        recordingId,
+        'analysis',
+        'ai_summary.json'
+      );
+      if (!fs.existsSync(summaryPath)) {
+        return { success: false, error: 'No existe resumen' };
+      }
     }
     const data = await fs.promises.readFile(summaryPath, 'utf8');
     return { success: true, summary: JSON.parse(data) };
@@ -663,6 +673,43 @@ ipcMain.handle('get-recording-project', async (event, recordingId) => {
     return { success: true, project };
   } catch (error) {
     console.error('Error obteniendo proyecto de la grabación:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Guardar análisis de proyecto
+ipcMain.handle('save-project-analysis', async (event, projectId, analysis) => {
+  try {
+    const analysisDir = path.join('/Users/raul.garciad/Desktop/recorder', 'projects_analysis');
+    
+    if (!fs.existsSync(analysisDir)) {
+      fs.mkdirSync(analysisDir, { recursive: true });
+    }
+    
+    const filePath = path.join(analysisDir, `${projectId}.json`);
+    await fs.promises.writeFile(filePath, JSON.stringify(analysis, null, 2), 'utf8');
+    
+    console.log(`Análisis de proyecto guardado en: ${filePath}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error guardando análisis de proyecto:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Obtener análisis de proyecto
+ipcMain.handle('get-project-analysis', async (event, projectId) => {
+  try {
+    const filePath = path.join('/Users/raul.garciad/Desktop/recorder', 'projects_analysis', `${projectId}.json`);
+    
+    if (!fs.existsSync(filePath)) {
+      return { success: false, error: 'Análisis no encontrado' };
+    }
+    
+    const data = await fs.promises.readFile(filePath, 'utf8');
+    return { success: true, analysis: JSON.parse(data) };
+  } catch (error) {
+    console.error('Error leyendo análisis de proyecto:', error);
     return { success: false, error: error.message };
   }
 });

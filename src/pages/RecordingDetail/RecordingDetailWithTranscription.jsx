@@ -1,44 +1,40 @@
 import React, { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import recordingsService from '../../services/recordingsService';
 import projectsService from '../../services/projectsService';
 import TranscriptionViewer from '../../components/TranscriptionViewer/TranscriptionViewer';
 import { generateWithContext } from '../../services/aiService';
 import { getSettings, updateSettings } from '../../services/settingsService';
 import { getAvailableModels } from '../../services/ollamaService';
+import { shortSummaryPrompt, keyPointsPrompt,detailedSummaryPrompt, chatQuestionPrompt } from '../../prompts/aiPrompts';
 import ProjectSelector from '../../components/ProjectSelector/ProjectSelector';
 import ChatInterface from '../../components/ChatInterface/ChatInterface';
 
 // Puedes reemplazar estos mocks si tienes datos reales en la grabación
 const mockTopics = [
-  { name: 'Introduction', timestamp: '0:00', timestampSeconds: 0 },
-  { name: 'Marketing Strategy', timestamp: '5:20', timestampSeconds: 320 },
-  { name: 'Budget Discussion', timestamp: '12:45', timestampSeconds: 765 },
-  { name: 'Launch Date', timestamp: '20:10', timestampSeconds: 1210 },
-  { name: 'Action Items', timestamp: '28:30', timestampSeconds: 1710 },
 ];
 
-// Prompt fijo en español para resumen e ideas
-const defaultPrompt = `A continuación tienes una transcripción. Quiero que me des dos resúmenes y una lista de ideas principales o temas destacados que se mencionan.
+// Los prompts ahora se importan desde aiPrompts.js
 
-Responde en formato JSON con la siguiente estructura:
-
-{
-  "resumen_breve": "Resumen muy breve (1-2 frases)",
-  "resumen_extenso": "Resumen más detallado (varios párrafos si es necesario)",
-  "ideas": [
-    "Idea o tema 1",
-    "Idea o tema 2",
-    "Idea o tema 3"
-  ]
-}
-
-Si la transcripción está vacía, responde con un JSON vacío.`;
-
-const detailedPrompt = `Eres un asistente de IA experto en generar resúmenes detallados de conversaciones para futuros usos.
-
-Concéntrate solo en el diálogo relevante para generar tu respuesta.
-
-DEVUELVE UN RESUMEN DETALLADO SIN FALTA DE DETALLES Y EN español para un mejor uso en futuras llamadas a este asistente. QE QUEDE CLARO QUIEN DICE CADA COSA`
+// Componentes personalizados para el renderizado de Markdown del resumen detallado
+const detailedSummaryMarkdownComponents = {
+  p: ({ children }) => <p className="mb-3 text-white leading-relaxed">{children}</p>,
+  ul: ({ children }) => <ul className="mb-3 ml-4 list-disc text-white">{children}</ul>,
+  ol: ({ children }) => <ol className="mb-3 ml-4 list-decimal text-white">{children}</ol>,
+  li: ({ children }) => <li className="mb-1 text-white">{children}</li>,
+  strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
+  em: ({ children }) => <em className="italic text-gray-300">{children}</em>,
+  code: ({ inline, children }) => 
+    inline ? (
+      <code className="bg-gray-800 text-yellow-400 px-1 py-0.5 rounded text-sm font-mono">{children}</code>
+    ) : (
+      <pre className="bg-gray-800 text-yellow-400 p-3 rounded-lg overflow-x-auto mb-3"><code className="text-sm font-mono">{children}</code></pre>
+    ),
+  h1: ({ children }) => <h1 className="text-xl font-bold text-white mb-3 mt-4 first:mt-0">{children}</h1>,
+  h2: ({ children }) => <h2 className="text-lg font-semibold text-white mb-2 mt-3 first:mt-0">{children}</h2>,
+  h3: ({ children }) => <h3 className="text-base font-medium text-white mb-2 mt-2 first:mt-0">{children}</h3>,
+  blockquote: ({ children }) => <blockquote className="border-l-4 border-gray-600 pl-4 italic text-gray-300 mb-3">{children}</blockquote>,
+};
 
 export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject }) {
   const [question, setQuestion] = useState('');
@@ -54,12 +50,18 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [transcriptionError, setTranscriptionError] = useState(null);
 
   // Estado para la respuesta de Gemini
-  const [geminiData, setGeminiData] = useState({ resumen_breve: '', resumen_extenso: '', ideas: [] });
+  const [geminiData, setGeminiData] = useState({ resumen_breve: '', ideas: [] });
   const [geminiLoading, setGeminiLoading] = useState(false);
   const [geminiError, setGeminiError] = useState(null);
   const [geminiResult, setGeminiResult] = useState(null);
   const [geminiChecked, setGeminiChecked] = useState(false); // Para evitar doble llamada
   const [geminiSlowWarning, setGeminiSlowWarning] = useState(false); // Para mostrar advertencia de lentitud
+  
+  // Estado para resumen detallado
+  const [detailedSummary, setDetailedSummary] = useState('');
+  const [detailedLoading, setDetailedLoading] = useState(false);
+  const [detailedError, setDetailedError] = useState(null);
+  const [isDetailedSummaryExpanded, setIsDetailedSummaryExpanded] = useState(false);
 
   // Estado para el histórico de preguntas
   const [qaHistory, setQaHistory] = useState([]);
@@ -98,21 +100,31 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       if (!recording?.id || !transcription || geminiChecked) return;
       setGeminiChecked(true);
       setGeminiLoading(true);
+      setDetailedLoading(true);
       setGeminiError(null);
+      setDetailedError(null);
       setGeminiResult(null);
+      
       // 1. Intentar cargar resumen guardado
-      const existing = await recordingsService.getGeminiSummary(recording.id);
-      if (existing && existing.resumen_breve && existing.resumen_extenso && Array.isArray(existing.ideas)) {
+      const existing = await recordingsService.getAiSummary(recording.id);
+      console.log('Resumen existente cargado:', existing); // Debug
+      if (existing && existing.resumen_breve && Array.isArray(existing.ideas)) {
         setGeminiData(existing);
+        setDetailedSummary(existing.resumen_detallado || '');
+        console.log('Resumen detallado cargado:', existing.resumen_detallado); // Debug
         setGeminiLoading(false);
+        setDetailedLoading(false);
         return;
       }
-      // 2. Si no existe, llamar a IA
+      
+      // 2. Si no existe, generar ambos resúmenes en paralelo
       try {
         const txt = await recordingsService.getTranscriptionTxt(recording.id);
         if (!txt) {
           setGeminiError('No se pudo obtener el texto de la transcripción.');
+          setDetailedError('No se pudo obtener el texto de la transcripción.');
           setGeminiLoading(false);
+          setDetailedLoading(false);
           return;
         }
         
@@ -120,30 +132,57 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         const timeoutId = setTimeout(() => {
           setGeminiSlowWarning(true);
         }, 10000);
-        
-        const response = await generateWithContext(defaultPrompt, txt);
+
+
+        const detailedResponse = await generateWithContext(detailedSummaryPrompt, txt)
+        const detailedResponseText = detailedResponse.text || '';
+        // Generar ambos resúmenes en paralelo
+        const [ shortSummary , keyPointResponse] = await Promise.all([
+          generateWithContext(shortSummaryPrompt, detailedResponseText?? txt),
+          generateWithContext(keyPointsPrompt, detailedResponseText?? txt)
+        ]);
+        debugger;
         clearTimeout(timeoutId);
         setGeminiSlowWarning(false);
         
-        let text = response.text || 'Sin respuesta de IA';
-        // Limpiar bloque de código Markdown antes de parsear
-        let cleanText = text.replace(/^\s*```(?:json)?\s*([\s\S]*?)\s*```\s*$/i, '$1').trim();
-        let parsed = null;
-        try {
-          parsed = JSON.parse(cleanText);
-        } catch (e) {}
-        if (parsed && parsed.resumen_breve && parsed.resumen_extenso && Array.isArray(parsed.ideas)) {
-          setGeminiData(parsed);
-          await recordingsService.saveGeminiSummary(recording.id, parsed);
-        } else {
-          setGeminiResult(text);
-          setGeminiData({ resumen_breve: '', resumen_extenso: '', ideas: [] });
+        // Procesar resumen estructurado
+        const shortSummaryText = shortSummary.text || '';
+        const detailedText = detailedResponse.text || '';
+        const keyPointText = keyPointResponse.text || '';
+        
+        setDetailedSummary(detailedText);
+        
+        // Procesar ideas/keypoints
+        let ideas = [];
+        if (keyPointText) {
+          ideas = keyPointText.split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0 && (line.startsWith('-') || line.startsWith('•') || /^\d+\./.test(line)))
+            .map(line => line.replace(/^[•-]\s*|^\d+\.\s*/, ''));
         }
+
+        const dataToSave = {
+          resumen_breve: shortSummaryText,
+          ideas: ideas,
+          resumen_detallado: detailedText,
+          key_points: keyPointText,
+          resumen_corto: shortSummaryText
+        };
+
+        setGeminiData(dataToSave);
+        
+        await recordingsService.saveAiSummary(recording.id, dataToSave);
+        //} else {
+         // setGeminiResult(summaryText);
+          //setGeminiData({ resumen_breve: '', ideas: [] });
+       // }
       } catch (error) {
         setGeminiError('Error al obtener respuesta de IA: ' + error.message);
+        setDetailedError('Error al obtener resumen detallado: ' + error.message);
         setGeminiSlowWarning(false);
       } finally {
         setGeminiLoading(false);
+        setDetailedLoading(false);
       }
     };
     fetchGemini();
@@ -243,9 +282,16 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     setQuestionAnswer(null);
     setQuestionSlowWarning(false);
     try {
-      const txt = await recordingsService.getTranscriptionTxt(recording.id);
-      if (!txt) {
-        setQuestionError('No se pudo obtener el texto de la transcripción.');
+      // Usar el resumen detallado como contexto en lugar de la transcripción completa
+      let contextToUse = detailedSummary;
+      
+      // Si no hay resumen detallado, usar la transcripción completa como fallback
+      if (!contextToUse) {
+        contextToUse = await recordingsService.getTranscriptionTxt(recording.id);
+      }
+      
+      if (!contextToUse) {
+        setQuestionError('No se pudo obtener el contexto para responder la pregunta.');
         setQuestionLoading(false);
         return;
       }
@@ -255,9 +301,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         setQuestionSlowWarning(true);
       }, 10000);
       
-      // Prompt personalizado con instrucción de formato Markdown
-      const prompt = `${questionText}\n\nResponde de forma concisa usando formato Markdown para mejorar la legibilidad (usa negritas, listas, encabezados, etc. cuando sea apropiado).`;
-      const response = await generateWithContext(prompt, txt);
+      // Usar prompt centralizado
+      const prompt = chatQuestionPrompt(questionText);
+      const response = await generateWithContext(prompt, contextToUse);
       clearTimeout(timeoutId);
       setQuestionSlowWarning(false);
       
@@ -446,11 +492,37 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         </div>
         {/* Columna central: título, input, mensajes y transcripción */}
         <div className="layout-content-container flex flex-col flex-1">
-          {/* Resumen extenso destacado */}
-          {geminiData.resumen_extenso && (
-            <div className="bg-[#331a1b] text-white rounded-lg p-6 mb-6 whitespace-pre-line text-lg font-normal">
-              <span className="font-bold block mb-2">Resumen detallado de la reunión:</span>
-              {geminiData.resumen_extenso}
+          {/* Resumen detallado destacado con colapsar/expandir */}
+          {detailedSummary && (
+            <div className="bg-[#2a1a1b] text-white rounded-lg p-6 mb-6 border border-[#472426]">
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-bold text-[#e92932]">📋 Resumen Detallado (Contexto del Chat)</span>
+                <button
+                  onClick={() => setIsDetailedSummaryExpanded(!isDetailedSummaryExpanded)}
+                  className="text-[#c89295] hover:text-white transition-colors flex items-center gap-1"
+                >
+                  {isDetailedSummaryExpanded ? (
+                    <>Ocultar <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd"/></svg></>
+                  ) : (
+                    <>Mostrar completo <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd"/></svg></>
+                  )}
+                </button>
+              </div>
+              <p className="text-sm text-[#c89295] mb-3">Este resumen se usa como contexto para las preguntas del chat</p>
+              <div 
+                className={`transition-all duration-300 ${
+                  isDetailedSummaryExpanded 
+                    ? 'max-h-none' 
+                    : 'max-h-32 overflow-hidden relative'
+                }`}
+              >
+                <ReactMarkdown components={detailedSummaryMarkdownComponents}>
+                  {detailedSummary}
+                </ReactMarkdown>
+                {!isDetailedSummaryExpanded && (
+                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#2a1a1b] to-transparent"></div>
+                )}
+              </div>
             </div>
           )}
           <div className="flex flex-wrap justify-between gap-3 p-4 items-start">
@@ -508,10 +580,13 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           {questionError && <div className="text-red-400 px-4">{questionError}</div>}
           {/* Transcripción debajo del input */}
           <div className="w-full flex-1 px-4 pb-4">
-            {/* Indicador de generación de resumen */}
+            {/* Indicadores de generación de resúmenes */}
             <div className="mb-4">
               {geminiLoading && (
-                <div className="text-[#e92932] font-bold py-2">Generando resumen...</div>
+                <div className="text-[#e92932] font-bold py-2">Generando resumen estructurado...</div>
+              )}
+              {detailedLoading && (
+                <div className="text-[#e92932] font-bold py-2">Generando resumen detallado...</div>
               )}
               {geminiSlowWarning && (
                 <div className="text-yellow-400 py-2 text-sm bg-yellow-900/20 border border-yellow-600/30 rounded-lg px-3 my-2">
@@ -520,6 +595,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
               )}
               {geminiError && (
                 <div className="text-red-400 mt-2">{geminiError}</div>
+              )}
+              {detailedError && (
+                <div className="text-red-400 mt-2">{detailedError}</div>
               )}
 
               {(!geminiData.resumen_extenso && geminiResult) && (
