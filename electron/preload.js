@@ -46,8 +46,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getTranscriptionTxt: (recordingId) => ipcRenderer.invoke('get-transcription-txt', recordingId),
 
   // Guardar y leer resumen de Gemini
-  saveGeminiSummary: (recordingId, summaryJson) => ipcRenderer.invoke('save-gemini-summary', recordingId, summaryJson),
-  getGeminiSummary: (recordingId) => ipcRenderer.invoke('get-gemini-summary', recordingId),
+  saveAiSummary: (recordingId, summaryJson) => ipcRenderer.invoke('save-ai-summary', recordingId, summaryJson),
+  getAiSummary: (recordingId) => ipcRenderer.invoke('get-ai-summary', recordingId),
   // Guardar y leer histórico de preguntas
   saveQuestionHistory: (recordingId, qa) => ipcRenderer.invoke('save-question-history', recordingId, qa),
   getQuestionHistory: (recordingId) => ipcRenderer.invoke('get-question-history', recordingId),
@@ -79,4 +79,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // Obtener el proyecto de una grabación
   getRecordingProject: (recordingId) => ipcRenderer.invoke('get-recording-project', recordingId),
+
+  // Guardar y leer análisis de proyecto
+  saveProjectAnalysis: (projectId, analysis) => ipcRenderer.invoke('save-project-analysis', projectId, analysis),
+  getProjectAnalysis: (projectId) => ipcRenderer.invoke('get-project-analysis', projectId),
 }); 

@@ -6,6 +6,40 @@ import { generateContent as ollamaGenerate } from './ollamaService';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 /**
+ * Procesa el texto de respuesta para extraer puntos clave en formato --|-- punto --|-- texto
+ * @param {string} text - Texto de respuesta de la IA
+ * @returns {Object} { processedText, keyPoints }
+ */
+function processResponseWithKeyPoints(text) {
+  if (!text) {
+    return { processedText: text, keyPoints: {} };
+  }
+
+  // Buscar patrones de puntos clave: --|-- punto --|-- texto
+  const keyPointPattern = /--\|--\s*([^|]+?)\s*--\|--\s*([^|]+?)(?=\s*--\|--|$)/g;
+  const keyPoints = {};
+  let processedText = text;
+
+  let match;
+  while ((match = keyPointPattern.exec(text)) !== null) {
+    const point = match[1].trim();
+    const description = match[2].trim();
+    
+    if (point && description) {
+      keyPoints[point] = description;
+    }
+  }
+
+  // Si se encontraron puntos clave, limpiar el texto original
+  if (Object.keys(keyPoints).length > 0) {
+    // Remover las líneas que contienen los puntos clave del texto principal
+    processedText = text.replace(keyPointPattern, '').trim();
+  }
+
+  return { processedText, keyPoints };
+}
+
+/**
  * Genera contenido usando el proveedor de IA configurado
  * @param {string} prompt - Prompt para la IA
  * @returns {Promise<Object>} Respuesta de la IA en formato normalizado
@@ -14,11 +48,22 @@ export async function generateContent(prompt) {
   const settings = await getSettings();
   const provider = settings.aiProvider || 'gemini';
 debugger
+  let response;
   if (provider === 'ollama') {
-    return await generateWithOllama(prompt, settings);
+    response = await generateWithOllama(prompt, settings);
   } else if (provider === 'gemini'){
-    return await generateWithGemini(prompt, settings);
+    response = await generateWithGemini(prompt, settings);
   }
+  debugger;
+
+  // Procesar la respuesta para extraer puntos clave
+  const { processedText, keyPoints } = processResponseWithKeyPoints(response.text);
+  
+  return {
+    ...response,
+    text: processedText,
+    keyPoints: keyPoints
+  };
 }
 
 /**

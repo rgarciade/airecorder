@@ -224,11 +224,11 @@ class RecordingsService {
   /**
    * Guarda el resumen de Gemini en la carpeta de análisis
    */
-  async saveGeminiSummary(recordingId, summaryJson) {
+  async saveAiSummary(recordingId, summaryJson) {
     try {
-      if (!window.electronAPI?.saveGeminiSummary) throw new Error('API de Electron no disponible');
+      if (!window.electronAPI?.saveAiSummary) throw new Error('API de Electron no disponible');
       console.log('summaryJson', summaryJson);
-      const result = await window.electronAPI.saveGeminiSummary(recordingId, summaryJson);
+      const result = await window.electronAPI.saveAiSummary(recordingId, summaryJson);
       return result.success;
     } catch (error) {
       console.error('Error guardando resumen Gemini:', error);
@@ -239,10 +239,10 @@ class RecordingsService {
   /**
    * Lee el resumen de Gemini de la carpeta de análisis
    */
-  async getGeminiSummary(recordingId) {
+  async getAiSummary(recordingId) {
     try {
-      if (!window.electronAPI?.getGeminiSummary) throw new Error('API de Electron no disponible');
-      const result = await window.electronAPI.getGeminiSummary(recordingId);
+      if (!window.electronAPI?.getAiSummary) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.getAiSummary(recordingId);
       if (!result.success) return null;
       return result.summary;
     } catch (error) {
