@@ -18,6 +18,16 @@ export const keyPointsPrompt = `Eres un asistente de IA experto en analizar text
 A continuación tienes un resumen detallado,
 ${pointDefinition}
 
+IMPORTANTE: En cada punto, resalta las PALABRAS CLAVE más importantes usando formato markdown con negritas (**palabra clave**). 
+Las palabras clave son términos técnicos, conceptos importantes, nombres propios, acciones clave, o cualquier término que sea esencial para entender el punto.
+
+Ejemplo de formato:
+--|-- 1 --|-- Se discutió el **lanzamiento del producto** y las **estrategias de marketing** para el próximo trimestre
+--|-- 2 --|-- Se acordó implementar un **sistema de seguimiento** para mejorar la **productividad del equipo**
+
+LIMITA LA RESPUESTA A ENTRE 3 Y 5 PUNTOS PRINCIPALES Y GENERALES.
+NO ENTRES EN DETALLES EXCESIVOS, SOLO LAS IDEAS GENERALES.
+
 NO AGREGUES NADA MAS QUE LOS PUNTOS Y EL TEXTO DEL PUNTO
 RECUERDA RETORNAR LA RESPUESTA SIN NINGUNA APORTACION TUYA EN LA CONVERSACION
 RESPONDE EN ESPAÑOL
@@ -47,6 +57,37 @@ export const chatQuestionPrompt = (question) =>
 Responde de forma concisa usando formato Markdown para mejorar la legibilidad (usa negritas, listas, encabezados, etc. cuando sea apropiado).
 
 Si la pregunta requiere información específica de la conversación, usa el contexto proporcionado para dar una respuesta precisa y detallada.`;
+
+// Prompt para extraer participantes de la transcripción
+export const participantsPrompt = `TAREA: Extrae SOLO los nombres de personas mencionadas explícitamente en la transcripción.
+
+INSTRUCCIONES ESTRICTAS:
+1. Lee la transcripción completa
+2. Identifica SOLO nombres propios de personas que aparezcan mencionados
+3. Para cada persona, intenta inferir su rol basándote en lo que dice o hace
+4. NO inventes nombres que no aparezcan en el texto
+5. NO incluyas pronombres ni referencias genéricas
+
+FORMATO DE SALIDA OBLIGATORIO - Responde ÚNICAMENTE con este JSON (sin explicaciones adicionales):
+[
+  {"name": "Nombre Completo", "role": "Rol inferido"},
+  {"name": "Otro Nombre", "role": "Otro rol"}
+]
+
+Si NO encuentras nombres específicos, responde SOLO con: []
+
+IMPORTANTE: 
+- Tu respuesta debe ser SOLO el array JSON
+- NO agregues texto antes ni después del JSON
+- NO uses markdown (sin \`\`\`json)
+- NO des explicaciones
+- SOLO el JSON puro
+
+Ejemplo de respuesta correcta:
+[{"name": "María García", "role": "Desarrolladora"}, {"name": "Juan Pérez", "role": "Project Manager"}]
+
+Ejemplo de respuesta si no hay nombres:
+[]`;
 
 // Prompts para proyectos (futuro)
 export const projectPrompts = {

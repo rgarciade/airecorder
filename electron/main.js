@@ -6,6 +6,11 @@ const AudioRecorder = require('./audioRecorder');
 const { spawn } = require('child_process');
 const ProjectsDatabase = require('./projectsDatabase');
 
+// Constantes de rutas base
+const BASE_RECORDER_PATH = '/Users/raul.garciad/Desktop/recorder';
+const RECORDINGS_PATH = path.join(BASE_RECORDER_PATH, 'grabaciones');
+const PROJECTS_PATH = path.join(BASE_RECORDER_PATH, 'projects');
+
 // Estado global para evitar transcripciones simultáneas
 let isTranscribing = false;
 let currentTranscribingId = null;
@@ -200,7 +205,7 @@ ipcMain.handle('get-desktop-sources', async () => {
 // Manejador para guardar audio del sistema
 ipcMain.handle('save-system-audio', async (event, audioData, fileName) => {
   try {
-    const outputDir = '/Users/raul.garciad/Desktop/recorder';
+    const outputDir = RECORDINGS_PATH;
     
     // Crear el directorio si no existe
     if (!fs.existsSync(outputDir)) {
@@ -224,7 +229,7 @@ ipcMain.handle('save-system-audio', async (event, audioData, fileName) => {
 // Manejador para guardar audios por separado en carpetas
 ipcMain.handle('save-separate-audio', async (event, audioData, folderName, fileName) => {
   try {
-    const baseOutputDir = '/Users/raul.garciad/Desktop/recorder';
+    const baseOutputDir = RECORDINGS_PATH;
     const recordingDir = path.join(baseOutputDir, folderName);
     
     // Crear el directorio base si no existe
@@ -256,7 +261,7 @@ ipcMain.handle('save-separate-audio', async (event, audioData, folderName, fileN
 // Obtener todas las carpetas de grabación con metadata
 ipcMain.handle('get-recording-folders', async () => {
   try {
-    const baseOutputDir = '/Users/raul.garciad/Desktop/recorder';
+    const baseOutputDir = RECORDINGS_PATH;
     
     if (!fs.existsSync(baseOutputDir)) {
       return { success: true, folders: [] };
@@ -308,7 +313,7 @@ ipcMain.handle('get-recording-folders', async () => {
 ipcMain.handle('get-transcription', async (event, recordingId) => {
   try {
     const transcriptionPath = path.join(
-      '/Users/raul.garciad/Desktop/recorder',
+      RECORDINGS_PATH,
       recordingId,
       'analysis',
       'transcripcion_combinada.json'
@@ -332,7 +337,7 @@ ipcMain.handle('get-transcription', async (event, recordingId) => {
 ipcMain.handle('get-transcription-txt', async (event, recordingId) => {
   try {
     const txtPath = path.join(
-      '/Users/raul.garciad/Desktop/recorder',
+      RECORDINGS_PATH,
       recordingId,
       'analysis',
       'transcripcion_combinada.txt'
@@ -351,7 +356,7 @@ ipcMain.handle('get-transcription-txt', async (event, recordingId) => {
 // Eliminar una grabación completa (carpeta y contenido)
 ipcMain.handle('delete-recording', async (event, recordingId) => {
   try {
-    const recordingPath = path.join('/Users/raul.garciad/Desktop/recorder', recordingId);
+    const recordingPath = path.join(RECORDINGS_PATH, recordingId);
     
     if (!fs.existsSync(recordingPath)) {
       return { success: false, error: 'Grabación no encontrada' };
@@ -368,10 +373,34 @@ ipcMain.handle('delete-recording', async (event, recordingId) => {
   }
 });
 
+// Renombrar una grabación (carpeta)
+ipcMain.handle('rename-recording', async (event, recordingId, newName) => {
+  try {
+    const oldPath = path.join(RECORDINGS_PATH, recordingId);
+    // Sanitize new name to be safe for filesystem
+    const safeNewName = newName.replace(/[^a-z0-9áéíóúñü \-_]/gi, '_').trim();
+    const newPath = path.join(RECORDINGS_PATH, safeNewName);
+
+    if (!fs.existsSync(oldPath)) {
+      return { success: false, error: 'Grabación no encontrada' };
+    }
+    if (fs.existsSync(newPath) && oldPath !== newPath) {
+      return { success: false, error: 'Ya existe una grabación con ese nombre' };
+    }
+
+    await fs.promises.rename(oldPath, newPath);
+    console.log(`Grabación renombrada: ${oldPath} -> ${newPath}`);
+    return { success: true, newId: safeNewName };
+  } catch (error) {
+    console.error('Error renaming recording:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // Descargar/exportar una grabación (abrir en Finder)
 ipcMain.handle('download-recording', async (event, recordingId) => {
   try {
-    const recordingPath = path.join('/Users/raul.garciad/Desktop/recorder', recordingId);
+    const recordingPath = path.join(RECORDINGS_PATH, recordingId);
     
     if (!fs.existsSync(recordingPath)) {
       return { success: false, error: 'Grabación no encontrada' };
@@ -390,6 +419,7 @@ ipcMain.handle('download-recording', async (event, recordingId) => {
 });
 
 ipcMain.handle('transcribe-recording', async (event, recordingId) => {
+  debugger;
   if (isTranscribing) {
     return { success: false, error: 'Ya hay una transcripción en curso', inProgress: true, currentTranscribingId };
   }
@@ -433,7 +463,7 @@ ipcMain.handle('transcribe-recording', async (event, recordingId) => {
 ipcMain.handle('save-ai-summary', async (event, recordingId, summaryJson) => {
   try {
     const summaryPath = path.join(
-      '/Users/raul.garciad/Desktop/recorder',
+      RECORDINGS_PATH,
       recordingId,
       'analysis',
       'ai_summary.json'
@@ -456,22 +486,24 @@ ipcMain.handle('save-ai-summary', async (event, recordingId, summaryJson) => {
 ipcMain.handle('get-ai-summary', async (event, recordingId) => {
   try {
     const summaryPath = path.join(
-      '/Users/raul.garciad/Desktop/recorder',
+      RECORDINGS_PATH,
       recordingId,
       'analysis',
       'gemini_summary.json'
     );
     if (!fs.existsSync(summaryPath)) {
       // para preserva los antiguos archivos gemini_summary.json
-      summaryPath = path.join(
-        '/Users/raul.garciad/Desktop/recorder',
+      const altSummaryPath = path.join(
+        RECORDINGS_PATH,
         recordingId,
         'analysis',
         'ai_summary.json'
       );
-      if (!fs.existsSync(summaryPath)) {
+      if (!fs.existsSync(altSummaryPath)) {
         return { success: false, error: 'No existe resumen' };
       }
+      const data = await fs.promises.readFile(altSummaryPath, 'utf8');
+      return { success: true, summary: JSON.parse(data) };
     }
     const data = await fs.promises.readFile(summaryPath, 'utf8');
     return { success: true, summary: JSON.parse(data) };
@@ -481,11 +513,80 @@ ipcMain.handle('get-ai-summary', async (event, recordingId) => {
   }
 });
 
+// Guardar estado de generación
+ipcMain.handle('save-generating-state', async (event, recordingId, state) => {
+  try {
+    const statePath = path.join(
+      RECORDINGS_PATH,
+      recordingId,
+      'analysis',
+      '.generating.json'
+    );
+    
+    // Crear la carpeta analysis si no existe
+    const analysisDir = path.dirname(statePath);
+    if (!fs.existsSync(analysisDir)) {
+      fs.mkdirSync(analysisDir, { recursive: true });
+    }
+    
+    await fs.promises.writeFile(statePath, JSON.stringify(state, null, 2), 'utf8');
+    console.log(`[AI] Estado de generación guardado: ${statePath}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error guardando estado de generación:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Obtener estado de generación
+ipcMain.handle('get-generating-state', async (event, recordingId) => {
+  try {
+    const statePath = path.join(
+      RECORDINGS_PATH,
+      recordingId,
+      'analysis',
+      '.generating.json'
+    );
+    
+    if (!fs.existsSync(statePath)) {
+      return { success: false, error: 'No existe estado de generación' };
+    }
+    
+    const data = await fs.promises.readFile(statePath, 'utf8');
+    return { success: true, state: JSON.parse(data) };
+  } catch (error) {
+    console.error('Error leyendo estado de generación:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Limpiar estado de generación
+ipcMain.handle('clear-generating-state', async (event, recordingId) => {
+  try {
+    const statePath = path.join(
+      RECORDINGS_PATH,
+      recordingId,
+      'analysis',
+      '.generating.json'
+    );
+    
+    if (fs.existsSync(statePath)) {
+      await fs.promises.unlink(statePath);
+      console.log(`[AI] Estado de generación eliminado: ${statePath}`);
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error eliminando estado de generación:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // Guardar pregunta/respuesta en el histórico
 ipcMain.handle('save-question-history', async (event, recordingId, qa) => {
   try {
     const historyPath = path.join(
-      '/Users/raul.garciad/Desktop/recorder',
+      RECORDINGS_PATH,
       recordingId,
       'analysis',
       'questions_history.json'
@@ -513,7 +614,7 @@ ipcMain.handle('save-question-history', async (event, recordingId, qa) => {
 ipcMain.handle('get-question-history', async (event, recordingId) => {
   try {
     const historyPath = path.join(
-      '/Users/raul.garciad/Desktop/recorder',
+      RECORDINGS_PATH,
       recordingId,
       'analysis',
       'questions_history.json'
@@ -533,7 +634,7 @@ ipcMain.handle('get-question-history', async (event, recordingId) => {
 ipcMain.handle('save-participants', async (event, recordingId, participants) => {
   try {
     const participantsPath = path.join(
-      '/Users/raul.garciad/Desktop/recorder',
+      RECORDINGS_PATH,
       recordingId,
       'analysis',
       'participants.json'
@@ -555,7 +656,7 @@ ipcMain.handle('save-participants', async (event, recordingId, participants) => 
 ipcMain.handle('get-participants', async (event, recordingId) => {
   try {
     const participantsPath = path.join(
-      '/Users/raul.garciad/Desktop/recorder',
+      RECORDINGS_PATH,
       recordingId,
       'analysis',
       'participants.json'
@@ -680,7 +781,7 @@ ipcMain.handle('get-recording-project', async (event, recordingId) => {
 // Guardar análisis de proyecto
 ipcMain.handle('save-project-analysis', async (event, projectId, analysis) => {
   try {
-    const analysisDir = path.join('/Users/raul.garciad/Desktop/recorder', 'projects_analysis');
+    const analysisDir = path.join(PROJECTS_PATH, 'projects_analysis');
     
     if (!fs.existsSync(analysisDir)) {
       fs.mkdirSync(analysisDir, { recursive: true });
@@ -700,7 +801,7 @@ ipcMain.handle('save-project-analysis', async (event, projectId, analysis) => {
 // Obtener análisis de proyecto
 ipcMain.handle('get-project-analysis', async (event, projectId) => {
   try {
-    const filePath = path.join('/Users/raul.garciad/Desktop/recorder', 'projects_analysis', `${projectId}.json`);
+    const filePath = path.join(PROJECTS_PATH, 'projects_analysis', `${projectId}.json`);
     
     if (!fs.existsSync(filePath)) {
       return { success: false, error: 'Análisis no encontrado' };

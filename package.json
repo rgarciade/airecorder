@@ -50,6 +50,7 @@
     "react-dom": "^18.2.0",
     "react-markdown": "^10.1.0",
     "react-redux": "^9.2.0",
+    "react-router-dom": "^7.10.1",
     "sox-audio": "^0.3.0",
     "wav": "^1.0.2"
   },
