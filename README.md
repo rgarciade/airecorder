@@ -14,6 +14,12 @@ If you are developing a production application, we recommend using TypeScript wi
 
 # por hacer
 
+- [ ] revisar la ventana del proyecto, hay datos moqueados para el chat
+- [ ] revisar el liack de grabaciones, la flecha no navega
+- [ ] quiero que al desplegar una grabacion en esta vista, tambien aparezcan los archivos d eaudio y pueda reproducirlos desde el minuto que quiera yo.
+- [ ] quiero que los aspectos destacados funcionen como el apartado de participantes de un proyecto, que la ia proponga y yo pueda agregar mas, indicando quien lo genero. y pudiendolo modificar previa confirmacion manual.
+- [ ] tambien necesito un boton para poder relanzar las peticiones de ia del proyecto "solo del nivel del proyecto." que se vea igual que el del componente de la grabacion.
+- [ ] tambien necesito poder elegir el modelo de llamada como en la otra vista. puede que el componente chat pueda ser reutilizable
 - [ ] hacer que la transcipcion sea mas rapida
 - [ ] revisar el codigo y hacer tests
 - [ ] hay un fallo, cuando das a guardar, sigue activo el model de grabacion y da flasazos la interfaz de gaurdado. deberia tener el boton de guardar, que guarde con el nombre basico "fecha etc" y se actualice al asignarle un nombre y proyecto
