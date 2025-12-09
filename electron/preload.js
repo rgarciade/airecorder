@@ -36,6 +36,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Eliminar una grabación completa
   deleteRecording: (recordingId) => ipcRenderer.invoke('delete-recording', recordingId),
   
+  // Renombrar una grabación
+  renameRecording: (recordingId, newName) => ipcRenderer.invoke('rename-recording', recordingId, newName),
+  
   // Descargar/exportar una grabación
   downloadRecording: (recordingId) => ipcRenderer.invoke('download-recording', recordingId),
 
@@ -83,4 +86,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Guardar y leer análisis de proyecto
   saveProjectAnalysis: (projectId, analysis) => ipcRenderer.invoke('save-project-analysis', projectId, analysis),
   getProjectAnalysis: (projectId) => ipcRenderer.invoke('get-project-analysis', projectId),
+
+  // Gestión de estado de generación de IA
+  saveGeneratingState: (recordingId, state) => ipcRenderer.invoke('save-generating-state', recordingId, state),
+  getGeneratingState: (recordingId) => ipcRenderer.invoke('get-generating-state', recordingId),
+  clearGeneratingState: (recordingId) => ipcRenderer.invoke('clear-generating-state', recordingId),
 }); 

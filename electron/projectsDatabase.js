@@ -10,11 +10,11 @@ const DataFileDatabase = require('data_file_database');
 
 // Configuración de la base de datos
 const DB_CONFIG = {
-  basePath: '/Users/raul.garciad/Desktop/recorder',
+  basePath: '/Users/raul.garciad/Desktop/recorder/projects',
   databases: {
     projects: {
       name: 'projects',
-      schema: ['id', 'name', 'description', 'createdAt', 'updatedAt']
+      schema: ['id', 'name', 'description', 'createdAt', 'updatedAt', 'members']
     },
     recordingProjects: {
       name: 'recording_projects',
@@ -115,6 +115,7 @@ const DataTransformers = {
     id: DataTransformers.generateId(),
     name: data.name,
     description: data.description || '',
+    members: [],
     createdAt: DataTransformers.now(),
     updatedAt: DataTransformers.now()
   }),
@@ -335,4 +336,3 @@ const ProjectsDatabase = {
 };
 
 module.exports = ProjectsDatabase;
-

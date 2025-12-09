@@ -59,14 +59,13 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
               Concéntrate en la conversación, nosotros nos encargamos de las notas.
             </p>
           </div>
-          
+
           <div className="mb-16 flex justify-center">
             <RecordButton onRecordingStart={onRecordingStart} />
           </div>
-          
+
           <div className="w-full">
-            <RecordingList 
-              ref={recordingListRef} 
+            <RecordingList
               onRecordingSelect={onRecordingSelect}
               onNavigateToProject={onNavigateToProject}
             />

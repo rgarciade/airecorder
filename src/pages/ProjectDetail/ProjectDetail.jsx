@@ -5,22 +5,26 @@ import projectChatService from '../../services/projectChatService';
 import ProjectChatPanel from '../../components/ProjectChatPanel/ProjectChatPanel';
 import ProjectTimeline from '../../components/ProjectTimeline/ProjectTimeline';
 import MembersList from '../../components/MembersList/MembersList';
+import ProjectRecordingSummaries from '../../components/ProjectRecordingSummaries/ProjectRecordingSummaries';
 import ChatInterface from '../../components/ChatInterface/ChatInterface';
 
-export default function ProjectDetail({ project, onBack }) {
+export default function ProjectDetail({ project, onBack, onNavigateToRecording: navigateToRecordingProp }) {
+  // Wrapper para usar el prop renombrado
+  const props = { onNavigateToRecording: navigateToRecordingProp };
   // Estados para datos del proyecto
   const [projectSummary, setProjectSummary] = useState(null);
   const [projectMembers, setProjectMembers] = useState([]);
   const [projectHighlights, setProjectHighlights] = useState([]);
   const [projectDetails, setProjectDetails] = useState(null);
-  
+  const [recordingSummaries, setRecordingSummaries] = useState([]);
+
   // Estados para el chat
   const [chats, setChats] = useState([]);
   const [activeChatId, setActiveChatId] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
-  
+
   // Estados para modales
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [newChatName, setNewChatName] = useState('');
@@ -49,17 +53,19 @@ export default function ProjectDetail({ project, onBack }) {
   const loadProjectData = async () => {
     setIsLoading(true);
     try {
-      const [summary, members, highlights, details] = await Promise.all([
+      const [summary, members, highlights, details, recordings] = await Promise.all([
         projectAiService.getProjectSummary(project.id),
         projectAiService.getProjectMembers(project.id),
         projectAiService.getProjectHighlights(project.id),
-        projectAiService.getProjectDetails(project.id)
+        projectAiService.getProjectDetails(project.id),
+        projectAiService.getProjectRecordingSummaries(project.id)
       ]);
-      
+
       setProjectSummary(summary);
       setProjectMembers(members);
       setProjectHighlights(highlights);
       setProjectDetails(details);
+      setRecordingSummaries(recordings);
     } catch (error) {
       console.error('Error cargando datos del proyecto:', error);
     } finally {
@@ -71,7 +77,7 @@ export default function ProjectDetail({ project, onBack }) {
     try {
       const chatsList = await projectChatService.getProjectChats(project.id);
       setChats(chatsList);
-      
+
       // Seleccionar el primer chat como activo
       if (chatsList.length > 0) {
         setActiveChatId(chatsList[0].id);
@@ -100,7 +106,7 @@ export default function ProjectDetail({ project, onBack }) {
 
   const handleCreateNewChat = async () => {
     if (!newChatName.trim()) return;
-    
+
     try {
       const newChat = await projectChatService.createProjectChat(project.id, newChatName.trim());
       setChats(prev => [...prev, newChat]);
@@ -116,7 +122,7 @@ export default function ProjectDetail({ project, onBack }) {
     try {
       await projectChatService.deleteProjectChat(project.id, chatId);
       setChats(prev => prev.filter(chat => chat.id !== chatId));
-      
+
       // Si se eliminó el chat activo, seleccionar otro
       if (activeChatId === chatId) {
         const remainingChats = chats.filter(chat => chat.id !== chatId);
@@ -127,30 +133,39 @@ export default function ProjectDetail({ project, onBack }) {
     }
   };
 
+  const handleUpdateMembers = async (newMembers) => {
+    try {
+      await projectAiService.updateProjectMembers(project.id, newMembers);
+      setProjectMembers(newMembers);
+    } catch (error) {
+      console.error('Error actualizando miembros:', error);
+    }
+  };
+
   const handleSendMessage = async (messageText) => {
     if (!messageText.trim() || !activeChatId || isSendingMessage) return;
-    
+
     setIsSendingMessage(true);
-    
+
     try {
       // Guardar mensaje del usuario
       const userMessage = {
         tipo: 'usuario',
         contenido: messageText.trim()
       };
-      
+
       await projectChatService.saveProjectChatMessage(project.id, activeChatId, userMessage);
-      
+
       // Generar respuesta de la IA
       const aiResponse = await projectChatService.generateAiResponse(project.id, messageText, activeChatId);
-      
+
       const aiMessage = {
         tipo: 'asistente',
         contenido: aiResponse
       };
-      
+
       await projectChatService.saveProjectChatMessage(project.id, activeChatId, aiMessage);
-      
+
       // Recargar historial
       await loadChatHistory(activeChatId);
     } catch (error) {
@@ -215,9 +230,31 @@ export default function ProjectDetail({ project, onBack }) {
             <ProjectTimeline highlights={projectHighlights} />
           </div>
 
+          {/* Resúmenes de Grabaciones */}
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>Grabaciones</h2>
+            <ProjectRecordingSummaries
+              recordings={recordingSummaries}
+              onNavigateToRecording={(recordingId) => {
+                // Navegar a la grabación (asumiendo que existe una función de navegación global o prop)
+                // Como ProjectDetail recibe onBack, probablemente necesitemos un onNavigateToRecording prop
+                // O usar window.location si es router, pero parece ser navegación por estado.
+                // Revisaremos cómo se navega en App.jsx.
+                // Por ahora, despachamos un evento custom o usamos un prop si existiera.
+                // El componente padre debería manejar esto.
+                console.log('Navegar a grabación:', recordingId);
+                // Disparar evento para que App.jsx lo capture si es necesario, o pasar prop.
+                // Asumiremos que se pasa un prop onNavigateToRecording desde App.jsx
+                if (props.onNavigateToRecording) {
+                  props.onNavigateToRecording(recordingId);
+                }
+              }}
+            />
+          </div>
+
           {/* Miembros del Equipo */}
           <div className={styles.section}>
-            <MembersList members={projectMembers} />
+            <MembersList members={projectMembers} onUpdateMembers={handleUpdateMembers} />
           </div>
         </div>
 
@@ -229,6 +266,11 @@ export default function ProjectDetail({ project, onBack }) {
             isLoading={isSendingMessage}
             placeholder="Haz una pregunta sobre el proyecto..."
             title="Chat del Proyecto"
+            onNavigateToRecording={(recordingId, timestamp) => {
+              if (props.onNavigateToRecording) {
+                props.onNavigateToRecording(recordingId, timestamp);
+              }
+            }}
           />
         </div>
 

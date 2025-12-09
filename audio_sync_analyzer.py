@@ -22,7 +22,7 @@ import json
 from datetime import timedelta
 import argparse
 
-BASE_DIR = "/Users/raul.garciad/Desktop/recorder"
+BASE_DIR = "/Users/raul.garciad/Desktop/recorder/grabaciones"
 
 # Configuración
 SAMPLE_RATE = 22050  # Frecuencia de muestreo para análisis
