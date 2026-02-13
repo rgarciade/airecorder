@@ -16,6 +16,7 @@ import TranscriptionChatTab from './components/TranscriptionChatTab/Transcriptio
 import { 
   MdArrowBack, 
   MdEdit, 
+  MdDeleteOutline,
   MdCheck, 
   MdClose, 
   MdAutorenew, 
@@ -50,6 +51,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   // Editing Title
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(recording?.name || '');
+
+  // Delete Modal
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Regenerate Modal
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
@@ -319,6 +323,21 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
   };
 
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      await recordingsService.deleteRecording(recording.id);
+      setShowDeleteConfirm(false);
+      onBack(); // Return to home/list
+    } catch (error) {
+      console.error("Error deleting recording:", error);
+      alert("Error deleting recording: " + error.message);
+    }
+  };
+
   // --- RENDER ---
 
   if (!recording) return null;
@@ -352,8 +371,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
               ) : (
                 <>
                   <h1 className={styles.title}>{recording.name || 'Untitled Recording'}</h1>
-                  <button onClick={() => setIsEditingTitle(true)} className={styles.editTitleBtn}>
-                    <MdEdit size={14} />
+                  <button onClick={() => setIsEditingTitle(true)} className={styles.editTitleBtn} title="Rename">
+                    <MdEdit size={16} />
+                  </button>
+                  <button onClick={handleDeleteClick} className={styles.deleteBtn} title="Delete Recording">
+                    <MdDeleteOutline size={18} />
                   </button>
                 </>
               )}
@@ -522,6 +544,34 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                 onClick={handleConfirmRegenerate}
               >
                 Regenerate Selected
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h3 className={styles.modalTitle}>Delete Recording</h3>
+            <p className={styles.modalText}>
+              Are you sure you want to delete <strong>"{recording.name}"</strong>?
+              <br /><br />
+              This action cannot be undone. All associated files (audio, transcription, summary) will be permanently removed.
+            </p>
+            <div className={styles.modalButtons}>
+              <button 
+                className={styles.cancelModalBtn} 
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className={styles.deleteConfirmBtn} 
+                onClick={handleConfirmDelete}
+              >
+                Delete Permanently
               </button>
             </div>
           </div>
