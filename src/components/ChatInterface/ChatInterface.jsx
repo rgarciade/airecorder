@@ -146,18 +146,6 @@ export default function ChatInterface({
           </div>
           
           <div className={styles.chatHeaderRight}>
-            {aiProvider === 'ollama' && ollamaModels.length > 0 && (
-              <select
-                value={selectedOllamaModel}
-                onChange={(e) => onOllamaModelChange(e.target.value)}
-                className={styles.ollamaModelSelector}
-                disabled={isLoading}
-              >
-                {ollamaModels.map((model) => (
-                  <option key={model} value={model}>{model}</option>
-                ))}
-              </select>
-            )}
             <button className={styles.optionsButton}>
               <MdMoreHoriz size={20} />
             </button>

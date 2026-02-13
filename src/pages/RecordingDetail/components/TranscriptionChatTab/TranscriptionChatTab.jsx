@@ -10,7 +10,7 @@ export default function TranscriptionChatTab({
   transcriptionError,
   chatProps 
 }) {
-  const [chatWidth, setChatWidth] = useState(350);
+  const [chatWidth, setChatWidth] = useState(550);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef(null);
 

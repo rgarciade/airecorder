@@ -85,7 +85,7 @@
 }
 
 .editTitleBtn {
-  opacity: 0;
+  opacity: 1; /* Always visible */
   color: #9CA3AF;
   padding: 4px;
   border-radius: 4px;
@@ -99,6 +99,38 @@
 .editTitleBtn:hover {
   background-color: #F3F4F6;
   color: #374151;
+}
+
+.deleteBtn {
+  opacity: 1; /* Always visible */
+  color: #EF4444; /* Red */
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.titleGroup:hover .deleteBtn {
+  opacity: 1;
+}
+
+.deleteBtn:hover {
+  background-color: #FEF2F2;
+  color: #DC2626;
+}
+
+/* Delete Modal Button */
+.deleteConfirmBtn {
+  padding: 8px 16px;
+  background-color: #EF4444;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.deleteConfirmBtn:hover {
+  background-color: #DC2626;
 }
 
 .statusBadge {
