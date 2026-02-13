@@ -1,0 +1,132 @@
+.container {
+  background-color: white;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  margin-top: 24px;
+}
+
+.tableWrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.header {
+  background-color: #F9FAFB;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.headerCell {
+  padding: 16px 24px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6B7280;
+}
+
+.row {
+  border-bottom: 1px solid #F3F4F6;
+  transition: background-color 0.2s;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.row:hover {
+  background-color: #F9FAFB;
+}
+
+.cell {
+  padding: 16px 24px;
+  font-size: 0.875rem;
+  color: #374151;
+  vertical-align: middle;
+}
+
+.cellName {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+  color: #111827;
+}
+
+.iconWrapper {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background-color: #EFF6FF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #3994EF;
+}
+
+.projectText {
+  color: #6B7280;
+}
+
+.durationText {
+  font-family: 'Courier New', monospace;
+  color: #6B7280;
+}
+
+.dateText {
+  color: #9CA3AF;
+}
+
+/* Status Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badgeTranscribed {
+  background-color: #DCFCE7;
+  color: #166534;
+}
+
+.badgeProcessing {
+  background-color: #FEF3C7;
+  color: #92400E;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.dotTranscribed {
+  background-color: #16A34A;
+}
+
+.dotProcessing {
+  background-color: #D97706;
+}
+
+.actionBtn {
+  color: #9CA3AF;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.actionBtn:hover {
+  color: #374151;
+  background-color: #E5E7EB;
+}
