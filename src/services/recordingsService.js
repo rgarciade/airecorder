@@ -26,7 +26,8 @@ class RecordingsService {
 
       // Procesar y formatear los datos de las grabaciones
       return result.folders.map(folder => ({
-        id: folder.name,
+        id: folder.name, // Mantener nombre como ID para compatibilidad con rutas
+        dbId: folder.id, // ID numérico de la base de datos
         name: folder.name,
         date: new Date(folder.createdAt).toLocaleDateString('es-ES', {
           year: 'numeric',
@@ -38,7 +39,10 @@ class RecordingsService {
         createdAt: folder.createdAt,
         path: folder.path,
         hasTranscription: folder.hasAnalysis,
-        files: folder.files || []
+        files: folder.files || [],
+        duration: folder.duration,
+        status: folder.status,
+        project: folder.project
       }));
 
     } catch (error) {

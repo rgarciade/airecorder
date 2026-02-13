@@ -4,7 +4,8 @@ const path = require('path');
 const fs = require('fs');
 const AudioRecorder = require('./audioRecorder');
 const { spawn } = require('child_process');
-const ProjectsDatabase = require('./projectsDatabase');
+const dbService = require('./database/dbService');
+const migrationService = require('./database/migrationService');
 
 // Constantes de rutas base (Defaults)
 const DEFAULT_BASE_RECORDER_PATH = path.join(app.getPath('desktop'), 'recorder');
@@ -140,7 +141,18 @@ function createWindow() {
   mainWindow.webContents.openDevTools();
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // Inicializar DB
+  const userDataPath = app.getPath('userData');
+  const dbPath = path.join(userDataPath, 'recordings.db');
+  dbService.init(dbPath);
+
+  // Ejecutar migración en background
+  const recordingsPath = await getRecordingsPath();
+  migrationService.syncRecordings(recordingsPath).catch(err => 
+    console.error('Error en migración:', err)
+  );
+
   createWindow();
 
   app.on('activate', function () {
@@ -230,7 +242,7 @@ ipcMain.handle('start-test-recording', async (event, microphoneId, duration = 4)
 // Manejador para detener grabación
 ipcMain.handle('stop-recording', async () => {
   try {
-    audioRecorder.stopRecording();
+    const result = await audioRecorder.stopRecording();
     return { success: true };
   } catch (error) {
     console.error('Error stopping recording:', error);
@@ -291,6 +303,10 @@ ipcMain.handle('save-system-audio', async (event, audioData, fileName) => {
     await fs.promises.writeFile(filePath, buffer);
     
     console.log(`Audio del sistema guardado en: ${filePath}`);
+    
+    // Guardar en DB (status: recorded)
+    // Asumimos que fileName es el ID o carpeta, pero aquí fileName parece ser un archivo dentro de una carpeta?
+    // Revisemos `save-separate-audio` que es el que usa la estructura de carpetas correcta.
     return { success: true, filePath, message: `Archivo guardado en ${filePath}` };
   } catch (error) {
     console.error('Error saving system audio:', error);
@@ -321,6 +337,10 @@ ipcMain.handle('save-separate-audio', async (event, audioData, folderName, fileN
     await fs.promises.writeFile(filePath, buffer);
     
     console.log(`Audio separado guardado en: ${filePath}`);
+
+    // Registrar en DB
+    dbService.saveRecording(folderName, 0, 'recorded');
+
     return { success: true, filePath, folderPath: recordingDir, message: `Archivo guardado en ${filePath}` };
   } catch (error) {
     console.error('Error saving separate audio:', error);
@@ -330,57 +350,70 @@ ipcMain.handle('save-separate-audio', async (event, audioData, folderName, fileN
 
 // NUEVOS HANDLERS para gestión de grabaciones
 
-// Obtener todas las carpetas de grabación con metadata
+// Manejador para obtener grabaciones mezclando FS y DB
 ipcMain.handle('get-recording-folders', async () => {
   try {
-    
     const baseOutputDir = await getRecordingsPath();
-    console.log(`[DEBUG] Listing recordings from: ${baseOutputDir}`);
-    
+    const dbRecordings = dbService.getAllRecordings(); // Array de DB
+    const dbMap = new Map(dbRecordings.map(r => [r.relative_path, r]));
+
     if (!fs.existsSync(baseOutputDir)) {
-      console.log('[DEBUG] Directory does not exist');
       return { success: true, folders: [] };
     }
     
     const items = await fs.promises.readdir(baseOutputDir);
-    console.log(`[DEBUG] Found ${items.length} items`);
     const folders = [];
     
     for (const item of items) {
       const itemPath = path.join(baseOutputDir, item);
-      const stats = await fs.promises.stat(itemPath);
-      
-      if (stats.isDirectory()) {
-        // Verificar si tiene archivos de audio
-        const folderContents = await fs.promises.readdir(itemPath);
-        const audioFiles = folderContents.filter(file => 
-          file.endsWith('.webm') || file.endsWith('.wav') || file.endsWith('.mp3')
-        );
-        
-        // Verificar si tiene análisis (carpeta analysis con transcripción)
-        const analysisPath = path.join(itemPath, 'analysis');
-        const hasAnalysis = fs.existsSync(analysisPath) && 
-          fs.existsSync(path.join(analysisPath, 'transcripcion_combinada.json'));
-        
-        if (audioFiles.length > 0) {
-          folders.push({
-            name: item,
-            path: itemPath,
-            createdAt: stats.birthtime.toISOString(),
-            modifiedAt: stats.mtime.toISOString(),
-            files: audioFiles,
-            hasAnalysis: hasAnalysis
-          });
-        } else {
-            // console.log(`[DEBUG] Skipped ${item}: No audio files`);
+      try {
+        const stats = await fs.promises.stat(itemPath);
+        if (stats.isDirectory()) {
+          const folderContents = await fs.promises.readdir(itemPath);
+          const audioFiles = folderContents.filter(file => 
+            file.endsWith('.webm') || file.endsWith('.wav') || file.endsWith('.mp3')
+          );
+          
+          if (audioFiles.length > 0) {
+            // Datos de DB
+            const dbEntry = dbMap.get(item);
+            
+            // Datos calculados/reales
+            const hasAnalysis = fs.existsSync(path.join(itemPath, 'analysis', 'transcripcion_combinada.json'));
+            
+            // Priorizamos DB status, fallback a lógica antigua
+            let status = dbEntry ? dbEntry.status : (hasAnalysis ? 'transcribed' : 'recorded');
+            
+            // Check manual extra por si acaso DB está desfasada en status 'analyzed'
+            if (fs.existsSync(path.join(itemPath, 'analysis', 'ai_summary.json'))) {
+              status = 'analyzed';
+            }
+
+            // Obtener proyecto asociado
+            const project = dbService.getRecordingProject(item);
+
+            folders.push({
+              id: dbEntry ? dbEntry.id : null,
+              name: item,
+              path: itemPath,
+              createdAt: dbEntry ? dbEntry.created_at : stats.birthtime.toISOString(),
+              modifiedAt: stats.mtime.toISOString(),
+              files: audioFiles,
+              hasAnalysis: status === 'transcribed' || status === 'analyzed',
+              status: status,
+              duration: dbEntry ? dbEntry.duration : 0,
+              project: project ? { id: project.id, name: project.name } : null
+            });
+          }
         }
+      } catch (err) {
+        console.warn(`Error leyendo carpeta ${item}:`, err);
       }
     }
     
-    // Ordenar por fecha de creación (más recientes primero)
+    // Ordenar por fecha
     folders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     
-    console.log(`[DEBUG] Returning ${folders.length} valid recording folders`);
     return { success: true, folders };
   } catch (error) {
     console.error('Error getting recording folders:', error);
@@ -388,16 +421,24 @@ ipcMain.handle('get-recording-folders', async () => {
   }
 });
 
+// Helper para asegurar que tenemos la ruta de la carpeta (string) a partir de un ID (number o string)
+async function getFolderPathFromId(recordingId) {
+  if (typeof recordingId === 'number' || !isNaN(Number(recordingId))) {
+    const dbEntry = dbService.db.prepare("SELECT relative_path FROM recordings WHERE id = ?").get(recordingId);
+    return dbEntry ? dbEntry.relative_path : recordingId.toString();
+  }
+  return recordingId;
+}
+
 // Obtener transcripción de una grabación específica
 ipcMain.handle('get-transcription', async (event, recordingId) => {
   try {
-    
-    console.log('asfafsafsafasf')
+    const folderName = await getFolderPathFromId(recordingId);
     const baseOutputDir = await getRecordingsPath();
     
     const transcriptionPath = path.join(
       baseOutputDir,
-      recordingId,
+      folderName,
       'analysis',
       'transcripcion_combinada.json'
     );
@@ -419,10 +460,11 @@ ipcMain.handle('get-transcription', async (event, recordingId) => {
 // Obtener transcripción de una grabación específica (texto plano)
 ipcMain.handle('get-transcription-txt', async (event, recordingId) => {
   try {
+    const folderName = await getFolderPathFromId(recordingId);
     const baseOutputDir = await getRecordingsPath();
     const txtPath = path.join(
       baseOutputDir,
-      recordingId,
+      folderName,
       'analysis',
       'transcripcion_combinada.txt'
     );
@@ -440,8 +482,9 @@ ipcMain.handle('get-transcription-txt', async (event, recordingId) => {
 // Eliminar una grabación completa (carpeta y contenido)
 ipcMain.handle('delete-recording', async (event, recordingId) => {
   try {
+    const folderName = await getFolderPathFromId(recordingId);
     const baseOutputDir = await getRecordingsPath();
-    const recordingPath = path.join(baseOutputDir, recordingId);
+    const recordingPath = path.join(baseOutputDir, folderName);
     
     if (!fs.existsSync(recordingPath)) {
       return { success: false, error: 'Grabación no encontrada' };
@@ -449,6 +492,9 @@ ipcMain.handle('delete-recording', async (event, recordingId) => {
     
     // Eliminar recursivamente toda la carpeta
     await fs.promises.rm(recordingPath, { recursive: true, force: true });
+    
+    // También eliminar de la base de datos si es necesario (migrationService se encargará en el próximo sync, pero mejor hacerlo ahora)
+    dbService.deleteRecording(folderName);
     
     console.log(`Grabación eliminada: ${recordingPath}`);
     return { success: true, message: 'Grabación eliminada correctamente' };
@@ -458,112 +504,213 @@ ipcMain.handle('delete-recording', async (event, recordingId) => {
   }
 });
 
-// Renombrar una grabación (carpeta y sus archivos)
-ipcMain.handle('rename-recording', async (event, recordingId, newName) => {
+// Descargar grabación (abrir en finder/explorador)
+ipcMain.handle('download-recording', async (event, recordingId) => {
   try {
+    const folderName = await getFolderPathFromId(recordingId);
     const baseOutputDir = await getRecordingsPath();
-    const oldPath = path.join(baseOutputDir, recordingId);
-    // Sanitize new name to be safe for filesystem
-    const safeNewName = newName.replace(/[^a-z0-9áéíóúñü \-_]/gi, '_').trim();
-    const newPath = path.join(baseOutputDir, safeNewName);
-
-    if (!fs.existsSync(oldPath)) {
+    const recordingPath = path.join(baseOutputDir, folderName);
+    
+    if (!fs.existsSync(recordingPath)) {
       return { success: false, error: 'Grabación no encontrada' };
     }
-    if (fs.existsSync(newPath) && oldPath !== newPath) {
-      return { success: false, error: 'Ya existe una grabación con ese nombre' };
+    
+    shell.openPath(recordingPath);
+    return { success: true };
+  } catch (error) {
+    console.error('Error downloading recording:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Guardar resumen IA
+ipcMain.handle('save-ai-summary', async (event, recordingId, summary) => {
+  try {
+    const folderName = await getFolderPathFromId(recordingId);
+    const baseOutputDir = await getRecordingsPath();
+    const analysisDir = path.join(baseOutputDir, folderName, 'analysis');
+    
+    if (!fs.existsSync(analysisDir)) {
+      fs.mkdirSync(analysisDir, { recursive: true });
     }
+    
+    const filePath = path.join(analysisDir, 'ai_summary.json');
+    await fs.promises.writeFile(filePath, JSON.stringify(summary, null, 2), 'utf8');
+    
+    // Actualizar estado en DB a 'analyzed'
+    dbService.updateStatus(folderName, 'analyzed');
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving AI summary:', error);
+    return { success: false, error: error.message };
+  }
+});
 
-    // 1. Leer archivos antes de renombrar la carpeta
-    const files = await fs.promises.readdir(oldPath);
-
-    // 2. Renombrar la carpeta
-    await fs.promises.rename(oldPath, newPath);
-    console.log(`Grabación renombrada (carpeta): ${oldPath} -> ${newPath}`);
-
-    // 3. Renombrar archivos internos que coincidan con el patrón {id}-*
-    for (const file of files) {
-      if (file.startsWith(recordingId)) {
-        // Reemplaza solo la primera ocurrencia (el prefijo)
-        const newFileName = file.replace(recordingId, safeNewName);
-        const oldFilePath = path.join(newPath, file);
-        const newFilePath = path.join(newPath, newFileName);
-        
-        try {
-          if (fs.existsSync(oldFilePath)) {
-            await fs.promises.rename(oldFilePath, newFilePath);
-            console.log(`Archivo renombrado: ${file} -> ${newFileName}`);
-          }
-        } catch (err) {
-          console.error(`Error renombrando archivo interno ${file}:`, err);
-        }
-      }
+// Obtener resumen IA
+ipcMain.handle('get-ai-summary', async (event, recordingId) => {
+  try {
+    const folderName = await getFolderPathFromId(recordingId);
+    const baseOutputDir = await getRecordingsPath();
+    
+    // Intentar leer ai_summary.json o gemini_summary.json (retrocompatibilidad)
+    let filePath = path.join(baseOutputDir, folderName, 'analysis', 'ai_summary.json');
+    if (!fs.existsSync(filePath)) {
+      filePath = path.join(baseOutputDir, folderName, 'analysis', 'gemini_summary.json');
     }
+    
+    if (!fs.existsSync(filePath)) {
+      return { success: false, error: 'Resumen no encontrado' };
+    }
+    
+    const data = await fs.promises.readFile(filePath, 'utf8');
+    return { success: true, summary: JSON.parse(data) };
+  } catch (error) {
+    console.error('Error getting AI summary:', error);
+    return { success: false, error: error.message };
+  }
+});
 
-    return { success: true, newId: safeNewName };
+// Guardar histórico de preguntas
+ipcMain.handle('save-question-history', async (event, recordingId, qa) => {
+  try {
+    const folderName = await getFolderPathFromId(recordingId);
+    const baseOutputDir = await getRecordingsPath();
+    const analysisDir = path.join(baseOutputDir, folderName, 'analysis');
+    
+    if (!fs.existsSync(analysisDir)) {
+      fs.mkdirSync(analysisDir, { recursive: true });
+    }
+    
+    const filePath = path.join(analysisDir, 'questions_history.json');
+    let history = [];
+    
+    if (fs.existsSync(filePath)) {
+      const data = await fs.promises.readFile(filePath, 'utf8');
+      history = JSON.parse(data);
+    }
+    
+    history.push({
+      ...qa,
+      timestamp: new Date().toISOString()
+    });
+    
+    await fs.promises.writeFile(filePath, JSON.stringify(history, null, 2), 'utf8');
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving question history:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Obtener histórico de preguntas
+ipcMain.handle('get-question-history', async (event, recordingId) => {
+  try {
+    const folderName = await getFolderPathFromId(recordingId);
+    const baseOutputDir = await getRecordingsPath();
+    const filePath = path.join(baseOutputDir, folderName, 'analysis', 'questions_history.json');
+    
+    if (!fs.existsSync(filePath)) {
+      return { success: true, history: [] };
+    }
+    
+    const data = await fs.promises.readFile(filePath, 'utf8');
+    return { success: true, history: JSON.parse(data) };
+  } catch (error) {
+    console.error('Error getting question history:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Guardar participantes
+ipcMain.handle('save-participants', async (event, recordingId, participants) => {
+  try {
+    const folderName = await getFolderPathFromId(recordingId);
+    const baseOutputDir = await getRecordingsPath();
+    const analysisDir = path.join(baseOutputDir, folderName, 'analysis');
+    
+    if (!fs.existsSync(analysisDir)) {
+      fs.mkdirSync(analysisDir, { recursive: true });
+    }
+    
+    const filePath = path.join(analysisDir, 'participants.json');
+    await fs.promises.writeFile(filePath, JSON.stringify(participants, null, 2), 'utf8');
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving participants:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Obtener participantes
+ipcMain.handle('get-participants', async (event, recordingId) => {
+  try {
+    const folderName = await getFolderPathFromId(recordingId);
+    const baseOutputDir = await getRecordingsPath();
+    const filePath = path.join(baseOutputDir, folderName, 'analysis', 'participants.json');
+    
+    if (!fs.existsSync(filePath)) {
+      return { success: true, participants: [] };
+    }
+    
+    const data = await fs.promises.readFile(filePath, 'utf8');
+    return { success: true, participants: JSON.parse(data) };
+  } catch (error) {
+    console.error('Error getting participants:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Renombrar grabación
+ipcMain.handle('rename-recording', async (event, recordingId, newName) => {
+  try {
+    const folderName = await getFolderPathFromId(recordingId);
+    const baseOutputDir = await getRecordingsPath();
+    const recordingPath = path.join(baseOutputDir, folderName);
+    
+    if (!fs.existsSync(recordingPath)) {
+      return { success: false, error: 'Grabación no encontrada' };
+    }
+    
+    // Por ahora solo actualizamos un archivo metadata.json en la carpeta si existe,
+    // o lo creamos para guardar el nombre personalizado.
+    // O mejor aún, renombramos la carpeta física si es seguro.
+    // DECISIÓN: Por simplicidad y seguridad de rutas, guardaremos el "displayName" en un metadata.json
+    const metadataPath = path.join(recordingPath, 'metadata.json');
+    let metadata = {};
+    if (fs.existsSync(metadataPath)) {
+      metadata = JSON.parse(await fs.promises.readFile(metadataPath, 'utf8'));
+    }
+    metadata.customName = newName;
+    await fs.promises.writeFile(metadataPath, JSON.stringify(metadata, null, 2), 'utf8');
+    
+    return { success: true };
   } catch (error) {
     console.error('Error renaming recording:', error);
     return { success: false, error: error.message };
   }
 });
 
-// Descargar/exportar una grabación (abrir en Finder)
-ipcMain.handle('download-recording', async (event, recordingId) => {
-  try {
-    const baseOutputDir = await getRecordingsPath();
-    const recordingPath = path.join(baseOutputDir, recordingId);
-    
-    if (!fs.existsSync(recordingPath)) {
-      return { success: false, error: 'Grabación no encontrada' };
-    }
-    
-    // En macOS, abrir la carpeta en Finder
-    const { shell } = require('electron');
-    await shell.openPath(recordingPath);
-    
-    console.log(`Abriendo carpeta en Finder: ${recordingPath}`);
-    return { success: true, message: 'Carpeta abierta en Finder' };
-  } catch (error) {
-    console.error('Error opening recording folder:', error);
-    return { success: false, error: error.message };
-  }
-});
-
 ipcMain.handle('transcribe-recording', async (event, recordingId) => {
-  
   if (isTranscribing) {
     return { success: false, error: 'Ya hay una transcripción en curso', inProgress: true, currentTranscribingId };
   }
-  isTranscribing = true;
-  currentTranscribingId = recordingId;
+  
   try {
+    const folderName = await getFolderPathFromId(recordingId);
+    isTranscribing = true;
+    currentTranscribingId = recordingId;
+    
     const scriptPath = path.join(__dirname, '../audio_sync_analyzer.py');
     // Usa el Python del entorno virtual
     const pythonPath = '/Users/raul.garciad/Proyectos/personal/airecorder/venv/bin/python';
-
-    // NOTA: El script de python usa la ruta base por defecto o habría que pasarle la ruta completa?
-    // El script `audio_sync_analyzer.py` usa `BASE_DIR = r"/Users/raul.garciad/Desktop/recorder"`
-    // Si cambiamos la ruta en JS, el script de Python NO se enterará automáticamente.
-    // Esto es un problema conocido. Para arreglarlo, deberíamos pasar la ruta base al script.
-    // Asumiremos que por ahora el script sigue usando su default, o lo actualizamos.
-    // Para esta iteración, pasaré la ruta base como argumento si el script lo soporta, 
-    // pero como no puedo editar el script python ahora (fuera de scope), asumimos que el usuario
-    // debe mover sus grabaciones o el script debe ser actualizado aparte.
-    // Sin embargo, para que funcione *ahora* con la nueva ruta, podemos pasar la ruta completa del archivo al script
-    // en lugar de solo el basename, si el script lo permite.
-    // El script toma `--basename`.
-    
-    // FIXME: El script Python tiene hardcoded la ruta base. Esto romperá la transcripción en nuevas carpetas.
-    // Solución temporal: Pasar la ruta base como variable de entorno o argumento.
-    // Como no puedo editar el python ahora, esto queda como deuda técnica o limitación.
-    // PERO, para que funcione lo básico (listar, guardar), el JS ya está actualizado.
 
     await new Promise((resolve, reject) => {
       const py = spawn(
         pythonPath,
         [
           scriptPath,
-          '--basename', recordingId
+          '--basename', folderName
         ]
       );
       py.stdout.on('data', (data) => {
@@ -580,68 +727,16 @@ ipcMain.handle('transcribe-recording', async (event, recordingId) => {
         else reject(new Error('El script terminó con código ' + code));
       });
     });
-    isTranscribing = false;
-    currentTranscribingId = null;
-    return { success: true };
-  } catch (error) {
-    isTranscribing = false;
-    currentTranscribingId = null;
-    return { success: false, error: error.message };
-  }
-});
-
-// Guardar resumen de Gemini
-ipcMain.handle('save-ai-summary', async (event, recordingId, summaryJson) => {
-  try {
-    const baseOutputDir = await getRecordingsPath();
-    const summaryPath = path.join(
-      baseOutputDir,
-      recordingId,
-      'analysis',
-      'ai_summary.json'
-    );
     
-    // Crear la carpeta analysis si no existe
-    const analysisDir = path.dirname(summaryPath);
-    if (!fs.existsSync(analysisDir)) {
-      fs.mkdirSync(analysisDir, { recursive: true });
-    }
-    await fs.promises.writeFile(summaryPath, JSON.stringify(summaryJson, null, 2), 'utf8');
-    console.log(`[Gemini] Resumen guardado en: ${summaryPath}`);
+    // Actualizar estado en DB
+    dbService.updateStatus(folderName, 'transcribed');
+    
+    isTranscribing = false;
+    currentTranscribingId = null;
     return { success: true };
   } catch (error) {
-    console.error('Error guardando resumen Gemini:', error);
-    return { success: false, error: error.message };
-  }
-});
-// Leer resumen de Gemini
-ipcMain.handle('get-ai-summary', async (event, recordingId) => {
-  try {
-    const baseOutputDir = await getRecordingsPath();
-    const summaryPath = path.join(
-      baseOutputDir,
-      recordingId,
-      'analysis',
-      'gemini_summary.json'
-    );
-    if (!fs.existsSync(summaryPath)) {
-      // para preserva los antiguos archivos gemini_summary.json
-      const altSummaryPath = path.join(
-        baseOutputDir,
-        recordingId,
-        'analysis',
-        'ai_summary.json'
-      );
-      if (!fs.existsSync(altSummaryPath)) {
-        return { success: false, error: 'No existe resumen' };
-      }
-      const data = await fs.promises.readFile(altSummaryPath, 'utf8');
-      return { success: true, summary: JSON.parse(data) };
-    }
-    const data = await fs.promises.readFile(summaryPath, 'utf8');
-    return { success: true, summary: JSON.parse(data) };
-  } catch (error) {
-    console.error('Error leyendo resumen Gemini:', error);
+    isTranscribing = false;
+    currentTranscribingId = null;
     return { success: false, error: error.message };
   }
 });
@@ -649,10 +744,11 @@ ipcMain.handle('get-ai-summary', async (event, recordingId) => {
 // Guardar estado de generación
 ipcMain.handle('save-generating-state', async (event, recordingId, state) => {
   try {
+    const folderName = await getFolderPathFromId(recordingId);
     const baseOutputDir = await getRecordingsPath();
     const statePath = path.join(
       baseOutputDir,
-      recordingId,
+      folderName,
       'analysis',
       '.generating.json'
     );
@@ -675,10 +771,11 @@ ipcMain.handle('save-generating-state', async (event, recordingId, state) => {
 // Obtener estado de generación
 ipcMain.handle('get-generating-state', async (event, recordingId) => {
   try {
+    const folderName = await getFolderPathFromId(recordingId);
     const baseOutputDir = await getRecordingsPath();
     const statePath = path.join(
       baseOutputDir,
-      recordingId,
+      folderName,
       'analysis',
       '.generating.json'
     );
@@ -718,108 +815,21 @@ ipcMain.handle('clear-generating-state', async (event, recordingId) => {
   }
 });
 
-// Guardar pregunta/respuesta en el histórico
-ipcMain.handle('save-question-history', async (event, recordingId, qa) => {
-  try {
-    const baseOutputDir = await getRecordingsPath();
-    const historyPath = path.join(
-      baseOutputDir,
-      recordingId,
-      'analysis',
-      'questions_history.json'
-    );
-    // Crear la carpeta analysis si no existe
-    const analysisDir = path.dirname(historyPath);
-    if (!fs.existsSync(analysisDir)) {
-      fs.mkdirSync(analysisDir, { recursive: true });
-    }
-    let history = [];
-    if (fs.existsSync(historyPath)) {
-      const data = await fs.promises.readFile(historyPath, 'utf8');
-      history = JSON.parse(data);
-    }
-    history.push(qa);
-    await fs.promises.writeFile(historyPath, JSON.stringify(history, null, 2), 'utf8');
-    console.log(`[Gemini] Pregunta/Respuesta guardada en: ${historyPath}`);
-    return { success: true };
-  } catch (error) {
-    console.error('Error guardando histórico de preguntas:', error);
-    return { success: false, error: error.message };
-  }
-});
-// Leer histórico de preguntas
-ipcMain.handle('get-question-history', async (event, recordingId) => {
-  try {
-    const baseOutputDir = await getRecordingsPath();
-    const historyPath = path.join(
-      baseOutputDir,
-      recordingId,
-      'analysis',
-      'questions_history.json'
-    );
-    if (!fs.existsSync(historyPath)) {
-      return { success: true, history: [] };
-    }
-    const data = await fs.promises.readFile(historyPath, 'utf8');
-    return { success: true, history: JSON.parse(data) };
-  } catch (error) {
-    console.error('Error leyendo histórico de preguntas:', error);
-    return { success: false, error: error.message };
-  }
-});
-
-// Guardar participantes
-ipcMain.handle('save-participants', async (event, recordingId, participants) => {
-  try {
-    const baseOutputDir = await getRecordingsPath();
-    const participantsPath = path.join(
-      baseOutputDir,
-      recordingId,
-      'analysis',
-      'participants.json'
-    );
-    // Crear la carpeta analysis si no existe
-    const analysisDir = path.dirname(participantsPath);
-    if (!fs.existsSync(analysisDir)) {
-      fs.mkdirSync(analysisDir, { recursive: true });
-    }
-    await fs.promises.writeFile(participantsPath, JSON.stringify(participants, null, 2), 'utf8');
-    console.log(`[Meeting] Participantes guardados en: ${participantsPath}`);
-    return { success: true };
-  } catch (error) {
-    console.error('Error guardando participantes:', error);
-    return { success: false, error: error.message };
-  }
-});
-// Leer participantes
-ipcMain.handle('get-participants', async (event, recordingId) => {
-  try {
-    const baseOutputDir = await getRecordingsPath();
-    const participantsPath = path.join(
-      baseOutputDir,
-      recordingId,
-      'analysis',
-      'participants.json'
-    );
-    if (!fs.existsSync(participantsPath)) {
-      return { success: true, participants: [] };
-    }
-    const data = await fs.promises.readFile(participantsPath, 'utf8');
-    return { success: true, participants: JSON.parse(data) };
-  } catch (error) {
-    console.error('Error leyendo participantes:', error);
-    return { success: false, error: error.message };
-  }
+// Nuevos IPCs para Dashboard
+ipcMain.handle('get-dashboard-stats', () => {
+  const stats = dbService.getDashboardStats();
+  console.log('[DEBUG] Stats requested:', stats);
+  return stats;
 });
 
 // ========================================
-// MANEJADORES DE PROYECTOS
+// MANEJADORES DE PROYECTOS (SQLite)
 // ========================================
 
 // Obtener todos los proyectos
 ipcMain.handle('get-projects', async () => {
   try {
-    const projects = await ProjectsDatabase.projects.getAll();
+    const projects = dbService.getAllProjects();
     return { success: true, projects };
   } catch (error) {
     console.error('Error obteniendo proyectos:', error);
@@ -830,8 +840,11 @@ ipcMain.handle('get-projects', async () => {
 // Crear un nuevo proyecto
 ipcMain.handle('create-project', async (event, projectData) => {
   try {
-    const project = await ProjectsDatabase.projects.create(projectData);
-    console.log(`Proyecto creado: ${project.name} (${project.id})`);
+    const project = dbService.createProject(
+      projectData.name, 
+      projectData.description, 
+      projectData.members || []
+    );
     return { success: true, project };
   } catch (error) {
     console.error('Error creando proyecto:', error);
@@ -842,8 +855,12 @@ ipcMain.handle('create-project', async (event, projectData) => {
 // Actualizar un proyecto existente
 ipcMain.handle('update-project', async (event, projectId, projectData) => {
   try {
-    const project = await ProjectsDatabase.projects.update(projectId, projectData);
-    console.log(`Proyecto actualizado: ${project.name} (${projectId})`);
+    const project = dbService.updateProject(
+      projectId,
+      projectData.name,
+      projectData.description,
+      projectData.members
+    );
     return { success: true, project };
   } catch (error) {
     console.error('Error actualizando proyecto:', error);
@@ -854,8 +871,7 @@ ipcMain.handle('update-project', async (event, projectId, projectData) => {
 // Eliminar un proyecto
 ipcMain.handle('delete-project', async (event, projectId) => {
   try {
-    await ProjectsDatabase.deleteProjectWithRelations(projectId);
-    console.log(`Proyecto eliminado: ${projectId}`);
+    dbService.deleteProject(projectId);
     return { success: true };
   } catch (error) {
     console.error('Error eliminando proyecto:', error);
@@ -866,13 +882,8 @@ ipcMain.handle('delete-project', async (event, projectId) => {
 // Agregar una grabación a un proyecto
 ipcMain.handle('add-recording-to-project', async (event, projectId, recordingId) => {
   try {
-    const { wasReassigned, previousProject } = await ProjectsDatabase.relations.upsert(
-      projectId,
-      recordingId
-    );
-    
-    console.log(`Grabación ${recordingId} agregada al proyecto ${projectId}`);
-    return { success: true, wasReassigned, previousProject };
+    dbService.addRecordingToProject(projectId, recordingId);
+    return { success: true };
   } catch (error) {
     console.error('Error agregando grabación al proyecto:', error);
     return { success: false, error: error.message };
@@ -882,8 +893,7 @@ ipcMain.handle('add-recording-to-project', async (event, projectId, recordingId)
 // Eliminar una grabación de un proyecto
 ipcMain.handle('remove-recording-from-project', async (event, projectId, recordingId) => {
   try {
-    await ProjectsDatabase.relations.delete(recordingId);
-    console.log(`Grabación ${recordingId} eliminada del proyecto ${projectId}`);
+    dbService.removeRecordingFromProject(projectId, recordingId);
     return { success: true };
   } catch (error) {
     console.error('Error eliminando grabación del proyecto:', error);
@@ -891,10 +901,24 @@ ipcMain.handle('remove-recording-from-project', async (event, projectId, recordi
   }
 });
 
-// Obtener todas las grabaciones de un proyecto
+// Obtener una grabación específica por ID
+ipcMain.handle('get-recording-by-id', async (event, recordingId) => {
+  try {
+    const recording = dbService.getRecordingById(recordingId);
+    if (!recording) {
+      return { success: false, error: 'Grabación no encontrada' };
+    }
+    return { success: true, recording };
+  } catch (error) {
+    console.error('Error obteniendo grabación por ID:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Obtener todas las grabaciones (IDs) de un proyecto
 ipcMain.handle('get-project-recordings', async (event, projectId) => {
   try {
-    const recordings = await ProjectsDatabase.relations.getRecordingIds(projectId);
+    const recordings = dbService.getProjectRecordingIds(projectId);
     return { success: true, recordings };
   } catch (error) {
     console.error('Error obteniendo grabaciones del proyecto:', error);
@@ -905,12 +929,10 @@ ipcMain.handle('get-project-recordings', async (event, projectId) => {
 // Obtener el proyecto de una grabación
 ipcMain.handle('get-recording-project', async (event, recordingId) => {
   try {
-    const project = await ProjectsDatabase.getRecordingProject(recordingId);
-    
+    const project = dbService.getRecordingProject(recordingId);
     if (!project) {
-      return { success: false, error: 'Grabación no pertenece a ningún proyecto' };
+      return { success: false, error: 'Sin proyecto' };
     }
-    
     return { success: true, project };
   } catch (error) {
     console.error('Error obteniendo proyecto de la grabación:', error);
@@ -918,7 +940,73 @@ ipcMain.handle('get-recording-project', async (event, recordingId) => {
   }
 });
 
-// Guardar análisis de proyecto
+// Obtener duración total de un proyecto
+ipcMain.handle('get-project-total-duration', async (event, projectId) => {
+  try {
+    const duration = dbService.getProjectTotalDuration(projectId);
+    return { success: true, duration };
+  } catch (error) {
+    console.error('Error obteniendo duración del proyecto:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// ========================================
+// CHATS DE PROYECTO (SQLite)
+// ========================================
+
+ipcMain.handle('get-project-chats', async (event, projectId) => {
+  try {
+    const chats = dbService.getProjectChats(projectId);
+    return { success: true, chats };
+  } catch (error) {
+    console.error('Error obteniendo chats del proyecto:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('create-project-chat', async (event, projectId, name, contextRecordings) => {
+  try {
+    const id = `chat_${Date.now()}`;
+    const chat = dbService.createProjectChat(id, projectId, name, contextRecordings);
+    return { success: true, chat };
+  } catch (error) {
+    console.error('Error creando chat del proyecto:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('delete-project-chat', async (event, chatId) => {
+  try {
+    dbService.deleteProjectChat(chatId);
+    return { success: true };
+  } catch (error) {
+    console.error('Error eliminando chat del proyecto:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('get-project-chat-history', async (event, chatId) => {
+  try {
+    const history = dbService.getChatMessages(chatId);
+    return { success: true, history };
+  } catch (error) {
+    console.error('Error obteniendo historial del chat:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('save-project-chat-message', async (event, chatId, message) => {
+  try {
+    const savedMessage = dbService.saveProjectChatMessage(chatId, message.tipo, message.contenido);
+    return { success: true, message: savedMessage };
+  } catch (error) {
+    console.error('Error guardando mensaje del chat:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Guardar análisis de proyecto (mantiene ruta actual)
 ipcMain.handle('save-project-analysis', async (event, projectId, analysis) => {
   try {
     const analysisDir = path.join(PROJECTS_PATH, 'projects_analysis');
@@ -929,6 +1017,9 @@ ipcMain.handle('save-project-analysis', async (event, projectId, analysis) => {
     
     const filePath = path.join(analysisDir, `${projectId}.json`);
     await fs.promises.writeFile(filePath, JSON.stringify(analysis, null, 2), 'utf8');
+    
+    // Marcar proyecto como actualizado en DB
+    dbService.updateProjectSyncStatus(projectId, 1);
     
     console.log(`Análisis de proyecto guardado en: ${filePath}`);
     return { success: true };

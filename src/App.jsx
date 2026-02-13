@@ -20,10 +20,15 @@ export default function App() {
   const { isRecording } = useSelector((state) => state.recording)
 
   const handleBack = () => {
-    setCurrentView('home')
-    setSelectedRecording(null)
-    setSelectedProjectId(null)
-    setSelectedProject(null)
+    if (currentView === 'recording-detail' && selectedProject) {
+      setCurrentView('project-detail');
+      setSelectedRecording(null);
+    } else {
+      setCurrentView('home')
+      setSelectedRecording(null)
+      setSelectedProjectId(null)
+      setSelectedProject(null)
+    }
   }
 
   const handleNavigateToProject = (project) => {
@@ -35,6 +40,26 @@ export default function App() {
     setSelectedProject(project)
     setCurrentView('project-detail')
   }
+
+  const handleNavigateToRecording = async (recordingId) => {
+    try {
+      // Intentar obtener todas las grabaciones para encontrar la que coincide
+      const { default: recordingsService } = await import('./services/recordingsService');
+      const recordings = await recordingsService.getRecordings();
+      
+      // Buscar por dbId o por id (dependiendo de cómo se maneje en el servicio)
+      const recording = recordings.find(r => r.dbId === recordingId || r.id === recordingId || r.name === recordingId);
+      
+      if (recording) {
+        setSelectedRecording(recording);
+        setCurrentView('recording-detail');
+      } else {
+        console.error('No se pudo encontrar la grabación con ID:', recordingId);
+      }
+    } catch (error) {
+      console.error('Error navegando a la grabación:', error);
+    }
+  };
 
   const handleRecordingStart = (recorder) => {
     setCurrentRecorder(recorder)
@@ -75,7 +100,11 @@ export default function App() {
         {currentView === 'project-detail' && selectedProject && (
           <ProjectDetail 
             project={selectedProject} 
-            onBack={() => setCurrentView('projects')}
+            onBack={() => {
+              setCurrentView('projects');
+              setSelectedProject(null);
+            }}
+            onNavigateToRecording={handleNavigateToRecording}
           />
         )}
         {currentView === 'recording-detail' && selectedRecording && (

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import projectsService from '../../services/projectsService';
 import recordingsService from '../../services/recordingsService';
 import styles from './Projects.module.css';
+import { MdChevronLeft, MdChevronRight, MdClose } from 'react-icons/md';
 
 import ProjectCard from './components/ProjectCard';
 import CreateProjectCard from './components/CreateProjectCard';
@@ -19,6 +20,14 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDescription, setNewProjectDescription] = useState('');
   const [editingProject, setEditingProject] = useState(null);
+
+  // Assignment confirmation state
+  const [pendingAssignment, setPendingAssignment] = useState(null);
+
+  // View All & Pagination state
+  const [showAllRecordings, setShowAllRecordings] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     loadData();
@@ -93,15 +102,62 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
     }
   };
 
+  const executeAssignment = async (recordingId, projectId) => {
+    try {
+      await projectsService.addRecordingToProject(projectId, recordingId);
+      // Reload everything to ensure counts and projects are updated
+      await loadData();
+      setPendingAssignment(null);
+    } catch (error) {
+      console.error('Error vinculando grabación al proyecto:', error);
+    }
+  };
+
+  const handleConfirmAssignment = () => {
+    if (pendingAssignment) {
+      executeAssignment(pendingAssignment.recording.dbId, pendingAssignment.newProject.id);
+    }
+  };
+
+  const handleCancelAssignment = () => {
+    setPendingAssignment(null);
+  };
+
+  const handleAddToProject = (recording, project) => {
+    // If it's already in THIS project, do nothing
+    if (recording.project?.id === project.id) return;
+
+    // If it's in ANOTHER project, ask for confirmation
+    if (recording.project) {
+      setPendingAssignment({
+        recording,
+        newProject: project
+      });
+    } else {
+      // Direct assignment
+      executeAssignment(recording.dbId, project.id);
+    }
+  };
+
   // Filtrado de proyectos
   const filteredProjects = projects.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Grabaciones ordenadas por fecha
+  const sortedRecordings = [...recordings].sort((a, b) => 
+    new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date)
+  );
+
   // Grabaciones recientes (últimas 5)
-  const recentRecordings = [...recordings]
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .slice(0, 5);
+  const recentRecordings = sortedRecordings.slice(0, 5);
+
+  // Grabaciones paginadas para "View All"
+  const totalPages = Math.ceil(sortedRecordings.length / itemsPerPage);
+  const paginatedRecordings = sortedRecordings.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className={styles.container}>
@@ -148,28 +204,77 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
       </header>
 
       {/* Projects Grid */}
-      <div className={styles.projectsGrid}>
-        {filteredProjects.map((project) => (
-          <ProjectCard 
-            key={project.id}
-            project={project}
-            onClick={onProjectDetail}
-            onEdit={() => handleEditClick(project)}
-            onDelete={() => handleDeleteProject(project.id)}
-            // TODO: count real recordings
-            recordingCount={Math.floor(Math.random() * 10)} 
-          />
-        ))}
-        <CreateProjectCard onClick={() => setShowNewProjectForm(true)} />
-      </div>
+      {!showAllRecordings && (
+        <div className={styles.projectsGrid}>
+          {filteredProjects.map((project) => (
+            <ProjectCard 
+              key={project.id}
+              project={project}
+              onClick={onProjectDetail}
+              onEdit={() => handleEditClick(project)}
+              onDelete={() => handleDeleteProject(project.id)}
+              recordingCount={recordings.filter(r => r.project?.id === project.id).length} 
+            />
+          ))}
+          <CreateProjectCard onClick={() => setShowNewProjectForm(true)} />
+        </div>
+      )}
 
-      {/* Recent Uploads Section */}
+      {/* Recent Uploads Section / Full Table */}
       <div className={styles.recentSection}>
         <div className={styles.recentHeader}>
-          <h2 className={styles.sectionTitle}>Recent Uploads</h2>
-          <a href="#" className={styles.viewAllLink} onClick={(e) => e.preventDefault()}>View All</a>
+          <h2 className={styles.sectionTitle}>
+            {showAllRecordings ? 'All Recordings' : 'Recent Uploads'}
+          </h2>
+          {showAllRecordings ? (
+            <button 
+              className={styles.closeViewAll} 
+              onClick={() => setShowAllRecordings(false)}
+            >
+              <MdClose size={20} /> Close
+            </button>
+          ) : (
+            <a 
+              href="#" 
+              className={styles.viewAllLink} 
+              onClick={(e) => {
+                e.preventDefault();
+                setShowAllRecordings(true);
+                setCurrentPage(1);
+              }}
+            >
+              View All
+            </a>
+          )}
         </div>
-        <RecentUploadsTable recordings={recentRecordings} />
+        
+        <RecentUploadsTable 
+          recordings={showAllRecordings ? paginatedRecordings : recentRecordings} 
+          projects={projects}
+          onAddToProject={handleAddToProject}
+        />
+
+        {showAllRecordings && totalPages > 1 && (
+          <div className={styles.pagination}>
+            <button 
+              className={styles.pageBtn} 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => prev - 1)}
+            >
+              <MdChevronLeft size={20} />
+            </button>
+            <span className={styles.pageInfo}>
+              Page {currentPage} of {totalPages}
+            </span>
+            <button 
+              className={styles.pageBtn} 
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(prev => prev + 1)}
+            >
+              <MdChevronRight size={20} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Modal Nuevo Proyecto */}
@@ -247,6 +352,33 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
                 disabled={!editingProject.name.trim()}
               >
                 Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmación de Cambio de Proyecto */}
+      {pendingAssignment && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h3 className={styles.modalTitle}>Change Project?</h3>
+            <p className={styles.modalText}>
+              The recording <strong>"{pendingAssignment.recording.name}"</strong> is already assigned to the project 
+              <strong> "{pendingAssignment.recording.project.name}"</strong>.
+            </p>
+            <p className={styles.modalText}>
+              Do you want to move it to <strong>"{pendingAssignment.newProject.name}"</strong>?
+            </p>
+            <div className={styles.buttonGroup}>
+              <button className={styles.cancelBtn} onClick={handleCancelAssignment}>
+                Cancel
+              </button>
+              <button 
+                className={styles.confirmBtn} 
+                onClick={handleConfirmAssignment}
+              >
+                Change Project
               </button>
             </div>
           </div>

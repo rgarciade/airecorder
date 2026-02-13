@@ -242,14 +242,46 @@ export default function RecordingList({ onRecordingSelect, onNavigateToProject }
                         {recordingProjects[recording.id].name}
                       </div>
                     )}
-                    {recording.hasTranscription && (
-                      <div className={styles.transcriptionBadge}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256">
-                          <path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"></path>
-                        </svg>
-                        Transcripción disponible
-                      </div>
-                    )}
+                    {(() => {
+                        const status = recording.status || (recording.hasTranscription ? 'transcribed' : 'recorded');
+                        let statusText = 'Procesando';
+                        let badgeClass = styles.statusRecorded;
+                        let icon = null;
+
+                        if (status === 'analyzed') {
+                            statusText = 'Analizado';
+                            badgeClass = styles.statusAnalyzed;
+                            icon = (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256">
+                                    <path d="M224,128a96,96,0,1,1-96-96A96,96,0,0,1,224,128Z" opacity="0.2"></path>
+                                    <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm45.66-93.66a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,172.69l50.34-50.35A8,8,0,0,1,173.66,122.34Z"></path>
+                                </svg>
+                            );
+                        } else if (status === 'transcribed') {
+                            statusText = 'Transcrito';
+                            badgeClass = styles.statusTranscribed;
+                            icon = (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256">
+                                  <path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"></path>
+                                </svg>
+                            );
+                        } else {
+                            statusText = 'Grabado';
+                            badgeClass = styles.statusRecorded;
+                            icon = (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 256 256">
+                                    <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm48-88a8,8,0,0,1-8,8H136v40a8,8,0,0,1-16,0V136H88a8,8,0,0,1,0-16h32V80a8,8,0,0,1,16,0v40h40A8,8,0,0,1,176,128Z"></path>
+                                </svg>
+                            );
+                        }
+
+                        return (
+                            <div className={`${styles.transcriptionBadge} ${badgeClass}`}>
+                                {icon}
+                                {statusText}
+                            </div>
+                        );
+                    })()}
                   </div>
                   <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
                     {!recording.hasTranscription && (

@@ -30,9 +30,35 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
 
   useEffect(() => {
     loadRecordings();
+    loadDashboardStats();
     checkPermissions();
     loadSettingsInfo();
   }, [refreshTrigger]); 
+  
+  const loadDashboardStats = async () => {
+    if (window.electronAPI?.getDashboardStats) {
+      try {
+        const stats = await window.electronAPI.getDashboardStats();
+        // stats = { totalHours: "1.5", totalTranscriptions: 5, totalRecordings: 10 }
+        
+        const totalHoursNum = parseFloat(stats.totalHours);
+        const hours = Math.floor(totalHoursNum);
+        const minutes = Math.floor((totalHoursNum - hours) * 60);
+        
+        // Saved time calculation (approx)
+        const savedHoursNum = totalHoursNum * 0.8;
+        const savedHours = Math.floor(savedHoursNum);
+        const savedMinutes = Math.floor((savedHoursNum - savedHours) * 60);
+
+        setTotalTimeStr(`${hours}h ${minutes}m`);
+        setTotalFiles(stats.totalTranscriptions); // Or totalRecordings if you prefer total files
+        setSavedTimeStr(`${savedHours}h ${savedMinutes}m`);
+        
+      } catch (err) {
+        console.error("Error loading dashboard stats:", err);
+      }
+    }
+  };
 
   const loadSettingsInfo = async () => {
     try {
@@ -86,18 +112,8 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
       list.sort((a, b) => new Date(b.date) - new Date(a.date));
       setRecordings(list);
       
-      // Calculate stats
-      let totalSeconds = 0;
-      list.forEach(r => {
-        if (r.duration) totalSeconds += r.duration;
-      });
-      
-      const hours = Math.floor(totalSeconds / 3600);
-      const minutes = Math.floor((totalSeconds % 3600) / 60);
-      setTotalTimeStr(`${hours}h ${minutes}m`);
-      setTotalFiles(list.length);
-      
-      setSavedTimeStr(`${hours}h ${minutes}m`); 
+      // Calculate stats (Legacy fallback removed or kept as backup?)
+      // We rely on getDashboardStats now for the counters.
       
     } catch (err) {
       console.error("Error loading recordings:", err);
