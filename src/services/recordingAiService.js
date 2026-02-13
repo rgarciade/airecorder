@@ -8,7 +8,7 @@ import recordingsService from './recordingsService';
 import { getSettings } from './settingsService';
 import { sendToGemini } from './ai/geminiProvider';
 import { generateContent as ollamaGenerate } from './ai/ollamaProvider';
-import { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt } from '../prompts/aiPrompts';
+import { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt, participantsPrompt, participantsPromptSuffix } from '../prompts/aiPrompts';
 
 class RecordingAiService {
   constructor() {
@@ -338,28 +338,33 @@ class RecordingAiService {
    * Llama al proveedor de IA configurado (Gemini u Ollama)
    * @private
    * @param {string} prompt 
-   * @param {string} context 
+   * @param {string|null} context - Contexto opcional. Si es null, se asume que prompt ya tiene todo.
+   * @param {Object} options - Opciones adicionales (ej: { format: 'json' })
    * @returns {Promise<Object>} Respuesta de la IA
    */
-  async _callAiProvider(prompt, context) {
+  async _callAiProvider(prompt, context, options = {}) {
     const settings = await getSettings();
     const provider = settings.aiProvider || 'gemini';
 
-    const fullPrompt = `${prompt}\n\nTranscripción:\n${context}`;
+    let fullPrompt = prompt;
+    if (context) {
+      fullPrompt = `${prompt}\n\nTranscripción:\n${context}`;
+    }
 
     if (provider === 'ollama') {
       const model = settings.ollamaModel;
       if (!model) {
         throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
       }
-      const response = await ollamaGenerate(model, fullPrompt);
+      const response = await ollamaGenerate(model, fullPrompt, options);
       return {
         text: response || 'Sin respuesta',
         provider: 'ollama'
       };
     } else {
-      // Gemini - usar fullPrompt para que incluya las instrucciones
-      const response = await sendToGemini(fullPrompt);
+      // Gemini
+      // Pasar true como segundo argumento para indicar que es un prompt "crudo"
+      const response = await sendToGemini(fullPrompt, true);
       const text = response?.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta';
       return {
         text: text,
@@ -382,69 +387,126 @@ class RecordingAiService {
         throw new Error('No se pudo obtener el texto de la transcripción');
       }
 
-      // Importar prompt de participantes
-      const { participantsPrompt } = await import('../prompts/aiPrompts');
+      // Construir prompt sándwich
+      const combinedPrompt = `${participantsPrompt}\n${txt}\n${participantsPromptSuffix}`;
       
-      // Llamar a la IA para extraer participantes
-      const participantsResponse = await this._callAiProvider(participantsPrompt, txt);
+      // Llamar a la IA con contexto null y forzando formato JSON para Ollama
+      const participantsResponse = await this._callAiProvider(combinedPrompt, null, { format: 'json' });
       
       // Parsear respuesta JSON
       let extractedParticipants = [];
       try {
         let cleanText = participantsResponse.text.trim();
         
-        // Limpiar markdown si existe
+        // 0. Limpiar etiquetas de pensamiento <think>...</think> (DeepSeek R1)
+        cleanText = cleanText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+        // 1. Limpieza básica de bloques de código Markdown
         cleanText = cleanText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
         
-        // Intentar encontrar el array JSON en la respuesta
-        // Buscar el primer [ y el último ]
+        // 2. Intentar extraer solo la parte del array JSON [...]
         const firstBracket = cleanText.indexOf('[');
         const lastBracket = cleanText.lastIndexOf(']');
         
         if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
           cleanText = cleanText.substring(firstBracket, lastBracket + 1);
+          extractedParticipants = JSON.parse(cleanText);
+        } else {
+          // Si no hay corchetes, intentar parsear todo por si acaso
+          extractedParticipants = JSON.parse(cleanText);
         }
         
-        // Intentar parsear
-        extractedParticipants = JSON.parse(cleanText);
+        // Validar si es un objeto con clave "participants" (formato común de JSON mode)
+        if (!Array.isArray(extractedParticipants) && extractedParticipants && Array.isArray(extractedParticipants.participants)) {
+          extractedParticipants = extractedParticipants.participants;
+        }
         
-        // Validar que sea un array
+        // Validar que sea un array final
         if (!Array.isArray(extractedParticipants)) {
           console.warn('La respuesta no es un array, usando array vacío');
           extractedParticipants = [];
         }
       } catch (e) {
-        console.error('Error parseando participantes:', e);
-        console.log('Respuesta completa recibida:', participantsResponse.text);
+        console.error('Error parseando participantes (JSON), intentando fallback:', e);
+        console.log('Texto recibido (limpio):', participantsResponse.text.replace(/<think>[\s\S]*?<\/think>/gi, ''));
         
-        // Intentar extraer manualmente si el JSON está malformado
-        try {
-          const text = participantsResponse.text;
-          const nameMatches = text.match(/"name"\s*:\s*"([^"]+)"/g);
-          const roleMatches = text.match(/"role"\s*:\s*"([^"]+)"/g);
+        // --- FALLBACK: Extracción de listas Markdown (* Nombre, - Nombre, + Nombre) ---
+        const cleanResponseForFallback = participantsResponse.text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+        const lines = cleanResponseForFallback.split('\n');
+        const listRegex = /^[\*\-\+]\s+([^\(:\n]+)(?:[\(:\s]+([^\)\n]+)\)?)?/;
+        
+        const fallbackParticipants = [];
+        
+        for (const line of lines) {
+          const trimmedLine = line.trim();
           
-          if (nameMatches && roleMatches && nameMatches.length === roleMatches.length) {
-            extractedParticipants = nameMatches.map((nameMatch, idx) => {
-              const name = nameMatch.match(/"name"\s*:\s*"([^"]+)"/)[1];
-              const role = roleMatches[idx].match(/"role"\s*:\s*"([^"]+)"/)[1];
-              return { name, role };
-            });
-            console.log('✅ Participantes extraídos manualmente:', extractedParticipants);
+          // Ignorar encabezados comunes
+          if (trimmedLine.match(/^[\*\-]?\s*(Personajes|Participantes|Speakers|Nombres):/i)) continue;
+
+          const match = trimmedLine.match(listRegex);
+          if (match) {
+            const name = match[1].trim();
+            let role = match[2] ? match[2].trim() : 'Participante';
+            role = role.replace(/[\)\:]$/, ''); // Limpiar caracteres extra
+            
+            if (name.length > 1 && !name.toLowerCase().includes("ninguno")) {
+               fallbackParticipants.push({ name, role });
+            }
           }
-        } catch (manualError) {
-          console.error('Error en extracción manual:', manualError);
         }
         
-        return [];
+        if (fallbackParticipants.length > 0) {
+          console.log('✅ Participantes extraídos vía Fallback (Regex):', fallbackParticipants);
+          extractedParticipants = fallbackParticipants;
+        } else {
+           // Último intento: búsqueda manual
+           try {
+              const text = cleanResponseForFallback;
+              const nameMatches = text.match(/"name"\s*:\s*"([^"]+)"/g);
+              const roleMatches = text.match(/"role"\s*:\s*"([^"]+)"/g);
+              
+              if (nameMatches && roleMatches && nameMatches.length === roleMatches.length) {
+                extractedParticipants = nameMatches.map((nameMatch, idx) => {
+                  const name = nameMatch.match(/"name"\s*:\s*"([^"]+)"/)[1];
+                  const role = roleMatches[idx].match(/"role"\s*:\s*"([^"]+)"/)[1];
+                  return { name, role };
+                });
+              }
+           } catch (manualError) { /* Ignorar error final */ }
+        }
       }
       
       // Agregar IDs a los participantes y marcar como creados por IA
-      const participantsWithIds = extractedParticipants.map((p, idx) => ({
-        id: Date.now() + idx,
-        name: p.name || 'Sin nombre',
-        role: p.role || 'Participante',
-        createdByAi: true
-      }));
+      // Normalizar estructura (puede venir como string simple o objeto)
+      const participantsWithIds = extractedParticipants
+        .map((p, idx) => {
+          let name = null;
+          let role = '';
+
+          if (typeof p === 'string' && p.trim().length > 0) {
+              name = p.trim();
+          } else if (typeof p === 'object' && p !== null) {
+              if (p.name && typeof p.name === 'string' && p.name.trim().length > 0) {
+                  name = p.name.trim();
+              }
+              if (p.role && typeof p.role === 'string') {
+                  role = p.role.trim();
+              }
+          }
+
+          // Si no hay nombre válido, descartar
+          if (!name || name.toLowerCase() === 'sin nombre') {
+              return null;
+          }
+
+          return {
+            id: Date.now() + idx,
+            name: name,
+            role: role, // Dejar vacío si no hay rol, no poner "Participante" por defecto
+            createdByAi: true
+          };
+        })
+        .filter(p => p !== null);
       
       return participantsWithIds;
     } catch (error) {

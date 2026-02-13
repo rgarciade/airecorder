@@ -43,9 +43,10 @@ export async function checkOllamaAvailability() {
  * Genera contenido usando un modelo de Ollama
  * @param {string} model - Nombre del modelo a usar
  * @param {string} prompt - Prompt para el modelo
+ * @param {Object} options - Opciones adicionales (ej: { format: 'json' })
  * @returns {Promise<string>} Respuesta generada
  */
-export async function generateContent(model, prompt) {
+export async function generateContent(model, prompt, options = {}) {
   try {
     const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
       method: 'POST',
@@ -56,6 +57,7 @@ export async function generateContent(model, prompt) {
         model: model,
         prompt: prompt,
         stream: false, // Desactivar streaming para simplificar
+        ...options // Inyectar opciones como format: 'json'
       }),
     });
 

@@ -59,35 +59,26 @@ Responde de forma concisa usando formato Markdown para mejorar la legibilidad (u
 Si la pregunta requiere información específica de la conversación, usa el contexto proporcionado para dar una respuesta precisa y detallada.`;
 
 // Prompt para extraer participantes de la transcripción
-export const participantsPrompt = `TAREA: Extrae SOLO los nombres de personas mencionadas explícitamente en la transcripción.
+export const participantsPrompt = `TU TAREA: Extraer nombres y roles de la siguiente transcripción.
 
-INSTRUCCIONES ESTRICTAS:
-1. Lee la transcripción completa
-2. Identifica SOLO nombres propios de personas que aparezcan mencionados
-3. Para cada persona, intenta inferir su rol basándote en lo que dice o hace
-4. NO inventes nombres que no aparezcan en el texto
-5. NO incluyas pronombres ni referencias genéricas
+INSTRUCCIONES DE FORMATO JSON ESTRICTO:
+1. Responde SOLAMENTE con un bloque de código JSON válido.
+2. NO incluyas texto antes ni después.
+3. Formato: [{"name": "X", "role": "Y"}]
 
-FORMATO DE SALIDA OBLIGATORIO - Responde ÚNICAMENTE con este JSON (sin explicaciones adicionales):
-[
-  {"name": "Nombre Completo", "role": "Rol inferido"},
-  {"name": "Otro Nombre", "role": "Otro rol"}
-]
+Ejemplo:
+\`\`\`json
+[{"name": "Ana", "role": "PM"}]
+\`\`\`
 
-Si NO encuentras nombres específicos, responde SOLO con: []
+A CONTINUACIÓN, LA TRANSCRIPCIÓN:
+`;
 
-IMPORTANTE: 
-- Tu respuesta debe ser SOLO el array JSON
-- NO agregues texto antes ni después del JSON
-- NO uses markdown (sin \`\`\`json)
-- NO des explicaciones
-- SOLO el JSON puro
-
-Ejemplo de respuesta correcta:
-[{"name": "María García", "role": "Desarrolladora"}, {"name": "Juan Pérez", "role": "Project Manager"}]
-
-Ejemplo de respuesta si no hay nombres:
-[]`;
+export const participantsPromptSuffix = `
+----------------------------------------------------------------------------------
+RECORDATORIO FINAL:
+Basado en la transcripción anterior, genera ÚNICAMENTE el array JSON con los participantes encontrados. Si no hay, devuelve [].
+`;
 
 // Prompts para proyectos (futuro)
 export const projectPrompts = {
