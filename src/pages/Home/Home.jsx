@@ -15,6 +15,7 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
   const { isRecording } = useSelector((state) => state.recording);
   
   const [recordings, setRecordings] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
@@ -199,10 +200,13 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
           <p className={styles.subtitle}>Ready to capture your next big idea?</p>
         </div>
         <div className={styles.headerActions}>
-          <input type="text" placeholder="Search recordings..." className={styles.searchInput} />
-          <button className={styles.bellBtn} onClick={onSettings} title="Settings">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
+          <input 
+            type="text" 
+            placeholder="Search recordings..." 
+            className={styles.searchInput} 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
       </header>
 
@@ -244,14 +248,16 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
       {loading && <p>Loading recordings...</p>}
       
       <div className={styles.grid}>
-        {recordings.map(rec => (
-          <RecordingCard 
-            key={rec.id} 
-            recording={rec} 
-            onClick={onRecordingSelect}
-            onTranscribe={handleTranscribe}
-          />
-        ))}
+        {recordings
+          .filter(rec => rec.name.toLowerCase().includes(searchTerm.toLowerCase()))
+          .map(rec => (
+            <RecordingCard 
+              key={rec.id} 
+              recording={rec} 
+              onClick={onRecordingSelect}
+              onTranscribe={handleTranscribe}
+            />
+          ))}
         {!loading && recordings.length === 0 && (
           <p className={styles.noRecordingsMessage}>No recordings yet. Start a new session!</p>
         )}

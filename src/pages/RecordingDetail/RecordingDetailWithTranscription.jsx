@@ -51,6 +51,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   // Editing Title
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(recording?.name || '');
+  const [localName, setLocalName] = useState(recording?.name || '');
 
   // Delete Modal
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -69,6 +70,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   // 1. Load Initial Data (Transcription, AI Config, Project)
   useEffect(() => {
     if (!recording?.id) return;
+
+    setLocalName(recording?.name || '');
+    setEditedTitle(recording?.name || '');
 
     // Load Transcription
     setTranscriptionLoading(true);
@@ -317,6 +321,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     if (!editedTitle.trim()) return;
     try {
       await recordingsService.renameRecording(recording.id, editedTitle.trim());
+      setLocalName(editedTitle.trim()); // Actualizar localmente inmediatamente
       setIsEditingTitle(false);
     } catch (error) {
       console.error("Error saving title", error);
@@ -343,7 +348,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   if (!recording) return null;
 
   const duration = recording.duration 
-    ? `${Math.floor(recording.duration / 60)}:${(recording.duration % 60).toString().padStart(2, '0')}`
+    ? `${Math.floor(recording.duration / 60)}:${Math.floor(recording.duration % 60).toString().padStart(2, '0')}`
     : '--:--';
 
   const dateStr = new Date(recording.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -370,7 +375,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                 />
               ) : (
                 <>
-                  <h1 className={styles.title}>{recording.name || 'Untitled Recording'}</h1>
+                  <h1 className={styles.title}>{localName || 'Untitled Recording'}</h1>
                   <button onClick={() => setIsEditingTitle(true)} className={styles.editTitleBtn} title="Rename">
                     <MdEdit size={16} />
                   </button>
