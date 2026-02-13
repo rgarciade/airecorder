@@ -83,7 +83,7 @@ export default function ChatInterface({
         const [_, id, time] = href.split(':');
         return (
           <button
-            className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-1 bg-[#472426] hover:bg-[#663336] text-[#e92932] hover:text-white rounded text-xs font-medium transition-colors cursor-pointer border border-[#e92932]/30"
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-1 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 rounded text-xs font-medium transition-colors cursor-pointer border border-blue-200"
             onClick={(e) => {
               e.preventDefault();
               if (onNavigateToRecording) {
@@ -96,7 +96,7 @@ export default function ChatInterface({
           </button>
         );
       }
-      return <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">{children}</a>;
+      return <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{children}</a>;
     },
     ul: ({ children }) => <ul className={styles.messageList}>{children}</ul>,
     ol: ({ children }) => <ol className={styles.messageList} style={{ listStyleType: 'decimal' }}>{children}</ol>,

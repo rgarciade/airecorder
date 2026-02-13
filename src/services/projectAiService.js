@@ -170,8 +170,7 @@ class ProjectAiService {
       miembros: [],
       hitos: [],
       detalles: {
-        nombre_proyecto: "Proyecto Nuevo",
-        estado: "Sin iniciar",
+        fecha_inicio: new Date().toISOString().split('T')[0],
         grabaciones_analizadas: 0
       }
     };
@@ -187,7 +186,6 @@ class ProjectAiService {
     return {
       resumen_breve: analysis.resumen_breve,
       resumen_extenso: analysis.resumen_extenso,
-      estado: analysis.detalles?.estado || "Desconocido",
       progreso: this._calculateProgress(analysis)
     };
   }
@@ -211,7 +209,8 @@ class ProjectAiService {
       // Como no podemos importar projectsService fácilmente por ciclos, usamos window.electronAPI si expusieramos getProject
       // O importamos dinámicamente.
       const { default: projectsService } = await import('./projectsService');
-      const project = await projectsService.getProject(projectId);
+      const projects = await projectsService.getProjects();
+      const project = projects.find(p => p.id === projectId || p.id == projectId);
       const savedMembers = project?.members || [];
 
       // 2. Obtener análisis de IA
@@ -245,7 +244,11 @@ class ProjectAiService {
       // 4. Si hubo nuevos miembros de IA, guardar en DB automáticamente
       if (hasChanges) {
         console.log('Guardando nuevos miembros detectados por IA en el proyecto...');
-        await projectsService.updateProject(projectId, { members: finalMembers });
+        await projectsService.updateProject(projectId, { 
+          name: project.name,
+          description: project.description,
+          members: finalMembers 
+        });
       }
 
       return finalMembers;
@@ -262,7 +265,13 @@ class ProjectAiService {
    */
   async updateProjectMembers(projectId, members) {
     const { default: projectsService } = await import('./projectsService');
-    await projectsService.updateProject(projectId, { members });
+    const projects = await projectsService.getProjects();
+    const project = projects.find(p => p.id === projectId || p.id == projectId);
+    await projectsService.updateProject(projectId, { 
+      name: project.name,
+      description: project.description,
+      members 
+    });
     return members;
   }
 
@@ -278,8 +287,8 @@ class ProjectAiService {
    */
   async getProjectHighlights(projectId) {
     const analysis = await this._ensureAnalysis(projectId);
-    return analysis.hitos.map((h, index) => ({
-      id: index + 1,
+    return (analysis.hitos || []).map((h, index) => ({
+      id: h.id || index + 1,
       semana: h.semana,
       titulo: h.titulo,
       descripcion: h.descripcion,
@@ -290,6 +299,21 @@ class ProjectAiService {
   }
 
   /**
+   * Actualiza los aspectos destacados del proyecto (edición manual)
+   * @param {string} projectId 
+   * @param {Array} highlights 
+   */
+  async updateProjectHighlights(projectId, highlights) {
+    const analysis = await this._ensureAnalysis(projectId);
+    analysis.hitos = highlights;
+    
+    // Guardar en caché y disco
+    this.analysisCache.set(projectId, analysis);
+    await window.electronAPI.saveProjectAnalysis(projectId, analysis);
+    return highlights;
+  }
+
+  /**
    * Obtiene los detalles clave del proyecto
    * @param {string} projectId - ID del proyecto
    * @returns {Promise<Object>} Detalles del proyecto
@@ -297,54 +321,68 @@ class ProjectAiService {
   async getProjectDetails(projectId) {
     const analysis = await this._ensureAnalysis(projectId);
     
-    // Obtener conteo real de grabaciones para este dato específico
-    let totalRecordings = 0;
-    try {
-      const result = await window.electronAPI.getProjectRecordings(projectId);
-      if (result.success) totalRecordings = result.recordings.length;
-    } catch (e) { console.error(e); }
-
     return {
-      ...analysis.detalles,
-      grabaciones_totales: totalRecordings,
-      grabaciones_analizadas: totalRecordings, // Asumimos que analizamos las que hay
-      miembros_activos: analysis.miembros.length,
-      ultima_actividad: new Date().toISOString() // Placeholder
+      fecha_inicio: analysis.detalles?.fecha_inicio || analysis.lastAnalysisDate?.split('T')[0] || new Date().toISOString().split('T')[0],
+      grabaciones_analizadas: (analysis.analyzedRecordingIds || []).length,
+      ultima_actividad: analysis.lastAnalysisDate
     };
   }
 
   /**
-   * Pregunta a la IA sobre el proyecto
+   * Pregunta a la IA sobre el proyecto con contexto real
    * @param {string} projectId - ID del proyecto
    * @param {string} question - Pregunta del usuario
-   * @param {string} chatId - ID del chat (opcional)
+   * @param {Array} recordingIds - IDs de grabaciones para el contexto
    * @returns {Promise<string>} Respuesta de la IA
    */
-  async askProjectQuestion(projectId, question, chatId = null) {
-    // Por ahora usamos una respuesta simple basada en el análisis ya cargado
-    // En el futuro, esto debería llamar a un endpoint de chat con contexto
-    const analysis = await this._ensureAnalysis(projectId);
-    
-    // Aquí podríamos hacer una llamada a Gemini pasando el análisis como contexto + la pregunta
-    // Para esta iteración, devolveremos un mensaje genérico si no implementamos el chat completo
-    // Pero dado que el usuario pidió "sacar toda la información necesaria", 
-    // podemos intentar responder con lo que tenemos en memoria si es simple,
-    // o hacer una llamada real de chat.
-    
-    // IMPLEMENTACIÓN DE CHAT REAL (Simplificada):
-    // Reutilizamos sendProjectAnalysisPrompt pero con la pregunta específica?
-    // No, mejor crear un método ad-hoc o usar el contexto.
-    
-    // Por simplicidad y robustez en esta fase, devolveremos un string construido
-    // que invite al usuario a ver los detalles, o podríamos implementar 
-    // una llamada real de chat si geminiService lo soporta.
-    
-    return `(Respuesta automática basada en análisis): He analizado el proyecto "${analysis.detalles.nombre_proyecto}". 
-    
-Estado: ${analysis.detalles.estado}
-Resumen: ${analysis.resumen_breve}
+  async askProjectQuestion(projectId, question, recordingIds = []) {
+    try {
+      const analysis = await this._ensureAnalysis(projectId);
+      
+      // 1. Recopilar transcripciones/resúmenes de las grabaciones seleccionadas
+      let contextText = `Información General del Proyecto:\n${analysis.resumen_breve}\n\n`;
+      
+      if (recordingIds.length > 0) {
+        contextText += "Contexto específico de grabaciones seleccionadas:\n";
+        for (const recId of recordingIds) {
+          const summaryResult = await window.electronAPI.getAiSummary(recId);
+          if (summaryResult.success && summaryResult.summary) {
+            contextText += `- Grabación ${recId}:\n${JSON.stringify(summaryResult.summary)}\n\n`;
+          }
+        }
+      }
 
-Para preguntas más específicas, por favor revisa los detalles en pantalla.`;
+      const prompt = `Actúa como un asistente experto en el proyecto. Utiliza el siguiente contexto para responder a la pregunta del usuario.
+      
+Contexto del Proyecto:
+${contextText}
+
+Pregunta del usuario:
+${question}
+
+Instrucciones:
+1. Responde de forma clara y profesional en Español.
+2. Si la información no está en el contexto, indícalo educadamente.
+3. Utiliza formato Markdown para mejorar la legibilidad.`;
+
+      const settings = await getSettings();
+      const provider = settings.aiProvider || 'gemini';
+      let responseText = '';
+
+      if (provider === 'ollama') {
+        const model = settings.ollamaModel;
+        if (!model) throw new Error('No se ha seleccionado un modelo de Ollama');
+        responseText = await ollamaGenerate(model, prompt);
+      } else {
+        const result = await sendToGemini(prompt);
+        responseText = result?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      }
+
+      return responseText || "No he podido generar una respuesta en este momento.";
+    } catch (error) {
+      console.error('Error en askProjectQuestion:', error);
+      return "Error al procesar la consulta con la IA.";
+    }
   }
 
   /**
@@ -362,15 +400,17 @@ Para preguntas más específicas, por favor revisa los detalles en pantalla.`;
 
       for (const recId of recordingIds) {
         try {
-          // Intentar obtener info básica (fecha/titulo) si es posible
-          // Por ahora solo tenemos ID y resumen
+          // Intentar obtener info básica (nombre de carpeta/path)
+          const recResult = await window.electronAPI.getRecordingById(recId);
+          const title = recResult.success ? recResult.recording.relative_path : `Grabación ${recId}`;
+
           const summaryResult = await window.electronAPI.getAiSummary(recId);
           
           if (summaryResult.success && summaryResult.summary) {
             summaries.push({
               id: recId,
-              title: `Grabación ${recId}`, // Idealmente obtener título real
-              date: null, // Idealmente obtener fecha real
+              title: title,
+              date: null,
               summary: summaryResult.summary
             });
           }

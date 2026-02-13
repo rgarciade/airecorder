@@ -2,9 +2,11 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #221112;
+  background: #FFFFFF;
   border-radius: 8px;
   overflow: hidden;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .header {
@@ -12,11 +14,11 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px;
-  border-bottom: 1px solid #472426;
+  border-bottom: 1px solid #E5E7EB;
 }
 
 .title {
-  color: white;
+  color: #111827;
   font-size: 16px;
   font-weight: 600;
   margin: 0;
@@ -28,7 +30,7 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: #e92932;
+  background: #3994EF;
   color: white;
   border: none;
   border-radius: 6px;
@@ -37,7 +39,7 @@
 }
 
 .newChatButton:hover {
-  background: #d41f27;
+  background: #2563EB;
 }
 
 .chatList {
@@ -56,14 +58,14 @@
 }
 
 .emptyText {
-  color: #c89295;
+  color: #6B7280;
   font-size: 14px;
   font-weight: 500;
   margin: 0 0 4px 0;
 }
 
 .emptySubtext {
-  color: #8b5a5d;
+  color: #9CA3AF;
   font-size: 12px;
   margin: 0;
 }
@@ -75,17 +77,18 @@
   margin-bottom: 4px;
   border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
   position: relative;
+  border: 1px solid transparent;
 }
 
 .chatItem:hover {
-  background: #331a1b;
+  background: #F9FAFB;
 }
 
 .chatItem.active {
-  background: #472426;
-  border-left: 3px solid #e92932;
+  background: #EFF6FF;
+  border-color: #DBEAFE;
 }
 
 .chatIcon {
@@ -94,16 +97,17 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: #331a1b;
+  background: #F3F4F6;
   border-radius: 6px;
-  color: #c89295;
+  color: #6B7280;
   margin-right: 12px;
   flex-shrink: 0;
 }
 
 .chatItem.active .chatIcon {
-  background: #5a2d30;
-  color: #e92932;
+  background: #FFFFFF;
+  color: #3994EF;
+  border: 1px solid #DBEAFE;
 }
 
 .chatInfo {
@@ -112,7 +116,7 @@
 }
 
 .chatName {
-  color: white;
+  color: #111827;
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 2px;
@@ -122,7 +126,7 @@
 }
 
 .chatDate {
-  color: #8b5a5d;
+  color: #9CA3AF;
   font-size: 12px;
 }
 
@@ -145,15 +149,15 @@
   height: 24px;
   background: none;
   border: none;
-  color: #8b5a5d;
+  color: #9CA3AF;
   cursor: pointer;
   border-radius: 4px;
   transition: all 0.2s;
 }
 
 .deleteButton:hover {
-  color: #e92932;
-  background: #331a1b;
+  color: #EF4444;
+  background: #FEF2F2;
 }
 
 /* Modal de confirmación */
@@ -171,24 +175,25 @@
 }
 
 .modal {
-  background: #221112;
-  border: 1px solid #472426;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
   border-radius: 12px;
   padding: 24px;
   max-width: 400px;
   width: 90%;
   margin: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .modalTitle {
-  color: white;
+  color: #111827;
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 16px 0;
 }
 
 .modalText {
-  color: #c89295;
+  color: #6B7280;
   font-size: 14px;
   line-height: 1.5;
   margin: 0 0 24px 0;
@@ -202,9 +207,9 @@
 
 .cancelButton {
   padding: 8px 16px;
-  background: #472426;
-  color: white;
-  border: none;
+  background: #FFFFFF;
+  color: #374151;
+  border: 1px solid #E5E7EB;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
@@ -212,12 +217,12 @@
 }
 
 .cancelButton:hover {
-  background: #663336;
+  background: #F9FAFB;
 }
 
 .confirmButton {
   padding: 8px 16px;
-  background: #e92932;
+  background: #EF4444;
   color: white;
   border: none;
   border-radius: 6px;
@@ -227,7 +232,7 @@
 }
 
 .confirmButton:hover {
-  background: #d41f27;
+  background: #DC2626;
 }
 
 /* Scrollbar personalizada */
@@ -236,14 +241,14 @@
 }
 
 .chatList::-webkit-scrollbar-track {
-  background: #221112;
+  background: transparent;
 }
 
 .chatList::-webkit-scrollbar-thumb {
-  background: #472426;
+  background: #D1D5DB;
   border-radius: 3px;
 }
 
 .chatList::-webkit-scrollbar-thumb:hover {
-  background: #663336;
+  background: #9CA3AF;
 }

@@ -2,21 +2,28 @@ import React, { useState, useEffect } from 'react';
 import styles from './ProjectDetail.module.css';
 import projectAiService from '../../services/projectAiService';
 import projectChatService from '../../services/projectChatService';
+import projectsService from '../../services/projectsService';
 import ProjectChatPanel from '../../components/ProjectChatPanel/ProjectChatPanel';
 import ProjectTimeline from '../../components/ProjectTimeline/ProjectTimeline';
-import MembersList from '../../components/MembersList/MembersList';
+import ParticipantsList from '../../components/ParticipantsList/ParticipantsList';
 import ProjectRecordingSummaries from '../../components/ProjectRecordingSummaries/ProjectRecordingSummaries';
 import ChatInterface from '../../components/ChatInterface/ChatInterface';
 
 export default function ProjectDetail({ project, onBack, onNavigateToRecording: navigateToRecordingProp }) {
   // Wrapper para usar el prop renombrado
   const props = { onNavigateToRecording: navigateToRecordingProp };
+  
+  // --- STATE ---
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'chat'
+  const [isContextExpanded, setIsContextExpanded] = useState(false);
+  
   // Estados para datos del proyecto
   const [projectSummary, setProjectSummary] = useState(null);
   const [projectMembers, setProjectMembers] = useState([]);
   const [projectHighlights, setProjectHighlights] = useState([]);
   const [projectDetails, setProjectDetails] = useState(null);
   const [recordingSummaries, setRecordingSummaries] = useState([]);
+  const [projectDuration, setProjectDuration] = useState(0);
 
   // Estados para el chat
   const [chats, setChats] = useState([]);
@@ -28,7 +35,9 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   // Estados para modales
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [newChatName, setNewChatName] = useState('');
+  const [selectedRecordingIds, setSelectedRecordingIds] = useState([]);
 
+  // --- EFFECTS ---
   // Cargar datos del proyecto al montar
   useEffect(() => {
     if (project) {
@@ -50,15 +59,17 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     }
   }, [activeChatId, project]);
 
+  // --- HANDLERS ---
   const loadProjectData = async () => {
     setIsLoading(true);
     try {
-      const [summary, members, highlights, details, recordings] = await Promise.all([
+      const [summary, members, highlights, details, recordings, duration] = await Promise.all([
         projectAiService.getProjectSummary(project.id),
         projectAiService.getProjectMembers(project.id),
         projectAiService.getProjectHighlights(project.id),
         projectAiService.getProjectDetails(project.id),
-        projectAiService.getProjectRecordingSummaries(project.id)
+        projectAiService.getProjectRecordingSummaries(project.id),
+        projectsService.getProjectTotalDuration(project.id)
       ]);
 
       setProjectSummary(summary);
@@ -66,6 +77,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       setProjectHighlights(highlights);
       setProjectDetails(details);
       setRecordingSummaries(recordings);
+      setProjectDuration(duration);
     } catch (error) {
       console.error('Error cargando datos del proyecto:', error);
     } finally {
@@ -101,17 +113,29 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   };
 
   const handleNewChat = () => {
+    setSelectedRecordingIds(recordingSummaries.map(r => r.id)); // Por defecto todas seleccionadas
     setShowNewChatModal(true);
+  };
+
+  const handleToggleRecordingSelection = (id) => {
+    setSelectedRecordingIds(prev => 
+      prev.includes(id) ? prev.filter(rid => rid !== id) : [...prev, id]
+    );
   };
 
   const handleCreateNewChat = async () => {
     if (!newChatName.trim()) return;
 
     try {
-      const newChat = await projectChatService.createProjectChat(project.id, newChatName.trim());
+      const newChat = await projectChatService.createProjectChat(
+        project.id, 
+        newChatName.trim(), 
+        selectedRecordingIds
+      );
       setChats(prev => [...prev, newChat]);
       setActiveChatId(newChat.id);
       setNewChatName('');
+      setSelectedRecordingIds([]);
       setShowNewChatModal(false);
     } catch (error) {
       console.error('Error creando nuevo chat:', error);
@@ -142,37 +166,85 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     }
   };
 
+  const handleAddMember = async (member) => {
+    const newMember = {
+      ...member,
+      id: Date.now(),
+      avatar_color: '#3994EF'
+    };
+    const updated = [...projectMembers, newMember];
+    await handleUpdateMembers(updated);
+  };
+
+  const handleRemoveMember = async (id) => {
+    if (window.confirm('¿Estás seguro de eliminar este miembro?')) {
+      const updated = projectMembers.filter(m => m.id !== id);
+      await handleUpdateMembers(updated);
+    }
+  };
+
+  const handleUpdateMember = async (id, data) => {
+    const updated = projectMembers.map(m => 
+      m.id === id ? { ...m, ...data } : m
+    );
+    await handleUpdateMembers(updated);
+  };
+
+  const handleUpdateHighlights = async (newHighlights) => {
+    try {
+      await projectAiService.updateProjectHighlights(project.id, newHighlights);
+      setProjectHighlights(newHighlights);
+    } catch (error) {
+      console.error('Error actualizando aspectos destacados:', error);
+    }
+  };
+
   const handleSendMessage = async (messageText) => {
     if (!messageText.trim() || !activeChatId || isSendingMessage) return;
 
+    const trimmedMessage = messageText.trim();
+    
+    // 1. Añadir optimísticamente el mensaje del usuario al estado local
+    const tempUserMessage = {
+      id: `temp_u_${Date.now()}`,
+      tipo: 'usuario',
+      contenido: trimmedMessage,
+      fecha: new Date().toISOString()
+    };
+    
+    setChatHistory(prev => [...prev, tempUserMessage]);
     setIsSendingMessage(true);
 
     try {
-      // Guardar mensaje del usuario
-      const userMessage = {
+      // 2. Guardar mensaje del usuario en DB
+      await projectChatService.saveProjectChatMessage(project.id, activeChatId, {
         tipo: 'usuario',
-        contenido: messageText.trim()
-      };
+        contenido: trimmedMessage
+      });
 
-      await projectChatService.saveProjectChatMessage(project.id, activeChatId, userMessage);
+      // 3. Generar respuesta de la IA
+      const aiResponse = await projectChatService.generateAiResponse(project.id, trimmedMessage, activeChatId);
 
-      // Generar respuesta de la IA
-      const aiResponse = await projectChatService.generateAiResponse(project.id, messageText, activeChatId);
-
-      const aiMessage = {
+      // 4. Guardar respuesta de la IA en DB
+      await projectChatService.saveProjectChatMessage(project.id, activeChatId, {
         tipo: 'asistente',
         contenido: aiResponse
-      };
+      });
 
-      await projectChatService.saveProjectChatMessage(project.id, activeChatId, aiMessage);
-
-      // Recargar historial
+      // 5. Recargar historial real para sincronizar IDs y fechas
       await loadChatHistory(activeChatId);
     } catch (error) {
       console.error('Error enviando mensaje:', error);
+      // Opcional: añadir mensaje de error al chat o revertir optimismo
     } finally {
       setIsSendingMessage(false);
     }
+  };
+
+  const formatDuration = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   };
 
 
@@ -186,6 +258,8 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       </div>
     );
   }
+
+  const activeChat = chats.find(c => c.id === activeChatId);
 
   return (
     <div className={styles.container}>
@@ -213,119 +287,164 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
         </div>
       </header>
 
-      {/* Main Content - 3 Columnas */}
+      {/* Tabs Navigation */}
+      <nav className={styles.tabsNav}>
+        <button 
+          className={`${styles.tabButton} ${activeTab === 'overview' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('overview')}
+        >
+          Vista General
+        </button>
+        <button 
+          className={`${styles.tabButton} ${activeTab === 'chat' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('chat')}
+        >
+          Chat con IA
+        </button>
+      </nav>
+
+      {/* Main Content */}
       <div className={styles.mainContent}>
-        {/* Columna Izquierda - Resumen y Timeline */}
-        <div className={styles.leftColumn}>
-          {/* Resumen del Proyecto */}
-          <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Resumen del Proyecto</h2>
-            <p className={styles.projectSummary}>
-              {projectSummary?.resumen_breve || 'Cargando resumen del proyecto...'}
-            </p>
-          </div>
-
-          {/* Aspectos Destacados */}
-          <div className={styles.section}>
-            <ProjectTimeline highlights={projectHighlights} />
-          </div>
-
-          {/* Resúmenes de Grabaciones */}
-          <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Grabaciones</h2>
-            <ProjectRecordingSummaries
-              recordings={recordingSummaries}
-              onNavigateToRecording={(recordingId) => {
-                // Navegar a la grabación (asumiendo que existe una función de navegación global o prop)
-                // Como ProjectDetail recibe onBack, probablemente necesitemos un onNavigateToRecording prop
-                // O usar window.location si es router, pero parece ser navegación por estado.
-                // Revisaremos cómo se navega en App.jsx.
-                // Por ahora, despachamos un evento custom o usamos un prop si existiera.
-                // El componente padre debería manejar esto.
-                console.log('Navegar a grabación:', recordingId);
-                // Disparar evento para que App.jsx lo capture si es necesario, o pasar prop.
-                // Asumiremos que se pasa un prop onNavigateToRecording desde App.jsx
-                if (props.onNavigateToRecording) {
-                  props.onNavigateToRecording(recordingId);
-                }
-              }}
-            />
-          </div>
-
-          {/* Miembros del Equipo */}
-          <div className={styles.section}>
-            <MembersList members={projectMembers} onUpdateMembers={handleUpdateMembers} />
-          </div>
-        </div>
-
-        {/* Columna Central - Chat */}
-        <div className={styles.centerColumn}>
-          <ChatInterface
-            chatHistory={chatHistory}
-            onSendMessage={handleSendMessage}
-            isLoading={isSendingMessage}
-            placeholder="Haz una pregunta sobre el proyecto..."
-            title="Chat del Proyecto"
-            onNavigateToRecording={(recordingId, timestamp) => {
-              if (props.onNavigateToRecording) {
-                props.onNavigateToRecording(recordingId, timestamp);
-              }
-            }}
-          />
-        </div>
-
-        {/* Columna Derecha - Detalles y Chats */}
-        <div className={styles.rightColumn}>
-          {/* Detalles del Proyecto */}
-          <div className={styles.section}>
-            <h3 className={styles.sectionTitle}>Detalles del Proyecto</h3>
-            {projectDetails && (
-              <div className={styles.detailsList}>
-                <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Nombre del Proyecto</span>
-                  <span className={styles.detailValue}>{projectDetails.nombre_proyecto}</span>
-                </div>
-                <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Estado</span>
-                  <span className={styles.detailValue}>{projectDetails.estado}</span>
-                </div>
-                <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Fecha de Inicio</span>
-                  <span className={styles.detailValue}>{projectDetails.fecha_inicio}</span>
-                </div>
-                <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Fecha de Finalización</span>
-                  <span className={styles.detailValue}>{projectDetails.fecha_finalizacion}</span>
-                </div>
-                <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Presupuesto</span>
-                  <span className={styles.detailValue}>{projectDetails.presupuesto}</span>
-                </div>
-                <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Duración Prevista</span>
-                  <span className={styles.detailValue}>{projectDetails.duracion_prevista}</span>
-                </div>
-                <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Grabaciones</span>
-                  <span className={styles.detailValue}>
-                    {projectDetails.grabaciones_analizadas}/{projectDetails.grabaciones_totales}
-                  </span>
-                </div>
+        {activeTab === 'overview' ? (
+          <div className={styles.overviewGrid}>
+            {/* Columna Izquierda - Resumen y Grabaciones */}
+            <div className={styles.leftColumn}>
+              {/* Resumen del Proyecto */}
+              <div className={styles.section}>
+                <h2 className={styles.sectionTitle}>Resumen del Proyecto</h2>
+                <p className={styles.projectSummary}>
+                  {projectSummary?.resumen_breve || 'Cargando resumen del proyecto...'}
+                </p>
               </div>
-            )}
-          </div>
 
-          {/* Panel de Chats */}
-          <div className={styles.section}>
-            <ProjectChatPanel
-              chats={chats}
-              activeChatId={activeChatId}
-              onChatSelect={handleChatSelect}
-              onNewChat={handleNewChat}
-              onDeleteChat={handleDeleteChat}
-            />
+              {/* Resúmenes de Grabaciones */}
+              <div className={styles.section}>
+                <h2 className={styles.sectionTitle}>Grabaciones</h2>
+                <ProjectRecordingSummaries
+                  recordings={recordingSummaries}
+                  onNavigateToRecording={(recordingId) => {
+                    if (props.onNavigateToRecording) {
+                      props.onNavigateToRecording(recordingId);
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Columna Derecha - Detalles, Timeline, Miembros */}
+            <div className={styles.rightColumn}>
+              {/* Detalles del Proyecto */}
+              <div className={styles.section}>
+                <h3 className={styles.sectionTitle}>Detalles del Proyecto</h3>
+                {projectDetails && (
+                  <div className={styles.detailsList}>
+                    <div className={styles.detailItem}>
+                      <span className={styles.detailLabel}>Fecha de Inicio</span>
+                      <span className={styles.detailValue}>{projectDetails.fecha_inicio}</span>
+                    </div>
+                    <div className={styles.detailItem}>
+                      <span className={styles.detailLabel}>Duración Actual</span>
+                      <span className={styles.detailValue}>{formatDuration(projectDuration)}</span>
+                    </div>
+                    <div className={styles.detailItem}>
+                      <span className={styles.detailLabel}>Grabaciones Analizadas</span>
+                      <span className={styles.detailValue}>
+                        {projectDetails.grabaciones_analizadas}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Aspectos Destacados */}
+              <div className={styles.section}>
+                <ProjectTimeline 
+                  highlights={projectHighlights} 
+                  onUpdateHighlights={handleUpdateHighlights}
+                />
+              </div>
+
+              {/* Miembros del Equipo */}
+              <div className={styles.section}>
+                <ParticipantsList 
+                  title="Miembros del Equipo"
+                  participants={projectMembers} 
+                  onAddParticipant={handleAddMember}
+                  onRemoveParticipant={handleRemoveMember}
+                  onUpdateParticipant={handleUpdateMember}
+                />
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className={styles.chatGrid}>
+            {/* Chat Principal */}
+            <div className={styles.chatMain}>
+              <div className={styles.chatInterfaceWrapper}>
+                <ChatInterface
+                  chatHistory={chatHistory}
+                  onSendMessage={handleSendMessage}
+                  isLoading={isSendingMessage}
+                  placeholder="Haz una pregunta sobre el proyecto..."
+                  title={activeChat ? `Chat: ${activeChat.nombre}` : "Chat del Proyecto"}
+                  onNavigateToRecording={(recordingId, timestamp) => {
+                    if (props.onNavigateToRecording) {
+                      props.onNavigateToRecording(recordingId, timestamp);
+                    }
+                  }}
+                />
+              </div>
+              {activeChat?.contexto && activeChat.contexto.length > 0 && (
+                <div className={styles.chatContextInfo}>
+                  <button 
+                    className={styles.chatContextTitle}
+                    onClick={() => setIsContextExpanded(!isContextExpanded)}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256">
+                      <path d="M200,64V168a8,8,0,0,1-16,0V83.31L69.66,197.66a8,8,0,0,1-11.32-11.32L172.69,72H88a8,8,0,0,1,0-16H192A8,8,0,0,1,200,64Z"></path>
+                    </svg>
+                    <span>Contexto del Chat ({activeChat.contexto.length} grabaciones)</span>
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      width="12" 
+                      height="12" 
+                      fill="currentColor" 
+                      viewBox="0 0 256 256"
+                      className={`${styles.contextChevron} ${isContextExpanded ? styles.expanded : ''}`}
+                    >
+                      <path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80a8,8,0,0,1,11.32-11.32L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"></path>
+                    </svg>
+                  </button>
+                  {isContextExpanded && (
+                    <div className={styles.chatContextList}>
+                      {activeChat.contexto.map(recId => {
+                        const recording = recordingSummaries.find(r => r.id === recId);
+                        if (!recording) return null;
+                        
+                        return (
+                          <div key={recId} className={styles.chatContextItem}>
+                            <span className={styles.chatContextItemName}>• {recording.title || `Grabación ${recId}`}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Panel de Historial de Chats */}
+            <div className={styles.rightColumn}>
+              <ProjectChatPanel
+                chats={chats}
+                activeChatId={activeChatId}
+                onChatSelect={handleChatSelect}
+                onNewChat={handleNewChat}
+                onDeleteChat={handleDeleteChat}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal para nuevo chat */}
@@ -341,8 +460,23 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                 placeholder="Nombre del chat..."
                 className={styles.modalInput}
                 autoFocus
-                onKeyPress={(e) => e.key === 'Enter' && handleCreateNewChat()}
               />
+              
+              <span className={styles.modalSubtitle}>Contexto del chat:</span>
+              <div className={styles.recordingSelector}>
+                {recordingSummaries.map(rec => (
+                  <label key={rec.id} className={styles.recordingOption}>
+                    <input 
+                      type="checkbox"
+                      checked={selectedRecordingIds.includes(rec.id)}
+                      onChange={() => handleToggleRecordingSelection(rec.id)}
+                    />
+                    <span className={styles.recordingOptionLabel}>
+                      {rec.title || `Grabación ${rec.id}`}
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
             <div className={styles.modalActions}>
               <button
@@ -356,10 +490,10 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
               </button>
               <button
                 onClick={handleCreateNewChat}
-                disabled={!newChatName.trim()}
+                disabled={!newChatName.trim() || selectedRecordingIds.length === 0}
                 className={styles.modalConfirmButton}
               >
-                Crear
+                Crear Chat
               </button>
             </div>
           </div>

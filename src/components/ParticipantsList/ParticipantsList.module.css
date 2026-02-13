@@ -1,0 +1,195 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.addBtn {
+  background-color: #EFF6FF;
+  color: #3994EF;
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.addBtn:hover {
+  background-color: #3994EF;
+  color: white;
+}
+
+.addForm, .editForm {
+  background-color: #F9FAFB;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid #E5E7EB;
+}
+
+.input {
+  padding: 6px 10px;
+  border: 1px solid #E5E7EB;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: white;
+  color: #111827;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #3994EF;
+}
+
+.formActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.saveBtn {
+  background-color: #3994EF;
+  color: white;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.cancelBtn {
+  background-color: white;
+  color: #6B7280;
+  border: 1px solid #E5E7EB;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.item:hover {
+  background-color: #F9FAFB;
+}
+
+.item:hover .actions {
+  opacity: 1;
+}
+
+.info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #F3F4F6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: white;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.details h4 {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.details p {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin: 0;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aiBadge {
+  background-color: #EEF2FF;
+  color: #6366F1;
+  font-size: 0.625rem;
+  padding: 1px 4px;
+  border-radius: 4px;
+  border: 1px solid #C7D2FE;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.actionIconBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  padding: 4px;
+  border-radius: 4px;
+  color: #9CA3AF;
+}
+
+.actionIconBtn:hover {
+  background-color: #E5E7EB;
+  color: #374151;
+}
+
+.emptyText {
+  color: #6B7280;
+  font-size: 0.875rem;
+  font-style: italic;
+  padding: 16px 0;
+}

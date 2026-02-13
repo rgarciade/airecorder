@@ -208,6 +208,24 @@ class ProjectsService {
       return null;
     }
   }
+
+  /**
+   * Obtiene la duración total de todas las grabaciones de un proyecto
+   * @param {string} projectId - ID del proyecto
+   * @returns {Promise<number>} Duración total en segundos
+   */
+  async getProjectTotalDuration(projectId) {
+    try {
+      if (!window.electronAPI?.getProjectTotalDuration) {
+        return 0;
+      }
+      const result = await window.electronAPI.getProjectTotalDuration(projectId);
+      return result.success ? result.duration : 0;
+    } catch (error) {
+      console.error('Error obteniendo duración total del proyecto:', error);
+      return 0;
+    }
+  }
 }
 
 // Instancia singleton del servicio

@@ -36,11 +36,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // NUEVAS FUNCIONES para gestión de grabaciones
   // Obtener todas las carpetas de grabación
   getRecordingFolders: () => ipcRenderer.invoke('get-recording-folders'),
-  
-  // Obtener transcripción de una grabación específica
-  getTranscription: (recordingId) => ipcRenderer.invoke('get-transcription', recordingId),
-  
-  // Eliminar una grabación completa
+  getRecording: (relativePath) => ipcRenderer.invoke('get-recording', relativePath),
+  getRecordingById: (id) => ipcRenderer.invoke('get-recording-by-id', id),
   deleteRecording: (recordingId) => ipcRenderer.invoke('delete-recording', recordingId),
   
   // Renombrar una grabación
@@ -90,6 +87,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Obtener el proyecto de una grabación
   getRecordingProject: (recordingId) => ipcRenderer.invoke('get-recording-project', recordingId),
 
+  // CHATS DE PROYECTO
+  getProjectChats: (projectId) => ipcRenderer.invoke('get-project-chats', projectId),
+  createProjectChat: (projectId, name, contextRecordings) => ipcRenderer.invoke('create-project-chat', projectId, name, contextRecordings),
+  deleteProjectChat: (chatId) => ipcRenderer.invoke('delete-project-chat', chatId),
+  getProjectChatHistory: (chatId) => ipcRenderer.invoke('get-project-chat-history', chatId),
+  saveProjectChatMessage: (chatId, message) => ipcRenderer.invoke('save-project-chat-message', chatId, message),
+
+  // Obtener duración total del proyecto
+  getProjectTotalDuration: (projectId) => ipcRenderer.invoke('get-project-total-duration', projectId),
+
   // Guardar y leer análisis de proyecto
   saveProjectAnalysis: (projectId, analysis) => ipcRenderer.invoke('save-project-analysis', projectId, analysis),
   getProjectAnalysis: (projectId) => ipcRenderer.invoke('get-project-analysis', projectId),
@@ -102,4 +109,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Eventos de progreso
   onTranscriptionProgress: (callback) => ipcRenderer.on('transcription-progress', (_event, value) => callback(value)),
   offTranscriptionProgress: () => ipcRenderer.removeAllListeners('transcription-progress'),
+
+  // Dashboard
+  getDashboardStats: () => ipcRenderer.invoke('get-dashboard-stats'),
 }); 

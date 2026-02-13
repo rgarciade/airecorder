@@ -151,6 +151,66 @@
   text-decoration: underline;
 }
 
+.closeViewAll {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #F3F4F6;
+  border: 1px solid #E5E7EB;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #4B5563;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.closeViewAll:hover {
+  background: #E5E7EB;
+  color: #111827;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 16px;
+}
+
+.pageBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #E5E7EB;
+  background: white;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pageBtn:hover:not(:disabled) {
+  border-color: #3994EF;
+  color: #3994EF;
+}
+
+.pageBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #F9FAFB;
+}
+
+.pageInfo {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6B7280;
+}
+
 /* Modals */
 .modalOverlay {
   position: fixed;
@@ -186,6 +246,13 @@
   font-weight: 700;
   color: #111827;
   margin: 0 0 24px 0;
+}
+
+.modalText {
+  color: #4B5563;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 12px;
 }
 
 .formGroup {
