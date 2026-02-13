@@ -91,4 +91,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveGeneratingState: (recordingId, state) => ipcRenderer.invoke('save-generating-state', recordingId, state),
   getGeneratingState: (recordingId) => ipcRenderer.invoke('get-generating-state', recordingId),
   clearGeneratingState: (recordingId) => ipcRenderer.invoke('clear-generating-state', recordingId),
+  
+  // Eventos de progreso
+  onTranscriptionProgress: (callback) => ipcRenderer.on('transcription-progress', (_event, value) => callback(value)),
+  offTranscriptionProgress: () => ipcRenderer.removeAllListeners('transcription-progress'),
 }); 

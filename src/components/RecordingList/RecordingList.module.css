@@ -177,7 +177,6 @@
 }
 
 .play, .delete, .transcribe {
-  width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
@@ -188,6 +187,15 @@
   cursor: pointer;
   padding: 0;
   transition: all 0.2s ease;
+}
+
+.play, .delete {
+  width: 40px;
+}
+
+.transcribe {
+  min-width: 40px;
+  padding: 0 8px;
 }
 
 .play:hover {
@@ -485,7 +493,25 @@
   background: #663336;
 }
 
-/* Responsive design */
+.transcribingState {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+.progressText {
+  color: #f7b731;
+  font-size: 0.75rem;
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 @media (max-width: 768px) {
   .item {
     flex-direction: column;

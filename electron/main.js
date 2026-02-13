@@ -18,10 +18,13 @@ let currentTranscribingId = null;
 // Verificar permisos de micrófono al inicio
 function checkMicrophonePermission() {
   if (process.platform === 'darwin') {
-    const status = systemPreferences.getMediaAccessStatus('microphone');
-    console.log('Estado de permisos del micrófono:', status);
+    const micStatus = systemPreferences.getMediaAccessStatus('microphone');
+    console.log('Estado de permisos del micrófono:', micStatus);
     
-    if (status !== 'granted') {
+    const screenStatus = systemPreferences.getMediaAccessStatus('screen');
+    console.log('Estado de permisos de grabación de pantalla:', screenStatus);
+    
+    if (micStatus !== 'granted') {
       systemPreferences.askForMediaAccess('microphone')
         .then(granted => {
           console.log('Permiso de micrófono concedido:', granted);
@@ -54,28 +57,42 @@ function createWindow() {
 
   // Configurar el handler para captura de pantalla/audio según la documentación oficial
   session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
-    desktopCapturer.getSources({ types: ['screen', 'window'] }).then((sources) => {
-      // Priorizar pantalla completa para mejor captura de audio
+    desktopCapturer.getSources({ types: ['screen'] }).then((sources) => {
+      // Solo buscamos pantallas completas para captura de audio de sistema ('loopback')
       const screenSource = sources.find(source => source.id.includes('screen:'));
-      const selectedSource = screenSource || sources[0];
       
-      if (selectedSource) {
-        console.log('Concediendo acceso a fuente:', selectedSource.name);
-        // Según la documentación: conceder acceso a video y audio con 'loopback'
+      if (screenSource) {
+        console.log('Concediendo acceso a pantalla:', screenSource.name, '(ID:', screenSource.id, ')');
         callback({ 
-          video: selectedSource, 
-          audio: 'loopback' // Esto habilita la captura de audio del sistema
+          video: screenSource, 
+          audio: 'loopback' 
         });
       } else {
-        console.log('No se encontraron fuentes disponibles');
-        callback({});
+        console.log('No se encontraron pantallas disponibles para captura de audio.');
+        // Intentar obtener ventanas como fallback, pero advirtiendo
+        desktopCapturer.getSources({ types: ['window'] }).then((windowSources) => {
+           if (windowSources.length > 0) {
+             console.log('Intentando fallback a ventana:', windowSources[0].name);
+             // Para ventanas, 'loopback' podría no funcionar, pero intentamos
+             callback({
+               video: windowSources[0],
+               audio: 'loopback'
+             });
+           } else {
+             console.error('No hay fuentes disponibles (ni pantalla ni ventanas). Verifique permisos.');
+             callback({});
+           }
+        }).catch(err => {
+          console.error('Error fallback ventana:', err);
+          callback({});
+        });
       }
     }).catch(error => {
       console.error('Error obteniendo fuentes:', error);
       callback({});
     });
   }, { 
-    useSystemPicker: false // Usar nuestro selector automático
+    useSystemPicker: false 
   });
 
   // En desarrollo, carga la URL de desarrollo de Vite
@@ -373,7 +390,7 @@ ipcMain.handle('delete-recording', async (event, recordingId) => {
   }
 });
 
-// Renombrar una grabación (carpeta)
+// Renombrar una grabación (carpeta y sus archivos)
 ipcMain.handle('rename-recording', async (event, recordingId, newName) => {
   try {
     const oldPath = path.join(RECORDINGS_PATH, recordingId);
@@ -388,8 +405,32 @@ ipcMain.handle('rename-recording', async (event, recordingId, newName) => {
       return { success: false, error: 'Ya existe una grabación con ese nombre' };
     }
 
+    // 1. Leer archivos antes de renombrar la carpeta
+    const files = await fs.promises.readdir(oldPath);
+
+    // 2. Renombrar la carpeta
     await fs.promises.rename(oldPath, newPath);
-    console.log(`Grabación renombrada: ${oldPath} -> ${newPath}`);
+    console.log(`Grabación renombrada (carpeta): ${oldPath} -> ${newPath}`);
+
+    // 3. Renombrar archivos internos que coincidan con el patrón {id}-*
+    for (const file of files) {
+      if (file.startsWith(recordingId)) {
+        // Reemplaza solo la primera ocurrencia (el prefijo)
+        const newFileName = file.replace(recordingId, safeNewName);
+        const oldFilePath = path.join(newPath, file);
+        const newFilePath = path.join(newPath, newFileName);
+        
+        try {
+          if (fs.existsSync(oldFilePath)) {
+            await fs.promises.rename(oldFilePath, newFilePath);
+            console.log(`Archivo renombrado: ${file} -> ${newFileName}`);
+          }
+        } catch (err) {
+          console.error(`Error renombrando archivo interno ${file}:`, err);
+        }
+      }
+    }
+
     return { success: true, newId: safeNewName };
   } catch (error) {
     console.error('Error renaming recording:', error);
@@ -439,7 +480,10 @@ ipcMain.handle('transcribe-recording', async (event, recordingId) => {
         ]
       );
       py.stdout.on('data', (data) => {
-        console.log(`[Transcripción][stdout]: ${data}`);
+        const message = data.toString().trim();
+        console.log(`[Transcripción][stdout]: ${message}`);
+        // Enviar progreso al frontend
+        event.sender.send('transcription-progress', { recordingId, message });
       });
       py.stderr.on('data', (data) => {
         console.error(`[Transcripción][stderr]: ${data}`);

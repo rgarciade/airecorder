@@ -14,6 +14,8 @@ If you are developing a production application, we recommend using TypeScript wi
 
 # por hacer
 
+- [x] al cambiar el nombre de la grabacion, se esta cambiando el de la carpeta pero no el de los archivos de audio, lo que da error
+- [x] tarda mucho en iniciar el procesado de la grabacion al darle al boton
 - [ ] revisar la ventana del proyecto, hay datos moqueados para el chat
 - [ ] revisar el liack de grabaciones, la flecha no navega
 - [ ] quiero que al desplegar una grabacion en esta vista, tambien aparezcan los archivos d eaudio y pueda reproducirlos desde el minuto que quiera yo.

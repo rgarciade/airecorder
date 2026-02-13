@@ -69,8 +69,28 @@ export default function RecordingList({ onRecordingSelect, onNavigateToProject }
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, recording: null });
   const [transcribingId, setTranscribingId] = useState(null);
   const [transcribeError, setTranscribeError] = useState(null);
+  const [transcribeProgress, setTranscribeProgress] = useState(null);
   const [durations, setDurations] = useState({});
   const [recordingProjects, setRecordingProjects] = useState({});
+
+  useEffect(() => {
+    // Escuchar progreso de transcripción
+    if (window.electronAPI?.onTranscriptionProgress) {
+      window.electronAPI.onTranscriptionProgress(({ recordingId, message }) => {
+        if (transcribingId === recordingId) {
+          // Filtrar mensajes técnicos si es necesario, o mostrar tal cual
+          // Limpiamos un poco el mensaje
+          const cleanMessage = message.replace(/^\[.*?\]\s*/, '').slice(0, 50);
+          setTranscribeProgress(cleanMessage);
+        }
+      });
+    }
+    return () => {
+      if (window.electronAPI?.offTranscriptionProgress) {
+        window.electronAPI.offTranscriptionProgress();
+      }
+    };
+  }, [transcribingId]);
 
   useEffect(() => {
     loadRecordings();
@@ -240,9 +260,12 @@ export default function RecordingList({ onRecordingSelect, onNavigateToProject }
                         title={transcribingId ? 'Ya hay una transcripción en curso' : 'Transcribir grabación'}
                       >
                         {transcribingId === recording.id ? (
-                          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="10" cy="10" r="8" stroke="#f7b731" strokeWidth="2" strokeDasharray="4 4" opacity="0.6"/>
-                          </svg>
+                          <div className={styles.transcribingState}>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className={styles.spin}>
+                              <circle cx="10" cy="10" r="8" stroke="#f7b731" strokeWidth="2" strokeDasharray="4 4" opacity="0.6"/>
+                            </svg>
+                            {transcribeProgress && <span className={styles.progressText} title={transcribeProgress}>{transcribeProgress}</span>}
+                          </div>
                         ) : (
                           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <circle cx="10" cy="10" r="9" fill="#f7b731"/>
