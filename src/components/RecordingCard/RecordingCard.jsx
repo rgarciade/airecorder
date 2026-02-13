@@ -1,7 +1,8 @@
 import React from 'react';
 import styles from './RecordingCard.module.css';
+import { MdTranscribe } from 'react-icons/md';
 
-export default function RecordingCard({ recording, onClick }) {
+export default function RecordingCard({ recording, onClick, onTranscribe }) {
   // Format duration
   const durationStr = recording.duration 
     ? `${Math.floor(recording.duration/60).toString().padStart(2,'0')}:${Math.floor(recording.duration%60).toString().padStart(2,'0')}`
@@ -20,7 +21,18 @@ export default function RecordingCard({ recording, onClick }) {
             <line x1="8" y1="23" x2="16" y2="23"/>
           </svg>
         </div>
-        <div className={styles.duration}>{durationStr}</div>
+        <div className={styles.headerRight}>
+          {!recording.hasTranscription && onTranscribe && (
+            <button 
+              className={styles.transcribeBtn} 
+              onClick={(e) => { e.stopPropagation(); onTranscribe(recording.id); }}
+              title="Transcribe Recording"
+            >
+              <MdTranscribe size={20} />
+            </button>
+          )}
+          <div className={styles.duration}>{durationStr}</div>
+        </div>
       </div>
       
       <h3 className={styles.title}>{recording.name || 'Untitled Recording'}</h3>

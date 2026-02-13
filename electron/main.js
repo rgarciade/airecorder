@@ -147,6 +147,14 @@ ipcMain.handle('load-settings', async () => {
   }
 });
 
+// Manejador para verificar permisos de micrófono
+ipcMain.handle('get-microphone-permission', () => {
+  if (process.platform === 'darwin') {
+    return systemPreferences.getMediaAccessStatus('microphone');
+  }
+  return 'granted';
+});
+
 // Inicializar AudioRecorder
 const audioRecorder = new AudioRecorder();
 
