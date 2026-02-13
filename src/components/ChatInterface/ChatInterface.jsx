@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import styles from './ChatInterface.module.css';
+import { MdSend, MdPerson, MdSmartToy, MdDeleteOutline, MdMoreHoriz } from 'react-icons/md';
 
 export default function ChatInterface({
   chatHistory = [],
@@ -16,6 +18,12 @@ export default function ChatInterface({
   onDeleteMessage
 }) {
   const [newMessage, setNewMessage] = useState('');
+  const messagesEndRef = useRef(null);
+
+  // Auto-scroll al fondo cuando cambia el historial
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatHistory, isLoading]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,19 +34,35 @@ export default function ChatInterface({
     await onSendMessage(message);
   };
 
+  const handleSuggestionClick = (text) => {
+    onSendMessage(text);
+  };
+
   const formatMessageTime = (dateString) => {
+    if (!dateString) return '';
     return new Date(dateString).toLocaleTimeString('es-ES', {
       hour: '2-digit',
       minute: '2-digit'
     });
   };
 
-  // Procesar mensaje para convertir citas en enlaces
+  // Procesar mensaje para convertir citas en enlaces y limpiar bloques de código envolventes
   const processMessageContent = (content) => {
     if (!content) return '';
-    // Regex para capturar [Ref: ID | "Titulo" | Timestamp]
-    // Soporta variantes con o sin comillas, con o sin timestamp
-    return content.replace(
+    
+    let processed = content;
+
+    // 1. Desempaquetar bloques de código si envuelven todo el mensaje
+    // Regex: Busca ```markdown ... ``` o ``` ... ``` al inicio y final
+    // \s* permite espacios/saltos de línea antes/después
+    const codeBlockRegex = /^\s*```(?:markdown)?\s*([\s\S]*?)\s*```\s*$/i;
+    const match = processed.match(codeBlockRegex);
+    if (match) {
+      processed = match[1]; // Extraer el contenido interior
+    }
+
+    // 2. Procesar citas (existente)
+    return processed.replace(
       /\[Ref:\s*([^|\]]+?)\s*\|\s*"?([^|"]+?)"?\s*(?:\|\s*([^\]]+?))?\]/g,
       (match, id, title, timestamp) => {
         const cleanId = id.trim();
@@ -75,7 +99,7 @@ export default function ChatInterface({
       return <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">{children}</a>;
     },
     ul: ({ children }) => <ul className={styles.messageList}>{children}</ul>,
-    ol: ({ children }) => <ol className={styles.messageList}>{children}</ol>,
+    ol: ({ children }) => <ol className={styles.messageList} style={{ listStyleType: 'decimal' }}>{children}</ol>,
     li: ({ children }) => <li className={styles.messageListItem}>{children}</li>,
     strong: ({ children }) => <strong className={styles.messageBold}>{children}</strong>,
     em: ({ children }) => <em className={styles.messageItalic}>{children}</em>,
@@ -92,11 +116,11 @@ export default function ChatInterface({
     h5: ({ children }) => <h5 className={styles.messageHeading3}>{children}</h5>,
     h6: ({ children }) => <h6 className={styles.messageHeading3}>{children}</h6>,
     blockquote: ({ children }) => (
-      <blockquote className="border-l-4 border-[#e92932] pl-4 my-2 italic text-gray-300">
+      <blockquote className="border-l-4 border-gray-300 pl-4 my-2 italic text-gray-600">
         {children}
       </blockquote>
     ),
-    hr: () => <hr className="border-t border-[#472426] my-4" />,
+    hr: () => <hr className="border-t border-gray-300 my-4" />,
     table: ({ children }) => (
       <div className={styles.messageTableWrapper}>
         <table className={styles.messageTable}>{children}</table>
@@ -107,28 +131,21 @@ export default function ChatInterface({
     tr: ({ children }) => <tr className={styles.messageTableRow}>{children}</tr>,
     th: ({ children }) => <th className={styles.messageTableHeader}>{children}</th>,
     td: ({ children }) => <td className={styles.messageTableCell}>{children}</td>,
-    // Manejar saltos de línea
-    br: () => <br />,
-    // Manejar texto plano
-    text: ({ children }) => <>{children}</>,
   };
 
   return (
     <div className={styles.container}>
       <div className={styles.chatContainer}>
-        <h2 className={styles.chatTitle}>{title}</h2>
-
-        {/* Input para enviar mensaje */}
-        <form onSubmit={handleSubmit} className={styles.messageForm}>
-          <div className={styles.messageInputContainer}>
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder={placeholder}
-              className={styles.messageInput}
-              disabled={isLoading}
-            />
+        {/* Header Rediseñado */}
+        <div className={styles.chatHeader}>
+          <div className={styles.chatHeaderLeft}>
+            <div className={styles.headerIcon}>
+              <MdSmartToy size={20} />
+            </div>
+            <span className={styles.headerTitle}>{title}</span>
+          </div>
+          
+          <div className={styles.chatHeaderRight}>
             {aiProvider === 'ollama' && ollamaModels.length > 0 && (
               <select
                 value={selectedOllamaModel}
@@ -137,59 +154,47 @@ export default function ChatInterface({
                 disabled={isLoading}
               >
                 {ollamaModels.map((model) => (
-                  <option key={model.name} value={model.name}>
-                    {model.name}
-                  </option>
+                  <option key={model} value={model}>{model}</option>
                 ))}
               </select>
             )}
+            <button className={styles.optionsButton}>
+              <MdMoreHoriz size={20} />
+            </button>
           </div>
-          <button
-            type="submit"
-            disabled={!newMessage.trim() || isLoading}
-            className={styles.sendButton}
-          >
-            {isLoading ? (
-              <div className={styles.sendingSpinner}></div>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256">
-                <path d="M200,32V144a8,8,0,0,1-16,0V59.31L69.66,189.66a8,8,0,0,1-11.32-11.32L172.69,48H88a8,8,0,0,1,0-16H192A8,8,0,0,1,200,32Z"></path>
-              </svg>
-            )}
-          </button>
-        </form>
+        </div>
 
-        {/* Historial de mensajes */}
+        {/* Historial de mensajes (Arriba) */}
         <div className={styles.chatHistory}>
           {chatHistory.length === 0 ? (
             <div className={styles.emptyState}>
               <div className={styles.emptyIcon}>💬</div>
-              <p className={styles.emptyText}>No hay mensajes aún</p>
-              <p className={styles.emptySubtext}>Haz una pregunta para comenzar</p>
+              <p className={styles.emptyText}>Hi! I can help you summarize key points.</p>
+              <p className={styles.emptySubtext}>Ask anything about this recording...</p>
             </div>
           ) : (
-            [...chatHistory].reverse().map((message) => (
+            chatHistory.map((message) => (
               <div key={message.id} className={`${styles.message} ${styles[message.tipo]} group relative`}>
                 {onDeleteMessage && (
                   <button
                     onClick={() => onDeleteMessage(message.id)}
-                    className="absolute top-2 right-2 p-1 text-[#c89295] opacity-0 group-hover:opacity-100 hover:text-white hover:bg-[#472426] rounded transition-all"
+                    className="absolute top-2 right-2 p-1 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all"
                     title="Eliminar mensaje"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256">
-                      <path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"></path>
-                    </svg>
+                    <MdDeleteOutline size={14} />
                   </button>
                 )}
+                
+                {/* Avatar (solo para asistente según CSS) */}
                 <div className={styles.messageAvatar}>
-                  {message.avatar || (message.tipo === 'asistente' ? '🤖' : '👤')}
+                  {message.tipo === 'asistente' ? <MdSmartToy size={16} /> : <MdPerson size={16} />}
                 </div>
+
                 <div className={styles.messageContent}>
                   <div className={styles.messageText}>
                     <ReactMarkdown 
                       components={markdownComponents}
-                      remarkPlugins={[]}
-                      rehypePlugins={[]}
+                      remarkPlugins={[remarkGfm]}
                     >
                       {processMessageContent(message.contenido || '')}
                     </ReactMarkdown>
@@ -201,7 +206,58 @@ export default function ChatInterface({
               </div>
             ))
           )}
+          {isLoading && (
+            <div className={`${styles.message} ${styles.asistente}`}>
+              <div className={styles.messageAvatar}>
+                <MdSmartToy size={16} />
+              </div>
+              <div className={styles.messageContent}>
+                <div className={`${styles.messageText} flex items-center gap-2`}>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
         </div>
+
+        {/* Sugerencias */}
+        {chatHistory.length === 0 && (
+          <div className={styles.suggestions}>
+            <button className={styles.suggestionChip} onClick={() => handleSuggestionClick("Summarize Action Items")}>
+              Summarize Action Items
+            </button>
+            <button className={styles.suggestionChip} onClick={() => handleSuggestionClick("Sentiment Analysis")}>
+              Sentiment Analysis
+            </button>
+          </div>
+        )}
+
+        {/* Input (Abajo) */}
+        <form onSubmit={handleSubmit} className={styles.messageForm}>
+          <div className={styles.messageInputContainer}>
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder={placeholder}
+              className={styles.messageInput}
+              disabled={isLoading}
+            />
+            <button
+              type="submit"
+              disabled={!newMessage.trim() || isLoading}
+              className={styles.sendButton}
+            >
+              <MdSend size={18} />
+            </button>
+          </div>
+          <div className="text-center mt-2 text-[10px] text-gray-400">
+            AI can make mistakes. Please verify important details.
+          </div>
+        </form>
       </div>
     </div>
   );
