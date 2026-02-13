@@ -102,8 +102,16 @@ class DbService {
     try {
       const date = createdAt || new Date().toISOString();
       const stmt = this.db.prepare(INSERT_OR_UPDATE_RECORDING);
-      stmt.run(relativePath, duration, status, date);
-      return { success: true };
+      const info = stmt.run(relativePath, duration, status, date);
+      
+      // Intentar obtener el ID (ya sea por lastInsertRowid o buscando si ya existía)
+      let id = info.lastInsertRowid;
+      if (id === 0 || id === undefined) {
+        const existing = this.getRecording(relativePath);
+        id = existing ? existing.id : null;
+      }
+      
+      return { success: true, id };
     } catch (error) {
       console.error('[DB] Error saveRecording:', error);
       return { success: false, error: error.message };

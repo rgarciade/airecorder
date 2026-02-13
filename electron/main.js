@@ -339,9 +339,15 @@ ipcMain.handle('save-separate-audio', async (event, audioData, folderName, fileN
     console.log(`Audio separado guardado en: ${filePath}`);
 
     // Registrar en DB
-    dbService.saveRecording(folderName, 0, 'recorded');
+    const dbResult = dbService.saveRecording(folderName, 0, 'recorded');
 
-    return { success: true, filePath, folderPath: recordingDir, message: `Archivo guardado en ${filePath}` };
+    return { 
+      success: true, 
+      filePath, 
+      folderPath: recordingDir, 
+      recordingId: dbResult.id,
+      message: `Archivo guardado en ${filePath}` 
+    };
   } catch (error) {
     console.error('Error saving separate audio:', error);
     return { success: false, error: error.message };
@@ -389,12 +395,27 @@ ipcMain.handle('get-recording-folders', async () => {
               status = 'analyzed';
             }
 
+            // Leer nombre personalizado de metadata.json si existe
+            let displayName = item;
+            const metadataPath = path.join(itemPath, 'metadata.json');
+            if (fs.existsSync(metadataPath)) {
+              try {
+                const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+                if (metadata.customName) {
+                  displayName = metadata.customName;
+                }
+              } catch (e) {
+                console.warn(`Error leyendo metadata para ${item}:`, e);
+              }
+            }
+
             // Obtener proyecto asociado
             const project = dbService.getRecordingProject(item);
 
             folders.push({
               id: dbEntry ? dbEntry.id : null,
-              name: item,
+              name: displayName,
+              folderName: item,
               path: itemPath,
               createdAt: dbEntry ? dbEntry.created_at : stats.birthtime.toISOString(),
               modifiedAt: stats.mtime.toISOString(),
@@ -666,25 +687,54 @@ ipcMain.handle('rename-recording', async (event, recordingId, newName) => {
   try {
     const folderName = await getFolderPathFromId(recordingId);
     const baseOutputDir = await getRecordingsPath();
-    const recordingPath = path.join(baseOutputDir, folderName);
+    const oldPath = path.join(baseOutputDir, folderName);
     
-    if (!fs.existsSync(recordingPath)) {
+    // Sanitizar el nuevo nombre para que sea válido como carpeta
+    const safeNewName = newName.replace(/[^a-z0-9áéíóúñü \-_]/gi, '_').trim();
+    const newPath = path.join(baseOutputDir, safeNewName);
+
+    if (!fs.existsSync(oldPath)) {
       return { success: false, error: 'Grabación no encontrada' };
     }
-    
-    // Por ahora solo actualizamos un archivo metadata.json en la carpeta si existe,
-    // o lo creamos para guardar el nombre personalizado.
-    // O mejor aún, renombramos la carpeta física si es seguro.
-    // DECISIÓN: Por simplicidad y seguridad de rutas, guardaremos el "displayName" en un metadata.json
-    const metadataPath = path.join(recordingPath, 'metadata.json');
+
+    if (fs.existsSync(newPath) && oldPath !== newPath) {
+      return { success: false, error: 'Ya existe una carpeta con ese nombre' };
+    }
+
+    // 1. Renombrar la carpeta física
+    await fs.promises.rename(oldPath, newPath);
+    console.log(`Carpeta renombrada: ${oldPath} -> ${newPath}`);
+
+    // 2. Renombrar los archivos internos que usan el prefijo antiguo
+    const files = await fs.promises.readdir(newPath);
+    for (const file of files) {
+      if (file.startsWith(folderName)) {
+        const newFileName = file.replace(folderName, safeNewName);
+        await fs.promises.rename(
+          path.join(newPath, file),
+          path.join(newPath, newFileName)
+        );
+      }
+    }
+
+    // 3. Actualizar la base de datos (relative_path)
+    const dbEntry = dbService.getRecording(folderName);
+    if (dbEntry) {
+      dbService.db.prepare("UPDATE recordings SET relative_path = ? WHERE id = ?").run(safeNewName, dbEntry.id);
+    }
+
+    // 4. Guardar el customName en metadata.json por si acaso (aunque la carpeta ya tenga el nombre)
+    const metadataPath = path.join(newPath, 'metadata.json');
     let metadata = {};
     if (fs.existsSync(metadataPath)) {
-      metadata = JSON.parse(await fs.promises.readFile(metadataPath, 'utf8'));
+      try {
+        metadata = JSON.parse(await fs.promises.readFile(metadataPath, 'utf8'));
+      } catch (e) {}
     }
     metadata.customName = newName;
     await fs.promises.writeFile(metadataPath, JSON.stringify(metadata, null, 2), 'utf8');
     
-    return { success: true };
+    return { success: true, folderName: safeNewName };
   } catch (error) {
     console.error('Error renaming recording:', error);
     return { success: false, error: error.message };

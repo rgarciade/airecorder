@@ -26,9 +26,9 @@ class RecordingsService {
 
       // Procesar y formatear los datos de las grabaciones
       return result.folders.map(folder => ({
-        id: folder.name, // Mantener nombre como ID para compatibilidad con rutas
-        dbId: folder.id, // ID numérico de la base de datos
-        name: folder.name,
+        id: folder.folderName, // Usar el nombre de la carpeta física para rutas y archivos
+        dbId: folder.id,       // ID numérico de la base de datos
+        name: folder.name,     // Nombre de visualización (custom o carpeta)
         date: new Date(folder.createdAt).toLocaleDateString('es-ES', {
           year: 'numeric',
           month: 'short',
@@ -313,7 +313,7 @@ class RecordingsService {
       if (!result.success) {
         throw new Error(result.error || 'Error renombrando grabación');
       }
-      return true;
+      return result;
     } catch (error) {
       console.error('Error renombrando grabación:', error);
       throw error;
