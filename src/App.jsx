@@ -6,6 +6,8 @@ import Settings from './pages/Settings/Settings'
 import Projects from './pages/Projects/Projects'
 import ProjectDetail from './pages/ProjectDetail/ProjectDetail'
 import RecordingOverlay from './components/RecordingOverlay/RecordingOverlay'
+import Sidebar from './components/Sidebar/Sidebar';
+import styles from './App.module.css'
 import './App.css'
 
 export default function App() {
@@ -50,46 +52,50 @@ export default function App() {
   }
 
   return (
-    <>
-      {currentView === 'home' && (
-        <Home
-          onSettings={() => setCurrentView('settings')}
-          onProjects={() => setCurrentView('projects')}
-          onRecordingStart={handleRecordingStart}
-          onRecordingSelect={(recording) => {
-            setSelectedRecording(recording);
-            setCurrentView('recording-detail');
-          }}
-          onNavigateToProject={handleNavigateToProject}
-        />
-      )}
-      {currentView === 'settings' && (
-        <Settings onBack={handleBack} />
-      )}
-      {currentView === 'projects' && (
-        <Projects 
-          onBack={handleBack} 
-          initialProjectId={selectedProjectId}
-          onProjectDetail={handleProjectDetail}
-          onRecordingSelect={(recording) => {
-            setSelectedRecording(recording);
-            setCurrentView('recording-detail');
-          }}
-        />
-      )}
-      {currentView === 'project-detail' && selectedProject && (
-        <ProjectDetail 
-          project={selectedProject} 
-          onBack={() => setCurrentView('projects')}
-        />
-      )}
-      {currentView === 'recording-detail' && selectedRecording && (
-        <RecordingDetailWithTranscription 
-          recording={selectedRecording} 
-          onBack={handleBack}
-          onNavigateToProject={handleNavigateToProject}
-        />
-      )}
+    <div className={styles.appContainer}>
+      <Sidebar currentView={currentView} onViewChange={setCurrentView} />
+      
+      <div className={styles.mainContent}>
+        {currentView === 'home' && (
+          <Home
+            onSettings={() => setCurrentView('settings')}
+            onProjects={() => setCurrentView('projects')}
+            onRecordingStart={handleRecordingStart}
+            onRecordingSelect={(recording) => {
+              setSelectedRecording(recording);
+              setCurrentView('recording-detail');
+            }}
+            onNavigateToProject={handleNavigateToProject}
+          />
+        )}
+        {currentView === 'settings' && (
+          <Settings onBack={handleBack} />
+        )}
+        {currentView === 'projects' && (
+          <Projects 
+            onBack={handleBack} 
+            initialProjectId={selectedProjectId}
+            onProjectDetail={handleProjectDetail}
+            onRecordingSelect={(recording) => {
+              setSelectedRecording(recording);
+              setCurrentView('recording-detail');
+            }}
+          />
+        )}
+        {currentView === 'project-detail' && selectedProject && (
+          <ProjectDetail 
+            project={selectedProject} 
+            onBack={() => setCurrentView('projects')}
+          />
+        )}
+        {currentView === 'recording-detail' && selectedRecording && (
+          <RecordingDetailWithTranscription 
+            recording={selectedRecording} 
+            onBack={handleBack}
+            onNavigateToProject={handleNavigateToProject}
+          />
+        )}
+      </div>
       
       {/* Mostrar RecordingOverlay cuando está grabando */}
       {isRecording && (
@@ -100,6 +106,6 @@ export default function App() {
           }}
         />
       )}
-    </>
+    </div>
   )
 }

@@ -195,11 +195,11 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
       {/* Modal de Detalles (Nombre y Proyecto) */}
       {showDetailsDialog && (
         <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
+            <div className={styles.modal}>
             <h3>Detalles de la Grabación</h3>
 
-            <div className="mb-4 w-full">
-              <label className="block text-left text-sm text-gray-400 mb-1">Nombre</label>
+            <div className={styles.inputContainer}>
+              <label className={styles.inputLabel}>Nombre</label>
               <input
                 type="text"
                 value={newName}
@@ -209,15 +209,15 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
               />
             </div>
 
-            <div className="mb-6 w-full">
-              <label className="block text-left text-sm text-gray-400 mb-1">Proyecto</label>
-              <div className="flex gap-2">
-                <div className="flex-1 bg-[#331a1b] border border-[#472426] rounded px-3 py-2 text-white truncate">
+            <div className={styles.projectContainer}>
+              <label className={styles.inputLabel}>Proyecto</label>
+              <div className={styles.projectSelector}>
+                <div className={styles.projectNameDisplay}>
                   {selectedProject ? selectedProject.name : 'Sin proyecto asignado'}
                 </div>
                 <button
                   onClick={() => setShowProjectSelector(true)}
-                  className="px-3 py-2 bg-[#472426] text-white rounded hover:bg-[#663336] transition-colors text-sm"
+                  className={styles.projectChangeButton}
                 >
                   {selectedProject ? 'Cambiar' : 'Seleccionar'}
                 </button>
