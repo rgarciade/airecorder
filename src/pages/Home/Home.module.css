@@ -108,3 +108,16 @@
   margin-top: 32px;
   font-size: 1.1rem;
 }
+
+.permissionWarning {
+  background-color: #FEF2F2;
+  border: 1px solid #FCA5A5;
+  color: #B91C1C;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 32px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}

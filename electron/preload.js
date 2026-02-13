@@ -7,6 +7,9 @@ contextBridge.exposeInMainWorld('electron', {
 contextBridge.exposeInMainWorld('electronAPI', {
   // ... existing exposed functions ...
 
+  // Verificar permisos
+  getMicrophonePermission: () => ipcRenderer.invoke('get-microphone-permission'),
+
   // Funciones para la configuración
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   loadSettings: () => ipcRenderer.invoke('load-settings'),

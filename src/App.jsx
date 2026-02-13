@@ -16,6 +16,7 @@ export default function App() {
   const [selectedProjectId, setSelectedProjectId] = useState(null)
   const [selectedProject, setSelectedProject] = useState(null)
   const [currentRecorder, setCurrentRecorder] = useState(null)
+  const [refreshTrigger, setRefreshTrigger] = useState(0) // Trigger para refrescar Home
   const { isRecording } = useSelector((state) => state.recording)
 
   const handleBack = () => {
@@ -39,18 +40,6 @@ export default function App() {
     setCurrentRecorder(recorder)
   }
 
-  const handleSaveAndExit = async (recordingName) => {
-    if (currentRecorder && currentRecorder.isRecording) {
-      // Detener la grabación mezclada
-      currentRecorder.stopMixedRecording()
-    }
-    
-    // Limpiar el recorder
-    setCurrentRecorder(null)
-    
-    console.log('Grabación guardada:', recordingName)
-  }
-
   return (
     <div className={styles.appContainer}>
       <Sidebar currentView={currentView} onViewChange={setCurrentView} />
@@ -66,6 +55,7 @@ export default function App() {
               setCurrentView('recording-detail');
             }}
             onNavigateToProject={handleNavigateToProject}
+            refreshTrigger={refreshTrigger}
           />
         )}
         {currentView === 'settings' && (
@@ -103,6 +93,7 @@ export default function App() {
           recorder={currentRecorder}
           onFinish={() => {
             setCurrentRecorder(null);
+            setRefreshTrigger(prev => prev + 1); // Refrescar Home al finalizar
           }}
         />
       )}

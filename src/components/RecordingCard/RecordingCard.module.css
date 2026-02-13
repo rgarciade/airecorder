@@ -37,6 +37,32 @@
   color: #2563EB;
 }
 
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.transcribeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #EFF6FF;
+  color: #3994EF;
+  border: 1px solid #DBEAFE;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.transcribeBtn:hover {
+  background-color: #3994EF;
+  color: white;
+}
+
 .duration {
   background-color: #F3F4F6;
   padding: 4px 12px;
