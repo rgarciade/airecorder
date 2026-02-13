@@ -319,4 +319,55 @@
   font-size: 14px;
   margin: 0;
   line-height: 1.4;
-} 
+}
+
+/* New Refactored Classes for Modal Forms */
+.inputContainer {
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.inputLabel {
+  display: block;
+  text-align: left;
+  font-size: 14px;
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+
+.projectContainer {
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.projectSelector {
+  display: flex;
+  gap: 8px;
+}
+
+.projectNameDisplay {
+  flex: 1;
+  background-color: #331a1b;
+  border: 1px solid #472426;
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.projectChangeButton {
+  padding: 8px 12px;
+  background-color: #472426;
+  color: white;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: background-color 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.projectChangeButton:hover {
+  background-color: #663336;
+}

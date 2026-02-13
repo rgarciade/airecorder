@@ -1,0 +1,15 @@
+.appContainer {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  min-width: 100vw;
+  background-color: #F8F9FB;
+}
+
+.mainContent {
+  flex: 1;
+  margin-left: 50px; /* Ancho del Sidebar */
+  margin-right: 50px;
+  min-height: 100vh;
+  box-sizing: border-box;
+}

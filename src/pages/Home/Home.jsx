@@ -1,77 +1,141 @@
-import React from 'react';
-import { useSelector } from 'react-redux';
-import RecordingList from '../../components/RecordingList/RecordingList';
-import RecordButton from '../../components/RecordButton/RecordButton';
-import { useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { startRecording } from '../../store/recordingSlice';
+import { MixedAudioRecorder, getSystemMicrophones } from '../../services/audioService';
+import { getSettings } from '../../services/settingsService';
+import recordingsService from '../../services/recordingsService';
+import styles from './Home.module.css';
+
+import NewSessionCard from './components/NewSessionCard';
+import StatsRow from './components/StatsRow';
+import RecordingCard from '../../components/RecordingCard/RecordingCard';
 
 export default function Home({ onSettings, onProjects, onRecordingStart, onRecordingSelect, onNavigateToProject }) {
+  const dispatch = useDispatch();
   const { isRecording } = useSelector((state) => state.recording);
-  const recordingListRef = useRef();
+  
+  const [recordings, setRecordings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Stats
+  const [totalTimeStr, setTotalTimeStr] = useState("0h 0m");
+  const [totalFiles, setTotalFiles] = useState(0);
+  const [savedTimeStr, setSavedTimeStr] = useState("0h 0m"); // Placeholder or estimated
+
+  useEffect(() => {
+    loadRecordings();
+  }, []);
+
+  const loadRecordings = async () => {
+    try {
+      setLoading(true);
+      const list = await recordingsService.getRecordings();
+      // Sort by date desc
+      list.sort((a, b) => new Date(b.date) - new Date(a.date));
+      setRecordings(list);
+      
+      // Calculate stats
+      let totalSeconds = 0;
+      list.forEach(r => {
+        if (r.duration) totalSeconds += r.duration;
+      });
+      
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      setTotalTimeStr(`${hours}h ${minutes}m`);
+      setTotalFiles(list.length);
+      
+      // Rough estimate: transcription is 3x faster than listening? Or writing notes takes 2x the recording time?
+      // Let's say saved time is equal to recording time (assuming you'd have to listen to it again to take notes)
+      setSavedTimeStr(`${hours}h ${minutes}m`); 
+      
+    } catch (err) {
+      console.error("Error loading recordings:", err);
+      setError("Failed to load recordings");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStart = async () => {
+    if (isRecording) return;
+
+    try {
+      // 1. Get Settings/Microphone
+      const devices = await getSystemMicrophones();
+      const settings = await getSettings();
+      
+      let selectedMic = '';
+      if (settings && settings.microphone) {
+        selectedMic = settings.microphone;
+      } else if (devices.length > 0) {
+        selectedMic = devices[0].value;
+      }
+
+      if (!selectedMic) {
+        alert('No microphone selected or available. Please check settings.');
+        return;
+      }
+
+      // 2. Start Recording
+      const recorder = new MixedAudioRecorder();
+      await recorder.startMixedRecording(selectedMic, null);
+      
+      dispatch(startRecording());
+      
+      if (onRecordingStart) {
+        onRecordingStart(recorder);
+      }
+      
+    } catch (err) {
+      console.error('Error starting recording:', err);
+      alert('Failed to start recording: ' + err.message);
+    }
+  };
 
   return (
-    <div
-      className="flex min-h-screen flex-col bg-[#221112] w-full"
-      style={{ fontFamily: '"Plus Jakarta Sans", "Noto Sans", sans-serif' }}
-    >
-      <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#472426] px-10 py-4">
-        <div className="flex items-center gap-4 text-white">
-          <div className="size-5">
-            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M4 42.4379C4 42.4379 14.0962 36.0744 24 41.1692C35.0664 46.8624 44 42.2078 44 42.2078L44 7.01134C44 7.01134 35.068 11.6577 24.0031 5.96913C14.0971 0.876274 4 7.27094 4 7.27094L4 42.4379Z"
-                fill="currentColor"
-              ></path>
-            </svg>
-          </div>
-          <h2 className="text-white text-xl font-bold leading-tight tracking-[-0.015em]">VoiceNote</h2>
+    <div className={styles.container}>
+      <header className={styles.header}>
+        <div>
+          <h1 className={styles.greeting}>Good Morning, User</h1>
+          <p className={styles.subtitle}>Ready to capture your next big idea?</p>
         </div>
-        <div className="flex flex-1 justify-end gap-4">
-          <button
-            onClick={onProjects}
-            className="flex cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 bg-[#472426] text-white gap-2 text-sm font-semibold leading-normal tracking-[0.015em] px-4 transition-all hover:bg-[#663336]"
-          >
-            <div className="text-white" data-icon="FolderOpen" data-size="20px" data-weight="regular">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" fill="currentColor" viewBox="0 0 256 256">
-                <path d="M245,110.64A16,16,0,0,0,232,104H216V88a16,16,0,0,0-16-16H130.67L102.94,51.2a16.14,16.14,0,0,0-9.6-3.2H40A16,16,0,0,0,24,64V208h0a8,8,0,0,0,8,8H211.1a8,8,0,0,0,7.59-5.47l28.49-85.47A16.05,16.05,0,0,0,245,110.64ZM93.34,64l27.73,20.8a16.12,16.12,0,0,0,9.6,3.2H200v16H69.77a16,16,0,0,0-15.18,10.94L40,158.7V64Zm112,136H43.1l26.67-80H232Z"></path>
-              </svg>
-            </div>
-            <span>Proyectos</span>
-          </button>
-          <button
-            onClick={onSettings}
-            className="flex cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 bg-[#e92932] text-white gap-2 text-sm font-semibold leading-normal tracking-[0.015em] px-4 transition-all hover:bg-[#d41f27]"
-          >
-            <div className="text-white" data-icon="Gear" data-size="20px" data-weight="regular">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" fill="currentColor" viewBox="0 0 256 256">
-                <path d="M128,80a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Zm88-29.84q.06-2.16,0-4.32l14.92-18.64a8,8,0,0,0,1.48-7.06,107.6,107.6,0,0,0-10.88-26.25,8,8,0,0,0-6-3.93l-23.72-2.64q-1.48-1.56-3.06-3.05L221.38,40.5a8,8,0,0,0-3.93-6,107.8,107.8,0,0,0-26.25-10.87,8,8,0,0,0-7.06,1.49L165.5,40.87q-2.16-.06-4.32,0L142.54,26.95a8,8,0,0,0-7.06-1.48A107.6,107.6,0,0,0,109.23,36.35a8,8,0,0,0-3.93,6L102.66,66.09q-1.56,1.49-3.05,3.06L75.85,66.38a8,8,0,0,0-6,3.93,107.8,107.8,0,0,0-10.87,26.25,8,8,0,0,0,1.49,7.06L74.13,122.5q-.06,2.16,0,4.32L59.21,145.46a8,8,0,0,0-1.48,7.06,107.6,107.6,0,0,0,10.88,26.25,8,8,0,0,0,6,3.93l23.72,2.64q1.48,1.56,3.06,3.05L98.62,215.5a8,8,0,0,0,3.93,6,107.8,107.8,0,0,0,26.25,10.87,8,8,0,0,0,7.06-1.49L154.5,215.13q2.16.06,4.32,0l18.64,13.92a8,8,0,0,0,7.06,1.48,107.6,107.6,0,0,0,26.25-10.88,8,8,0,0,0,3.93-6l2.64-23.72q1.56-1.48,3.05-3.06L247.15,189.62a8,8,0,0,0,6-3.93,107.8,107.8,0,0,0,10.87-26.25,8,8,0,0,0-1.49-7.06ZM128,208a80,80,0,1,1,80-80A80.09,80.09,0,0,1,128,208Z"></path>
-              </svg>
-            </div>
+        <div className={styles.headerActions}>
+          <input type="text" placeholder="Search recordings..." className={styles.searchInput} />
+          <button className={styles.bellBtn} onClick={onSettings} title="Settings">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
         </div>
       </header>
-      <main className="flex flex-col flex-1 p-8 items-center">
-        <div className="w-full max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h1 className="text-white text-5xl font-bold mb-4 tracking-tight">Graba tus Reuniones</h1>
-            <p className="text-[#cbbebe] text-lg max-w-2xl mx-auto">
-              Captura cada detalle de tus conversaciones y obtén transcripciones instantáneas.
-              <br />
-              Concéntrate en la conversación, nosotros nos encargamos de las notas.
-            </p>
-          </div>
 
-          <div className="mb-16 flex justify-center">
-            <RecordButton onRecordingStart={onRecordingStart} />
-          </div>
-
-          <div className="w-full">
-            <RecordingList
-              onRecordingSelect={onRecordingSelect}
-              onNavigateToProject={onNavigateToProject}
-            />
-          </div>
-        </div>
-      </main>
+      <NewSessionCard onStart={handleStart} />
+      
+      <StatsRow 
+        totalTime={totalTimeStr} 
+        totalFiles={totalFiles} 
+        savedTime={savedTimeStr} 
+      />
+      
+      <div className={styles.sectionHeader}>
+        <h2>Recent Recordings</h2>
+        <button onClick={onProjects}>View Projects</button>
+      </div>
+      
+      {loading && <p>Loading recordings...</p>}
+      
+      <div className={styles.grid}>
+        {recordings.map(rec => (
+          <RecordingCard 
+            key={rec.id} 
+            recording={rec} 
+            onClick={onRecordingSelect} 
+          />
+        ))}
+        {!loading && recordings.length === 0 && (
+          <p className={styles.noRecordingsMessage}>No recordings yet. Start a new session!</p>
+        )}
+      </div>
     </div>
   );
-} 
+}
