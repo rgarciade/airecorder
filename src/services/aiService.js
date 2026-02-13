@@ -47,14 +47,14 @@ function processResponseWithKeyPoints(text) {
 export async function generateContent(prompt) {
   const settings = await getSettings();
   const provider = settings.aiProvider || 'gemini';
-debugger
+
   let response;
   if (provider === 'ollama') {
     response = await generateWithOllama(prompt, settings);
   } else if (provider === 'gemini'){
     response = await generateWithGemini(prompt, settings);
   }
-  debugger;
+  
 
   // Procesar la respuesta para extraer puntos clave
   const { processedText, keyPoints } = processResponseWithKeyPoints(response.text);

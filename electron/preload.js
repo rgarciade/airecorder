@@ -10,6 +10,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Verificar permisos
   getMicrophonePermission: () => ipcRenderer.invoke('get-microphone-permission'),
 
+  // Seleccionar directorio
+  selectDirectory: () => ipcRenderer.invoke('select-directory'),
+  getDefaultRecordingPath: () => ipcRenderer.invoke('get-default-recording-path'),
+
   // Funciones para la configuración
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   loadSettings: () => ipcRenderer.invoke('load-settings'),
