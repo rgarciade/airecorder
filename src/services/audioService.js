@@ -298,8 +298,14 @@ class SystemAudioRecorder {
 
     } catch (error) {
       console.error('Error al iniciar la grabación del sistema:', error);
+      
+      let errorMessage = error.message;
+      if (error.message.includes('Error starting capture') || error.message.includes('Permission denied')) {
+        errorMessage = 'Error de permisos. En macOS, asegúrate de permitir "Grabación de pantalla" para esta aplicación en Ajustes del Sistema > Privacidad y Seguridad.';
+      }
+      
       this.stopSystemRecording();
-      throw error;
+      throw new Error(errorMessage);
     }
   }
 

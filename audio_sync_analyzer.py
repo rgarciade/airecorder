@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+print("🚀 Inicializando entorno Python...", flush=True)
 """
 Audio Sync Analyzer - Herramienta para analizar y sincronizar dos archivos de audio grabados simultáneamente
 Diseñado para trabajar con archivos generados por la aplicación de grabación dual.
@@ -42,10 +43,10 @@ class AudioSyncAnalyzer:
         
     def load_whisper_model(self):
         """Cargar el modelo Whisper para transcripción"""
-        print(f"🤖 Cargando modelo Whisper '{WHISPER_MODEL}'...")
+        print(f"🤖 Cargando modelo Whisper '{WHISPER_MODEL}'...", flush=True)
         try:
             self.whisper_model = whisper.load_model(WHISPER_MODEL)
-            print("✅ Modelo Whisper cargado correctamente")
+            print("✅ Modelo Whisper cargado correctamente", flush=True)
             return True
         except Exception as e:
             print(f"❌ Error cargando modelo Whisper: {e}")
@@ -53,7 +54,7 @@ class AudioSyncAnalyzer:
         
     def load_audio_files(self, mic_exists=True):
         """Cargar los archivos de audio usando pydub"""
-        print("🎵 Cargando archivos de audio...")
+        print("🎵 Cargando archivos de audio...", flush=True)
         
         try:
             if mic_exists:
@@ -266,7 +267,7 @@ class AudioSyncAnalyzer:
             # Transcribir micrófono
             mic_result = None
             if mic_exists and temp_mic_wav:
-                print("🎤 Transcribiendo audio de micrófono...")
+                print("🎤 Transcribiendo audio de micrófono...", flush=True)
                 mic_result = self.whisper_model.transcribe(
                     temp_mic_wav,
                     word_timestamps=True,
@@ -279,7 +280,7 @@ class AudioSyncAnalyzer:
                 )
             
             # Transcribir sistema
-            print("🔊 Transcribiendo audio de sistema...")
+            print("🔊 Transcribiendo audio de sistema...", flush=True)
             sys_result = self.whisper_model.transcribe(
                 temp_sys_wav,
                 word_timestamps=True,
@@ -507,7 +508,11 @@ class AudioSyncAnalyzer:
         os.makedirs(self.output_dir, exist_ok=True)
         
         # Tomar muestra para visualización (primeros 60 segundos)
-        sample_duration = min(60 * SAMPLE_RATE, len(self.system_data))
+        available_length = len(self.system_data)
+        if mic_exists and self.mic_data is not None:
+            available_length = min(available_length, len(self.mic_data))
+        
+        sample_duration = min(60 * SAMPLE_RATE, available_length)
         
         time_axis = np.linspace(0, sample_duration / SAMPLE_RATE, sample_duration)
         sys_sample = self.system_data[:sample_duration]
