@@ -329,3 +329,18 @@
   background-color: #9CA3AF;
   cursor: not-allowed;
 }
+
+.destructiveBtn {
+  flex: 1;
+  padding: 12px;
+  background-color: #EF4444;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.destructiveBtn:hover {
+  background-color: #DC2626;
+}

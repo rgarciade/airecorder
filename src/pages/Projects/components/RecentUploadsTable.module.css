@@ -2,14 +2,14 @@
   background-color: white;
   border: 1px solid #E5E7EB;
   border-radius: 12px;
-  overflow: hidden;
+  /* overflow: hidden; */ /* Removido para permitir que el menú sea visible fuera de la tabla */
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   margin-top: 24px;
 }
 
 .tableWrapper {
   width: 100%;
-  overflow-x: auto;
+  /* overflow-x: auto; */ /* Comentado temporalmente para evitar recortes, si no es necesario */
 }
 
 .table {
@@ -42,6 +42,12 @@
 }
 
 .row:hover {
+  background-color: #F9FAFB;
+}
+
+.activeRow {
+  position: relative;
+  z-index: 50;
   background-color: #F9FAFB;
 }
 
@@ -105,11 +111,12 @@
 .menu {
   position: absolute;
   right: 0;
-  margin-top: 8px;
+  bottom: 100%;
+  margin-bottom: 8px;
   width: 220px;
   background-color: white;
   border-radius: 12px;
-  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -10px 25px -3px rgba(0, 0, 0, 0.1), 0 -4px 6px -2px rgba(0, 0, 0, 0.05);
   border: 1px solid #E5E7EB;
   z-index: 20;
   overflow: hidden;
@@ -200,6 +207,30 @@
   font-style: italic;
 }
 
+.menuMoreIndicator {
+  padding: 8px 16px;
+  font-size: 0.6875rem;
+  color: #9CA3AF;
+  text-align: center;
+  font-style: italic;
+  background-color: #F9FAFB;
+}
+
+.menuDivider {
+  height: 1px;
+  background-color: #F3F4F6;
+  margin: 4px 0;
+}
+
+.unassignBtn {
+  color: #EF4444 !important;
+}
+
+.unassignBtn:hover {
+  background-color: #FEF2F2 !important;
+  color: #DC2626 !important;
+}
+
 .durationText {
   font-family: 'Courier New', monospace;
   color: #6B7280;
@@ -225,6 +256,16 @@
   color: #166534;
 }
 
+.badgeAnalyzed {
+  background-color: #E0E7FF;
+  color: #3730A3;
+}
+
+.badgeRecorded {
+  background-color: #F3F4F6;
+  color: #4B5563;
+}
+
 .badgeProcessing {
   background-color: #FEF3C7;
   color: #92400E;
@@ -238,6 +279,14 @@
 
 .dotTranscribed {
   background-color: #16A34A;
+}
+
+.dotAnalyzed {
+  background-color: #4F46E5;
+}
+
+.dotRecorded {
+  background-color: #9CA3AF;
 }
 
 .dotProcessing {

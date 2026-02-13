@@ -19,6 +19,7 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
   const [showProjectSelector, setShowProjectSelector] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [recordingId, setRecordingId] = useState(null);
+  const [dbId, setDbId] = useState(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [newName, setNewName] = useState('');
   
@@ -85,10 +86,11 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
     setShowProcessing(true);
 
     try {
-      await recorder.stopAndSave(nameToSave);
+      const data = await recorder.stopAndSave(nameToSave);
 
       setProcessingComplete(true);
       setRecordingId(nameToSave);
+      setDbId(data.dbId);
 
       setTimeout(() => {
         setShowProcessing(false);
@@ -124,9 +126,9 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
       }
     }
 
-    if (selectedProject && finalName) {
+    if (selectedProject && dbId) {
       try {
-        await projectsService.addRecordingToProject(selectedProject.id, finalName);
+        await projectsService.addRecordingToProject(selectedProject.id, dbId);
       } catch (error) {
         console.error('Error al agregar grabación al proyecto:', error);
       }

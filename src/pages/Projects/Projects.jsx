@@ -5,7 +5,6 @@ import styles from './Projects.module.css';
 import { MdChevronLeft, MdChevronRight, MdClose } from 'react-icons/md';
 
 import ProjectCard from './components/ProjectCard';
-import CreateProjectCard from './components/CreateProjectCard';
 import RecentUploadsTable from './components/RecentUploadsTable';
 
 export default function Projects({ onBack, onRecordingSelect, onProjectDetail, initialProjectId = null }) {
@@ -23,11 +22,15 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
 
   // Assignment confirmation state
   const [pendingAssignment, setPendingAssignment] = useState(null);
+  const [confirmationModal, setConfirmationModal] = useState(null); // { title, message, onConfirm, actionText, isDestructive }
 
   // View All & Pagination state
   const [showAllRecordings, setShowAllRecordings] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  const [currentProjectPage, setCurrentProjectPage] = useState(1);
+  const projectsPerPage = 5;
 
   useEffect(() => {
     loadData();
@@ -89,17 +92,22 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
     setShowEditProjectForm(true);
   };
 
-  const handleDeleteProject = async (projectId) => {
-    if (!confirm('Are you sure you want to delete this project? Recordings will not be deleted.')) {
-      return;
-    }
-    
-    try {
-      await projectsService.deleteProject(projectId);
-      setProjects(projects.filter(p => p.id !== projectId));
-    } catch (error) {
-      console.error('Error eliminando proyecto:', error);
-    }
+  const handleDeleteProject = (project) => {
+    setConfirmationModal({
+      title: 'Delete Project?',
+      message: `Are you sure you want to delete "${project.name}"? Recordings will not be deleted.`,
+      actionText: 'Delete Project',
+      isDestructive: true,
+      onConfirm: async () => {
+        try {
+          await projectsService.deleteProject(project.id);
+          setProjects(projects.filter(p => p.id !== project.id));
+          setConfirmationModal(null);
+        } catch (error) {
+          console.error('Error eliminando proyecto:', error);
+        }
+      }
+    });
   };
 
   const executeAssignment = async (recordingId, projectId) => {
@@ -121,6 +129,26 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
 
   const handleCancelAssignment = () => {
     setPendingAssignment(null);
+  };
+
+  const handleRemoveFromProject = (recording) => {
+    if (!recording.project) return;
+    
+    setConfirmationModal({
+      title: 'Unassign from Project?',
+      message: `Are you sure you want to unassign "${recording.name}" from project "${recording.project.name}"?`,
+      actionText: 'Unassign',
+      isDestructive: true,
+      onConfirm: async () => {
+        try {
+          await projectsService.removeRecordingFromProject(recording.project.id, recording.dbId);
+          await loadData();
+          setConfirmationModal(null);
+        } catch (error) {
+          console.error('Error desvinculando grabación del proyecto:', error);
+        }
+      }
+    });
   };
 
   const handleAddToProject = (recording, project) => {
@@ -159,6 +187,13 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
     currentPage * itemsPerPage
   );
 
+  // Proyectos paginados
+  const totalProjectPages = Math.ceil(filteredProjects.length / projectsPerPage);
+  const paginatedProjects = filteredProjects.slice(
+    (currentProjectPage - 1) * projectsPerPage,
+    currentProjectPage * projectsPerPage
+  );
+
   return (
     <div className={styles.container}>
       {/* Header */}
@@ -195,19 +230,42 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
 
       {/* Projects Grid */}
       {!showAllRecordings && (
-        <div className={styles.projectsGrid}>
-          {filteredProjects.map((project) => (
-            <ProjectCard 
-              key={project.id}
-              project={project}
-              onClick={onProjectDetail}
-              onEdit={() => handleEditClick(project)}
-              onDelete={() => handleDeleteProject(project.id)}
-              recordingCount={recordings.filter(r => r.project?.id === project.id).length} 
-            />
-          ))}
-          <CreateProjectCard onClick={() => setShowNewProjectForm(true)} />
-        </div>
+        <>
+          <div className={styles.projectsGrid}>
+            {paginatedProjects.map((project) => (
+              <ProjectCard 
+                key={project.id}
+                project={project}
+                onClick={onProjectDetail}
+                onEdit={() => handleEditClick(project)}
+                onDelete={() => handleDeleteProject(project)}
+                recordingCount={recordings.filter(r => r.project?.id === project.id).length} 
+              />
+            ))}
+          </div>
+
+          {totalProjectPages > 1 && (
+            <div className={styles.pagination}>
+              <button 
+                className={styles.pageBtn} 
+                disabled={currentProjectPage === 1}
+                onClick={() => setCurrentProjectPage(prev => prev - 1)}
+              >
+                <MdChevronLeft size={20} />
+              </button>
+              <span className={styles.pageInfo}>
+                Page {currentProjectPage} of {totalProjectPages}
+              </span>
+              <button 
+                className={styles.pageBtn} 
+                disabled={currentProjectPage === totalProjectPages}
+                onClick={() => setCurrentProjectPage(prev => prev + 1)}
+              >
+                <MdChevronRight size={20} />
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Recent Uploads Section / Full Table */}
@@ -242,6 +300,7 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
           recordings={showAllRecordings ? paginatedRecordings : recentRecordings} 
           projects={projects}
           onAddToProject={handleAddToProject}
+          onRemoveFromProject={handleRemoveFromProject}
         />
 
         {showAllRecordings && totalPages > 1 && (
@@ -369,6 +428,29 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
                 onClick={handleConfirmAssignment}
               >
                 Change Project
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal Confirmación Genérico */}
+      {confirmationModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h3 className={styles.modalTitle}>{confirmationModal.title}</h3>
+            <p className={styles.modalText}>{confirmationModal.message}</p>
+            <div className={styles.buttonGroup}>
+              <button 
+                className={styles.cancelBtn} 
+                onClick={() => setConfirmationModal(null)}
+              >
+                Cancel
+              </button>
+              <button 
+                className={confirmationModal.isDestructive ? styles.destructiveBtn : styles.confirmBtn} 
+                onClick={confirmationModal.onConfirm}
+              >
+                {confirmationModal.actionText || 'Confirm'}
               </button>
             </div>
           </div>

@@ -616,6 +616,7 @@ class MixedAudioRecorder {
       const recordingData = {
         success: true,
         folderName: folderName,
+        dbId: results[0].recordingId, // Tomar el ID de la base de datos
         files: {
           microphone: results[0],
           system: results[1]

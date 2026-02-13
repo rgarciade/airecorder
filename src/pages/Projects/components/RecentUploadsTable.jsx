@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import styles from './RecentUploadsTable.module.css';
-import { MdFolderOpen, MdMoreVert, MdAddCircleOutline, MdSearch } from 'react-icons/md';
+import { MdFolderOpen, MdMoreVert, MdAddCircleOutline, MdSearch, MdOutlineDoNotDisturbOn } from 'react-icons/md';
 
-export default function RecentUploadsTable({ recordings = [], projects = [], onAddToProject }) {
+export default function RecentUploadsTable({ recordings = [], projects = [], onAddToProject, onRemoveFromProject }) {
   const [showMenuId, setShowMenuId] = useState(null);
   const [projectSearch, setProjectSearch] = useState('');
 
@@ -41,8 +41,8 @@ export default function RecentUploadsTable({ recordings = [], projects = [], onA
               const isTranscribed = rec.hasTranscription || false;
               const status = rec.status || (isTranscribed ? 'transcribed' : 'recorded');
 
-              let badgeClass = styles.badgeProcessing;
-              let dotClass = styles.dotProcessing;
+              let badgeClass = styles.badgeRecorded;
+              let dotClass = styles.dotRecorded;
               let statusText = 'Recorded';
 
               if (status === 'analyzed') {
@@ -53,10 +53,14 @@ export default function RecentUploadsTable({ recordings = [], projects = [], onA
                 badgeClass = styles.badgeTranscribed;
                 dotClass = styles.dotTranscribed;
                 statusText = 'Transcribed';
+              } else if (status === 'processing') {
+                badgeClass = styles.badgeProcessing;
+                dotClass = styles.dotProcessing;
+                statusText = 'Processing';
               }
 
               return (
-                <tr key={rec.id} className={styles.row}>
+                <tr key={rec.id} className={`${styles.row} ${showMenuId === rec.id ? styles.activeRow : ''}`}>
                   <td className={styles.cell}>
                     <div className={styles.cellName}>
                       <div className={styles.iconWrapper}>
@@ -127,7 +131,7 @@ export default function RecentUploadsTable({ recordings = [], projects = [], onA
                             </div>
 
                             <div className={styles.menuList}>
-                              {filteredProjects.map(project => (
+                              {filteredProjects.slice(0, 3).map(project => (
                                 <button
                                   key={project.id}
                                   className={`${styles.menuItem} ${rec.project?.id === project.id ? styles.menuItemActive : ''}`}
@@ -140,7 +144,31 @@ export default function RecentUploadsTable({ recordings = [], projects = [], onA
                                   <span className="truncate">{project.name}</span>
                                 </button>
                               ))}
-                              {filteredProjects.length === 0 && (
+
+                              {filteredProjects.length > 3 && (
+                                <div className={styles.menuMoreIndicator}>
+                                  Use search to see more projects...
+                                </div>
+                              )}
+                              
+                              {rec.project && (
+                                <div className={styles.menuDivider}></div>
+                              )}
+                              
+                              {rec.project && (
+                                <button
+                                  className={`${styles.menuItem} ${styles.unassignBtn}`}
+                                  onClick={() => {
+                                    onRemoveFromProject(rec);
+                                    setShowMenuId(null);
+                                  }}
+                                >
+                                  <MdOutlineDoNotDisturbOn size={14} />
+                                  <span>Unassign from Project</span>
+                                </button>
+                              )}
+
+                              {filteredProjects.length === 0 && !rec.project && (
                                 <div className={styles.menuEmpty}>
                                   No matches found
                                 </div>
