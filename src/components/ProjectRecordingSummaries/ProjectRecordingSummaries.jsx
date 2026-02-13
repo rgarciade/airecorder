@@ -28,11 +28,6 @@ export default function ProjectRecordingSummaries({ recordings, onNavigateToReco
                         onClick={() => toggleExpand(rec.id)}
                     >
                         <div className="flex items-center gap-3 overflow-hidden">
-                            <div className="bg-blue-500 w-8 h-8 rounded-full flex items-center justify-center shrink-0">
-                                <span className="text-white text-xs font-bold">
-                                    {new Date(rec.date || Date.now()).getDate()}
-                                </span>
-                            </div>
                             <div className="flex flex-col overflow-hidden">
                                 <h4 className="text-gray-900 font-medium truncate text-sm">
                                     {rec.title || `Grabación ${rec.id}`}
