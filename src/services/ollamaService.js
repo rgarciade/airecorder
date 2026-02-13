@@ -1,14 +1,27 @@
-// Servicio para interactuar con Ollama local
+// Servicio para interactuar con Ollama local (usado por Settings)
+import { getSettings } from './settingsService';
 
-const OLLAMA_BASE_URL = 'http://localhost:11434';
+const DEFAULT_OLLAMA_URL = 'http://localhost:11434';
+
+async function getBaseUrl(overrideUrl = null) {
+  if (overrideUrl) return overrideUrl;
+  try {
+    const settings = await getSettings();
+    return settings.ollamaHost || DEFAULT_OLLAMA_URL;
+  } catch (e) {
+    return DEFAULT_OLLAMA_URL;
+  }
+}
 
 /**
  * Obtiene la lista de modelos disponibles en Ollama
+ * @param {string} [baseUrl] - URL base opcional
  * @returns {Promise<Array>} Lista de modelos
  */
-export async function getAvailableModels() {
+export async function getAvailableModels(baseUrl = null) {
+  const url = await getBaseUrl(baseUrl);
   try {
-    const response = await fetch(`${OLLAMA_BASE_URL}/api/tags`);
+    const response = await fetch(`${url}/api/tags`);
     
     if (!response.ok) {
       throw new Error(`Error al obtener modelos de Ollama: ${response.status}`);
@@ -18,9 +31,8 @@ export async function getAvailableModels() {
     return data.models || [];
   } catch (error) {
     console.error('Error obteniendo modelos de Ollama:', error);
-    // Si Ollama no está disponible, devolver array vacío
     if (error.message.includes('fetch')) {
-      throw new Error('Ollama no está disponible. Asegúrate de que esté corriendo en http://localhost:11434');
+      throw new Error(`Ollama no está disponible en ${url}`);
     }
     throw error;
   }
@@ -28,11 +40,13 @@ export async function getAvailableModels() {
 
 /**
  * Verifica si Ollama está disponible
+ * @param {string} [baseUrl] - URL base opcional
  * @returns {Promise<boolean>} true si Ollama está disponible
  */
-export async function checkOllamaAvailability() {
+export async function checkOllamaAvailability(baseUrl = null) {
+  const url = await getBaseUrl(baseUrl);
   try {
-    const response = await fetch(`${OLLAMA_BASE_URL}/api/tags`);
+    const response = await fetch(`${url}/api/tags`);
     return response.ok;
   } catch (error) {
     return false;
@@ -41,13 +55,11 @@ export async function checkOllamaAvailability() {
 
 /**
  * Genera contenido usando un modelo de Ollama
- * @param {string} model - Nombre del modelo a usar
- * @param {string} prompt - Prompt para el modelo
- * @returns {Promise<string>} Respuesta generada
  */
-export async function generateContent(model, prompt) {
+export async function generateContent(model, prompt, options = {}) {
+  const url = await getBaseUrl();
   try {
-    const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
+    const response = await fetch(`${url}/api/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -55,7 +67,8 @@ export async function generateContent(model, prompt) {
       body: JSON.stringify({
         model: model,
         prompt: prompt,
-        stream: false, // Desactivar streaming para simplificar
+        stream: false,
+        ...options
       }),
     });
 
@@ -70,60 +83,3 @@ export async function generateContent(model, prompt) {
     throw error;
   }
 }
-
-/**
- * Genera contenido usando un modelo de Ollama (versión con streaming)
- * @param {string} model - Nombre del modelo a usar
- * @param {string} prompt - Prompt para el modelo
- * @param {Function} onChunk - Callback para cada chunk recibido
- * @returns {Promise<string>} Respuesta completa generada
- */
-export async function generateContentStreaming(model, prompt, onChunk) {
-  try {
-    const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: model,
-        prompt: prompt,
-        stream: true,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error en la API de Ollama: ${response.status}`);
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let fullResponse = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n').filter(line => line.trim());
-
-      for (const line of lines) {
-        try {
-          const data = JSON.parse(line);
-          if (data.response) {
-            fullResponse += data.response;
-            if (onChunk) onChunk(data.response);
-          }
-        } catch (e) {
-          console.error('Error parseando chunk:', e);
-        }
-      }
-    }
-
-    return fullResponse;
-  } catch (error) {
-    console.error('Error generando contenido con Ollama (streaming):', error);
-    throw error;
-  }
-}
-

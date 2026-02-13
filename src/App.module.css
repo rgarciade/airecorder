@@ -10,4 +10,5 @@
   flex: 1;
   min-height: 100vh;
   box-sizing: border-box;
+  margin-left: 260px; /* Offset del sidebar */
 }

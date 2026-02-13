@@ -19,6 +19,10 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
   const [error, setError] = useState(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
   
+  // Settings display
+  const [currentMicLabel, setCurrentMicLabel] = useState('Default Mic');
+  const [currentLangLabel, setCurrentLangLabel] = useState('English (US)');
+
   // Stats
   const [totalTimeStr, setTotalTimeStr] = useState("0h 0m");
   const [totalFiles, setTotalFiles] = useState(0);
@@ -27,7 +31,38 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
   useEffect(() => {
     loadRecordings();
     checkPermissions();
-  }, [refreshTrigger]); // Recargar cuando cambie el trigger
+    loadSettingsInfo();
+  }, [refreshTrigger]); 
+
+  const loadSettingsInfo = async () => {
+    try {
+      const settings = await getSettings();
+      const devices = await getSystemMicrophones();
+      
+      // Update Mic Label
+      if (settings?.microphone) {
+        const mic = devices.find(d => d.value === settings.microphone);
+        if (mic) setCurrentMicLabel(mic.label);
+      } else if (devices.length > 0) {
+        setCurrentMicLabel(devices[0].label);
+      }
+
+      // Update Language Label
+      if (settings?.language) {
+        const langMap = {
+          'en': 'English',
+          'es': 'Español',
+          'fr': 'Français',
+        };
+        setCurrentLangLabel(langMap[settings.language] || settings.language);
+      } else {
+        // Default if no language set
+        setCurrentLangLabel('English');
+      }
+    } catch (error) {
+      console.error("Error loading settings info:", error);
+    }
+  };
 
   const checkPermissions = async () => {
     if (window.electronAPI && window.electronAPI.getMicrophonePermission) {
@@ -45,6 +80,7 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
   const loadRecordings = async () => {
     try {
       setLoading(true);
+      
       const list = await recordingsService.getRecordings();
       // Sort by date desc
       list.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -91,7 +127,6 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
   const handleStart = async () => {
     if (isRecording) return;
 
-    // Si ya sabemos que está denegado, avisar antes de intentar
     if (permissionDenied) {
       alert('⚠️ Acceso al micrófono denegado.\n\nPor favor, habilita el permiso en Ajustes del Sistema > Privacidad y Seguridad > Micrófono.');
       return;
@@ -129,9 +164,8 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
       
       let errorMessage = 'No se pudo iniciar la grabación: ' + err.message;
       
-      // Detectar error de permisos
       if (err.name === 'NotAllowedError' || err.message.toLowerCase().includes('permission denied')) {
-        setPermissionDenied(true); // Actualizar estado si falla aquí
+        setPermissionDenied(true); 
         errorMessage = '⚠️ Acceso al micrófono denegado.\n\nPor favor, habilita el permiso de micrófono para la aplicación en:\n\nAjustes del Sistema > Privacidad y Seguridad > Micrófono.';
       } else if (err.name === 'NotFoundError') {
         errorMessage = '⚠️ No se encontró ningún micrófono.\n\nPor favor, conecta un micrófono e intenta de nuevo.';
@@ -173,7 +207,12 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
         </div>
       )}
 
-      <NewSessionCard onStart={handleStart} />
+      <NewSessionCard 
+        onStart={handleStart} 
+        microphoneLabel={currentMicLabel}
+        languageLabel={currentLangLabel}
+        onOpenSettings={onSettings}
+      />
       
       <StatsRow 
         totalTime={totalTimeStr} 
