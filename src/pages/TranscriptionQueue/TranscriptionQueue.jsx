@@ -5,40 +5,43 @@ import {
   MdMic, MdVideoCameraFront, MdAudiotrack, MdCheck, MdUpload 
 } from 'react-icons/md';
 
-export default function TranscriptionQueue({ onBack, onNewRecording }) {
+export default function TranscriptionQueue({ onBack, onNewRecording, queueState }) {
   const [activeTask, setActiveTask] = useState(null);
   const [queue, setQueue] = useState([]);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Sync with prop updates from App.jsx
   useEffect(() => {
-    loadQueueData();
-    
-    // Listen for real-time updates from backend
-    if (window.electronAPI?.onQueueUpdate) {
-      window.electronAPI.onQueueUpdate(loadQueueData);
+    if (queueState) {
+      processQueueData(queueState);
+      setLoading(false);
     }
+  }, [queueState]);
 
-    const interval = setInterval(loadQueueData, 5000); // Fallback poll every 5s
-    
-    return () => {
-      clearInterval(interval);
-      if (window.electronAPI?.offQueueUpdate) {
-        window.electronAPI.offQueueUpdate();
-      }
-    };
+  // Initial load fallback (if prop is empty initially)
+  useEffect(() => {
+    if (!queueState || (!queueState.active && !queueState.history)) {
+        loadQueueData();
+    }
   }, []);
+
+  const processQueueData = (data) => {
+      if (data && data.active) {
+        const active = data.active.find(t => t.status === 'processing');
+        const pending = data.active.filter(t => t.status === 'pending');
+        
+        setActiveTask(active || null);
+        setQueue(pending);
+        setHistory(data.history || []);
+      }
+  };
 
   const loadQueueData = async () => {
     try {
       const result = await window.electronAPI.getTranscriptionQueue();
       if (result.success) {
-        const active = result.active.find(t => t.status === 'processing');
-        const pending = result.active.filter(t => t.status === 'pending');
-        
-        setActiveTask(active || null);
-        setQueue(pending);
-        setHistory(result.history);
+        processQueueData(result);
       }
     } catch (error) {
       console.error('Error loading queue data:', error);
