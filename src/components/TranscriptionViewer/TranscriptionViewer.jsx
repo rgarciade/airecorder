@@ -95,6 +95,16 @@ export default function TranscriptionViewer({
 
   const { segments } = transcription;
 
+  // Helper para normalizar el origen del audio
+  const isMicrophone = (source) => {
+    if (!source) return false;
+    return source.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === 'microfono';
+  };
+
+  const getSourceClass = (source) => {
+    return isMicrophone(source) ? styles.microphone : styles.system;
+  };
+
   // Función para renderizar texto con resaltado
   const renderHighlightedText = (text, segIdx) => {
     if (!searchTerm || searchTerm.trim() === '') return text;
@@ -145,10 +155,10 @@ export default function TranscriptionViewer({
         <h2 className={styles.title}>📝 Transcripción de la conversación</h2>
         <div className={styles.stats}>
           <span className={styles.stat}>
-            🎤 {segments.filter(s => s.source === 'micrófono').length} intervenciones
+            🎤 {segments.filter(s => isMicrophone(s.source)).length} intervenciones
           </span>
           <span className={styles.stat}>
-            🔊 {segments.filter(s => s.source === 'sistema').length} intervenciones
+            🔊 {segments.filter(s => !isMicrophone(s.source)).length} intervenciones
           </span>
           <span className={styles.stat}>
             ⏱️ {transcription.metadata?.total_duration ? 
@@ -162,7 +172,7 @@ export default function TranscriptionViewer({
         {segments.map((segment, index) => (
           <div 
             key={`${segment.start}-${segment.source}-${index}`}
-            className={`${styles.message} ${segment.source === 'micrófono' ? styles.microphone : styles.system}`}
+            className={`${styles.message} ${getSourceClass(segment.source)}`}
           >
             <div className={styles.messageHeader}>
               <span className={styles.speaker}>
