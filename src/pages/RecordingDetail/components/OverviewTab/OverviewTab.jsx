@@ -2,7 +2,8 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import styles from './OverviewTab.module.css';
 import { 
-  MdAutoAwesome
+  MdAutoAwesome,
+  MdHourglassEmpty 
 } from 'react-icons/md';
 import ParticipantsList from '../../../../components/ParticipantsList/ParticipantsList';
 
@@ -13,7 +14,8 @@ export default function OverviewTab({
   participants,
   onAddParticipant,
   onRemoveParticipant,
-  onUpdateParticipant
+  onUpdateParticipant,
+  isGeneratingAi
 }) {
   
   // Custom markdown components
@@ -28,9 +30,30 @@ export default function OverviewTab({
     li: ({ children }) => <li className={styles.listItem}>{children}</li>,
   };
 
+  const hasAiData = summary || (highlights && highlights.length > 0) || detailedSummary;
+  const showBlur = isGeneratingAi || !hasAiData;
+
   return (
     <div className={styles.container}>
-      <div className={styles.mainColumn}>
+      {showBlur && (
+        <div className={styles.blurOverlay}>
+          <div className={styles.loadingContainer}>
+            <div className={styles.aiSpinner}>
+              <MdAutoAwesome className={styles.spinningIcon} size={48} />
+            </div>
+            <h3 className={styles.loadingTitle}>
+              {isGeneratingAi ? 'Analyzing Recording...' : 'Waiting for Analysis'}
+            </h3>
+            <p className={styles.loadingSubtitle}>
+              {isGeneratingAi 
+                ? 'AI is extracting insights, summaries, and participants.' 
+                : 'Analysis pending or not available.'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className={`${styles.mainColumn} ${showBlur ? styles.blurredContent : ''}`}>
         <div className={styles.grid}>
           {/* Left Column (Content) */}
           <div className={styles.leftPanel}>

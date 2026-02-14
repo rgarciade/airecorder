@@ -4,6 +4,88 @@
   width: 100%;
   overflow: hidden;
   background-color: #F9FAFB;
+  position: relative; /* Needed for overlay */
+}
+
+/* Blur and Loading Styles */
+.blurOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.blurredContent {
+  filter: blur(4px);
+  pointer-events: none;
+  user-select: none;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  background-color: white;
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  max-width: 400px;
+  text-align: center;
+  border: 1px solid #E5E7EB;
+}
+
+.aiSpinner {
+  width: 64px;
+  height: 64px;
+  background-color: #EFF6FF;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #3994EF;
+  position: relative;
+  animation: pulse 2s infinite ease-in-out;
+}
+
+/* .spinningIcon {
+  animation: spin 2s linear infinite;
+} */
+
+@keyframes pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(57, 148, 239, 0.4); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(57, 148, 239, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(57, 148, 239, 0); }
+}
+
+.spinningIcon {
+  /* animation: spin 2s linear infinite; */
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.loadingTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.loadingSubtitle {
+  font-size: 0.875rem;
+  color: #6B7280;
+  margin: 0;
+  line-height: 1.5;
 }
 
 /* Left Column (Main) */

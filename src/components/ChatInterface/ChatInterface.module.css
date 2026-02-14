@@ -330,8 +330,9 @@
 }
 
 .messageInputContainer:focus-within {
-  border-color: #3994EF;
-  box-shadow: 0 0 0 3px rgba(57, 148, 239, 0.1);
+  border-color: #E5E7EB;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  outline: none;
 }
 
 .messageInput {
@@ -342,9 +343,17 @@
   font-size: 0.95rem;
   color: #111827;
   outline: none;
+  box-shadow: none; /* Asegurar que no haya sombras internas */
   resize: none;
   min-height: 24px;
   max-height: 100px; /* Limitar altura */
+}
+
+.messageInput:focus {
+  outline: none;
+  border: none;
+  box-shadow: none;
+  ring: 0;
 }
 
 .messageInput::placeholder {

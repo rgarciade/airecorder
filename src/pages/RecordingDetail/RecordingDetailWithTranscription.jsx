@@ -152,14 +152,49 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
         // Load Summary
         const existing = await recordingAiService.getRecordingSummary(recording.id);
+        const hasSummary = existing && existing.resumen_breve;
+        
         if (existing) {
           setGeminiData(existing);
           setDetailedSummary(existing.resumen_detallado || '');
         }
 
-        // Trigger Auto-generation if missing
-        if ((!existing || !savedParticipants.length) && !isGeneratingAi) {
-           // Lógica de auto-generación simplificada
+        // Trigger Auto-generation if missing and we have transcription
+        // Check if transcription exists first to avoid errors
+        let hasTranscription = false;
+        try {
+           // Quick check or rely on the previous load. 
+           // We can check localRecording.status or fetch transcription check
+           const tCheck = await recordingsService.getTranscription(recording.id);
+           hasTranscription = !!tCheck;
+        } catch (e) {
+           hasTranscription = false;
+        }
+
+        if (hasTranscription && !hasSummary && !isGeneratingAi) {
+           console.log("Auto-starting AI analysis...");
+           setIsGeneratingAi(true);
+           try {
+             // Generate both summary and extract participants
+             const summary = await recordingAiService.generateRecordingSummary(recording.id);
+             if (summary) {
+               setGeminiData(summary);
+               setDetailedSummary(summary.resumen_detallado || '');
+             }
+             
+             // Also try to extract participants if none exist
+             if (!savedParticipants || savedParticipants.length === 0) {
+                const newParticipants = await recordingAiService.extractParticipants(recording.id);
+                if (newParticipants && newParticipants.length > 0) {
+                    await recordingsService.saveParticipants(recording.id, newParticipants);
+                    setParticipants(newParticipants);
+                }
+             }
+           } catch (err) {
+             console.error("Auto-generation failed:", err);
+           } finally {
+             setIsGeneratingAi(false);
+           }
         }
       } catch (err) {
         console.error("Error loading recording details:", err);
@@ -543,6 +578,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             onAddParticipant={handleAddParticipant}
             onRemoveParticipant={handleRemoveParticipant}
             onUpdateParticipant={handleUpdateParticipant}
+            isGeneratingAi={isGeneratingAi}
           />
         ) : (
           <TranscriptionChatTab 
