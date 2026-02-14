@@ -75,7 +75,7 @@ export default function ProjectRecordingSummaries({ recordings, onNavigateToReco
                         <div className="p-4 border-t border-gray-200 bg-white">
                             <div className="mb-3">
                                 <h5 className="text-blue-600 text-xs font-bold uppercase tracking-wider mb-1">Resumen</h5>
-                                <p className="text-gray-700 text-sm leading-relaxed">
+                                <p className="text-gray-700 leading-relaxed" style={{ fontSize: 'var(--app-font-size)' }}>
                                     {rec.summary?.resumen_breve || 'Sin resumen disponible.'}
                                 </p>
                             </div>
@@ -85,7 +85,7 @@ export default function ProjectRecordingSummaries({ recordings, onNavigateToReco
                                     <h5 className="text-blue-600 text-xs font-bold uppercase tracking-wider mb-1">Puntos Clave</h5>
                                     <ul className="list-disc list-inside space-y-1.5">
                                         {rec.summary.ideas.map((idea, idx) => (
-                                            <li key={idx} className="text-gray-600 text-sm leading-relaxed">
+                                            <li key={idx} className="text-gray-600 leading-relaxed" style={{ fontSize: 'var(--app-font-size)' }}>
                                                 {idea}
                                             </li>
                                         ))}

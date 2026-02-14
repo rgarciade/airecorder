@@ -77,13 +77,13 @@
 .summaryText {
   color: #374151;
   line-height: 1.6;
-  font-size: 0.95rem;
+  font-size: var(--app-font-size);
 }
 
 /* Detailed Summary */
 .detailedContent {
   color: #374151;
-  font-size: 0.95rem;
+  font-size: var(--app-font-size);
   line-height: 1.7;
 }
 

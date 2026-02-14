@@ -109,7 +109,7 @@
   flex: 1;
   color: #374151;
   line-height: 1.6;
-  font-size: 1rem;
+  font-size: var(--app-font-size);
   word-wrap: break-word;
 }
 

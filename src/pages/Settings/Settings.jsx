@@ -4,7 +4,8 @@ import { getSettings, updateSettings } from '../../services/settingsService';
 import { getAvailableModels, checkOllamaAvailability } from '../../services/ollamaService';
 import { 
   MdMic, MdClose, MdCloud, MdAutoAwesome, MdComputer, MdTerminal, 
-  MdFolder, MdVisibility, MdVisibilityOff, MdRefresh, MdInfo, MdCheck
+  MdFolder, MdVisibility, MdVisibilityOff, MdRefresh, MdInfo, MdCheck,
+  MdTextFormat
 } from 'react-icons/md';
 import styles from './Settings.module.css';
 
@@ -14,10 +15,18 @@ const mockLanguages = [
   { value: 'fr', label: 'Français' },
 ];
 
-export default function Settings({ onBack }) {
+const fontSizes = [
+  { value: 'small', label: 'Small' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'large', label: 'Large' },
+  { value: 'xlarge', label: 'Extra Large' },
+];
+
+export default function Settings({ onBack, onSettingsSaved }) {
   // State
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [selectedMicrophone, setSelectedMicrophone] = useState('');
+  const [fontSize, setFontSize] = useState('medium');
   const [microphones, setMicrophones] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -57,6 +66,7 @@ export default function Settings({ onBack }) {
       if (savedSettings) {
         setSelectedLanguage(savedSettings.language || 'en');
         setSelectedMicrophone(savedSettings.microphone || (systemMicrophones.length > 0 ? systemMicrophones[0].value : ''));
+        setFontSize(savedSettings.fontSize || 'medium');
         setGeminiApiKey(savedSettings.geminiApiKey || '');
         setAiProvider(savedSettings.aiProvider || 'gemini');
         setOllamaModel(savedSettings.ollamaModel || '');
@@ -103,6 +113,7 @@ export default function Settings({ onBack }) {
       await updateSettings({
         language: selectedLanguage,
         microphone: selectedMicrophone,
+        fontSize: fontSize,
         geminiApiKey: geminiApiKey,
         aiProvider: aiProvider,
         ollamaModel: ollamaModel,
@@ -110,6 +121,7 @@ export default function Settings({ onBack }) {
         outputDirectory: outputDirectory
       });
       setSaveMessage('Changes saved successfully');
+      if (onSettingsSaved) onSettingsSaved();
       setTimeout(() => setSaveMessage(''), 3000);
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -329,6 +341,33 @@ export default function Settings({ onBack }) {
                 >
                   Change
                 </button>
+              </div>
+            </div>
+          </section>
+
+          {/* --- Appearance Section --- */}
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <div className={styles.sectionTitleGroup}>
+                <MdTextFormat className={styles.sectionIcon} size={20} />
+                <h3 className={styles.sectionTitle}>Interface Appearance</h3>
+              </div>
+            </div>
+            <div className={styles.card}>
+              <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                <label className={styles.label}>Text Size</label>
+                <select 
+                  className={styles.input}
+                  value={fontSize}
+                  onChange={(e) => setFontSize(e.target.value)}
+                >
+                  {fontSizes.map(size => (
+                    <option key={size.value} value={size.value}>{size.label}</option>
+                  ))}
+                </select>
+                <p className={styles.helpText}>
+                  Adjust the font size for chats, transcriptions, and summaries.
+                </p>
               </div>
             </div>
           </section>
