@@ -460,6 +460,63 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
   const dateStr = new Date(localRecording.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
+  // Helper to get audio URLs
+  const getAudioUrls = () => {
+    if (!localRecording || !localRecording.files || !localRecording.path) return { mic: null, sys: null };
+    
+    // Note: In Electron backend we registered 'media://' protocol to handle local files
+    // URL format: media://<absolute_path>
+    // We encode the path components just in case, but usually not strictly needed if backend decodes
+    const folderPath = localRecording.path;
+    
+    // Helper to construct URL
+    const makeUrl = (filename) => {
+      // Encode path parts to handle spaces properly
+      const safePath = [folderPath, filename].map(part => part).join('/');
+      return `media://${safePath}`;
+    };
+
+    const micFile = localRecording.files.find(f => f.includes('microphone') || f.includes('mic'));
+    const sysFile = localRecording.files.find(f => f.includes('system') || f.includes('sys'));
+
+    // Fallback if no specific separate files found (e.g. older recordings or single file)
+    if (!micFile && !sysFile && localRecording.files.length > 0) {
+       return { mic: makeUrl(localRecording.files[0]), sys: null };
+    }
+
+    return {
+      mic: micFile ? makeUrl(micFile) : null,
+      sys: sysFile ? makeUrl(sysFile) : null
+    };
+  };
+
+  const audioUrls = getAudioUrls();
+
+  // Calculate transcription duration
+  const getTranscriptionDuration = () => {
+    if (!transcription) return 0;
+    // Check metadata first
+    if (transcription.metadata && transcription.metadata.total_duration) {
+      const val = Number(transcription.metadata.total_duration);
+      if (!isNaN(val)) return val;
+    }
+    // Fallback to last segment end time
+    if (transcription.segments && transcription.segments.length > 0) {
+      const last = transcription.segments[transcription.segments.length - 1];
+      if (last.end) {
+        const endVal = Number(last.end);
+        if (!isNaN(endVal)) return endVal;
+      }
+      if (last.start) {
+        const startVal = Number(last.start);
+        if (!isNaN(startVal)) return startVal + 5;
+      }
+    }
+    return 0;
+  };
+
+  const transcriptionDuration = getTranscriptionDuration();
+
   return (
     <div className={styles.container}>
       {/* Header */}
@@ -586,6 +643,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             transcriptionLoading={transcriptionLoading}
             transcriptionError={transcriptionError}
             transcriptionModel={localRecording.transcriptionModel}
+            audioUrls={audioUrls}
+            duration={localRecording.duration}
+            transcriptionDuration={transcriptionDuration}
             chatProps={{
               chatHistory: convertChatHistory(),
               onSendMessage: handleAskQuestion,

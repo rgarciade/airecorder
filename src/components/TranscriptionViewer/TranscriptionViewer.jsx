@@ -11,27 +11,25 @@ export default function TranscriptionViewer({
   error = null,
   searchTerm = '',
   currentMatchIndex = 0,
-  onMatchesFound = () => {} 
+  onMatchesFound = () => {},
+  currentTime = -1, // Optional: if provided, highlights the active segment
+  onSeek = () => {} // Optional: callback when a segment/timestamp is clicked
 }) {
   const activeHighlightRef = useRef(null);
+  const activeSegmentRef = useRef(null);
+  const scrollContainerRef = useRef(null);
+  const [userIsScrolling, setUserIsScrolling] = useState(false);
 
   // Calcular coincidencias de búsqueda
   const matches = useMemo(() => {
     if (!transcription?.segments || !searchTerm || searchTerm.trim() === '') return [];
     
     const allMatches = [];
-    // Escape regex characters
     const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(escapedTerm, 'gi');
 
     transcription.segments.forEach((segment, segIdx) => {
       let match;
-      // Reset lastIndex because we are reusing the regex object? No, creating new one is safer or reset it.
-      // RegExp with 'g' flag keeps state.
-      // But creating new RegExp inside useMemo is fine.
-      
-      // However, loop needs to handle overlapping or ensure global reset.
-      // Simpler: iterate through matches.
       while ((match = regex.exec(segment.text)) !== null) {
         allMatches.push({
           segmentIndex: segIdx,
@@ -44,12 +42,33 @@ export default function TranscriptionViewer({
     return allMatches;
   }, [transcription, searchTerm]);
 
+  // Determine active segment index based on currentTime
+  const activeSegmentIndex = useMemo(() => {
+    if (currentTime < 0 || !transcription?.segments) return -1;
+    
+    // Use a simple loop for better performance than findIndex if called often
+    for (let i = 0; i < transcription.segments.length; i++) {
+      const seg = transcription.segments[i];
+      const start = Number(seg.start);
+      // If we are before this segment, then the PREVIOUS one was the active one? 
+      // No, we are looking for the segment containing currentTime.
+      
+      const nextSeg = transcription.segments[i + 1];
+      const end = nextSeg ? Number(nextSeg.start) : (Number(seg.end) || start + 10); // Default duration 10s if last
+      
+      if (currentTime >= start && currentTime < end) {
+        return i;
+      }
+    }
+    return -1;
+  }, [currentTime, transcription]);
+
   // Notificar al padre sobre el número de coincidencias
   useEffect(() => {
     onMatchesFound(matches.length);
   }, [matches.length, onMatchesFound]);
 
-  // Scroll a la coincidencia activa
+  // Scroll a la coincidencia de búsqueda activa
   useEffect(() => {
     if (matches.length > 0 && activeHighlightRef.current) {
       activeHighlightRef.current.scrollIntoView({
@@ -58,6 +77,20 @@ export default function TranscriptionViewer({
       });
     }
   }, [currentMatchIndex, matches]);
+
+  // Scroll to active segment during playback (auto-scroll)
+  useEffect(() => {
+    if (activeSegmentIndex !== -1 && activeSegmentRef.current && !userIsScrolling) {
+       activeSegmentRef.current.scrollIntoView({
+         behavior: 'smooth',
+         block: 'nearest'
+       });
+    }
+  }, [activeSegmentIndex, userIsScrolling]);
+
+  // Detect user scroll to pause auto-scroll temporarily (simple version: click to re-enable?)
+  // For now, simpler approach: if user clicks a segment, we assume they want to go there.
+  // We won't implement complex "stop auto-scroll on wheel" unless requested.
 
   if (loading) {
     return (
@@ -103,6 +136,11 @@ export default function TranscriptionViewer({
 
   const getSourceClass = (source) => {
     return isMicrophone(source) ? styles.microphone : styles.system;
+  };
+
+  const handleSegmentClick = (startTime) => {
+    onSeek(startTime);
+    setUserIsScrolling(false); // Re-enable auto-scroll on click
   };
 
   // Función para renderizar texto con resaltado
@@ -151,42 +189,35 @@ export default function TranscriptionViewer({
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>📝 Transcripción de la conversación</h2>
-        <div className={styles.stats}>
-          <span className={styles.stat}>
-            🎤 {segments.filter(s => isMicrophone(s.source)).length} intervenciones
-          </span>
-          <span className={styles.stat}>
-            🔊 {segments.filter(s => !isMicrophone(s.source)).length} intervenciones
-          </span>
-          <span className={styles.stat}>
-            ⏱️ {transcription.metadata?.total_duration ? 
-              `${Math.floor(transcription.metadata.total_duration / 60)}:${Math.floor(transcription.metadata.total_duration % 60).toString().padStart(2, '0')}` 
-              : 'N/A'}
-          </span>
-        </div>
-      </div>
-
-      <div className={styles.conversation}>
-        {segments.map((segment, index) => (
-          <div 
-            key={`${segment.start}-${segment.source}-${index}`}
-            className={`${styles.message} ${getSourceClass(segment.source)}`}
-          >
-            <div className={styles.messageHeader}>
-              <span className={styles.speaker}>
-                {segment.speaker}
-              </span>
-              <span className={styles.timestamp}>
-                {formatTimestamp(segment.start)}
-              </span>
+      {/* Header removed as requested, keeping container */}
+      
+      <div className={styles.conversation} ref={scrollContainerRef}>
+        {segments.map((segment, index) => {
+          const isActive = index === activeSegmentIndex;
+          return (
+            <div 
+              key={`${segment.start}-${segment.source}-${index}`}
+              className={`${styles.message} ${getSourceClass(segment.source)} ${isActive ? styles.activeSegment : ''}`}
+              ref={isActive ? activeSegmentRef : null}
+              onClick={() => handleSegmentClick(segment.start)}
+            >
+              <div className={styles.messageHeader}>
+                <span className={styles.speaker}>
+                  {segment.speaker}
+                </span>
+                <span 
+                  className={`${styles.timestamp} ${isActive ? styles.activeTimestamp : ''}`}
+                  title="Click to seek"
+                >
+                  {formatTimestamp(segment.start)}
+                </span>
+              </div>
+              <div className={styles.messageText}>
+                {renderHighlightedText(segment.text, index)}
+              </div>
             </div>
-            <div className={styles.messageText}>
-              {renderHighlightedText(segment.text, index)}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -199,4 +230,4 @@ function formatTimestamp(seconds) {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = Math.floor(seconds % 60);
   return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-} 
+}
