@@ -44,6 +44,7 @@
     "better-sqlite3": "^12.6.2",
     "data_file_database": "^1.0.2",
     "ffmpeg-static": "^5.2.0",
+    "howler": "^2.2.4",
     "node-audiorecorder": "^3.0.0",
     "node-microphone": "^0.1.6",
     "node-record-lpcm16": "^1.0.1",

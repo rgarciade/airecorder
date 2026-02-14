@@ -1,5 +1,5 @@
 /* global require, process, __dirname */
-const { app, BrowserWindow, ipcMain, systemPreferences, desktopCapturer, session, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, systemPreferences, desktopCapturer, session, dialog, protocol, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const AudioRecorder = require('./audioRecorder');
@@ -171,6 +171,18 @@ app.whenReady().then(async () => {
 
   // Reanudar cola de transcripción si hay pendientes
   transcriptionManager.checkQueue();
+
+  // Registrar protocolo personalizado 'media://' para archivos locales
+  protocol.registerFileProtocol('media', (request, callback) => {
+    const url = request.url.replace('media://', '');
+    try {
+      // Decodificar la URL para manejar espacios y caracteres especiales
+      return callback(decodeURIComponent(url));
+    } catch (error) {
+      console.error('Error handling media protocol:', error);
+      return callback(404);
+    }
+  });
 
   // Ejecutar migración en background
   const recordingsPath = await getRecordingsPath();

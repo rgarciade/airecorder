@@ -54,7 +54,17 @@
   flex-direction: column;
   gap: 0.25rem;
   max-width: 100%;
-  padding-bottom: 1.5rem;
+  /* Padding y border transparentes por defecto para evitar saltos al activar */
+  padding: 8px;
+  border-left: 4px solid transparent;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+}
+
+/* Active Segment Highlight */
+.activeSegment {
+  background-color: #F0F9FF; /* Light blue background */
+  border-left-color: #3994EF;
 }
 
 .messageHeader {
@@ -89,6 +99,12 @@
   color: #374151;
 }
 
+.activeTimestamp {
+  background-color: #DBEAFE; /* Blue-100 */
+  color: #1D4ED8; /* Blue-700 */
+  font-weight: 600;
+}
+
 /* Search Highlighting */
 .highlight {
   background-color: #FEF9C3; /* Yellow-100 */
@@ -111,6 +127,11 @@
   line-height: 1.6;
   font-size: var(--app-font-size);
   word-wrap: break-word;
+  cursor: pointer; /* Indicate it's clickable to seek */
+}
+
+.messageText:hover {
+  color: #111827;
 }
 
 /* Speaker types */
@@ -120,9 +141,9 @@
 }
 
 .microphone .messageText {
-  background-color: #F3F4F6;
-  padding: 1rem;
-  border-radius: 0 1rem 1rem 1rem;
+  /* background-color: #F3F4F6; */ /* Removed bg to make the container highlight cleaner */
+  padding: 0;
+  border-radius: 0;
 }
 
 .system {
@@ -135,10 +156,10 @@
 }
 
 .system .messageText {
-  background-color: #EFF6FF;
+  /* background-color: #EFF6FF; */ /* Removed bg */
   color: #1E40AF;
-  padding: 1rem;
-  border-radius: 1rem 0 1rem 1rem;
+  padding: 0;
+  border-radius: 0;
   text-align: right;
 }
 

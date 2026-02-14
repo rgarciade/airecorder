@@ -154,3 +154,12 @@
   color: #4B5563;
   border: 1px solid #E5E7EB;
 }
+
+.viewerContainer {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}

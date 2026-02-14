@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import styles from './TranscriptionChatTab.module.css';
 import TranscriptionViewer from '../../../../components/TranscriptionViewer/TranscriptionViewer';
 import ChatInterface from '../../../../components/ChatInterface/ChatInterface';
+import AudioPlayer from '../../../../components/AudioPlayer/AudioPlayer';
 import { MdSearch, MdKeyboardArrowUp, MdKeyboardArrowDown, MdClose, MdTranslate } from 'react-icons/md';
 
 export default function TranscriptionChatTab({ 
@@ -9,11 +10,18 @@ export default function TranscriptionChatTab({
   transcriptionLoading, 
   transcriptionError,
   chatProps,
-  transcriptionModel
+  transcriptionModel,
+  audioUrls,
+  duration,
+  transcriptionDuration
 }) {
   const [chatWidth, setChatWidth] = useState(550);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef(null);
+  
+  // Audio Player State
+  const [currentTime, setCurrentTime] = useState(0);
+  const playerRef = useRef(null);
 
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
@@ -75,6 +83,12 @@ export default function TranscriptionChatTab({
     setCurrentMatchIndex(0);
   };
 
+  const handleSeek = (time) => {
+    if (playerRef.current) {
+      playerRef.current.seekTo(time);
+    }
+  };
+
   return (
     <div className={styles.container} ref={containerRef}>
       <div className={styles.transcriptionColumn}>
@@ -114,14 +128,28 @@ export default function TranscriptionChatTab({
             )}
           </div>
         </div>
-        <TranscriptionViewer 
-          transcription={transcription} 
-          loading={transcriptionLoading} 
-          error={transcriptionError} 
-          searchTerm={searchTerm}
-          currentMatchIndex={currentMatchIndex}
-          onMatchesFound={setTotalMatches}
-        />
+        <div className={styles.viewerContainer}>
+          <TranscriptionViewer 
+            transcription={transcription} 
+            loading={transcriptionLoading} 
+            error={transcriptionError} 
+            searchTerm={searchTerm}
+            currentMatchIndex={currentMatchIndex}
+            onMatchesFound={setTotalMatches}
+            currentTime={currentTime}
+            onSeek={handleSeek}
+          />
+        </div>
+        {audioUrls && (audioUrls.mic || audioUrls.sys) && (
+          <AudioPlayer 
+            ref={playerRef}
+            micAudioUrl={audioUrls.mic}
+            sysAudioUrl={audioUrls.sys}
+            duration={duration}
+            transcriptionDuration={transcriptionDuration}
+            onTimeUpdate={setCurrentTime}
+          />
+        )}
       </div>
       
       {/* Resizer Handle */}
