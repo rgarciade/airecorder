@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import Home from './pages/Home/Home'
 import RecordingDetailWithTranscription from './pages/RecordingDetail/RecordingDetailWithTranscription';
@@ -7,6 +7,7 @@ import Projects from './pages/Projects/Projects'
 import ProjectDetail from './pages/ProjectDetail/ProjectDetail'
 import RecordingOverlay from './components/RecordingOverlay/RecordingOverlay'
 import Sidebar from './components/Sidebar/Sidebar';
+import { getSettings } from './services/settingsService';
 import styles from './App.module.css'
 import './App.css'
 
@@ -17,7 +18,21 @@ export default function App() {
   const [selectedProject, setSelectedProject] = useState(null)
   const [currentRecorder, setCurrentRecorder] = useState(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0) // Trigger para refrescar Home
+  const [appSettings, setAppSettings] = useState(null)
   const { isRecording } = useSelector((state) => state.recording)
+
+  useEffect(() => {
+    loadAppSettings();
+  }, []);
+
+  const loadAppSettings = async () => {
+    try {
+      const settings = await getSettings();
+      setAppSettings(settings);
+    } catch (error) {
+      console.error('Error loading app settings:', error);
+    }
+  };
 
   const handleBack = () => {
     if (currentView === 'recording-detail' && selectedProject) {
@@ -66,7 +81,7 @@ export default function App() {
   }
 
   return (
-    <div className={styles.appContainer}>
+    <div className={styles.appContainer} data-font-size={appSettings?.fontSize || 'medium'}>
       <Sidebar currentView={currentView} onViewChange={setCurrentView} />
       
       <div className={styles.mainContent}>
@@ -84,7 +99,7 @@ export default function App() {
           />
         )}
         {currentView === 'settings' && (
-          <Settings onBack={handleBack} />
+          <Settings onBack={handleBack} onSettingsSaved={loadAppSettings} />
         )}
         {currentView === 'projects' && (
           <Projects 

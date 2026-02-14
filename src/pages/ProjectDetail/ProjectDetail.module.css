@@ -153,7 +153,7 @@
 
 .projectSummary {
   color: #4B5563;
-  font-size: 15px;
+  font-size: var(--app-font-size);
   line-height: 1.6;
   margin: 0;
 }

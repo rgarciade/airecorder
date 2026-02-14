@@ -3,6 +3,15 @@
   min-width: 99vw;
 }
 
+:root {
+  --app-font-size: 14px;
+}
+
+[data-font-size="small"] { --app-font-size: 12px; }
+[data-font-size="medium"] { --app-font-size: 14px; }
+[data-font-size="large"] { --app-font-size: 16px; }
+[data-font-size="xlarge"] { --app-font-size: 18px; }
+
 .logo {
   height: 6em;
   padding: 1.5em;
