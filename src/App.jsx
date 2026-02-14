@@ -167,7 +167,6 @@ export default function App() {
         {currentView === 'queue' && (
           <TranscriptionQueue 
             onBack={handleBack} 
-            onNewRecording={() => setCurrentView('home')}
             queueState={queueState}
           />
         )}
