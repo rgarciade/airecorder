@@ -23,7 +23,8 @@ import {
   MdShare, 
   MdFileDownload,
   MdCalendarToday,
-  MdAccessTime
+  MdAccessTime,
+  MdFolderOpen
 } from 'react-icons/md';
 
 export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject }) {
@@ -387,6 +388,30 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
               <span className={styles.statusBadge}>Processed</span>
             </div>
             <div className={styles.metaRow}>
+              {recording.project && (
+                <>
+                  <button 
+                    onClick={() => onNavigateToProject && onNavigateToProject(recording.project)}
+                    className={styles.metaItem} 
+                    style={{ 
+                      color: '#3994EF', 
+                      fontWeight: 600, 
+                      background: 'none', 
+                      border: 'none', 
+                      padding: 0, 
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    title="View Project"
+                  >
+                    <MdFolderOpen size={14} />
+                    {recording.project.name}
+                  </button>
+                  <span className={styles.dotSeparator}></span>
+                </>
+              )}
               <div className={styles.metaItem}>
                 <MdCalendarToday size={14} />
                 {dateStr}

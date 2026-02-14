@@ -111,7 +111,7 @@ export default function App() {
           <RecordingDetailWithTranscription 
             recording={selectedRecording} 
             onBack={handleBack}
-            onNavigateToProject={handleNavigateToProject}
+            onNavigateToProject={handleProjectDetail}
           />
         )}
       </div>

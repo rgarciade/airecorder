@@ -91,14 +91,14 @@
   color: #9CA3AF;
 }
 
-.summary {
+.projectInfo {
   background-color: #F9FAFB;
   border-radius: 16px;
   padding: 16px;
   margin-top: auto;
 }
 
-.summaryHeader {
+.projectHeader {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -110,13 +110,12 @@
   letter-spacing: 0.05em;
 }
 
-.summaryText {
+.projectName {
   margin: 0;
   font-size: 0.875rem;
-  color: #6B7280;
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  color: #3994EF;
+  font-weight: 600;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }

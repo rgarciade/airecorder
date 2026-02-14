@@ -160,6 +160,11 @@
   gap: 4px;
 }
 
+.metaItem[title="View Project"]:hover {
+  text-decoration: underline;
+  opacity: 0.8;
+}
+
 .dotSeparator {
   width: 4px;
   height: 4px;

@@ -49,6 +49,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Lanzar transcripción de una grabación
   transcribeRecording: (recordingId) => ipcRenderer.invoke('transcribe-recording', recordingId),
 
+  // Obtener transcripción de una grabación específica (JSON)
+  getTranscription: (recordingId) => ipcRenderer.invoke('get-transcription', recordingId),
+
   // Obtener transcripción en texto plano de una grabación específica
   getTranscriptionTxt: (recordingId) => ipcRenderer.invoke('get-transcription-txt', recordingId),
 
