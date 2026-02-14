@@ -47,7 +47,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   downloadRecording: (recordingId) => ipcRenderer.invoke('download-recording', recordingId),
 
   // Lanzar transcripción de una grabación
-  transcribeRecording: (recordingId) => ipcRenderer.invoke('transcribe-recording', recordingId),
+  transcribeRecording: (recordingId, model) => ipcRenderer.invoke('transcribe-recording', recordingId, model),
+
+  // Cola de transcripción
+  getTranscriptionQueue: () => ipcRenderer.invoke('get-transcription-queue'),
+  cancelTranscriptionTask: (recordingId) => ipcRenderer.invoke('cancel-transcription-task', recordingId),
+  getRecordingQueueStatus: (recordingId) => ipcRenderer.invoke('get-recording-queue-status', recordingId),
 
   // Obtener transcripción de una grabación específica (JSON)
   getTranscription: (recordingId) => ipcRenderer.invoke('get-transcription', recordingId),
@@ -112,6 +117,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Eventos de progreso
   onTranscriptionProgress: (callback) => ipcRenderer.on('transcription-progress', (_event, value) => callback(value)),
   offTranscriptionProgress: () => ipcRenderer.removeAllListeners('transcription-progress'),
+  
+  onQueueUpdate: (callback) => ipcRenderer.on('queue-update', (_event, value) => callback(value)),
+  offQueueUpdate: () => ipcRenderer.removeAllListeners('queue-update'),
 
   // Dashboard
   getDashboardStats: () => ipcRenderer.invoke('get-dashboard-stats'),

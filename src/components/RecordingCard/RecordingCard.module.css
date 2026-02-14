@@ -91,6 +91,15 @@
   color: #9CA3AF;
 }
 
+.statusInfo {
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .projectInfo {
   background-color: #F9FAFB;
   border-radius: 16px;

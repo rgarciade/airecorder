@@ -6,6 +6,7 @@ const AudioRecorder = require('./audioRecorder');
 const { spawn } = require('child_process');
 const dbService = require('./database/dbService');
 const migrationService = require('./database/migrationService');
+const transcriptionManager = require('./transcriptionManager');
 
 // Constantes de rutas base (Defaults)
 const DEFAULT_BASE_RECORDER_PATH = path.join(app.getPath('desktop'), 'recorder');
@@ -46,29 +47,43 @@ async function getRecordingsPath() {
 }
 
 // Estado global para evitar transcripciones simultáneas
-let isTranscribing = false;
-let currentTranscribingId = null;
+// let isTranscribing = false; // DEPRECATED: Managed by TranscriptionManager
+// let currentTranscribingId = null; // DEPRECATED
 
-// Verificar permisos de micrófono al inicio
-function checkMicrophonePermission() {
+// Manejador para añadir a la cola
+ipcMain.handle('transcribe-recording', async (event, recordingId, model = null) => {
+  try {
+    const result = transcriptionManager.addTask(recordingId, { name: recordingId, model: model });
+    return result;
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('get-transcription-queue', () => {
+  return { success: true, ...transcriptionManager.getState() };
+});
+
+ipcMain.handle('cancel-transcription-task', (event, recordingId) => {
+  return transcriptionManager.cancelTask(recordingId);
+});
+
+ipcMain.handle('get-recording-queue-status', async (event, recordingId) => {
+  try {
+    const status = dbService.getRecordingTaskStatus(recordingId);
+    return { success: true, status };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// Función para verificar y solicitar permisos de micrófono (macOS)
+async function checkMicrophonePermission() {
   if (process.platform === 'darwin') {
-    const micStatus = systemPreferences.getMediaAccessStatus('microphone');
-    console.log('Estado de permisos del micrófono:', micStatus);
-    
-    const screenStatus = systemPreferences.getMediaAccessStatus('screen');
-    console.log('Estado de permisos de grabación de pantalla:', screenStatus);
-    
-    if (micStatus !== 'granted') {
-      systemPreferences.askForMediaAccess('microphone')
-        .then(granted => {
-          console.log('Permiso de micrófono concedido:', granted);
-          if (!granted) {
-            console.error('El usuario denegó el acceso al micrófono');
-          }
-        })
-        .catch(error => {
-          console.error('Error al solicitar permisos de micrófono:', error);
-        });
+    const status = systemPreferences.getMediaAccessStatus('microphone');
+    console.log('Estado de permisos del micrófono:', status);
+    if (status === 'not-determined') {
+      await systemPreferences.askForMediaAccess('microphone');
     }
   }
 }
@@ -147,6 +162,16 @@ app.whenReady().then(async () => {
   const dbPath = path.join(userDataPath, 'recordings.db');
   dbService.init(dbPath);
 
+  // Configurar callback de actualizaciones de cola
+  transcriptionManager.setUpdateCallback((queueState) => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('queue-update', queueState);
+    });
+  });
+
+  // Reanudar cola de transcripción si hay pendientes
+  transcriptionManager.checkQueue();
+
   // Ejecutar migración en background
   const recordingsPath = await getRecordingsPath();
   migrationService.syncRecordings(recordingsPath).catch(err => 
@@ -154,6 +179,13 @@ app.whenReady().then(async () => {
   );
 
   createWindow();
+
+  // Configurar callback de actualizaciones de cola
+  transcriptionManager.setUpdateCallback((queueState) => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('queue-update', queueState);
+    });
+  });
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -412,6 +444,9 @@ ipcMain.handle('get-recording-folders', async () => {
             // Obtener proyecto asociado
             const project = dbService.getRecordingProject(item);
 
+            // Obtener estado en cola si existe
+            const queueStatus = dbService.getRecordingTaskStatus(dbEntry ? dbEntry.id : -1);
+
             folders.push({
               id: dbEntry ? dbEntry.id : null,
               name: displayName,
@@ -423,7 +458,9 @@ ipcMain.handle('get-recording-folders', async () => {
               hasAnalysis: status === 'transcribed' || status === 'analyzed',
               status: status,
               duration: dbEntry ? dbEntry.duration : 0,
-              project: project ? { id: project.id, name: project.name } : null
+              transcriptionModel: dbEntry ? dbEntry.transcription_model : null,
+              project: project ? { id: project.id, name: project.name } : null,
+              queueStatus: queueStatus
             });
           }
         }
@@ -737,56 +774,6 @@ ipcMain.handle('rename-recording', async (event, recordingId, newName) => {
     return { success: true, folderName: safeNewName };
   } catch (error) {
     console.error('Error renaming recording:', error);
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle('transcribe-recording', async (event, recordingId) => {
-  if (isTranscribing) {
-    return { success: false, error: 'Ya hay una transcripción en curso', inProgress: true, currentTranscribingId };
-  }
-  
-  try {
-    const folderName = await getFolderPathFromId(recordingId);
-    isTranscribing = true;
-    currentTranscribingId = recordingId;
-    
-    const scriptPath = path.join(__dirname, '../audio_sync_analyzer.py');
-    // Usa el Python del entorno virtual
-    const pythonPath = '/Users/raul.garciad/Proyectos/personal/airecorder/venv/bin/python';
-
-    await new Promise((resolve, reject) => {
-      const py = spawn(
-        pythonPath,
-        [
-          scriptPath,
-          '--basename', folderName
-        ]
-      );
-      py.stdout.on('data', (data) => {
-        const message = data.toString().trim();
-        console.log(`[Transcripción][stdout]: ${message}`);
-        // Enviar progreso al frontend
-        event.sender.send('transcription-progress', { recordingId, message });
-      });
-      py.stderr.on('data', (data) => {
-        console.error(`[Transcripción][stderr]: ${data}`);
-      });
-      py.on('close', (code) => {
-        if (code === 0) resolve();
-        else reject(new Error('El script terminó con código ' + code));
-      });
-    });
-    
-    // Actualizar estado en DB
-    dbService.updateStatus(folderName, 'transcribed');
-    
-    isTranscribing = false;
-    currentTranscribingId = null;
-    return { success: true };
-  } catch (error) {
-    isTranscribing = false;
-    currentTranscribingId = null;
     return { success: false, error: error.message };
   }
 });

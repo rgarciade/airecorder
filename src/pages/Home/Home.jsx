@@ -126,9 +126,10 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
 
   const handleTranscribe = async (recordingId) => {
     try {
-      alert('Iniciando transcripción...'); 
+      const settings = await getSettings();
+      const defaultModel = settings.whisperModel || 'small';
       
-      const result = await window.electronAPI.transcribeRecording(recordingId);
+      const result = await window.electronAPI.transcribeRecording(recordingId, defaultModel);
       
       if (result.success) {
         loadRecordings(); 
