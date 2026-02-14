@@ -492,20 +492,19 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                 <MdAccessTime size={14} />
                 {duration}
               </div>
-              {localRecording.transcriptionModel && (
-                <>
-                  <span className={styles.dotSeparator}></span>
-                  <div className={styles.metaItem} title="Transcription Model">
-                    <MdTranslate size={14} />
-                    {localRecording.transcriptionModel}
-                  </div>
-                </>
-              )}
             </div>
           </div>
         </div>
         
         <div className={styles.headerRight}>
+          <button 
+            className={`${styles.actionButton} ${styles.reTranscribeBtn}`}
+            onClick={handleReTranscribeClick}
+            title="Re-run Transcription"
+          >
+            <MdTranslate size={18} />
+            Transcribe
+          </button>
           <button 
             className={`${styles.actionButton} ${styles.regenerateBtn}`}
             onClick={handleRegenerateClick}
@@ -544,14 +543,13 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             onAddParticipant={handleAddParticipant}
             onRemoveParticipant={handleRemoveParticipant}
             onUpdateParticipant={handleUpdateParticipant}
-            transcriptionModel={localRecording.transcriptionModel}
-            onReTranscribe={handleReTranscribeClick}
           />
         ) : (
           <TranscriptionChatTab 
             transcription={transcription}
             transcriptionLoading={transcriptionLoading}
             transcriptionError={transcriptionError}
+            transcriptionModel={localRecording.transcriptionModel}
             chatProps={{
               chatHistory: convertChatHistory(),
               onSendMessage: handleAskQuestion,

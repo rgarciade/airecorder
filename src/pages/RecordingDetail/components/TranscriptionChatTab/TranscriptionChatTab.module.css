@@ -142,15 +142,15 @@
   border: none;
 }
 
-.activeFilter {
-  background-color: #EFF6FF;
-  color: #3994EF;
-}
-
-.inactiveFilter {
-  color: #6B7280;
-}
-
-.inactiveFilter:hover {
+.modelBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   background-color: #F3F4F6;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4B5563;
+  border: 1px solid #E5E7EB;
 }

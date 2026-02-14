@@ -2,13 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import styles from './TranscriptionChatTab.module.css';
 import TranscriptionViewer from '../../../../components/TranscriptionViewer/TranscriptionViewer';
 import ChatInterface from '../../../../components/ChatInterface/ChatInterface';
-import { MdSearch, MdKeyboardArrowUp, MdKeyboardArrowDown, MdClose } from 'react-icons/md';
+import { MdSearch, MdKeyboardArrowUp, MdKeyboardArrowDown, MdClose, MdTranslate } from 'react-icons/md';
 
 export default function TranscriptionChatTab({ 
   transcription, 
   transcriptionLoading, 
   transcriptionError,
-  chatProps 
+  chatProps,
+  transcriptionModel
 }) {
   const [chatWidth, setChatWidth] = useState(550);
   const [isDragging, setIsDragging] = useState(false);
@@ -105,8 +106,12 @@ export default function TranscriptionChatTab({
             )}
           </div>
           <div className={styles.filters}>
-            <button className={`${styles.filterChip} ${styles.activeFilter}`}>Transcript</button>
-            <button className={`${styles.filterChip} ${styles.inactiveFilter}`}>Highlights</button>
+            {transcriptionModel && (
+              <div className={styles.modelBadge}>
+                <MdTranslate size={14} />
+                <span>Model: {transcriptionModel}</span>
+              </div>
+            )}
           </div>
         </div>
         <TranscriptionViewer 
