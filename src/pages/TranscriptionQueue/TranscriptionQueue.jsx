@@ -74,6 +74,19 @@ export default function TranscriptionQueue({ onBack, queueState }) {
     return `${mins}m ${secs}s`;
   };
 
+  const calculateTaskDuration = (start, end) => {
+    if (!start || !end) return null;
+    const startTime = new Date(start.endsWith('Z') ? start : start + 'Z').getTime();
+    const endTime = new Date(end.endsWith('Z') ? end : end + 'Z').getTime();
+    const diff = Math.floor((endTime - startTime) / 1000);
+    
+    if (diff < 0) return '0s';
+    if (diff < 60) return `${diff}s`;
+    const mins = Math.floor(diff / 60);
+    const secs = diff % 60;
+    return `${mins}m ${secs}s`;
+  };
+
   const [elapsed, setElapsed] = useState('0s');
 
   useEffect(() => {
@@ -245,6 +258,11 @@ export default function TranscriptionQueue({ onBack, queueState }) {
                   <div className={styles.logDetails}>
                     <span className={styles.logTime}>
                       {new Date(item.updated_at.endsWith('Z') ? item.updated_at : item.updated_at + 'Z').toLocaleTimeString()}
+                                            {item.started_at && item.updated_at && (
+                        <span className={styles.durationBadge}>
+                          <MdSchedule size={10} /> {calculateTaskDuration(item.started_at, item.updated_at)}
+                        </span>
+                      )}
                     </span>
                     <p className={styles.logText}>
                       Transcription {item.status} for <span className={styles.highlightText}>{item.recording_name}</span>
@@ -257,6 +275,9 @@ export default function TranscriptionQueue({ onBack, queueState }) {
                       ) : (
                         <span className={styles.failedBadge}>Failed</span>
                       )}
+                      
+
+
                       <span className={styles.historyModelBadge}>
                         {item.model || 'default'}
                       </span>

@@ -186,6 +186,7 @@ app.whenReady().then(async () => {
 
   // Ejecutar migración en background
   const recordingsPath = await getRecordingsPath();
+  transcriptionManager.setBasePath(recordingsPath);
   migrationService.syncRecordings(recordingsPath).catch(err => 
     console.error('Error en migración:', err)
   );
@@ -359,7 +360,7 @@ ipcMain.handle('save-system-audio', async (event, audioData, fileName) => {
 });
 
 // Manejador para guardar audios por separado en carpetas
-ipcMain.handle('save-separate-audio', async (event, audioData, folderName, fileName) => {
+ipcMain.handle('save-separate-audio', async (event, audioData, folderName, fileName, duration = 0) => {
   try {
     const baseOutputDir = await getRecordingsPath();
     const recordingDir = path.join(baseOutputDir, folderName);
@@ -380,10 +381,10 @@ ipcMain.handle('save-separate-audio', async (event, audioData, folderName, fileN
     const buffer = Buffer.from(audioData);
     await fs.promises.writeFile(filePath, buffer);
     
-    console.log(`Audio separado guardado en: ${filePath}`);
+    console.log(`Audio separado guardado en: ${filePath} (Duration: ${duration})`);
 
     // Registrar en DB
-    const dbResult = dbService.saveRecording(folderName, 0, 'recorded');
+    const dbResult = dbService.saveRecording(folderName, duration, 'recorded');
 
     return { 
       success: true, 

@@ -38,7 +38,8 @@ const {
   GET_ACTIVE_QUEUE_TASKS,
   GET_QUEUE_HISTORY,
   GET_TASK_STATUS_BY_RECORDING,
-  UPDATE_TRANSCRIPTION_MODEL
+  UPDATE_TRANSCRIPTION_MODEL,
+  UPDATE_DURATION
 } = require('./queries');
 
 class DbService {
@@ -169,6 +170,19 @@ class DbService {
       return { success: true };
     } catch (error) {
       console.error('[DB] Error updateTranscriptionModel:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Actualizar duración
+  updateDuration(relativePath, duration) {
+    if (!this.db) return { success: false };
+    try {
+      const stmt = this.db.prepare(UPDATE_DURATION);
+      stmt.run(duration, relativePath);
+      return { success: true };
+    } catch (error) {
+      console.error('[DB] Error updateDuration:', error);
       return { success: false, error: error.message };
     }
   }
