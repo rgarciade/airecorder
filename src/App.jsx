@@ -21,6 +21,7 @@ export default function App() {
   const [refreshTrigger, setRefreshTrigger] = useState(0) // Trigger para refrescar Home
   const [appSettings, setAppSettings] = useState(null)
   const [queueCount, setQueueCount] = useState(0)
+  const [queueState, setQueueState] = useState({ active: [], history: [] })
   const { isRecording } = useSelector((state) => state.recording)
 
   useEffect(() => {
@@ -30,18 +31,13 @@ export default function App() {
     if (window.electronAPI?.onQueueUpdate) {
       window.electronAPI.onQueueUpdate((data) => {
         if (data) {
-          updateQueueCount(data);
+          updateQueueState(data);
         } else {
           loadQueueData();
         }
       });
     }
-
-    return () => {
-      if (window.electronAPI?.offQueueUpdate) {
-        window.electronAPI.offQueueUpdate();
-      }
-    };
+    // No cleanup for root app listener
   }, []);
 
   const loadQueueData = async () => {
@@ -49,7 +45,7 @@ export default function App() {
       if (window.electronAPI?.getTranscriptionQueue) {
         const result = await window.electronAPI.getTranscriptionQueue();
         if (result.success) {
-          updateQueueCount(result);
+          updateQueueState(result);
         }
       }
     } catch (error) {
@@ -57,9 +53,8 @@ export default function App() {
     }
   };
 
-  const updateQueueCount = (data) => {
-    // data has { active: [], history: [] }
-    // active includes the currently processing task + pending queue
+  const updateQueueState = (data) => {
+    setQueueState(data);
     if (data && data.active) {
       setQueueCount(data.active.length);
     }
@@ -172,7 +167,8 @@ export default function App() {
         {currentView === 'queue' && (
           <TranscriptionQueue 
             onBack={handleBack} 
-            onNewRecording={() => setCurrentView('home')} 
+            onNewRecording={() => setCurrentView('home')}
+            queueState={queueState}
           />
         )}
       </div>
