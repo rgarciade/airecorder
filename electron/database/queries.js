@@ -32,6 +32,11 @@ module.exports = {
     UPDATE recordings SET transcription_model = ? WHERE relative_path = ?;
   `,
 
+  // Actualizar duración
+  UPDATE_DURATION: `
+    UPDATE recordings SET duration = ? WHERE relative_path = ?;
+  `,
+
   // Obtener estadísticas para el Dashboard
   GET_DASHBOARD_STATS: `
     SELECT 

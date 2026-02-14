@@ -31,7 +31,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveSystemAudio: (audioData, fileName) => ipcRenderer.invoke('save-system-audio', audioData, fileName),
   
   // Nueva función para guardar audios por separado en carpetas
-  saveSeparateAudio: (audioData, folderName, fileName) => ipcRenderer.invoke('save-separate-audio', audioData, folderName, fileName),
+  saveSeparateAudio: (audioData, folderName, fileName, duration = 0) => ipcRenderer.invoke('save-separate-audio', audioData, folderName, fileName, duration),
 
   // NUEVAS FUNCIONES para gestión de grabaciones
   // Obtener todas las carpetas de grabación

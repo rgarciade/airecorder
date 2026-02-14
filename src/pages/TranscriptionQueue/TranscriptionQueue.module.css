@@ -589,6 +589,10 @@
 
 .logBadgeRow {
   margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .successBadge {
@@ -628,12 +632,27 @@
   background-color: #f1f5f9;
   padding: 2px 8px;
   border-radius: 4px;
-  margin-left: 8px;
+}
+
+.durationBadge {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: #64748b;
+  background-color: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 40%;
 }
 
 .logBadgeRow {
+  margin-top: 4px;
   display: flex;
   align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .emptyLog {

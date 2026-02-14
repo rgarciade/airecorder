@@ -27,7 +27,7 @@ const AudioPlayer = forwardRef(({
   
   // Track Mute States
   const [micMuted, setMicMuted] = useState(false);
-  const [sysMuted, setSysMuted] = useState(true); // System audio muted by default
+  const [sysMuted, setSysMuted] = useState(false); // System audio muted by default
 
   // Howler instances
   const micHowl = useRef(null);

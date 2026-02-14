@@ -1,5 +1,6 @@
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 const dbService = require('./database/dbService');
 
 class TranscriptionManager {
@@ -7,7 +8,12 @@ class TranscriptionManager {
     this.activeTask = null;
     this.process = null;
     this.onUpdateCallback = null;
+    this.basePath = null;
     // Don't check queue here, DB isn't ready. Explicitly call checkQueue() from main.js
+  }
+
+  setBasePath(path) {
+    this.basePath = path;
   }
 
   setUpdateCallback(callback) {
@@ -116,23 +122,23 @@ class TranscriptionManager {
         const scriptPath = path.join(__dirname, '../audio_sync_analyzer.py');
         const pythonPath = '/Users/raul.garciad/Proyectos/personal/airecorder/venv/bin/python'; 
 
-        // Resolve relative_path from ID if possible
-        let folderName = task.recording_id; // task.recording_id comes from DB join
-        // In the join query (GET_NEXT_QUEUE_TASK), we might need to select recording relative_path or id
-        // Let's check `queries.js` or `dbService.js` structure.
-        // Assuming task.recording_id is the numeric ID from `recordings` table.
-        
-        // Fetch recording details to get relative_path
-        if (task.recording_id) {
-             const recording = dbService.getRecordingById(task.recording_id);
-             if (recording && recording.relative_path) {
-                 folderName = recording.relative_path;
-             }
-        }
+      // Fetch recording details to get relative_path
+      let folderName = task.recording_id;
+      if (task.recording_id) {
+            const recording = dbService.getRecordingById(task.recording_id);
+            if (recording && recording.relative_path) {
+                folderName = recording.relative_path;
+            } else {
+                console.warn(`[Manager] No se encontró recording para ID ${task.recording_id}, usando ID como folderName: ${folderName}`);
+            }
+      }
 
         console.log(`[Manager] Starting transcription for task ${task.id} (recording: ${folderName})`);
         
         const args = [scriptPath, '--basename', folderName];
+        if (this.basePath) {
+            args.push('--base_dir', this.basePath);
+        }
         if (task.model) {
             args.push('--model', task.model);
         }
@@ -160,6 +166,10 @@ class TranscriptionManager {
                 if (task.model) {
                     dbService.updateTranscriptionModel(folderName, task.model);
                 }
+                
+                // Intentar actualizar duración si es 0
+                this.updateDurationIfNeeded(folderName);
+
                 resolve();
             } else {
                 reject(new Error(`Process exited with code ${code}`));
@@ -171,6 +181,36 @@ class TranscriptionManager {
             reject(err);
         });
     });
+  }
+
+  updateDurationIfNeeded(folderName) {
+    if (!this.basePath) return;
+
+    try {
+      const recording = dbService.getRecording(folderName);
+
+      // Si la duración es 0, null o no existe, intentamos obtenerla del JSON
+      const currentDuration = Number(recording?.duration);
+      if (recording && (isNaN(currentDuration) || currentDuration <= 0.1)) {
+        const jsonPath = path.join(this.basePath, folderName, 'analysis', 'transcripcion_combinada.json');
+        
+        if (fs.existsSync(jsonPath)) {
+          try {
+            const content = fs.readFileSync(jsonPath, 'utf8');
+            const data = JSON.parse(content);
+            
+            if (data.metadata && data.metadata.total_duration !== undefined) {
+                const duration = parseFloat(data.metadata.total_duration);
+                dbService.updateDuration(folderName, duration);
+            }
+          } catch (e) {
+              console.error(`[Manager] Error reading/parsing JSON: ${e.message}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`[Manager] Error updating duration: ${error.message}`);
+    }
   }
 
   updateProgress(percent, step) {

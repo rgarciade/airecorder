@@ -609,8 +609,8 @@ class MixedAudioRecorder {
 
       // Guardar ambos archivos en la misma carpeta
       const results = await Promise.all([
-        this.saveSeparateAudioFile(this.microphoneAudioData.blob, folderName, 'microphone'),
-        this.saveSeparateAudioFile(this.systemAudioData.blob, folderName, 'system')
+        this.saveSeparateAudioFile(this.microphoneAudioData.blob, folderName, 'microphone', this.microphoneAudioData.duration),
+        this.saveSeparateAudioFile(this.systemAudioData.blob, folderName, 'system', this.systemAudioData.duration)
       ]);
 
       const recordingData = {
@@ -644,15 +644,15 @@ class MixedAudioRecorder {
     }
   }
 
-  async saveSeparateAudioFile(audioBlob, folderName, audioType) {
+  async saveSeparateAudioFile(audioBlob, folderName, audioType, duration = 0) {
     // Usar la API de Electron para guardar archivos separados
     if (window.electronAPI && window.electronAPI.saveSeparateAudio) {
       const arrayBuffer = await audioBlob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       const fileName = `${folderName}-${audioType}.webm`;
       
-      console.log(`Guardando archivo de ${audioType}:`, fileName);
-      const result = await window.electronAPI.saveSeparateAudio(uint8Array, folderName, fileName);
+      console.log(`Guardando archivo de ${audioType}:`, fileName, `(Duración: ${duration})`);
+      const result = await window.electronAPI.saveSeparateAudio(uint8Array, folderName, fileName, duration);
       if (!result.success) {
         throw new Error(result.error);
       }
