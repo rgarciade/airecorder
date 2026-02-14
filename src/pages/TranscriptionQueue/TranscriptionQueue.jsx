@@ -5,7 +5,7 @@ import {
   MdMic, MdVideoCameraFront, MdAudiotrack, MdCheck, MdUpload 
 } from 'react-icons/md';
 
-export default function TranscriptionQueue({ onBack, onNewRecording, queueState }) {
+export default function TranscriptionQueue({ onBack, queueState }) {
   const [activeTask, setActiveTask] = useState(null);
   const [queue, setQueue] = useState([]);
   const [history, setHistory] = useState([]);
@@ -107,16 +107,6 @@ export default function TranscriptionQueue({ onBack, onNewRecording, queueState 
           </div>
           <h1 className={styles.navTitle}>AIRecorder</h1>
         </div>
-        <div className={styles.navRight}>
-          <div className={styles.systemStatus}>
-            <span className={styles.statusDot}></span>
-            System Online
-          </div>
-          <button className={styles.newRecordingBtn} onClick={onNewRecording}>
-            <MdAdd size={18} />
-            New Recording
-          </button>
-        </div>
       </nav>
 
       {/* Main Content Grid */}
@@ -124,17 +114,16 @@ export default function TranscriptionQueue({ onBack, onNewRecording, queueState 
         {/* Left Column: Tasks & Queue */}
         <div className={styles.queueColumn}>
           <div className={styles.maxContainer}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <h2 className={styles.sectionTitle}>Live Processing Queue</h2>
-                <p className={styles.sectionSubtitle}>
-                  Managing {activeTask ? 1 + queue.length : queue.length} active tasks
-                </p>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <h2 className={styles.sectionTitle}>Live Processing Queue</h2>
+                  <p className={styles.sectionSubtitle}>
+                    Managing {activeTask ? 1 + queue.length : queue.length} active tasks
+                  </p>
+                </div>
               </div>
-              <button className={styles.historyBtn}>View History</button>
-            </div>
 
-            {/* Active Task Card */}
+              {/* Active Task Card */}
             {activeTask ? (
               <div className={styles.activeCard}>
                 <div className={styles.activeCardContent}>
@@ -245,14 +234,13 @@ export default function TranscriptionQueue({ onBack, onNewRecording, queueState 
         <div className={styles.logColumn}>
           <div className={styles.logHeader}>
             <h3 className={styles.logTitle}>Activity Log</h3>
-            <button className={styles.clearBtn}>Clear All</button>
           </div>
           <div className={styles.logContent}>
             <div className={styles.timeline}>
-              {history.map((item) => (
+              {history.slice(0, 10).map((item) => (
                 <div key={item.id} className={styles.logItem}>
-                  <div className={`${styles.logDot} ${item.status === 'completed' ? styles.dotSuccess : styles.dotFailed}`}>
-                    {item.status === 'completed' ? <MdCheck size={10} /> : <MdClose size={10} />}
+                  <div className={`${styles.logDot} ${item.status === 'completed' ? styles.dotSuccess : (item.error === 'Cancelled by user' ? styles.dotCancelled : styles.dotFailed)}`}>
+                    {item.status === 'completed' ? <MdCheck size={10} /> : (item.error === 'Cancelled by user' ? <MdClose size={10} /> : <MdClose size={10} />)}
                   </div>
                   <div className={styles.logDetails}>
                     <span className={styles.logTime}>
@@ -262,9 +250,13 @@ export default function TranscriptionQueue({ onBack, onNewRecording, queueState 
                       Transcription {item.status} for <span className={styles.highlightText}>{item.recording_name}</span>
                     </p>
                     <div className={styles.logBadgeRow}>
-                      <span className={item.status === 'completed' ? styles.successBadge : styles.failedBadge}>
-                        {item.status === 'completed' ? 'Success' : 'Failed'}
-                      </span>
+                      {item.status === 'completed' ? (
+                        <span className={styles.successBadge}>Success</span>
+                      ) : item.error === 'Cancelled by user' || item.status === 'cancelled' ? (
+                        <span className={styles.cancelledBadge}>Cancelled</span>
+                      ) : (
+                        <span className={styles.failedBadge}>Failed</span>
+                      )}
                       <span className={styles.historyModelBadge}>
                         {item.model || 'default'}
                       </span>
