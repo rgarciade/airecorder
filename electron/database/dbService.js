@@ -23,12 +23,22 @@ const {
   GET_PROJECT_TOTAL_DURATION,
   CREATE_TABLE_CHATS,
   CREATE_TABLE_MESSAGES,
+  CREATE_TABLE_QUEUE,
   INSERT_CHAT,
   UPDATE_CHAT_TIME,
   SELECT_PROJECT_CHATS,
   DELETE_CHAT,
   INSERT_MESSAGE,
-  SELECT_CHAT_MESSAGES
+  SELECT_CHAT_MESSAGES,
+  INSERT_QUEUE_TASK,
+  UPDATE_QUEUE_TASK,
+  UPDATE_QUEUE_TASK_WITH_START,
+  RESET_STUCK_TASKS,
+  GET_NEXT_QUEUE_TASK,
+  GET_ACTIVE_QUEUE_TASKS,
+  GET_QUEUE_HISTORY,
+  GET_TASK_STATUS_BY_RECORDING,
+  UPDATE_TRANSCRIPTION_MODEL
 } = require('./queries');
 
 class DbService {
@@ -45,6 +55,37 @@ class DbService {
       // Inicializar todas las tablas
       this.db.prepare(CREATE_TABLE_RECORDINGS).run();
       this.db.prepare(CREATE_TABLE_PROJECTS).run();
+      
+      // Migración para añadir transcription_model a recordings si no existe
+      try {
+        const tableInfo = this.db.prepare("PRAGMA table_info(recordings)").all();
+        if (!tableInfo.some(c => c.name === 'transcription_model')) {
+          console.log('[DB] Añadiendo columna transcription_model a la tabla recordings...');
+          this.db.prepare("ALTER TABLE recordings ADD COLUMN transcription_model TEXT").run();
+        }
+      } catch (e) {
+        console.error('[DB] Error migrando recordings:', e);
+      }
+
+      this.db.prepare(CREATE_TABLE_QUEUE).run();
+      
+      // Migración para añadir model a transcription_queue si no existe
+      try {
+        const tableInfo = this.db.prepare("PRAGMA table_info(transcription_queue)").all();
+        if (!tableInfo.some(c => c.name === 'model')) {
+          console.log('[DB] Añadiendo columna model a la tabla transcription_queue...');
+          this.db.prepare("ALTER TABLE transcription_queue ADD COLUMN model TEXT").run();
+        }
+        if (!tableInfo.some(c => c.name === 'started_at')) {
+          console.log('[DB] Añadiendo columna started_at a la tabla transcription_queue...');
+          this.db.prepare("ALTER TABLE transcription_queue ADD COLUMN started_at DATETIME").run();
+        }
+      } catch (e) {
+        console.error('[DB] Error migrando queue:', e);
+      }
+      
+      // Limpiar tareas atascadas al arrancar
+      this.db.prepare(RESET_STUCK_TASKS).run();
       
       // Migración para añadir is_updated a projects si no existe
       try {
@@ -98,12 +139,12 @@ class DbService {
   }
 
   // Guardar o actualizar grabación
-  saveRecording(relativePath, duration, status = 'recorded', createdAt = null) {
+  saveRecording(relativePath, duration, status = 'recorded', createdAt = null, transcriptionModel = null) {
     if (!this.db) return { success: false };
     try {
       const date = createdAt || new Date().toISOString();
       const stmt = this.db.prepare(INSERT_OR_UPDATE_RECORDING);
-      const info = stmt.run(relativePath, duration, status, date);
+      const info = stmt.run(relativePath, duration, status, transcriptionModel, date);
       
       // Intentar obtener el ID (ya sea por lastInsertRowid o buscando si ya existía)
       let id = info.lastInsertRowid;
@@ -115,6 +156,19 @@ class DbService {
       return { success: true, id };
     } catch (error) {
       console.error('[DB] Error saveRecording:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Actualizar modelo de transcripción
+  updateTranscriptionModel(relativePath, model) {
+    if (!this.db) return { success: false };
+    try {
+      const stmt = this.db.prepare(UPDATE_TRANSCRIPTION_MODEL);
+      stmt.run(model, relativePath);
+      return { success: true };
+    } catch (error) {
+      console.error('[DB] Error updateTranscriptionModel:', error);
       return { success: false, error: error.message };
     }
   }
@@ -303,6 +357,48 @@ class DbService {
       contenido: content,
       fecha: new Date().toISOString()
     };
+  }
+
+  // QUEUE
+  enqueueTask(recordingId, model = null) {
+    if (!this.db) return null;
+    const info = this.db.prepare(INSERT_QUEUE_TASK).run(recordingId, model);
+    return info.lastInsertRowid;
+  }
+
+  updateTask(id, status, step, progress, error = null) {
+    if (!this.db) return;
+    if (status === 'processing' && progress === 10) { // Set started_at at the beginning of processing
+      this.db.prepare(UPDATE_QUEUE_TASK_WITH_START).run(status, step, progress, error, id);
+    } else {
+      this.db.prepare(UPDATE_QUEUE_TASK).run(status, step, progress, error, id);
+    }
+  }
+
+  getNextTask() {
+    if (!this.db) return null;
+    return this.db.prepare(GET_NEXT_QUEUE_TASK).get();
+  }
+
+  getActiveQueue() {
+    if (!this.db) return [];
+    return this.db.prepare(GET_ACTIVE_QUEUE_TASKS).all();
+  }
+
+  getQueueHistory() {
+    if (!this.db) return [];
+    return this.db.prepare(GET_QUEUE_HISTORY).all();
+  }
+
+  getRecordingTaskStatus(recordingId) {
+    if (!this.db) return null;
+    return this.db.prepare(GET_TASK_STATUS_BY_RECORDING).get(recordingId);
+  }
+
+  getTaskById(id) {
+    if (!this.db) return null;
+    const { GET_TASK_BY_ID } = require('./queries');
+    return this.db.prepare(GET_TASK_BY_ID).get(id);
   }
 }
 

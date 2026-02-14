@@ -5,6 +5,7 @@ import RecordingDetailWithTranscription from './pages/RecordingDetail/RecordingD
 import Settings from './pages/Settings/Settings'
 import Projects from './pages/Projects/Projects'
 import ProjectDetail from './pages/ProjectDetail/ProjectDetail'
+import TranscriptionQueue from './pages/TranscriptionQueue/TranscriptionQueue'
 import RecordingOverlay from './components/RecordingOverlay/RecordingOverlay'
 import Sidebar from './components/Sidebar/Sidebar';
 import { getSettings } from './services/settingsService';
@@ -19,11 +20,50 @@ export default function App() {
   const [currentRecorder, setCurrentRecorder] = useState(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0) // Trigger para refrescar Home
   const [appSettings, setAppSettings] = useState(null)
+  const [queueCount, setQueueCount] = useState(0)
   const { isRecording } = useSelector((state) => state.recording)
 
   useEffect(() => {
     loadAppSettings();
+    loadQueueData();
+
+    if (window.electronAPI?.onQueueUpdate) {
+      window.electronAPI.onQueueUpdate((data) => {
+        if (data) {
+          updateQueueCount(data);
+        } else {
+          loadQueueData();
+        }
+      });
+    }
+
+    return () => {
+      if (window.electronAPI?.offQueueUpdate) {
+        window.electronAPI.offQueueUpdate();
+      }
+    };
   }, []);
+
+  const loadQueueData = async () => {
+    try {
+      if (window.electronAPI?.getTranscriptionQueue) {
+        const result = await window.electronAPI.getTranscriptionQueue();
+        if (result.success) {
+          updateQueueCount(result);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading queue data:', error);
+    }
+  };
+
+  const updateQueueCount = (data) => {
+    // data has { active: [], history: [] }
+    // active includes the currently processing task + pending queue
+    if (data && data.active) {
+      setQueueCount(data.active.length);
+    }
+  };
 
   const loadAppSettings = async () => {
     try {
@@ -82,7 +122,7 @@ export default function App() {
 
   return (
     <div className={styles.appContainer} data-font-size={appSettings?.fontSize || 'medium'}>
-      <Sidebar currentView={currentView} onViewChange={setCurrentView} />
+      <Sidebar currentView={currentView} onViewChange={setCurrentView} queueCount={queueCount} />
       
       <div className={styles.mainContent}>
         {currentView === 'home' && (
@@ -127,6 +167,12 @@ export default function App() {
             recording={selectedRecording} 
             onBack={handleBack}
             onNavigateToProject={handleProjectDetail}
+          />
+        )}
+        {currentView === 'queue' && (
+          <TranscriptionQueue 
+            onBack={handleBack} 
+            onNewRecording={() => setCurrentView('home')} 
           />
         )}
       </div>

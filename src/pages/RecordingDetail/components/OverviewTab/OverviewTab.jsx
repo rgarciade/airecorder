@@ -2,7 +2,9 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import styles from './OverviewTab.module.css';
 import { 
-  MdAutoAwesome
+  MdAutoAwesome,
+  MdTranslate,
+  MdRefresh
 } from 'react-icons/md';
 import ParticipantsList from '../../../../components/ParticipantsList/ParticipantsList';
 
@@ -13,7 +15,9 @@ export default function OverviewTab({
   participants,
   onAddParticipant,
   onRemoveParticipant,
-  onUpdateParticipant
+  onUpdateParticipant,
+  transcriptionModel,
+  onReTranscribe
 }) {
   
   // Custom markdown components
@@ -94,6 +98,29 @@ export default function OverviewTab({
                 onUpdateParticipant={onUpdateParticipant}
                 title="Participants"
               />
+            </section>
+
+            {/* Transcription Info & Options */}
+            <section className={styles.card}>
+              <div className={styles.cardHeader}>
+                <h3 className={styles.cardTitle}>Transcription Engine</h3>
+              </div>
+              <div className={styles.transcriptionInfo}>
+                <div className={styles.infoRow}>
+                  <MdTranslate size={18} className={styles.infoIcon} />
+                  <div>
+                    <p className={styles.infoLabel}>Model Used</p>
+                    <p className={styles.infoValue}>{transcriptionModel || 'Not transcribed yet'}</p>
+                  </div>
+                </div>
+                <button 
+                  className={styles.reTranscribeInlineBtn}
+                  onClick={onReTranscribe}
+                >
+                  <MdRefresh size={16} />
+                  Re-generate Transcription
+                </button>
+              </div>
             </section>
           </div>
         </div>

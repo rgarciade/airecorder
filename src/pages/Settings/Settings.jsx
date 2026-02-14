@@ -5,7 +5,7 @@ import { getAvailableModels, checkOllamaAvailability } from '../../services/olla
 import { 
   MdMic, MdClose, MdCloud, MdAutoAwesome, MdComputer, MdTerminal, 
   MdFolder, MdVisibility, MdVisibilityOff, MdRefresh, MdInfo, MdCheck,
-  MdTextFormat
+  MdTextFormat, MdTranslate
 } from 'react-icons/md';
 import styles from './Settings.module.css';
 
@@ -22,11 +22,20 @@ const fontSizes = [
   { value: 'xlarge', label: 'Extra Large' },
 ];
 
+const whisperModels = [
+  { value: 'tiny', label: 'Tiny (Fastest)' },
+  { value: 'base', label: 'Base' },
+  { value: 'small', label: 'Small (Recommended)' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'large', label: 'Large (Precise)' },
+];
+
 export default function Settings({ onBack, onSettingsSaved }) {
   // State
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [selectedMicrophone, setSelectedMicrophone] = useState('');
   const [fontSize, setFontSize] = useState('medium');
+  const [whisperModel, setWhisperModel] = useState('small');
   const [microphones, setMicrophones] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -67,6 +76,7 @@ export default function Settings({ onBack, onSettingsSaved }) {
         setSelectedLanguage(savedSettings.language || 'en');
         setSelectedMicrophone(savedSettings.microphone || (systemMicrophones.length > 0 ? systemMicrophones[0].value : ''));
         setFontSize(savedSettings.fontSize || 'medium');
+        setWhisperModel(savedSettings.whisperModel || 'small');
         setGeminiApiKey(savedSettings.geminiApiKey || '');
         setAiProvider(savedSettings.aiProvider || 'gemini');
         setOllamaModel(savedSettings.ollamaModel || '');
@@ -114,6 +124,7 @@ export default function Settings({ onBack, onSettingsSaved }) {
         language: selectedLanguage,
         microphone: selectedMicrophone,
         fontSize: fontSize,
+        whisperModel: whisperModel,
         geminiApiKey: geminiApiKey,
         aiProvider: aiProvider,
         ollamaModel: ollamaModel,
@@ -345,6 +356,49 @@ export default function Settings({ onBack, onSettingsSaved }) {
             </div>
           </section>
 
+          {/* --- Transcription Section --- */}
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <div className={styles.sectionTitleGroup}>
+                <MdTranslate className={styles.sectionIcon} size={20} />
+                <h3 className={styles.sectionTitle}>Transcription Engine</h3>
+              </div>
+            </div>
+            <div className={styles.card}>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Language</label>
+                <select 
+                  className={styles.input}
+                  value={selectedLanguage}
+                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                >
+                  {mockLanguages.map(lang => (
+                    <option key={lang.value} value={lang.value}>{lang.label}</option>
+                  ))}
+                </select>
+                <p className={styles.helpText}>
+                  Language used for Whisper transcription.
+                </p>
+              </div>
+
+              <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                <label className={styles.label}>Whisper Model Size</label>
+                <select 
+                  className={styles.input}
+                  value={whisperModel}
+                  onChange={(e) => setWhisperModel(e.target.value)}
+                >
+                  {whisperModels.map(model => (
+                    <option key={model.value} value={model.value}>{model.label}</option>
+                  ))}
+                </select>
+                <p className={styles.helpText}>
+                  Choose the default model for new transcriptions. Smaller models are faster but less precise.
+                </p>
+              </div>
+            </div>
+          </section>
+
           {/* --- Appearance Section --- */}
           <section className={styles.section}>
             <div className={styles.sectionHeader}>
@@ -372,41 +426,29 @@ export default function Settings({ onBack, onSettingsSaved }) {
             </div>
           </section>
 
-          {/* --- Audio & Language Section --- */}
+          {/* --- Audio Section --- */}
           <section className={styles.section}>
             <div className={styles.sectionHeader}>
               <div className={styles.sectionTitleGroup}>
                 <MdMic className={styles.sectionIcon} size={20} />
-                <h3 className={styles.sectionTitle}>General & Audio</h3>
+                <h3 className={styles.sectionTitle}>Audio Settings</h3>
               </div>
             </div>
             <div className={styles.card}>
-              {/* Stacked Layout for Full Width */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-                  <label className={styles.label}>Language</label>
-                  <select 
-                    className={styles.input}
-                    value={selectedLanguage}
-                    onChange={(e) => setSelectedLanguage(e.target.value)}
-                  >
-                    {mockLanguages.map(lang => (
-                      <option key={lang.value} value={lang.value}>{lang.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-                  <label className={styles.label}>Microphone</label>
-                  <select 
-                    className={styles.input}
-                    value={selectedMicrophone}
-                    onChange={(e) => setSelectedMicrophone(e.target.value)}
-                  >
-                    {microphones.map(mic => (
-                      <option key={mic.value} value={mic.value}>{mic.label}</option>
-                    ))}
-                  </select>
-                </div>
+              <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                <label className={styles.label}>Default Microphone</label>
+                <select 
+                  className={styles.input}
+                  value={selectedMicrophone}
+                  onChange={(e) => setSelectedMicrophone(e.target.value)}
+                >
+                  {microphones.map(mic => (
+                    <option key={mic.value} value={mic.value}>{mic.label}</option>
+                  ))}
+                </select>
+                <p className={styles.helpText}>
+                  Select the input device for your recordings.
+                </p>
               </div>
             </div>
           </section>

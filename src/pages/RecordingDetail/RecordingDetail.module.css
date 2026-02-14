@@ -201,6 +201,17 @@
   background-color: #DBEAFE;
 }
 
+.reTranscribeBtn {
+  background-color: #F3F4F6;
+  color: #4B5563;
+  border: 1px solid #E5E7EB;
+}
+
+.reTranscribeBtn:hover {
+  background-color: #E5E7EB;
+  color: #111827;
+}
+
 .shareBtn {
   color: #3994EF;
   background-color: transparent;

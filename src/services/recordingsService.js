@@ -42,7 +42,9 @@ class RecordingsService {
         files: folder.files || [],
         duration: folder.duration,
         status: folder.status,
-        project: folder.project
+        transcriptionModel: folder.transcriptionModel,
+        project: folder.project,
+        queueStatus: folder.queueStatus
       }));
 
     } catch (error) {
@@ -152,14 +154,15 @@ class RecordingsService {
   /**
    * Lanza el proceso de transcripción para una grabación
    * @param {string} recordingId
+   * @param {string} model - Tamaño del modelo opcional
    * @returns {Promise<Object>} Estado de la transcripción
    */
-  async transcribeRecording(recordingId) {
+  async transcribeRecording(recordingId, model = null) {
     try {
       if (!window.electronAPI?.transcribeRecording) {
         throw new Error('API de Electron no disponible');
       }
-      const result = await window.electronAPI.transcribeRecording(recordingId);
+      const result = await window.electronAPI.transcribeRecording(recordingId, model);
       return result;
     } catch (error) {
       console.error('Error lanzando transcripción:', error);

@@ -1,11 +1,16 @@
 import React from 'react';
 import styles from './Sidebar.module.css';
 
-const Sidebar = ({ currentView, onViewChange }) => {
+const Sidebar = ({ currentView, onViewChange, queueCount = 0 }) => {
   const menuItems = [
     { id: 'home', label: 'Home', icon: <HomeIcon /> },
     { id: 'projects', label: 'All Projects', icon: <FolderIcon /> },
-    { id: 'queue', label: 'Transcription Queue', icon: <QueueIcon /> },
+    { 
+      id: 'queue', 
+      label: <span className={styles.multilineLabel}>Transcription<br/>Queue</span>, 
+      icon: <QueueIcon />,
+      badge: queueCount > 0 ? queueCount : null
+    },
     { id: 'settings', label: 'Settings', icon: <SettingsIcon /> },
   ];
 
@@ -21,7 +26,10 @@ const Sidebar = ({ currentView, onViewChange }) => {
             className={`${styles.navItem} ${currentView === item.id ? styles.active : ''}`}
             onClick={() => onViewChange(item.id)}
           >
-            <span className={styles.icon}>{item.icon}</span>
+            <div className={styles.iconWrapper}>
+              <span className={styles.icon}>{item.icon}</span>
+              {item.badge && <span className={styles.badge}>{item.badge}</span>}
+            </div>
             <span className={styles.label}>{item.label}</span>
           </button>
         ))}

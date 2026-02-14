@@ -1,6 +1,6 @@
 import React from 'react';
 import styles from './RecordingCard.module.css';
-import { MdTranscribe, MdFolderOpen } from 'react-icons/md';
+import { MdTranscribe, MdFolderOpen, MdSchedule, MdAutorenew } from 'react-icons/md';
 
 export default function RecordingCard({ recording, onClick, onTranscribe }) {
   // Format duration
@@ -9,6 +9,27 @@ export default function RecordingCard({ recording, onClick, onTranscribe }) {
     : '--:--';
 
   const dateStr = recording.date ? new Date(recording.date).toLocaleDateString() : '';
+
+  const getStatusDisplay = () => {
+    const q = recording.queueStatus;
+    if (q) {
+      if (q.status === 'processing') {
+        return { 
+          label: `Transcribing (${q.progress}%)`, 
+          icon: <MdAutorenew className="animate-spin" />, 
+          color: '#3994EF' 
+        };
+      }
+      if (q.status === 'pending') return { label: 'Queued', icon: <MdSchedule />, color: '#9CA3AF' };
+    }
+    
+    if (recording.status === 'transcribed') return { label: 'Needs AI Analysis', icon: <MdTranscribe />, color: '#F59E0B' };
+    if (recording.status === 'analyzed') return { label: 'Analyzed', icon: null, color: '#10B981' };
+    
+    return { label: 'Recorded', icon: null, color: '#6B7280' };
+  };
+
+  const statusInfo = getStatusDisplay();
 
   return (
     <div className={styles.card} onClick={() => onClick(recording)}>
@@ -22,10 +43,10 @@ export default function RecordingCard({ recording, onClick, onTranscribe }) {
           </svg>
         </div>
         <div className={styles.headerRight}>
-          {!recording.hasTranscription && onTranscribe && (
+          {statusInfo.label === 'Recorded' && onTranscribe && (
             <button 
               className={styles.transcribeBtn} 
-              onClick={(e) => { e.stopPropagation(); onTranscribe(recording.id); }}
+              onClick={(e) => { e.stopPropagation(); onTranscribe(recording.dbId || recording.id); }}
               title="Transcribe Recording"
             >
               <MdTranscribe size={20} />
@@ -38,6 +59,10 @@ export default function RecordingCard({ recording, onClick, onTranscribe }) {
       <h3 className={styles.title}>{recording.name || 'Untitled Recording'}</h3>
       <div className={styles.meta}>
         <span className={styles.date}>{dateStr}</span>
+        <span className={styles.statusInfo} style={{ color: statusInfo.color }}>
+          {statusInfo.icon}
+          {statusInfo.label}
+        </span>
       </div>
 
       {/* Project Info */}

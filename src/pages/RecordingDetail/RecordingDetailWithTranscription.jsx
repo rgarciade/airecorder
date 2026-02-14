@@ -24,14 +24,24 @@ import {
   MdFileDownload,
   MdCalendarToday,
   MdAccessTime,
-  MdFolderOpen
+  MdFolderOpen,
+  MdTranslate
 } from 'react-icons/md';
+
+const whisperModels = [
+  { value: 'tiny', label: 'Tiny (Fastest)' },
+  { value: 'base', label: 'Base' },
+  { value: 'small', label: 'Small (Recommended)' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'large', label: 'Large (Precise)' },
+];
 
 export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject }) {
   // --- STATE MANAGEMENT ---
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'transcription'
   
   // Data State
+  const [localRecording, setLocalRecording] = useState(recording);
   const [participants, setParticipants] = useState(recording?.participants || []);
   const [transcription, setTranscription] = useState(null);
   const [transcriptionLoading, setTranscriptionLoading] = useState(false);
@@ -66,11 +76,28 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     participants: false
   });
 
+  // Re-transcribe Modal
+  const [showTranscribeModal, setShowTranscribeModal] = useState(false);
+  const [selectedWhisperModel, setSelectedWhisperModel] = useState('small');
+
   // --- EFFECTS ---
 
   // 1. Load Initial Data (Transcription, AI Config, Project)
   useEffect(() => {
     if (!recording?.id) return;
+
+    // Load Fresh Recording Data
+    const loadRecordingData = async () => {
+      try {
+        const { default: recordingsService } = await import('../../services/recordingsService');
+        const all = await recordingsService.getRecordings();
+        const fresh = all.find(r => r.dbId === recording.dbId || r.id === recording.id);
+        if (fresh) setLocalRecording(fresh);
+      } catch (e) {
+        console.error("Error fetching fresh recording data:", e);
+      }
+    };
+    loadRecordingData();
 
     setLocalName(recording?.name || '');
     setEditedTitle(recording?.name || '');
@@ -88,6 +115,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     // Load AI Config
     getSettings().then(settings => {
       setAiProvider(settings.aiProvider || 'gemini');
+      setSelectedWhisperModel(settings.whisperModel || 'small');
       if (settings.aiProvider === 'ollama') {
         getAvailableModels().then(models => setOllamaModels(models.map(m => m.name || m)));
         setSelectedOllamaModel(settings.ollamaModel || '');
@@ -283,22 +311,43 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   // --- PARTICIPANT MANAGEMENT HANDLERS (Direct updates) ---
 
   const handleAddParticipant = async (newParticipantData) => {
+    if (!newParticipantData || !newParticipantData.name) return;
+    
     const newParticipant = {
       id: Date.now(),
       name: newParticipantData.name.trim(),
       role: newParticipantData.role.trim() || 'Participante',
-      createdByAi: false
+      createdByAi: false,
+      avatar_color: '#' + Math.floor(Math.random()*16777215).toString(16) // Random color
     };
     
+    // Optimistic update
     const updated = [...participants, newParticipant];
     setParticipants(updated);
-    await recordingsService.saveParticipants(recording.id, updated);
+    
+    try {
+      const success = await recordingsService.saveParticipants(recording.id, updated);
+      if (!success) {
+        console.error("Failed to save participants to backend");
+        // Revert or show error? For now, we trust optimistic.
+      } else {
+        // Optional: Reload to be sure
+        // const confirmed = await recordingsService.getParticipants(recording.id);
+        // setParticipants(confirmed);
+      }
+    } catch (error) {
+      console.error("Error saving participant:", error);
+    }
   };
 
   const handleRemoveParticipant = async (participantId) => {
     const updated = participants.filter(p => p.id !== participantId);
     setParticipants(updated);
-    await recordingsService.saveParticipants(recording.id, updated);
+    try {
+      await recordingsService.saveParticipants(recording.id, updated);
+    } catch (error) {
+      console.error("Error removing participant:", error);
+    }
   };
 
   const handleUpdateParticipant = async (participantId, updatedData) => {
@@ -315,7 +364,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     });
     
     setParticipants(updated);
-    await recordingsService.saveParticipants(recording.id, updated);
+    try {
+      await recordingsService.saveParticipants(recording.id, updated);
+    } catch (error) {
+      console.error("Error updating participant:", error);
+    }
   };
 
   const handleSaveTitle = async () => {
@@ -344,6 +397,24 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
   };
 
+  const handleReTranscribeClick = () => {
+    setShowTranscribeModal(true);
+  };
+
+  const handleConfirmReTranscribe = async () => {
+    setShowTranscribeModal(false);
+    try {
+      const result = await recordingsService.transcribeRecording(recording.dbId || recording.id, selectedWhisperModel);
+      if (result.success) {
+        alert("Transcription added to queue.");
+      } else {
+        alert("Error: " + result.error);
+      }
+    } catch (error) {
+      console.error("Error re-transcribing:", error);
+    }
+  };
+
   // --- RENDER ---
 
   if (!recording) return null;
@@ -352,7 +423,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     ? `${Math.floor(recording.duration / 60)}:${Math.floor(recording.duration % 60).toString().padStart(2, '0')}`
     : '--:--';
 
-  const dateStr = new Date(recording.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const dateStr = new Date(localRecording.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   return (
     <div className={styles.container}>
@@ -388,10 +459,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
               <span className={styles.statusBadge}>Processed</span>
             </div>
             <div className={styles.metaRow}>
-              {recording.project && (
+              {localRecording.project && (
                 <>
                   <button 
-                    onClick={() => onNavigateToProject && onNavigateToProject(recording.project)}
+                    onClick={() => onNavigateToProject && onNavigateToProject(localRecording.project)}
                     className={styles.metaItem} 
                     style={{ 
                       color: '#3994EF', 
@@ -407,7 +478,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                     title="View Project"
                   >
                     <MdFolderOpen size={14} />
-                    {recording.project.name}
+                    {localRecording.project.name}
                   </button>
                   <span className={styles.dotSeparator}></span>
                 </>
@@ -421,6 +492,15 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                 <MdAccessTime size={14} />
                 {duration}
               </div>
+              {localRecording.transcriptionModel && (
+                <>
+                  <span className={styles.dotSeparator}></span>
+                  <div className={styles.metaItem} title="Transcription Model">
+                    <MdTranslate size={14} />
+                    {localRecording.transcriptionModel}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -464,6 +544,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             onAddParticipant={handleAddParticipant}
             onRemoveParticipant={handleRemoveParticipant}
             onUpdateParticipant={handleUpdateParticipant}
+            transcriptionModel={localRecording.transcriptionModel}
+            onReTranscribe={handleReTranscribeClick}
           />
         ) : (
           <TranscriptionChatTab 
@@ -602,6 +684,51 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                 onClick={handleConfirmDelete}
               >
                 Delete Permanently
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Re-transcribe Modal */}
+      {showTranscribeModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h3 className={styles.modalTitle}>Re-generate Transcription</h3>
+            <p className={styles.modalText}>
+              Choose the Whisper model size. This will overwrite the current transcription.
+            </p>
+            
+            <div className={styles.modalForm}>
+              <div className={styles.modalSection}>
+                <label className={styles.modalLabel}>Whisper Model</label>
+                <select 
+                  className={styles.select}
+                  value={selectedWhisperModel}
+                  onChange={(e) => setSelectedWhisperModel(e.target.value)}
+                >
+                  {whisperModels.map(model => (
+                    <option key={model.value} value={model.value}>{model.label}</option>
+                  ))}
+                </select>
+                <p className={styles.helpText}>
+                  Smaller models are faster, larger models are more precise.
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.modalButtons}>
+              <button 
+                className={styles.cancelModalBtn} 
+                onClick={() => setShowTranscribeModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className={styles.confirmModalBtn} 
+                onClick={handleConfirmReTranscribe}
+              >
+                Start Transcription
               </button>
             </div>
           </div>

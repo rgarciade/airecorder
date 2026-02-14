@@ -7,22 +7,29 @@ module.exports = {
       relative_path TEXT NOT NULL UNIQUE,
       duration REAL DEFAULT 0,
       status TEXT CHECK(status IN ('recorded', 'transcribed', 'analyzed')) DEFAULT 'recorded',
+      transcription_model TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `,
 
   // Insertar una nueva grabación
   INSERT_OR_UPDATE_RECORDING: `
-    INSERT INTO recordings (relative_path, duration, status, created_at)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO recordings (relative_path, duration, status, transcription_model, created_at)
+    VALUES (?, ?, ?, ?, ?)
     ON CONFLICT(relative_path) DO UPDATE SET
       duration = excluded.duration,
-      status = excluded.status;
+      status = excluded.status,
+      transcription_model = COALESCE(excluded.transcription_model, recordings.transcription_model);
   `,
 
   // Actualizar solo el estado
   UPDATE_STATUS: `
     UPDATE recordings SET status = ? WHERE relative_path = ?;
+  `,
+
+  // Actualizar modelo de transcripción
+  UPDATE_TRANSCRIPTION_MODEL: `
+    UPDATE recordings SET transcription_model = ? WHERE relative_path = ?;
   `,
 
   // Obtener estadísticas para el Dashboard
@@ -132,6 +139,74 @@ module.exports = {
     FROM recordings r
     JOIN project_recordings pr ON r.id = pr.recording_id
     WHERE pr.project_id = ?;
+  `,
+
+  // ========================================
+  // COLA DE TRANSCRIPCIÓN
+  // ========================================
+
+  CREATE_TABLE_QUEUE: `
+    CREATE TABLE IF NOT EXISTS transcription_queue (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      recording_id INTEGER,
+      status TEXT CHECK(status IN ('pending', 'processing', 'completed', 'failed')) DEFAULT 'pending',
+      step TEXT DEFAULT 'queued', -- 'queued', 'transcribing', 'analyzing'
+      progress INTEGER DEFAULT 0,
+      model TEXT,
+      error TEXT,
+      started_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (recording_id) REFERENCES recordings(id) ON DELETE CASCADE
+    );
+  `,
+
+  INSERT_QUEUE_TASK: `
+    INSERT INTO transcription_queue (recording_id, status, step, model) VALUES (?, 'pending', 'queued', ?);
+  `,
+
+  UPDATE_QUEUE_TASK: `
+    UPDATE transcription_queue 
+    SET status = ?, step = ?, progress = ?, error = ?, updated_at = CURRENT_TIMESTAMP 
+    WHERE id = ?;
+  `,
+
+  UPDATE_QUEUE_TASK_WITH_START: `
+    UPDATE transcription_queue 
+    SET status = ?, step = ?, progress = ?, error = ?, started_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP 
+    WHERE id = ?;
+  `,
+
+  RESET_STUCK_TASKS: `
+    UPDATE transcription_queue SET status = 'pending', step = 'queued', progress = 0 WHERE status = 'processing';
+  `,
+
+  GET_NEXT_QUEUE_TASK: `
+    SELECT * FROM transcription_queue WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1;
+  `,
+
+  GET_ACTIVE_QUEUE_TASKS: `
+    SELECT q.*, r.relative_path as recording_name 
+    FROM transcription_queue q
+    JOIN recordings r ON q.recording_id = r.id
+    WHERE q.status IN ('pending', 'processing')
+    ORDER BY q.created_at ASC;
+  `,
+
+  GET_QUEUE_HISTORY: `
+    SELECT q.*, r.relative_path as recording_name 
+    FROM transcription_queue q
+    JOIN recordings r ON q.recording_id = r.id
+    WHERE q.status IN ('completed', 'failed')
+    ORDER BY q.updated_at DESC LIMIT 20;
+  `,
+
+  GET_TASK_STATUS_BY_RECORDING: `
+    SELECT id, status, step, progress FROM transcription_queue WHERE recording_id = ? ORDER BY created_at DESC LIMIT 1;
+  `,
+
+  GET_TASK_BY_ID: `
+    SELECT * FROM transcription_queue WHERE id = ?;
   `,
 
   // ========================================
