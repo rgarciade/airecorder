@@ -86,6 +86,10 @@
   gap: 8px;
 }
 
+.meta:last-child {
+  margin-top: auto;
+}
+
 .date {
   font-size: 0.875rem;
   color: #9CA3AF;
