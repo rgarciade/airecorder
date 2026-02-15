@@ -7,11 +7,17 @@ const { spawn } = require('child_process');
 const dbService = require('./database/dbService');
 const migrationService = require('./database/migrationService');
 const transcriptionManager = require('./transcriptionManager');
+const notificationService = require('./notificationService');
 
 // Constantes de rutas base (Defaults)
 const DEFAULT_BASE_RECORDER_PATH = path.join(app.getPath('desktop'), 'recorder');
 // PROJECTS_PATH se mantiene en el default por ahora para no romper la BD de proyectos
 const PROJECTS_PATH = path.join(DEFAULT_BASE_RECORDER_PATH, 'projects');
+
+// Configuración de ID de aplicación para notificaciones (Windows/Linux)
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.airecorder.app');
+}
 
 // Ruta del archivo de configuración
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
@@ -106,6 +112,9 @@ function createWindow() {
     }
   });
 
+  // Inicializar servicio de notificaciones con la ventana principal
+  notificationService.setMainWindow(mainWindow);
+
   // Configurar el handler para captura de pantalla/audio según la documentación oficial
   session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
     desktopCapturer.getSources({ types: ['screen'] }).then((sources) => {
@@ -171,6 +180,17 @@ app.whenReady().then(async () => {
     });
   });
 
+  // Cargar configuración inicial de notificaciones
+  if (fs.existsSync(settingsPath)) {
+    try {
+      const data = await fs.promises.readFile(settingsPath, 'utf8');
+      const settings = JSON.parse(data);
+      notificationService.updateSettings(settings);
+    } catch (error) {
+      console.error('Error loading initial settings for notifications:', error);
+    }
+  }
+
   // Reanudar cola de transcripción si hay pendientes
   transcriptionManager.checkQueue();
 
@@ -215,6 +235,7 @@ app.on('window-all-closed', function () {
 ipcMain.handle('save-settings', async (event, settings) => {
   try {
     await fs.promises.writeFile(settingsPath, JSON.stringify(settings, null, 2));
+    notificationService.updateSettings(settings); // Actualizar servicio en vivo
     return { success: true };
   } catch (error) {
     console.error('Error saving settings:', error);
@@ -626,6 +647,13 @@ ipcMain.handle('save-ai-summary', async (event, recordingId, summary) => {
     // Actualizar estado en DB a 'analyzed'
     dbService.updateStatus(folderName, 'analyzed');
     
+    // Notificar al usuario
+    notificationService.show(
+      'Análisis IA Completado',
+      `El análisis para "${folderName}" ha finalizado.`,
+      { type: 'analysis-complete', recordingId: folderName }
+    );
+
     return { success: true };
   } catch (error) {
     console.error('Error saving AI summary:', error);
