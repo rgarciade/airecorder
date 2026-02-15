@@ -1,6 +1,10 @@
 /* global require, process, __dirname */
 const { app, BrowserWindow, ipcMain, systemPreferences, desktopCapturer, session, dialog, protocol, shell } = require('electron');
 const path = require('path');
+
+// Establecer nombre de la aplicación inmediatamente (Ayuda en el menú y Dock en algunos casos)
+app.setName('AIRecorder');
+
 const fs = require('fs');
 const AudioRecorder = require('./audioRecorder');
 const { spawn } = require('child_process');
@@ -14,10 +18,10 @@ const DEFAULT_BASE_RECORDER_PATH = path.join(app.getPath('desktop'), 'recorder')
 // PROJECTS_PATH se mantiene en el default por ahora para no romper la BD de proyectos
 const PROJECTS_PATH = path.join(DEFAULT_BASE_RECORDER_PATH, 'projects');
 
-// Configuración de ID de aplicación para notificaciones (Windows/Linux)
-if (process.platform === 'win32') {
-  app.setAppUserModelId('com.airecorder.app');
-}
+// Configuración de ID de aplicación para notificaciones
+// En macOS, esto puede no tener efecto en modo desarrollo debido a cómo se firman las notificaciones,
+// pero es buena práctica mantenerlo para producción y otras plataformas.
+app.setAppUserModelId('com.airecorder.app');
 
 // Ruta del archivo de configuración
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
@@ -98,11 +102,21 @@ function createWindow() {
   // Verificar permisos antes de crear la ventana
   checkMicrophonePermission();
 
+  const iconPath = process.env.NODE_ENV === 'development'
+    ? path.join(__dirname, '../public/icon.png')
+    : path.join(__dirname, '../dist/icon.png');
+
+  // Establecer icono del Dock en macOS (ayuda en desarrollo)
+  if (process.platform === 'darwin') {
+    app.dock.setIcon(iconPath);
+  }
+
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 950,
     minWidth: 1090,
     minHeight: 950,
+    icon: iconPath,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

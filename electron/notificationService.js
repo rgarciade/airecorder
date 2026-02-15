@@ -1,4 +1,9 @@
 const { Notification } = require('electron');
+const path = require('path');
+
+const iconPath = process.env.NODE_ENV === 'development'
+  ? path.join(__dirname, '../public/icon.png')
+  : path.join(__dirname, '../dist/icon.png');
 
 class NotificationService {
   constructor() {

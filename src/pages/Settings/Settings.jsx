@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getSystemMicrophones } from '../../services/audioService';
-import { getSettings, updateSettings, testNotification } from '../../services/settingsService';
+import { getSettings, updateSettings } from '../../services/settingsService';
 import { getAvailableModels, checkOllamaAvailability } from '../../services/ollamaService';
 import { 
   MdMic, MdClose, MdCloud, MdAutoAwesome, MdComputer, MdTerminal, 
