@@ -24,3 +24,6 @@ dataFileDatabase
 *.njsproj
 *.sln
 *.sw?
+
+.agents/
+
