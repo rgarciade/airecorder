@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "electron:dev": "NODE_ENV=development electron .",
     "electron:build": "vite build && electron-builder --mac",
-    "electron:build:dir": "vite build && electron-builder --mac --dir"
+    "electron:build:dir": "vite build && electron-builder --mac --dir",
+    "reset:onboarding": "node scripts/reset-onboarding.js",
+    "rebuild": "electron-rebuild --arch=arm64"
   },
   "build": {
     "appId": "com.airecorder.app",

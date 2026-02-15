@@ -1,4 +1,5 @@
 # AI Agent Guidelines
+RESPONDEME SIEMPRE EN ESPAÑOL
 
 This document provides instructions for AI coding agents (and human developers) working on the **AIRecorder** repository. It covers build commands, code style, and architectural conventions.
 

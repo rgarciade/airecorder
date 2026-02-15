@@ -94,7 +94,9 @@ function createWindow() {
 
   const mainWindow = new BrowserWindow({
     width: 1200,
-    height: 800,
+    height: 950,
+    minWidth: 1090,
+    minHeight: 950,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -255,6 +257,19 @@ ipcMain.handle('get-default-recording-path', () => {
 ipcMain.handle('get-microphone-permission', () => {
   if (process.platform === 'darwin') {
     return systemPreferences.getMediaAccessStatus('microphone');
+  }
+  return 'granted';
+});
+
+// Manejador para solicitar permisos de micrófono explícitamente
+ipcMain.handle('request-microphone-permission', async () => {
+  if (process.platform === 'darwin') {
+    const status = systemPreferences.getMediaAccessStatus('microphone');
+    if (status === 'not-determined') {
+      const granted = await systemPreferences.askForMediaAccess('microphone');
+      return granted ? 'granted' : 'denied';
+    }
+    return status;
   }
   return 'granted';
 });

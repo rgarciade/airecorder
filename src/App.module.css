@@ -10,5 +10,9 @@
   flex: 1;
   min-height: 100vh;
   box-sizing: border-box;
-  margin-left: 260px; /* Offset del sidebar */
+  width: 100%;
+}
+
+.mainContentWithSidebar {
+  padding-left: 260px; /* Ancho del sidebar */
 }
