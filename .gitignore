@@ -26,4 +26,4 @@ dataFileDatabase
 *.sw?
 
 .agents/
-
+opencode.json
