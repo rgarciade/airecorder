@@ -18,11 +18,13 @@ export const getSettings = async () => {
       throw new Error(result.error);
     }
     return result.settings || {
-      language: '',
+      isFirstRun: true, // Por defecto true para nuevos usuarios
+      language: 'es',
       microphone: '',
       geminiApiKey: '',
       aiProvider: 'gemini', // 'gemini' | 'ollama'
-      ollamaModel: ''
+      ollamaModel: '',
+      ollamaHost: 'http://localhost:11434'
     };
   } catch (error) {
     console.error('Error getting settings:', error);

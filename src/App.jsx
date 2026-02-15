@@ -8,12 +8,13 @@ import ProjectDetail from './pages/ProjectDetail/ProjectDetail'
 import TranscriptionQueue from './pages/TranscriptionQueue/TranscriptionQueue'
 import RecordingOverlay from './components/RecordingOverlay/RecordingOverlay'
 import Sidebar from './components/Sidebar/Sidebar';
+import Onboarding from './pages/Onboarding/Onboarding';
 import { getSettings } from './services/settingsService';
 import styles from './App.module.css'
 import './App.css'
 
 export default function App() {
-  const [currentView, setCurrentView] = useState('home')
+  const [currentView, setCurrentView] = useState('loading') // Cambiado inicial a loading
   const [selectedRecording, setSelectedRecording] = useState(null)
   const [selectedProjectId, setSelectedProjectId] = useState(null)
   const [selectedProject, setSelectedProject] = useState(null)
@@ -64,9 +65,24 @@ export default function App() {
     try {
       const settings = await getSettings();
       setAppSettings(settings);
+      
+      // Check onboarding
+      if (settings.isFirstRun) {
+        setCurrentView('onboarding');
+      } else if (currentView === 'loading') {
+        setCurrentView('home');
+      }
     } catch (error) {
       console.error('Error loading app settings:', error);
+      // Fallback
+      if (currentView === 'loading') setCurrentView('home');
     }
+  };
+
+  const handleOnboardingComplete = () => {
+    loadAppSettings().then(() => {
+        setCurrentView('home');
+    });
   };
 
   const handleBack = () => {
@@ -117,9 +133,14 @@ export default function App() {
 
   return (
     <div className={styles.appContainer} data-font-size={appSettings?.fontSize || 'medium'}>
-      <Sidebar currentView={currentView} onViewChange={setCurrentView} queueCount={queueCount} />
+      {currentView !== 'onboarding' && (
+        <Sidebar currentView={currentView} onViewChange={setCurrentView} queueCount={queueCount} />
+      )}
       
-      <div className={styles.mainContent}>
+      <div className={`${styles.mainContent} ${currentView !== 'onboarding' ? styles.mainContentWithSidebar : ''}`}>
+        {currentView === 'onboarding' && (
+            <Onboarding onComplete={handleOnboardingComplete} />
+        )}
         {currentView === 'home' && (
           <Home
             onSettings={() => setCurrentView('settings')}
@@ -173,7 +194,7 @@ export default function App() {
       </div>
       
       {/* Mostrar RecordingOverlay cuando está grabando */}
-      {isRecording && (
+      {isRecording && currentView !== 'onboarding' && (
         <RecordingOverlay
           recorder={currentRecorder}
           onFinish={() => {
