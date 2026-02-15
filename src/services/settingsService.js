@@ -19,6 +19,7 @@ export const getSettings = async () => {
     }
     return result.settings || {
       isFirstRun: true, // Por defecto true para nuevos usuarios
+      notificationsEnabled: true,
       language: 'es',
       microphone: '',
       geminiApiKey: '',

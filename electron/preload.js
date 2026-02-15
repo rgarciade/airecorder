@@ -121,6 +121,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onQueueUpdate: (callback) => ipcRenderer.on('queue-update', (_event, value) => callback(value)),
   offQueueUpdate: () => ipcRenderer.removeAllListeners('queue-update'),
 
+  // Notificaciones
+  onNotificationClick: (callback) => ipcRenderer.on('notification-click', (_event, value) => callback(value)),
+  offNotificationClick: () => ipcRenderer.removeAllListeners('notification-click'),
+
   // Dashboard
   getDashboardStats: () => ipcRenderer.invoke('get-dashboard-stats'),
 }); 

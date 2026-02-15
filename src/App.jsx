@@ -38,6 +38,17 @@ export default function App() {
         }
       });
     }
+
+    // Listen for notification clicks
+    if (window.electronAPI?.onNotificationClick) {
+      window.electronAPI.onNotificationClick((payload) => {
+        console.log('Notification clicked:', payload);
+        if (payload && payload.recordingId) {
+          handleNavigateToRecording(payload.recordingId);
+        }
+      });
+    }
+
     // No cleanup for root app listener
   }, []);
 

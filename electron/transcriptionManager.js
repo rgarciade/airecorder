@@ -2,6 +2,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const dbService = require('./database/dbService');
+const notificationService = require('./notificationService');
 
 class TranscriptionManager {
   constructor() {
@@ -169,6 +170,13 @@ class TranscriptionManager {
                 
                 // Intentar actualizar duración si es 0
                 this.updateDurationIfNeeded(folderName);
+
+                // Notificar al usuario
+                notificationService.show(
+                  'Transcripción Completada',
+                  `La transcripción de "${folderName}" ha finalizado.`,
+                  { type: 'transcription-complete', recordingId: folderName }
+                );
 
                 resolve();
             } else {

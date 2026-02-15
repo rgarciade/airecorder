@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { getSystemMicrophones } from '../../services/audioService';
-import { getSettings, updateSettings } from '../../services/settingsService';
+import { getSettings, updateSettings, testNotification } from '../../services/settingsService';
 import { getAvailableModels, checkOllamaAvailability } from '../../services/ollamaService';
 import { 
   MdMic, MdClose, MdCloud, MdAutoAwesome, MdComputer, MdTerminal, 
   MdFolder, MdVisibility, MdVisibilityOff, MdRefresh, MdInfo, MdCheck,
-  MdTextFormat, MdTranslate
+  MdTextFormat, MdTranslate, MdNotifications
 } from 'react-icons/md';
 import styles from './Settings.module.css';
 
@@ -35,6 +35,7 @@ export default function Settings({ onBack, onSettingsSaved }) {
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [selectedMicrophone, setSelectedMicrophone] = useState('');
   const [fontSize, setFontSize] = useState('medium');
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [whisperModel, setWhisperModel] = useState('small');
   const [microphones, setMicrophones] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -76,6 +77,7 @@ export default function Settings({ onBack, onSettingsSaved }) {
         setSelectedLanguage(savedSettings.language || 'en');
         setSelectedMicrophone(savedSettings.microphone || (systemMicrophones.length > 0 ? systemMicrophones[0].value : ''));
         setFontSize(savedSettings.fontSize || 'medium');
+        setNotificationsEnabled(savedSettings.notificationsEnabled !== false); // Default true
         setWhisperModel(savedSettings.whisperModel || 'small');
         setGeminiApiKey(savedSettings.geminiApiKey || '');
         setAiProvider(savedSettings.aiProvider || 'gemini');
@@ -123,6 +125,7 @@ export default function Settings({ onBack, onSettingsSaved }) {
       await updateSettings({
         language: selectedLanguage,
         microphone: selectedMicrophone,
+        notificationsEnabled: notificationsEnabled,
         fontSize: fontSize,
         whisperModel: whisperModel,
         geminiApiKey: geminiApiKey,
@@ -185,6 +188,38 @@ export default function Settings({ onBack, onSettingsSaved }) {
             <h2 className={styles.pageTitle}>AI Configuration</h2>
             <p className={styles.pageDescription}>Manage your cloud transcription engines and local LLMs for processing recordings.</p>
           </div>
+
+          {/* --- System Section --- */}
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <div className={styles.sectionTitleGroup}>
+                <MdNotifications className={styles.sectionIcon} size={20} />
+                <h3 className={styles.sectionTitle}>System Preferences</h3>
+              </div>
+            </div>
+            <div className={styles.card}>
+              <div className={styles.cardHeader}>
+                <div className={styles.providerInfo}>
+                  <div className={`${styles.providerIcon}`} style={{backgroundColor: '#e0f2fe', color: '#0ea5e9'}}>
+                    <MdNotifications size={24} />
+                  </div>
+                  <div>
+                    <h4 className={styles.providerName}>Desktop Notifications</h4>
+                    <p className={styles.providerDesc}>Show native notifications when tasks complete</p>
+                  </div>
+                </div>
+                <label className={styles.toggleWrapper}>
+                  <input 
+                    type="checkbox" 
+                    className={styles.toggleInput}
+                    checked={notificationsEnabled}
+                    onChange={(e) => setNotificationsEnabled(e.target.checked)}
+                  />
+                  <div className={styles.toggleSlider}></div>
+                </label>
+              </div>
+            </div>
+          </section>
 
           {/* --- Cloud Provider Section --- */}
           <section className={styles.section}>
