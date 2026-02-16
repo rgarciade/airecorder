@@ -26,3 +26,5 @@ If you are developing a production application, we recommend using TypeScript wi
 - [ ] revisar el codigo y hacer tests
 - [ ] hay un fallo, cuando das a guardar, sigue activo el model de grabacion y da flasazos la interfaz de gaurdado. deberia tener el boton de guardar, que guarde con el nombre basico "fecha etc" y se actualice al asignarle un nombre y proyecto
 - [ ] quiero poder abrir un audio por un segundo especifico, que yo le indique, para sacar informacion en voz de una riunion en un momento que me haga falta
+- [ ] quiero sacar un mensaje para que el usuario agregue una descripcio o intruccion a al record antes de generar el resumen de ia.
+- [ ] quiero poder generar epicas con las trasncripciones y ayudarme de la ia para mejorarlas
