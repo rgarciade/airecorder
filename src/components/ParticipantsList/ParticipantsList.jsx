@@ -132,7 +132,7 @@ export default function ParticipantsList({
                     <div className={styles.details}>
                       <div className={styles.nameRow}>
                         <h4>{p.name}</h4>
-                        {p.isAiSuggestion && (
+                        {(p.isAiSuggestion || p.createdByAi) && (
                           <span className={styles.aiBadge} title="Sugerido por IA">IA</span>
                         )}
                       </div>
