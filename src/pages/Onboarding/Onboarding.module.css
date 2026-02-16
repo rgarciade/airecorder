@@ -1,0 +1,928 @@
+.splitLayout {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  background-color: white;
+  color: #1f2937;
+  overflow: hidden;
+}
+
+/* Left Panel - Graphic Side */
+.leftPanel {
+  width: 38%;
+  background-color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-right: 1px solid #f3f4f6;
+  overflow: hidden;
+}
+
+/* Central Graphic in Left Panel */
+.graphicContainer {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.circle {
+  border-radius: 50%;
+  position: absolute;
+}
+
+.mainCircle {
+  width: 120px;
+  height: 120px;
+  background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+}
+
+.mainIcon {
+  color: white;
+  font-size: 3rem;
+}
+
+.outerCircle1 {
+  width: 200px;
+  height: 200px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(241, 245, 249, 0.8) 100%);
+  z-index: 5;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.outerCircle2 {
+  width: 280px;
+  height: 280px;
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  z-index: 1;
+}
+
+/* Floating Badges */
+.floatingBadge {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  z-index: 15;
+}
+
+.badgeTop {
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #60a5fa;
+}
+
+.badgeRight {
+  top: 60px;
+  right: 40px;
+  color: #f87171;
+  border: 2px solid rgba(248, 113, 113, 0.2);
+}
+
+.badgeBottom {
+  bottom: 40px;
+  right: 60px;
+  color: #f472b6;
+}
+
+/* AI Pill */
+.aiPill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #dbeafe;
+  color: #2563eb;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-top: 2rem;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  background-color: #2563eb;
+  border-radius: 50%;
+}
+
+.brandContainer {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.brandName {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.brandSubtitle {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+/* Right Panel - Content Side */
+.rightPanel {
+  flex: 1;
+  padding: 4rem 5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow-y: auto; /* Allow scrolling if content is too tall */
+}
+
+/* Header & Progress */
+.topNav {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stepText {
+  color: #94a3b8;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* Content Area */
+.contentArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 500px;
+}
+
+.mainTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+  margin-bottom: 0.75rem;
+}
+
+.highlight {
+  color: #3b82f6;
+}
+
+.description {
+  color: #64748b;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin-bottom: 2rem;
+}
+
+.sectionLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 1rem;
+}
+
+/* Expectation List */
+.expectList {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.expectItem {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.iconCircle {
+  min-width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #3b82f6;
+  font-size: 1.1rem;
+}
+
+/* Specific icon colors based on the image */
+.expectItem:nth-child(2) .iconCircle {
+  color: #ef4444; /* Reddish for AI */
+  background-color: #fef2f2;
+}
+
+.expectItem:nth-child(3) .iconCircle {
+  color: #64748b; /* Gray/Blue for Folder */
+  background-color: #f8fafc;
+}
+
+.itemContent h3 {
+  margin: 0 0 0.2rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.itemContent p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+/* Footer Area */
+.footerArea {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1.5rem;
+  border-top: 1px solid #f1f5f9;
+  margin-top: auto;
+}
+
+.termsText {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  max-width: 250px;
+  line-height: 1.4;
+}
+
+.link {
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.setupButton {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.setupButton:hover {
+  background-color: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+/* AI Step - Split Card Layout */
+.aiContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #f8fafc; /* light background */
+  overflow-y: auto;
+}
+
+.aiContentWrapper {
+  flex: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 4rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.aiHeader {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.aiTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 0.5rem;
+}
+
+.aiSubtitle {
+  color: #64748b;
+  font-size: 1.1rem;
+}
+
+.aiCardsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.aiCard {
+  background-color: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 2.3rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 480px;
+  overflow: hidden;
+}
+
+.aiCard:hover {
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.aiCard.selected {
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.02);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.recommendedBadge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.5rem 1rem;
+  border-bottom-left-radius: 1rem;
+  letter-spacing: 0.05em;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.cardIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.iconCloud {
+  background-color: #eff6ff;
+  color: #3b82f6;
+}
+
+.iconLocal {
+  background-color: #fff7ed;
+  color: #f97316;
+}
+
+.cardTitle h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.cardTitle p {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.radioIndicator {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.aiCard.selected .radioIndicator {
+  border-color: #3b82f6;
+  background-color: #3b82f6;
+}
+
+.radioDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: white;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.2s;
+}
+
+.aiCard.selected .radioDot {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.cardDescription {
+  color: #475569;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+.featureList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.featureItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.featureIcon {
+  color: #3b82f6;
+  font-size: 1.1rem;
+}
+
+.featureIcon.warning {
+  color: #f97316;
+}
+
+.privacyBox {
+  margin-top: auto;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.privacyTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 0.25rem;
+}
+
+.localConfigModule {
+  margin-top: auto;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.configLabel {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 0.5rem;
+}
+
+.configRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.configInput {
+  flex: 1;
+  padding: 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  font-family: monospace;
+  font-size: 0.85rem;
+  background-color: #f8fafc;
+  color: #334155;
+}
+
+.configInput:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.testButton {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 0.5rem;
+  padding: 0 1rem;
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.testButton:hover {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.testButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Common Footer in AI Step (Override or reuse) */
+.aiFooter {
+  border-top: 1px solid #e2e8f0;
+  padding: 1.5rem 4rem;
+  background-color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Steps Progress (Top) - Redesigned to match image */
+.stepProgressContainer {
+  margin-bottom: 1.5rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+/* Container for bars and labels grid */
+.stepProgressGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+/* Individual step column */
+.stepColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* The horizontal bar */
+.stepBar {
+  height: 6px;
+  width: 100%;
+  background-color: #e2e8f0; /* Default inactive gray/blue */
+  border-radius: 999px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Active/Completed color */
+.stepBar.active {
+  background-color: #3b82f6;
+}
+
+.stepBar.completed {
+  background-color: #3b82f6;
+}
+
+/* Partial fill for active step if needed, but image shows full fill for active. 
+   If we want "in progress" look for current step, we can use a child element.
+   Based on image: 
+   - Step 1 & 2 are completed (Blue bar)
+   - Step 3 is "in progress" (Blue half, gray half) or just Active blue
+   - Step 4 is pending (Gray bar)
+*/
+
+.stepBarFill {
+  height: 100%;
+  background-color: #3b82f6;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+/* Label text below bar */
+.stepLabel {
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #94a3b8; /* Inactive color */
+}
+
+.stepLabel.active {
+  color: #3b82f6; /* Active blue color */
+}
+
+.stepLabel.completed {
+  color: #3b82f6;
+}
+
+/* Permissions Step */
+.permissionsContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #f8fafc;
+  overflow-y: auto;
+}
+
+.permissionsContentWrapper {
+  flex: 1;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 4rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0; /* Let footer handle spacing */
+}
+
+.permissionsCard {
+  background-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.permissionsHeader {
+  padding: 0 0 2rem 0;
+  text-align: center;
+}
+
+.headerIconContainer {
+  width: 64px;
+  height: 64px;
+  background-color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem auto;
+  color: #3b82f6;
+  font-size: 2rem;
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.1);
+}
+
+.permissionsList {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.permissionItem {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.permissionItem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+  border-color: #cbd5e1;
+}
+
+/* Success State */
+.permissionItem.granted {
+  background-color: #ecfdf5; /* Light green background */
+  border-color: #d1fae5;
+}
+
+.permissionItem.granted .permIcon {
+  background-color: #d1fae5; /* Slightly darker green */
+  color: #059669; /* Dark green icon */
+}
+
+.permissionItem.granted .permBadge {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+/* Required State */
+.permissionItem.required {
+  background-color: white;
+  border-color: #f1f5f9; /* Subtle border */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); /* Ensure shadow makes it pop */
+}
+
+.permissionItem.required .permIcon {
+  background-color: #fee2e2;
+  color: #ef4444;
+}
+
+.permissionItem.required .permBadge {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* Optional State */
+.permissionItem.optional {
+  background-color: white;
+  border-color: #f1f5f9;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.permissionItem.optional .permIcon {
+  background-color: #eff6ff; /* Light blue */
+  color: #3b82f6; /* Blue icon */
+}
+
+/* ... */
+
+.checkCircle {
+  width: 40px;
+  height: 40px;
+  background-color: #10b981; /* Solid green background */
+  color: white; /* White checkmark */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.grantButton {
+  background-color: #3b82f6; /* Solid blue background */
+  color: white; /* White text */
+  border: none;
+  padding: 0.6rem 1.5rem; /* Larger padding */
+  border-radius: 999px; /* Pill shape */
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3); /* Subtle shadow */
+}
+
+.grantButton:hover {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+}
+
+.permissionItem.granted .permIcon {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.permissionItem.granted .permBadge {
+  background-color: #ecfdf5;
+  color: #065f46;
+}
+
+/* Required State */
+.permissionItem.required {
+  background-color: white;
+  border-color: #fee2e2; /* red-100 */
+}
+
+.permissionItem.required .permIcon {
+  background-color: #fef2f2;
+  color: #ef4444;
+}
+
+.permissionItem.required .permBadge {
+  background-color: #fef2f2;
+  color: #991b1b;
+}
+
+/* Optional State */
+.permissionItem.optional {
+  background-color: white;
+  border-color: #e2e8f0;
+}
+
+.permIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  background-color: #f1f5f9;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.permissionsFooter {
+  padding: 1.5rem 4rem; /* Match AI footer padding */
+  background-color: white;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0; /* Don't shrink */
+}
+
+.permissionsFooter button:disabled {
+  background-color: rgba(59, 130, 246, 0.5);
+  cursor: not-allowed;
+}
+
+.errorText {
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  font-weight: 500;
+  text-align: right;
+}
+
+/* Styles for other steps (reusing card logic but within split layout if needed, or keeping them separate) */
+/* For now, we only redesigned step 0 (Welcome). The other steps use the original container logic which might break if we replaced everything.
+   To be safe, we will keep the original classes below but scoped, or conditionally render layouts.
+   Ideally, the redesign implies the whole flow might change, but the prompt specifically asked to modify the "first tab/step".
+*/
+
+.cardLayout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  background-color: #111827; /* Original dark bg */
+  color: #f3f4f6;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.card {
+  background-color: #1f2937;
+  border-radius: 12px;
+  padding: 3rem;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  max-height: 90vh; /* Prevent card from exceeding viewport height */
+  overflow-y: auto; /* Allow scrolling within the card */
+}
+
+/* ... Keep previous styles for steps 1-3 ... */
+.header { text-align: center; }
+.stepsIndicator { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; }
+.permissionStatus { display: flex; align-items: center; gap: 1rem; padding: 1rem; background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; border: 1px solid #374151; }
+.statusIcon { font-size: 1.5rem; }
+.statusIcon.granted { color: #10b981; }
+.statusIcon.denied { color: #ef4444; }
+.statusIcon.prompt { color: #f59e0b; }
+.aiOptions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.aiOption { padding: 1.5rem; border: 2px solid #374151; border-radius: 8px; cursor: pointer; text-align: center; }
+.aiOption.selected { border-color: #646cff; background-color: rgba(100, 108, 255, 0.1); }
+.aiConfig { margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem; padding: 1rem; background-color: rgba(0, 0, 0, 0.2); border-radius: 8px; }
+.inputGroup { display: flex; flex-direction: column; gap: 0.5rem; }
+.input { padding: 0.8rem; border-radius: 6px; border: 1px solid #374151; background-color: #111827; color: white; }
+.footer { display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #374151; }
+.button { padding: 0.8rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; }
+.button.primary { background-color: #646cff; color: white; border: none; }
+.button.secondary { background-color: transparent; color: #9ca3af; border: 1px solid #374151; }
+.checkButton { padding: 0.5rem 1rem; background-color: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; }
+.summaryItem { display: flex; justify-content: space-between; padding: 1rem; border-bottom: 1px solid #374151; }
+.summaryLabel { color: #9ca3af; }
+.summaryValue { font-weight: 600; color: #10b981; }

@@ -12,6 +12,7 @@ dist
 dist-electron
 dist-ssr
 *.local
+dataFileDatabase
 
 # Editor directories and files
 .vscode/*
@@ -23,3 +24,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+.agents/
+opencode.json

@@ -1,0 +1,210 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  border-top: 1px solid #E5E7EB;
+  padding: 16px 24px;
+  gap: 12px;
+}
+
+.controlsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* Progress Bar */
+.progressBar {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+  margin-bottom: 4px;
+  position: relative;
+  z-index: 10;
+}
+
+/* Webkit specific styles for range input */
+.progressBar::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 6px;
+  background: transparent;
+  border-radius: 3px;
+  border: none;
+}
+
+.progressBar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: #3994EF;
+  margin-top: -4px; /* Center thumb */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  transition: transform 0.1s;
+}
+
+.progressBar::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+.progressBar:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(57, 148, 239, 0.2);
+}
+
+/* Bottom Controls */
+.bottomControls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 82%;
+}
+
+.leftControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.muteControls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 8px;
+  border-right: 1px solid #E5E7EB;
+}
+
+.muteBtn {
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: #6B7280;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.muteBtn:hover {
+  background-color: #F3F4F6;
+  color: #111827;
+}
+
+.muteBtn.muted {
+  color: #EF4444;
+  background-color: #FEF2F2;
+}
+
+.timeDisplay {
+  font-family: monospace;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #3994EF;
+  min-width: auto;
+}
+
+.totalTime {
+  color: #9CA3AF;
+  font-weight: 400;
+}
+
+.mainControls {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.controlBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6B7280;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.controlBtn:hover {
+  background-color: #F3F4F6;
+  color: #111827;
+}
+
+.playBtn {
+  background-color: #3994EF;
+  color: white;
+  width: 48px;
+  height: 48px;
+}
+
+.playBtn:hover {
+  background-color: #2563EB;
+  color: white;
+  transform: scale(1.05);
+}
+
+.speedSelector {
+  position: relative;
+}
+
+.speedBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #4B5563;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.speedBtn:hover {
+  background-color: #F3F4F6;
+}
+
+.speedMenu {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  background-color: white;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  margin-bottom: 8px;
+  min-width: 80px;
+  z-index: 50;
+}
+
+.speedOption {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.speedOption:hover {
+  background-color: #F3F4F6;
+}
+
+.speedOption.active {
+  color: #3994EF;
+  background-color: #EFF6FF;
+}

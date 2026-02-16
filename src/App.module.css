@@ -1,0 +1,18 @@
+.appContainer {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  min-width: 100vw;
+  background-color: #F8F9FB;
+}
+
+.mainContent {
+  flex: 1;
+  min-height: 100vh;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.mainContentWithSidebar {
+  padding-left: 260px; /* Ancho del sidebar */
+}

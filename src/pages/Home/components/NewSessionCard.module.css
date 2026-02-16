@@ -1,0 +1,103 @@
+.card {
+  background: white;
+  border-radius: 24px; /* Slightly reduced */
+  padding: 24px 32px; /* Reduced padding */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.content {
+  flex: 1;
+  max-width: 600px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #EFF6FF;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  color: #2563EB;
+  font-size: 0.7rem; /* Smaller */
+  font-weight: 700;
+  margin-bottom: 8px; /* Reduced margin */
+  letter-spacing: 0.05em;
+}
+
+.title {
+  font-size: 1.75rem; /* Reduced from 2.5rem */
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px 0; /* Reduced margin */
+  line-height: 1.1;
+}
+
+.description {
+  color: #6B7280;
+  font-size: 0.95rem; /* Reduced from 1.125rem */
+  line-height: 1.5;
+  margin: 0 0 20px 0; /* Reduced margin */
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+}
+
+.controlBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #F3F4F6;
+  padding: 8px 16px; /* Reduced padding */
+  border-radius: 9999px;
+  color: #374151;
+  font-weight: 500;
+  font-size: 0.85rem; /* Smaller font */
+  transition: background 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.action {
+  padding-left: 24px; /* Reduced */
+}
+
+.startButton {
+  width: 100px; /* Reduced from 140px */
+  height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-shadow: 0 10px 15px -3px rgba(220, 38, 38, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.startButton:hover {
+  transform: scale(1.05);
+  box-shadow: 0 15px 20px -5px rgba(220, 38, 38, 0.4);
+}
+
+.micIcon svg {
+  width: 24px; /* Smaller icon */
+  height: 24px;
+}
+
+.startText {
+  color: white;
+  font-weight: 700;
+  font-size: 0.75rem; /* Smaller text */
+  letter-spacing: 0.1em;
+}

@@ -5,7 +5,7 @@
 
 class RecordingsService {
   constructor() {
-    this.baseRecordingPath = '/Users/raul.garciad/Desktop/recorder';
+    this.baseRecordingPath = '/Users/raul.garciad/Desktop/recorder/grabaciones';
   }
 
   /**
@@ -26,8 +26,9 @@ class RecordingsService {
 
       // Procesar y formatear los datos de las grabaciones
       return result.folders.map(folder => ({
-        id: folder.name,
-        name: folder.name,
+        id: folder.folderName, // Usar el nombre de la carpeta física para rutas y archivos
+        dbId: folder.id,       // ID numérico de la base de datos
+        name: folder.name,     // Nombre de visualización (custom o carpeta)
         date: new Date(folder.createdAt).toLocaleDateString('es-ES', {
           year: 'numeric',
           month: 'short',
@@ -38,7 +39,12 @@ class RecordingsService {
         createdAt: folder.createdAt,
         path: folder.path,
         hasTranscription: folder.hasAnalysis,
-        files: folder.files || []
+        files: folder.files || [],
+        duration: folder.duration,
+        status: folder.status,
+        transcriptionModel: folder.transcriptionModel,
+        project: folder.project,
+        queueStatus: folder.queueStatus
       }));
 
     } catch (error) {
@@ -148,14 +154,15 @@ class RecordingsService {
   /**
    * Lanza el proceso de transcripción para una grabación
    * @param {string} recordingId
+   * @param {string} model - Tamaño del modelo opcional
    * @returns {Promise<Object>} Estado de la transcripción
    */
-  async transcribeRecording(recordingId) {
+  async transcribeRecording(recordingId, model = null) {
     try {
       if (!window.electronAPI?.transcribeRecording) {
         throw new Error('API de Electron no disponible');
       }
-      const result = await window.electronAPI.transcribeRecording(recordingId);
+      const result = await window.electronAPI.transcribeRecording(recordingId, model);
       return result;
     } catch (error) {
       console.error('Error lanzando transcripción:', error);
@@ -224,11 +231,11 @@ class RecordingsService {
   /**
    * Guarda el resumen de Gemini en la carpeta de análisis
    */
-  async saveGeminiSummary(recordingId, summaryJson) {
+  async saveAiSummary(recordingId, summaryJson) {
     try {
-      if (!window.electronAPI?.saveGeminiSummary) throw new Error('API de Electron no disponible');
+      if (!window.electronAPI?.saveAiSummary) throw new Error('API de Electron no disponible');
       console.log('summaryJson', summaryJson);
-      const result = await window.electronAPI.saveGeminiSummary(recordingId, summaryJson);
+      const result = await window.electronAPI.saveAiSummary(recordingId, summaryJson);
       return result.success;
     } catch (error) {
       console.error('Error guardando resumen Gemini:', error);
@@ -239,10 +246,10 @@ class RecordingsService {
   /**
    * Lee el resumen de Gemini de la carpeta de análisis
    */
-  async getGeminiSummary(recordingId) {
+  async getAiSummary(recordingId) {
     try {
-      if (!window.electronAPI?.getGeminiSummary) throw new Error('API de Electron no disponible');
-      const result = await window.electronAPI.getGeminiSummary(recordingId);
+      if (!window.electronAPI?.getAiSummary) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.getAiSummary(recordingId);
       if (!result.success) return null;
       return result.summary;
     } catch (error) {
@@ -295,6 +302,28 @@ class RecordingsService {
   }
 
   /**
+   * Renombra una grabación (actualiza el nombre de visualización en los metadatos)
+   * @param {string} recordingId - ID de la grabación
+   * @param {string} newName - Nuevo nombre para la grabación
+   * @returns {Promise<boolean>} True si se renombró correctamente
+   */
+  async renameRecording(recordingId, newName) {
+    try {
+      if (!window.electronAPI?.renameRecording) {
+        throw new Error('API de Electron no disponible');
+      }
+      const result = await window.electronAPI.renameRecording(recordingId, newName);
+      if (!result.success) {
+        throw new Error(result.error || 'Error renombrando grabación');
+      }
+      return result;
+    } catch (error) {
+      console.error('Error renombrando grabación:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Lee los participantes de la reunión
    */
   async getParticipants(recordingId) {
@@ -306,6 +335,76 @@ class RecordingsService {
     } catch (error) {
       console.error('Error leyendo participantes:', error);
       return [];
+    }
+  }
+
+  /**
+   * Genera el análisis completo de una grabación (resumen detallado, corto y key points)
+   * @param {string} recordingId
+   * @param {string} transcriptionTxt - Texto opcional para evitar doble lectura
+   * @returns {Promise<Object>} Resultado del análisis
+   */
+  async generateFullAnalysis(recordingId, transcriptionTxt = null) {
+    try {
+      // 1. Verificar si ya existe
+      const existing = await this.getAiSummary(recordingId);
+      if (existing && existing.resumen_breve && Array.isArray(existing.ideas)) {
+        console.log(`Análisis ya existente para ${recordingId}`);
+        return existing;
+      }
+
+      // 2. Obtener texto si no se proporcionó
+      let txt = transcriptionTxt;
+      if (!txt) {
+        txt = await this.getTranscriptionTxt(recordingId);
+      }
+      
+      if (!txt) {
+        throw new Error('No se pudo obtener el texto de la transcripción');
+      }
+
+      // Importar dependencias dinámicamente para evitar ciclos o problemas de carga
+      const { generateWithContext } = await import('./aiService');
+      const { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt } = await import('../prompts/aiPrompts');
+
+      // 3. Generar resumen detallado primero (contexto para los demás)
+      const detailedResponse = await generateWithContext(detailedSummaryPrompt, txt);
+      const detailedText = detailedResponse.text || '';
+
+      // 4. Generar resumen corto y puntos clave en paralelo
+      const [shortSummary, keyPointResponse] = await Promise.all([
+        generateWithContext(shortSummaryPrompt, detailedText || txt),
+        generateWithContext(keyPointsPrompt, detailedText || txt)
+      ]);
+
+      const shortSummaryText = shortSummary.text || '';
+      const keyPointText = keyPointResponse.text || '';
+
+      // 5. Procesar ideas
+      let ideas = [];
+      if (keyPointText) {
+        ideas = keyPointText.split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0 && (line.startsWith('-') || line.startsWith('•') || /^\d+\./.test(line)))
+          .map(line => line.replace(/^[•-]\s*|^\d+\.\s*/, ''));
+      }
+
+      const dataToSave = {
+        resumen_breve: shortSummaryText,
+        ideas: ideas,
+        resumen_detallado: detailedText,
+        key_points: keyPointText,
+        resumen_corto: shortSummaryText
+      };
+
+      // 6. Guardar
+      await this.saveAiSummary(recordingId, dataToSave);
+      
+      return dataToSave;
+
+    } catch (error) {
+      console.error(`Error generando análisis completo para ${recordingId}:`, error);
+      throw error;
     }
   }
 }
