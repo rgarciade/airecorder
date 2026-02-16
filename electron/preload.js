@@ -69,6 +69,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Guardar y leer participantes
   saveParticipants: (recordingId, participants) => ipcRenderer.invoke('save-participants', recordingId, participants),
   getParticipants: (recordingId) => ipcRenderer.invoke('get-participants', recordingId),
+  getTaskSuggestions: (recordingId) => ipcRenderer.invoke('get-task-suggestions', recordingId),
+  addTaskSuggestion: (recordingId, title, content, layer, createdByAi) => ipcRenderer.invoke('add-task-suggestion', recordingId, title, content, layer, createdByAi),
+  updateTaskSuggestion: (id, title, content, layer) => ipcRenderer.invoke('update-task-suggestion', id, title, content, layer),
+  deleteTaskSuggestion: (id) => ipcRenderer.invoke('delete-task-suggestion', id),
 
   // FUNCIONES DE PROYECTOS
   // Obtener todos los proyectos

@@ -8,7 +8,7 @@ import recordingsService from './recordingsService';
 import { getSettings } from './settingsService';
 import { sendToGemini } from './ai/geminiProvider';
 import { generateContent as ollamaGenerate } from './ai/ollamaProvider';
-import { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt, participantsPrompt, participantsPromptSuffix } from '../prompts/aiPrompts';
+import { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt, participantsPrompt, participantsPromptSuffix, taskSuggestionsPrompt, taskSuggestionsPromptSuffix, taskImprovementPrompt } from '../prompts/aiPrompts';
 
 class RecordingAiService {
   constructor() {
@@ -511,6 +511,117 @@ class RecordingAiService {
       return participantsWithIds;
     } catch (error) {
       console.error('Error extrayendo participantes:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Genera sugerencias de tareas a partir de la transcripción
+   * @param {string} recordingId
+   * @returns {Promise<Array>} Lista de tareas generadas [{title, content, createdByAi}]
+   */
+  async generateTaskSuggestions(recordingId) {
+    try {
+      const txt = await recordingsService.getTranscriptionTxt(recordingId);
+      if (!txt) {
+        throw new Error('No se pudo obtener el texto de la transcripción');
+      }
+
+      const combinedPrompt = `${taskSuggestionsPrompt}\n${txt}\n${taskSuggestionsPromptSuffix}`;
+      const response = await this._callAiProvider(combinedPrompt, null, { format: 'json' });
+
+      let extractedTasks = [];
+      try {
+        let cleanText = response.text.trim();
+        cleanText = cleanText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+        cleanText = cleanText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
+        const firstBracket = cleanText.indexOf('[');
+        const lastBracket = cleanText.lastIndexOf(']');
+
+        if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+          cleanText = cleanText.substring(firstBracket, lastBracket + 1);
+          extractedTasks = JSON.parse(cleanText);
+        } else {
+          extractedTasks = JSON.parse(cleanText);
+        }
+
+        // Normalizar objeto envolvente con distintas claves posibles
+        if (!Array.isArray(extractedTasks) && extractedTasks && typeof extractedTasks === 'object') {
+          extractedTasks = extractedTasks.tasks || extractedTasks.tareas || extractedTasks.items || extractedTasks.data || [];
+        }
+
+        if (!Array.isArray(extractedTasks)) {
+          extractedTasks = [];
+        }
+      } catch (e) {
+        console.error('Error parseando sugerencias de tareas JSON:', e);
+        extractedTasks = [];
+      }
+
+      const validLayers = ['frontend', 'backend', 'fullstack'];
+      return extractedTasks
+        .filter(t => t && typeof t === 'object' && (t.title || t.titulo || t.nombre || t.name))
+        .map(t => {
+          // Normalizar título — acepta cualquier variante que devuelva el modelo
+          const title = (t.title || t.titulo || t.nombre || t.name || '').trim();
+          // Normalizar contenido — concatenar descripción + detalles si ambos existen
+          const desc = (t.content || t.description || t.descripcion || t.detalles || t.detail || '').trim();
+          const extra = (t.detalles && t.descripcion && t.detalles !== t.descripcion)
+            ? `\n\n${t.detalles.trim()}`
+            : '';
+          const content = desc + extra;
+          // Normalizar capa
+          const rawLayer = (t.layer || t.capa || t.tipo || 'general').toLowerCase().trim();
+          const layer = validLayers.includes(rawLayer) ? rawLayer : 'general';
+          return { title, content, layer, createdByAi: true };
+        });
+    } catch (error) {
+      console.error('Error generando sugerencias de tareas:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mejora una tarea individual usando IA con instrucciones del usuario
+   * @param {Object} task - Tarea a mejorar {id, title, content}
+   * @param {string} userInstructions - Instrucciones del usuario
+   * @returns {Promise<Object>} Tarea mejorada con id preservado
+   */
+  async improveTaskSuggestion(task, userInstructions) {
+    try {
+      const prompt = taskImprovementPrompt(userInstructions);
+      const fullPrompt = `${prompt}\n${JSON.stringify({ title: task.title, content: task.content }, null, 2)}`;
+
+      const response = await this._callAiProvider(fullPrompt, null, { format: 'json' });
+
+      let improved = null;
+      try {
+        let cleanText = response.text.trim();
+        cleanText = cleanText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+        cleanText = cleanText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
+        const firstBrace = cleanText.indexOf('{');
+        const lastBrace = cleanText.lastIndexOf('}');
+
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+          improved = JSON.parse(cleanText);
+        } else {
+          improved = JSON.parse(cleanText);
+        }
+      } catch (e) {
+        console.error('Error parseando tarea mejorada:', e);
+        throw new Error('No se pudo parsear la respuesta de IA');
+      }
+
+      return {
+        ...task,
+        title: (improved.title || task.title).trim(),
+        content: (improved.content || task.content).trim()
+      };
+    } catch (error) {
+      console.error('Error mejorando tarea:', error);
       throw error;
     }
   }

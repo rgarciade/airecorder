@@ -324,6 +324,65 @@ class RecordingsService {
   }
 
   /**
+   * Obtiene las sugerencias de tareas de una grabación
+   */
+  async getTaskSuggestions(dbId) {
+    try {
+      if (!window.electronAPI?.getTaskSuggestions) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.getTaskSuggestions(dbId);
+      if (!result.success) return [];
+      return result.tasks;
+    } catch (error) {
+      console.error('Error leyendo sugerencias de tareas:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Añade una sugerencia de tarea a la base de datos
+   */
+  async addTaskSuggestion(dbId, title, content, layer = 'general', createdByAi = true) {
+    try {
+      if (!window.electronAPI?.addTaskSuggestion) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.addTaskSuggestion(dbId, title, content, layer, createdByAi);
+      if (!result.success) return null;
+      return result.task;
+    } catch (error) {
+      console.error('Error añadiendo sugerencia de tarea:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Actualiza una sugerencia de tarea existente
+   */
+  async updateTaskSuggestion(id, title, content, layer = 'general') {
+    try {
+      if (!window.electronAPI?.updateTaskSuggestion) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.updateTaskSuggestion(id, title, content, layer);
+      if (!result.success) return null;
+      return result.task;
+    } catch (error) {
+      console.error('Error actualizando sugerencia de tarea:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Elimina una sugerencia de tarea
+   */
+  async deleteTaskSuggestion(id) {
+    try {
+      if (!window.electronAPI?.deleteTaskSuggestion) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.deleteTaskSuggestion(id);
+      return result.success;
+    } catch (error) {
+      console.error('Error eliminando sugerencia de tarea:', error);
+      return false;
+    }
+  }
+
+  /**
    * Lee los participantes de la reunión
    */
   async getParticipants(recordingId) {

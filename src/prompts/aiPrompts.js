@@ -80,6 +80,55 @@ RECORDATORIO FINAL:
 Basado en la transcripción anterior, genera ÚNICAMENTE el array JSON con los participantes encontrados. Si no hay, devuelve [].
 `;
 
+// Prompts para sugerencias de tareas
+export const taskSuggestionsPrompt = `Eres un asistente técnico. Analiza la siguiente transcripción y genera una lista de tareas de desarrollo de software.
+
+REGLAS OBLIGATORIAS:
+1. Genera entre 3 y 5 tareas DISTINTAS. Cada tarea debe hablar de un tema diferente. PROHIBIDO repetir el mismo tema.
+2. Agrupa cambios relacionados en UNA sola tarea en lugar de crear varias pequeñas.
+3. El campo "layer" SOLO puede tener uno de estos tres valores exactos: "frontend", "backend" o "fullstack". NO uses ningún otro valor.
+   - "backend" = lógica de servidor, base de datos, APIs, servicios
+   - "frontend" = interfaz de usuario, componentes visuales, formularios
+   - "fullstack" = requiere cambios tanto en servidor como en interfaz
+4. Si una funcionalidad necesita cambios en front Y en back, crea DOS tareas con el mismo prefijo: "NombreGrupo: tarea backend" y "NombreGrupo: tarea frontend".
+5. El campo "content" debe incluir: una frase de contexto + lista de puntos con "- ".
+6. RESPONDE SOLO con el JSON, sin texto adicional.
+7. RESPONDE EN ESPAÑOL.
+
+FORMATO EXACTO:
+[{"title": "Título accionable", "content": "Contexto.\\n\\n- Punto 1\\n- Punto 2", "layer": "backend"}]
+
+EJEMPLO CORRECTO:
+[
+  {"title": "Tipos de IP: Actualizar lógica del servidor", "content": "Modificar el backend para soportar los tres tipos de IP (Report IT, Population IT, EUC).\\n\\n- Añadir los nuevos tipos al modelo de datos\\n- Restringir el generador de IP solo a Report IT\\n- Actualizar validaciones y tests", "layer": "backend"},
+  {"title": "Tipos de IP: Actualizar tabla en interfaz", "content": "Adaptar la vista para mostrar y diferenciar los tres tipos de IP.\\n\\n- Mostrar los tres tipos en la tabla con columna de tipo\\n- Ocultar botón 'Generar IP' para Population IT y EUC\\n- Añadir filtro por tipo", "layer": "frontend"},
+  {"title": "Configurar entorno de staging", "content": "Preparar un entorno de pruebas aislado previo a producción.\\n\\n- Crear rama de staging en el repositorio\\n- Configurar variables de entorno específicas\\n- Conectar con pipeline de CI", "layer": "fullstack"}
+]
+
+A CONTINUACIÓN, LA TRANSCRIPCIÓN:
+`;
+
+export const taskSuggestionsPromptSuffix = `
+----------------------------------------------------------------------------------
+RECORDATORIO FINAL: Devuelve ÚNICAMENTE el array JSON. El campo "layer" SOLO puede ser "frontend", "backend" o "fullstack". Mínimo 3, máximo 5 tareas bien diferenciadas.
+`;
+
+export const taskImprovementPrompt = (userInstructions) => `TU TAREA: Mejorar la siguiente tarea siguiendo las instrucciones del usuario.
+
+INSTRUCCIONES DE FORMATO JSON ESTRICTO:
+1. Responde SOLAMENTE con un bloque de código JSON válido.
+2. NO incluyas texto antes ni después.
+3. Formato: {"title": "X", "content": "Y"}
+4. El title debe ser corto, accionable y en imperativo.
+5. El content debe ser una descripción detallada, clara y accionable.
+6. RESPONDE EN ESPAÑOL.
+
+INSTRUCCIONES DEL USUARIO:
+${userInstructions}
+
+TAREA A MEJORAR:
+`;
+
 // Prompts para proyectos (futuro)
 export const projectPrompts = {
   summary: `Analiza todas las grabaciones del proyecto y genera un resumen ejecutivo que incluya:

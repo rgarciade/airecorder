@@ -43,8 +43,8 @@
 
 .connector {
   position: absolute;
-  left: 11px;
-  top: 32px;
+  left: -13px;
+  top: 24px;
   width: 2px;
   height: calc(100% + 8px);
   background: #E5E7EB;

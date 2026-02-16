@@ -263,5 +263,39 @@ module.exports = {
 
   SELECT_CHAT_MESSAGES: `
     SELECT * FROM project_messages WHERE chat_id = ? ORDER BY created_at ASC;
+  `,
+
+  // ========================================
+  // SUGERENCIAS DE TAREAS
+  // ========================================
+
+  CREATE_TABLE_TASK_SUGGESTIONS: `
+    CREATE TABLE IF NOT EXISTS task_suggestions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      recording_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT,
+      layer TEXT DEFAULT 'general',
+      created_by_ai INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (recording_id) REFERENCES recordings(id) ON DELETE CASCADE
+    );
+  `,
+
+  INSERT_TASK_SUGGESTION: `
+    INSERT INTO task_suggestions (recording_id, title, content, layer, created_by_ai) VALUES (?, ?, ?, ?, ?);
+  `,
+
+  UPDATE_TASK_SUGGESTION: `
+    UPDATE task_suggestions SET title = ?, content = ?, layer = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;
+  `,
+
+  DELETE_TASK_SUGGESTION: `
+    DELETE FROM task_suggestions WHERE id = ?;
+  `,
+
+  SELECT_TASK_SUGGESTIONS: `
+    SELECT * FROM task_suggestions WHERE recording_id = ? ORDER BY created_at ASC;
   `
 };

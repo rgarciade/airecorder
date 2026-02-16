@@ -11,6 +11,7 @@ import recordingAiService from '../../services/recordingAiService';
 import styles from './RecordingDetail.module.css';
 import OverviewTab from './components/OverviewTab/OverviewTab';
 import TranscriptionChatTab from './components/TranscriptionChatTab/TranscriptionChatTab';
+import EpicsTab from './components/EpicsTab/EpicsTab';
 
 // Icons
 import { 
@@ -38,7 +39,7 @@ const whisperModels = [
 
 export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject }) {
   // --- STATE MANAGEMENT ---
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'transcription'
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'transcription' | 'tasks'
   
   // Data State
   const [localRecording, setLocalRecording] = useState(recording);
@@ -51,6 +52,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [geminiData, setGeminiData] = useState({ resumen_breve: '', ideas: [] });
   const [detailedSummary, setDetailedSummary] = useState('');
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+
+  // Tasks State
+  const [tasks, setTasks] = useState([]);
+  const [isGeneratingTasks, setIsGeneratingTasks] = useState(false);
+  const [improvingTaskId, setImprovingTaskId] = useState(null);
+  const [newTaskIds, setNewTaskIds] = useState(new Set());
 
   // Chat State
   const [qaHistory, setQaHistory] = useState([]);
@@ -148,6 +155,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         const savedParticipants = await recordingsService.getParticipants(recording.id);
         if (savedParticipants && savedParticipants.length > 0) {
           setParticipants(savedParticipants);
+        }
+
+        // Load Task Suggestions
+        if (recording.dbId) {
+          const savedTasks = await recordingsService.getTaskSuggestions(recording.dbId);
+          if (savedTasks && savedTasks.length > 0) {
+            setTasks(savedTasks);
+          }
         }
 
         // Load Summary
@@ -406,6 +421,70 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
   };
 
+  // --- TASK SUGGESTION HANDLERS ---
+
+  const handleGenerateTasks = async () => {
+    if (!recording.dbId) return;
+    setIsGeneratingTasks(true);
+    try {
+      const newTasksData = await recordingAiService.generateTaskSuggestions(recording.id);
+      const addedTasks = [];
+      for (const t of newTasksData) {
+        const saved = await recordingsService.addTaskSuggestion(recording.dbId, t.title, t.content, t.layer || 'general', true);
+        if (saved) addedTasks.push(saved);
+      }
+      setTasks(prev => [...prev, ...addedTasks]);
+      setNewTaskIds(prev => new Set([...prev, ...addedTasks.map(t => t.id)]));
+    } catch (error) {
+      console.error('Error generando tareas:', error);
+      alert('Error al generar tareas: ' + error.message);
+    } finally {
+      setIsGeneratingTasks(false);
+    }
+  };
+
+  const handleCreateTask = async (taskData) => {
+    if (!recording.dbId) return;
+    const saved = await recordingsService.addTaskSuggestion(recording.dbId, taskData.title, taskData.content, taskData.layer || 'general', false);
+    if (saved) {
+      setTasks(prev => [...prev, saved]);
+      setNewTaskIds(prev => new Set([...prev, saved.id]));
+    }
+  };
+
+  const handleUpdateTask = async (updatedTask) => {
+    const saved = await recordingsService.updateTaskSuggestion(updatedTask.id, updatedTask.title, updatedTask.content, updatedTask.layer || 'general');
+    if (saved) setTasks(prev => prev.map(t => t.id === updatedTask.id ? saved : t));
+  };
+
+  const handleImproveTask = async (taskId, userInstructions) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    setImprovingTaskId(taskId);
+    try {
+      const improved = await recordingAiService.improveTaskSuggestion(task, userInstructions);
+      const saved = await recordingsService.updateTaskSuggestion(taskId, improved.title, improved.content, task.layer || 'general');
+      if (saved) setTasks(prev => prev.map(t => t.id === taskId ? saved : t));
+    } catch (error) {
+      console.error('Error mejorando tarea:', error);
+      alert('Error al mejorar tarea: ' + error.message);
+    } finally {
+      setImprovingTaskId(null);
+    }
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    await recordingsService.deleteTaskSuggestion(taskId);
+    setTasks(prev => prev.filter(t => t.id !== taskId));
+  };
+
+  const handleBulkDeleteTasks = async (ids) => {
+    for (const id of ids) {
+      await recordingsService.deleteTaskSuggestion(id);
+    }
+    setTasks(prev => prev.filter(t => !ids.includes(t.id)));
+  };
+
   const handleSaveTitle = async () => {
     if (!editedTitle.trim()) return;
     try {
@@ -616,18 +695,24 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         >
           Overview
         </button>
-        <button 
+        <button
           className={`${styles.tabButton} ${activeTab === 'transcription' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('transcription')}
         >
           Transcription & AI Chat
         </button>
+        <button
+          className={`${styles.tabButton} ${activeTab === 'tasks' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('tasks')}
+        >
+          Tareas{tasks.length > 0 ? ` (${tasks.length})` : ''}
+        </button>
       </nav>
 
       {/* Main Content */}
       <div className={styles.mainContent}>
-        {activeTab === 'overview' ? (
-          <OverviewTab 
+        {activeTab === 'overview' && (
+          <OverviewTab
             summary={geminiData.resumen_breve}
             detailedSummary={detailedSummary}
             highlights={geminiData.ideas}
@@ -637,8 +722,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             onUpdateParticipant={handleUpdateParticipant}
             isGeneratingAi={isGeneratingAi}
           />
-        ) : (
-          <TranscriptionChatTab 
+        )}
+        {activeTab === 'transcription' && (
+          <TranscriptionChatTab
             transcription={transcription}
             transcriptionLoading={transcriptionLoading}
             transcriptionError={transcriptionError}
@@ -655,6 +741,21 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
               ollamaModels: ollamaModels,
               selectedOllamaModel: selectedOllamaModel
             }}
+          />
+        )}
+        {activeTab === 'tasks' && (
+          <EpicsTab
+            tasks={tasks}
+            isGenerating={isGeneratingTasks}
+            hasTranscription={!!transcription}
+            onGenerateMore={handleGenerateTasks}
+            onCreateTask={handleCreateTask}
+            onUpdateTask={handleUpdateTask}
+            onImproveTask={handleImproveTask}
+            onDeleteTask={handleDeleteTask}
+            onBulkDeleteTasks={handleBulkDeleteTasks}
+            improvingTaskId={improvingTaskId}
+            newTaskIds={newTaskIds}
           />
         )}
       </div>
