@@ -1,0 +1,181 @@
+.card {
+  background-color: white;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  /* overflow: hidden; */ /* Removido para permitir que el dropdown sea visible */
+  display: flex;
+  flex-direction: column;
+  min-height: 240px; /* Asegura una altura mínima constante */
+}
+
+.cardContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+  border-color: #3994EF;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(57, 148, 239, 0.1);
+  color: #3994EF;
+  transition: transform 0.3s ease;
+}
+
+.card:hover .icon {
+  transform: scale(1.1);
+}
+
+.optionsBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9CA3AF;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.optionsBtn:hover {
+  background-color: #F3F4F6;
+  color: #1F2937;
+}
+
+.optionsWrapper {
+  position: relative;
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  width: 160px;
+  background-color: white;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  z-index: 10;
+  padding: 4px;
+}
+
+.dropdownItem {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  color: #374151;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.2s;
+}
+
+.dropdownItem:hover {
+  background-color: #F3F4F6;
+}
+
+.deleteItem {
+  color: #EF4444;
+}
+
+.deleteItem:hover {
+  background-color: #FEF2F2;
+}
+
+.title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px 0;
+  transition: color 0.2s;
+}
+
+.card:hover .title {
+  color: #3994EF;
+}
+
+.description {
+  font-size: 0.875rem;
+  color: #6B7280;
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid #F3F4F6;
+  height: 40px; /* Fixed height */
+  box-sizing: border-box;
+}
+
+.recordingsCount {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10B981; /* Green: Updated */
+}
+
+.statusDot.needsUpdate {
+  background-color: #F59E0B; /* Orange: Needs update */
+}
+
+.statusText {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6B7280;
+}
+
+.date {
+  font-size: 0.75rem;
+  color: #9CA3AF;
+}

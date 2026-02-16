@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "electron:dev": "NODE_ENV=development electron .",
     "electron:build": "vite build && electron-builder --mac",
-    "electron:build:dir": "vite build && electron-builder --mac --dir"
+    "electron:build:dir": "vite build && electron-builder --mac --dir",
+    "reset:onboarding": "node scripts/reset-onboarding.js",
+    "rebuild": "electron-rebuild --arch=arm64"
   },
   "build": {
     "appId": "com.airecorder.app",
@@ -27,7 +29,10 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ],
       "category": "public.app-category.productivity",
@@ -38,13 +43,20 @@
   "author": "Raul Garcia",
   "dependencies": {
     "@reduxjs/toolkit": "^2.8.2",
+    "better-sqlite3": "^12.6.2",
+    "data_file_database": "^1.0.2",
     "ffmpeg-static": "^5.2.0",
+    "howler": "^2.2.4",
     "node-audiorecorder": "^3.0.0",
     "node-microphone": "^0.1.6",
     "node-record-lpcm16": "^1.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-icons": "^5.5.0",
+    "react-markdown": "^10.1.0",
     "react-redux": "^9.2.0",
+    "react-router-dom": "^7.10.1",
+    "remark-gfm": "^4.0.1",
     "sox-audio": "^0.3.0",
     "wav": "^1.0.2"
   },
@@ -56,6 +68,7 @@
     "concurrently": "^8.2.2",
     "electron": "^29.1.4",
     "electron-builder": "^26.0.12",
+    "electron-rebuild": "^3.2.9",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.34.0",
     "eslint-plugin-react-hooks": "^4.6.0",

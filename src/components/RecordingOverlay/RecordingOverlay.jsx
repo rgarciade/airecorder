@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { saveAndExit } from '../../store/recordingSlice';
 import styles from './RecordingOverlay.module.css';
+import ProjectSelector from '../ProjectSelector/ProjectSelector';
+import projectsService from '../../services/projectsService';
+import recordingsService from '../../services/recordingsService';
+import { MdStop, MdExpandMore, MdDeleteOutline } from 'react-icons/md';
 
 const RecordingOverlay = ({ recorder, onFinish }) => {
   const dispatch = useDispatch();
@@ -12,6 +16,16 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
   const [showProcessing, setShowProcessing] = useState(false);
   const [processingComplete, setProcessingComplete] = useState(false);
   const [isDiscarding, setIsDiscarding] = useState(false);
+  const [showProjectSelector, setShowProjectSelector] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [recordingId, setRecordingId] = useState(null);
+  const [dbId, setDbId] = useState(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [newName, setNewName] = useState('');
+  
+  // Expanded State
+  const [isExpanded, setIsExpanded] = useState(false);
+  const interactionTimerRef = useRef(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -21,49 +35,111 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
     return () => clearInterval(interval);
   }, []);
 
+  // Auto-collapse logic
+  useEffect(() => {
+    const resetTimer = () => {
+      if (interactionTimerRef.current) clearTimeout(interactionTimerRef.current);
+      if (isExpanded) {
+        interactionTimerRef.current = setTimeout(() => {
+          setIsExpanded(false);
+        }, 20000); // 20s inactivity
+      }
+    };
+
+    if (isExpanded) {
+      window.addEventListener('mousemove', resetTimer);
+      window.addEventListener('click', resetTimer);
+      window.addEventListener('keydown', resetTimer);
+      resetTimer(); // Start timer
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', resetTimer);
+      window.removeEventListener('click', resetTimer);
+      window.removeEventListener('keydown', resetTimer);
+      if (interactionTimerRef.current) clearTimeout(interactionTimerRef.current);
+    };
+  }, [isExpanded]);
+
   const formatTime = (seconds) => {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    
+
     if (hrs > 0) {
       return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleFinish = () => {
+  const handleFinish = (e) => {
+    if(e) e.stopPropagation();
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    setFileName(`grabacion_${timestamp}`);
-    setShowSaveDialog(true);
+    const defaultName = `grabacion_${timestamp}`;
+    setFileName(defaultName);
+    setNewName(defaultName);
+    handleSave(defaultName);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (nameToSave) => {
     setShowSaveDialog(false);
     setShowProcessing(true);
-    
+
     try {
-      // Usar el nuevo método stopAndSave con nombre personalizado
-      await recorder.stopAndSave(fileName);
-      
+      const data = await recorder.stopAndSave(nameToSave);
+
       setProcessingComplete(true);
+      setRecordingId(nameToSave);
+      setDbId(data.dbId);
+
       setTimeout(() => {
         setShowProcessing(false);
         setProcessingComplete(false);
-        // Actualizar Redux para cerrar el overlay
-        dispatch(saveAndExit(fileName));
-        onFinish();
-      }, 2000);
+        setShowDetailsDialog(true);
+      }, 1500);
     } catch (error) {
       console.error('Error al guardar:', error);
       setShowProcessing(false);
-      // Aunque haya error, cerrar el overlay
       dispatch(saveAndExit(''));
       onFinish();
     }
   };
 
-  const handleDiscard = () => {
+  const handleProjectSelected = (project) => {
+    if (project) {
+      setSelectedProject(project);
+    }
+    setShowProjectSelector(false);
+  };
+
+  const handleSaveDetails = async () => {
+    let finalName = fileName;
+
+    if (newName && newName.trim() !== fileName) {
+      try {
+        const result = await recordingsService.renameRecording(fileName, newName.trim());
+        if (result) {
+          finalName = newName.trim();
+        }
+      } catch (error) {
+        console.error('Error al renombrar:', error);
+      }
+    }
+
+    if (selectedProject && dbId) {
+      try {
+        await projectsService.addRecordingToProject(selectedProject.id, dbId);
+      } catch (error) {
+        console.error('Error al agregar grabación al proyecto:', error);
+      }
+    }
+
+    dispatch(saveAndExit(finalName));
+    onFinish();
+  };
+
+  const handleDiscard = (e) => {
+    if(e) e.stopPropagation();
     setShowDiscardDialog(true);
   };
 
@@ -71,29 +147,29 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
     setShowDiscardDialog(false);
     setIsDiscarding(true);
     setShowProcessing(true);
-    
-    // Detener la grabación sin guardar
-    if (recorder && recorder.stopMixedRecording) {
+
+    if (recorder && recorder.stopAndDiscard) {
+      recorder.stopAndDiscard();
+    } else if (recorder && recorder.stopMixedRecording) {
       recorder.stopMixedRecording();
     }
-    
+
     setTimeout(() => {
       setShowProcessing(false);
       setIsDiscarding(false);
-      // Actualizar Redux para cerrar el overlay
       dispatch(saveAndExit(''));
       onFinish();
     }, 1000);
   };
 
-  const generateBars = () => {
-    return Array.from({ length: 20 }, (_, i) => (
-      <div 
-        key={i} 
+  const generateBars = (count) => {
+    return Array.from({ length: count }, (_, i) => (
+      <div
+        key={i}
         className={styles.bar}
         style={{
-          animationDelay: `${i * 0.15}s`,
-          animationDuration: `${1.5 + (i % 3) * 0.3}s`
+          animationDelay: `${i * 0.1}s`,
+          animationDuration: `${0.8 + Math.random() * 0.5}s` // Randomize slightly
         }}
       />
     ));
@@ -101,72 +177,119 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
 
   return (
     <>
-      <div className={styles.overlay}>
+      <div 
+        className={`${styles.overlay} ${isExpanded ? styles.overlayExpanded : styles.overlayMinimized}`}
+        onClick={() => !isExpanded && setIsExpanded(true)}
+      >
         <div className={styles.container}>
-          <div className={styles.content}>
-            <div className={styles.indicator}></div>
-            
-            <div className={styles.visualizer}>
-              {generateBars()}
-            </div>
-            
-            <div className={styles.time}>
-              {formatTime(time)}
-            </div>
-            
-            <div className={styles.controls}>
-              <button 
-                className={`${styles.button} ${styles.finishButton}`}
-                onClick={handleFinish}
-                title="Finalizar y guardar"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <rect x="6" y="4" width="4" height="16" />
-                  <rect x="14" y="4" width="4" height="16" />
-                </svg>
-              </button>
+          {isExpanded ? (
+            // --- EXPANDED CARD ---
+            <div className={styles.expandedContent}>
+              <div className={styles.cardHeader}>
+                <div className={styles.headerInfo}>
+                  <div className={styles.dot}></div>
+                  <span className={styles.recordingTitle}>New Recording</span>
+                </div>
+                <div className={styles.headerRight}>
+                  <span className={styles.timerBadge}>{formatTime(time)}</span>
+                  <button 
+                    className={styles.collapseBtn}
+                    onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }}
+                  >
+                    <MdExpandMore size={20} />
+                  </button>
+                </div>
+              </div>
               
+              <div className={styles.statusLabel}>RECORDING</div>
+              
+              <div className={styles.visualizerLarge}>
+                {generateBars(30)}
+              </div>
+
+              <div className={styles.cardActions}>
+                <button className={styles.btnCancel} onClick={handleDiscard}>
+                  <MdDeleteOutline size={18} /> Cancel
+                </button>
+                <button className={styles.btnStopSave} onClick={handleFinish}>
+                  <MdStop size={20} /> Stop & Save
+                </button>
+              </div>
+            </div>
+          ) : (
+            // --- MINIMIZED CAPSULE ---
+            <div className={styles.minimizedContent}>
+              <div className={styles.dot}></div>
+              <div className={styles.capsuleInfo}>
+                <span className={styles.capsuleLabel}>RECORDING</span>
+                <span className={styles.capsuleTime}>{formatTime(time)}</span>
+              </div>
+              <div className={styles.visualizerSmall}>
+                {generateBars(8)}
+              </div>
               <button 
-                className={`${styles.button} ${styles.discardButton}`}
-                onClick={handleDiscard}
-                title="Descartar grabación"
+                className={styles.btnStopRound} 
+                onClick={handleFinish}
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M18.3 5.71a.996.996 0 0 0-1.41 0L12 10.59 7.11 5.7A.996.996 0 1 0 5.7 7.11L10.59 12 5.7 16.89a.996.996 0 1 0 1.41 1.41L12 13.41l4.89 4.89a.996.996 0 1 0 1.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z"/>
-                </svg>
+                <MdStop size={24} />
               </button>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Modal de guardado */}
-      {showSaveDialog && (
+      {/* --- MODALS --- */}
+      {showDetailsDialog && (
         <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
-            <h3>Guardar Grabación</h3>
-            <input
-              type="text"
-              value={fileName}
-              onChange={(e) => setFileName(e.target.value)}
-              placeholder="Nombre del archivo"
-              className={styles.input}
-            />
-            <div className={styles.modalButtons}>
-              <button 
-                onClick={() => setShowSaveDialog(false)}
-                className={styles.cancelButton}
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={handleSave}
-                className={styles.saveButton}
-                disabled={!fileName.trim()}
-              >
-                Guardar
-              </button>
-            </div>
+            <div className={styles.modal}>
+            
+            {!showProjectSelector ? (
+              // VISTA A: Formulario normal
+              <>
+                <h3>Detalles de la Grabación</h3>
+
+                <div className={styles.inputContainer}>
+                  <label className={styles.inputLabel}>Nombre</label>
+                  <input
+                    type="text"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="Nombre de la grabación"
+                    className={styles.input}
+                  />
+                </div>
+
+                <div className={styles.projectContainer}>
+                  <label className={styles.inputLabel}>Proyecto</label>
+                  <div className={styles.projectSelector}>
+                    <div className={styles.projectNameDisplay}>
+                      {selectedProject ? selectedProject.name : 'Sin proyecto asignado'}
+                    </div>
+                    <button
+                      onClick={() => setShowProjectSelector(true)}
+                      className={styles.projectChangeButton}
+                    >
+                      {selectedProject ? 'Cambiar' : 'Seleccionar'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className={styles.modalButtons}>
+                  <button onClick={handleSaveDetails} className={styles.saveButton}>
+                    Guardar y Salir
+                  </button>
+                </div>
+              </>
+            ) : (
+              // VISTA B: Selector de Proyectos Embedido
+              <ProjectSelector
+                embedded={true}
+                selectedProjectId={selectedProject?.id}
+                onSelect={handleProjectSelected}
+                onCancel={() => setShowProjectSelector(false)}
+              />
+            )}
+            
           </div>
         </div>
       )}
@@ -178,16 +301,10 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
             <h3>¿Detener sin guardar?</h3>
             <p>Se perderá la grabación actual.</p>
             <div className={styles.modalButtons}>
-              <button 
-                onClick={() => setShowDiscardDialog(false)}
-                className={styles.cancelButton}
-              >
+              <button onClick={() => setShowDiscardDialog(false)} className={styles.cancelButton}>
                 Cancelar
               </button>
-              <button 
-                onClick={confirmDiscard}
-                className={styles.discardModalButton}
-              >
+              <button onClick={confirmDiscard} className={styles.discardModalButton}>
                 Sí, detener
               </button>
             </div>
@@ -207,8 +324,7 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
             ) : (
               <>
                 <div className={styles.spinner}></div>
-                <p>{isDiscarding ? 'Deteniendo grabación...' : 'Guardando archivos separados...'}</p>
-                <p className={styles.subtitle}>Por favor, no cierres la aplicación</p>
+                <p>{isDiscarding ? 'Deteniendo grabación...' : 'Guardando archivos...'}</p>
               </>
             )}
           </div>
@@ -218,4 +334,4 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
   );
 };
 
-export default RecordingOverlay; 
+export default RecordingOverlay;

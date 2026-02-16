@@ -1,0 +1,388 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #F9FAFB;
+  overflow: hidden;
+}
+
+/* Header */
+.header {
+  height: 64px;
+  background-color: white;
+  border-bottom: 1px solid #E5E7EB;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+.backButton {
+  padding: 8px;
+  border-radius: 50%;
+  color: #6B7280;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.backButton:hover {
+  background-color: #F3F4F6;
+  color: #374151;
+}
+
+.titleSection {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.titleInput {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  border: 1px solid #3994EF;
+  border-radius: 4px;
+  padding: 0 8px;
+  outline: none;
+  background: white;
+  width: 300px;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 400px;
+}
+
+.editTitleBtn {
+  opacity: 1; /* Always visible */
+  color: #9CA3AF;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.titleGroup:hover .editTitleBtn {
+  opacity: 1;
+}
+
+.editTitleBtn:hover {
+  background-color: #F3F4F6;
+  color: #374151;
+}
+
+.deleteBtn {
+  opacity: 1; /* Always visible */
+  color: #EF4444; /* Red */
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.titleGroup:hover .deleteBtn {
+  opacity: 1;
+}
+
+.deleteBtn:hover {
+  background-color: #FEF2F2;
+  color: #DC2626;
+}
+
+/* Delete Modal Button */
+.deleteConfirmBtn {
+  padding: 8px 16px;
+  background-color: #EF4444;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.deleteConfirmBtn:hover {
+  background-color: #DC2626;
+}
+
+.statusBadge {
+  padding: 2px 8px;
+  background-color: #DCFCE7;
+  color: #15803D;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: 9999px;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin-top: 2px;
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.metaItem[title="View Project"]:hover {
+  text-decoration: underline;
+  opacity: 0.8;
+}
+
+.dotSeparator {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #CBD5E1;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.regenerateBtn {
+  color: #3994EF;
+  background-color: #EFF6FF;
+  border: 1px solid #DBEAFE;
+}
+
+.regenerateBtn:hover {
+  background-color: #DBEAFE;
+}
+
+.reTranscribeBtn {
+  background-color: #F3F4F6;
+  color: #4B5563;
+  border: 1px solid #E5E7EB;
+}
+
+.reTranscribeBtn:hover {
+  background-color: #E5E7EB;
+  color: #111827;
+}
+
+.shareBtn {
+  color: #3994EF;
+  background-color: transparent;
+}
+
+.shareBtn:hover {
+  background-color: #EFF6FF;
+}
+
+.exportBtn {
+  color: white;
+  background-color: #3994EF;
+  box-shadow: 0 4px 6px -1px rgba(57, 148, 239, 0.2);
+}
+
+.exportBtn:hover {
+  background-color: #2563EB;
+}
+
+/* Tabs */
+.tabsNav {
+  background-color: white;
+  border-bottom: 1px solid #E5E7EB;
+  padding: 0 24px;
+  display: flex;
+  gap: 32px;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.tabButton {
+  padding: 16px 4px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6B7280;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.tabButton:hover {
+  color: #374151;
+}
+
+.activeTab {
+  color: #3994EF;
+  border-bottom-color: #3994EF;
+}
+
+/* Main Content Area */
+.mainContent {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Modals (Reused styles for consistency) */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+
+.modalContent {
+  background-color: white;
+  border-radius: 16px;
+  padding: 32px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.modalTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 16px;
+}
+
+.modalText {
+  color: #4B5563;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.modalSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modalLabel {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.checkboxGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #4B5563;
+  cursor: pointer;
+}
+
+.checkboxLabel input {
+  accent-color: #3994EF;
+  width: 16px;
+  height: 16px;
+}
+
+.select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #111827;
+  outline: none;
+  background-color: #F9FAFB;
+}
+
+.select:focus {
+  border-color: #3994EF;
+  background-color: white;
+}
+
+.modalButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.cancelModalBtn {
+  padding: 8px 16px;
+  background-color: white;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  color: #374151;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.confirmModalBtn {
+  padding: 8px 16px;
+  background-color: #3994EF;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
