@@ -39,7 +39,12 @@ const {
   GET_QUEUE_HISTORY,
   GET_TASK_STATUS_BY_RECORDING,
   UPDATE_TRANSCRIPTION_MODEL,
-  UPDATE_DURATION
+  UPDATE_DURATION,
+  CREATE_TABLE_TASK_SUGGESTIONS,
+  INSERT_TASK_SUGGESTION,
+  UPDATE_TASK_SUGGESTION,
+  DELETE_TASK_SUGGESTION,
+  SELECT_TASK_SUGGESTIONS
 } = require('./queries');
 
 class DbService {
@@ -130,7 +135,19 @@ class DbService {
       
       this.db.prepare(CREATE_TABLE_CHATS).run();
       this.db.prepare(CREATE_TABLE_MESSAGES).run();
-      
+      this.db.prepare(CREATE_TABLE_TASK_SUGGESTIONS).run();
+
+      // Migración para añadir layer a task_suggestions si no existe
+      try {
+        const tsInfo = this.db.prepare("PRAGMA table_info(task_suggestions)").all();
+        if (tsInfo.length > 0 && !tsInfo.some(c => c.name === 'layer')) {
+          console.log('[DB] Añadiendo columna layer a task_suggestions...');
+          this.db.prepare("ALTER TABLE task_suggestions ADD COLUMN layer TEXT DEFAULT 'general'").run();
+        }
+      } catch (e) {
+        console.error('[DB] Error migrando task_suggestions:', e);
+      }
+
       console.log(`[DB] Inicializada en: ${dbPath}`);
       return true;
     } catch (error) {
@@ -413,6 +430,29 @@ class DbService {
     if (!this.db) return null;
     const { GET_TASK_BY_ID } = require('./queries');
     return this.db.prepare(GET_TASK_BY_ID).get(id);
+  }
+
+  // SUGERENCIAS DE TAREAS
+  getTaskSuggestions(recordingId) {
+    if (!this.db) return [];
+    return this.db.prepare(SELECT_TASK_SUGGESTIONS).all(recordingId);
+  }
+
+  addTaskSuggestion(recordingId, title, content, layer = 'general', createdByAi = 1) {
+    if (!this.db) return null;
+    const info = this.db.prepare(INSERT_TASK_SUGGESTION).run(recordingId, title, content || '', layer || 'general', createdByAi ? 1 : 0);
+    return this.db.prepare('SELECT * FROM task_suggestions WHERE id = ?').get(info.lastInsertRowid);
+  }
+
+  updateTaskSuggestion(id, title, content, layer = 'general') {
+    if (!this.db) return null;
+    this.db.prepare(UPDATE_TASK_SUGGESTION).run(title, content || '', layer || 'general', id);
+    return this.db.prepare('SELECT * FROM task_suggestions WHERE id = ?').get(id);
+  }
+
+  deleteTaskSuggestion(id) {
+    if (!this.db) return;
+    this.db.prepare(DELETE_TASK_SUGGESTION).run(id);
   }
 }
 

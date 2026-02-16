@@ -789,6 +789,54 @@ ipcMain.handle('get-participants', async (event, recordingId) => {
   }
 });
 
+// Obtener sugerencias de tareas
+ipcMain.handle('get-task-suggestions', async (event, recordingId) => {
+  try {
+    const numericId = parseInt(recordingId, 10);
+    if (isNaN(numericId)) return { success: false, error: 'ID inválido' };
+    const tasks = dbService.getTaskSuggestions(numericId);
+    return { success: true, tasks };
+  } catch (error) {
+    console.error('Error obteniendo sugerencias de tareas:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Añadir sugerencia de tarea
+ipcMain.handle('add-task-suggestion', async (event, recordingId, title, content, layer, createdByAi) => {
+  try {
+    const numericId = parseInt(recordingId, 10);
+    if (isNaN(numericId)) return { success: false, error: 'ID inválido' };
+    const task = dbService.addTaskSuggestion(numericId, title, content, layer || 'general', createdByAi !== false ? 1 : 0);
+    return { success: true, task };
+  } catch (error) {
+    console.error('Error añadiendo sugerencia de tarea:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Actualizar sugerencia de tarea
+ipcMain.handle('update-task-suggestion', async (event, id, title, content, layer) => {
+  try {
+    const task = dbService.updateTaskSuggestion(id, title, content, layer || 'general');
+    return { success: true, task };
+  } catch (error) {
+    console.error('Error actualizando sugerencia de tarea:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Eliminar sugerencia de tarea
+ipcMain.handle('delete-task-suggestion', async (event, id) => {
+  try {
+    dbService.deleteTaskSuggestion(id);
+    return { success: true };
+  } catch (error) {
+    console.error('Error eliminando sugerencia de tarea:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // Renombrar grabación
 ipcMain.handle('rename-recording', async (event, recordingId, newName) => {
   try {
