@@ -5,9 +5,8 @@
 
 import appSessionService from './appSessionService';
 import recordingsService from './recordingsService';
-import { getSettings } from './settingsService';
-import { sendToGemini } from './ai/geminiProvider';
-import { generateContent as ollamaGenerate } from './ai/ollamaProvider';
+import { callProvider } from './ai/providerRouter';
+import { cleanAiResponse, parseJsonArray, parseJsonObject } from '../utils/aiResponseParser';
 import { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt, participantsPrompt, participantsPromptSuffix, taskSuggestionsPrompt, taskSuggestionsPromptSuffix, taskImprovementPrompt } from '../prompts/aiPrompts';
 
 class RecordingAiService {
@@ -337,40 +336,17 @@ class RecordingAiService {
   /**
    * Llama al proveedor de IA configurado (Gemini u Ollama)
    * @private
-   * @param {string} prompt 
+   * @param {string} prompt
    * @param {string|null} context - Contexto opcional. Si es null, se asume que prompt ya tiene todo.
    * @param {Object} options - Opciones adicionales (ej: { format: 'json' })
-   * @returns {Promise<Object>} Respuesta de la IA
+   * @returns {Promise<Object>} Respuesta de la IA {text, provider}
    */
   async _callAiProvider(prompt, context, options = {}) {
-    const settings = await getSettings();
-    const provider = settings.aiProvider || 'gemini';
-
     let fullPrompt = prompt;
     if (context) {
       fullPrompt = `${prompt}\n\nTranscripción:\n${context}`;
     }
-
-    if (provider === 'ollama') {
-      const model = settings.ollamaModel;
-      if (!model) {
-        throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
-      }
-      const response = await ollamaGenerate(model, fullPrompt, options);
-      return {
-        text: response || 'Sin respuesta',
-        provider: 'ollama'
-      };
-    } else {
-      // Gemini
-      // Pasar true como segundo argumento para indicar que es un prompt "crudo"
-      const response = await sendToGemini(fullPrompt, true);
-      const text = response?.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta';
-      return {
-        text: text,
-        provider: 'gemini'
-      };
-    }
+    return await callProvider(fullPrompt, options);
   }
 
   /**
@@ -393,86 +369,54 @@ class RecordingAiService {
       // Llamar a la IA con contexto null y forzando formato JSON para Ollama
       const participantsResponse = await this._callAiProvider(combinedPrompt, null, { format: 'json' });
       
-      // Parsear respuesta JSON
-      let extractedParticipants = [];
-      try {
-        let cleanText = participantsResponse.text.trim();
-        
-        // 0. Limpiar etiquetas de pensamiento <think>...</think> (DeepSeek R1)
-        cleanText = cleanText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+      // Parsear respuesta JSON con utilidad centralizada
+      let extractedParticipants = parseJsonArray(
+        participantsResponse.text,
+        ['participants', 'participantes']
+      );
 
-        // 1. Limpieza básica de bloques de código Markdown
-        cleanText = cleanText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-        
-        // 2. Intentar extraer solo la parte del array JSON [...]
-        const firstBracket = cleanText.indexOf('[');
-        const lastBracket = cleanText.lastIndexOf(']');
-        
-        if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
-          cleanText = cleanText.substring(firstBracket, lastBracket + 1);
-          extractedParticipants = JSON.parse(cleanText);
-        } else {
-          // Si no hay corchetes, intentar parsear todo por si acaso
-          extractedParticipants = JSON.parse(cleanText);
-        }
-        
-        // Validar si es un objeto con clave "participants" (formato común de JSON mode)
-        if (!Array.isArray(extractedParticipants) && extractedParticipants && Array.isArray(extractedParticipants.participants)) {
-          extractedParticipants = extractedParticipants.participants;
-        }
-        
-        // Validar que sea un array final
-        if (!Array.isArray(extractedParticipants)) {
-          console.warn('La respuesta no es un array, usando array vacío');
-          extractedParticipants = [];
-        }
-      } catch (e) {
-        console.error('Error parseando participantes (JSON), intentando fallback:', e);
-        console.log('Texto recibido (limpio):', participantsResponse.text.replace(/<think>[\s\S]*?<\/think>/gi, ''));
-        
-        // --- FALLBACK: Extracción de listas Markdown (* Nombre, - Nombre, + Nombre) ---
-        const cleanResponseForFallback = participantsResponse.text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+      // Fallback: si parseJsonArray retorna vacío, intentar extracción por regex
+      if (extractedParticipants.length === 0) {
+        console.warn('Parsing JSON de participantes falló, intentando fallback regex...');
+        const cleanResponseForFallback = cleanAiResponse(participantsResponse.text);
         const lines = cleanResponseForFallback.split('\n');
         const listRegex = /^[\*\-\+]\s+([^\(:\n]+)(?:[\(:\s]+([^\)\n]+)\)?)?/;
-        
+
         const fallbackParticipants = [];
-        
+
         for (const line of lines) {
           const trimmedLine = line.trim();
-          
-          // Ignorar encabezados comunes
           if (trimmedLine.match(/^[\*\-]?\s*(Personajes|Participantes|Speakers|Nombres):/i)) continue;
 
           const match = trimmedLine.match(listRegex);
           if (match) {
             const name = match[1].trim();
             let role = match[2] ? match[2].trim() : 'Participante';
-            role = role.replace(/[\)\:]$/, ''); // Limpiar caracteres extra
-            
+            role = role.replace(/[\)\:]$/, '');
+
             if (name.length > 1 && !name.toLowerCase().includes("ninguno")) {
-               fallbackParticipants.push({ name, role });
+              fallbackParticipants.push({ name, role });
             }
           }
         }
-        
+
         if (fallbackParticipants.length > 0) {
           console.log('✅ Participantes extraídos vía Fallback (Regex):', fallbackParticipants);
           extractedParticipants = fallbackParticipants;
         } else {
-           // Último intento: búsqueda manual
-           try {
-              const text = cleanResponseForFallback;
-              const nameMatches = text.match(/"name"\s*:\s*"([^"]+)"/g);
-              const roleMatches = text.match(/"role"\s*:\s*"([^"]+)"/g);
-              
-              if (nameMatches && roleMatches && nameMatches.length === roleMatches.length) {
-                extractedParticipants = nameMatches.map((nameMatch, idx) => {
-                  const name = nameMatch.match(/"name"\s*:\s*"([^"]+)"/)[1];
-                  const role = roleMatches[idx].match(/"role"\s*:\s*"([^"]+)"/)[1];
-                  return { name, role };
-                });
-              }
-           } catch (manualError) { /* Ignorar error final */ }
+          // Último intento: búsqueda manual de pares "name":"value"
+          try {
+            const nameMatches = cleanResponseForFallback.match(/"name"\s*:\s*"([^"]+)"/g);
+            const roleMatches = cleanResponseForFallback.match(/"role"\s*:\s*"([^"]+)"/g);
+
+            if (nameMatches && roleMatches && nameMatches.length === roleMatches.length) {
+              extractedParticipants = nameMatches.map((nameMatch, idx) => {
+                const name = nameMatch.match(/"name"\s*:\s*"([^"]+)"/)[1];
+                const role = roleMatches[idx].match(/"role"\s*:\s*"([^"]+)"/)[1];
+                return { name, role };
+              });
+            }
+          } catch (manualError) { /* Ignorar error final */ }
         }
       }
       
@@ -530,34 +474,10 @@ class RecordingAiService {
       const combinedPrompt = `${taskSuggestionsPrompt}\n${txt}\n${taskSuggestionsPromptSuffix}`;
       const response = await this._callAiProvider(combinedPrompt, null, { format: 'json' });
 
-      let extractedTasks = [];
-      try {
-        let cleanText = response.text.trim();
-        cleanText = cleanText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-        cleanText = cleanText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-
-        const firstBracket = cleanText.indexOf('[');
-        const lastBracket = cleanText.lastIndexOf(']');
-
-        if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
-          cleanText = cleanText.substring(firstBracket, lastBracket + 1);
-          extractedTasks = JSON.parse(cleanText);
-        } else {
-          extractedTasks = JSON.parse(cleanText);
-        }
-
-        // Normalizar objeto envolvente con distintas claves posibles
-        if (!Array.isArray(extractedTasks) && extractedTasks && typeof extractedTasks === 'object') {
-          extractedTasks = extractedTasks.tasks || extractedTasks.tareas || extractedTasks.items || extractedTasks.data || [];
-        }
-
-        if (!Array.isArray(extractedTasks)) {
-          extractedTasks = [];
-        }
-      } catch (e) {
-        console.error('Error parseando sugerencias de tareas JSON:', e);
-        extractedTasks = [];
-      }
+      const extractedTasks = parseJsonArray(
+        response.text,
+        ['tasks', 'tareas', 'items', 'data']
+      );
 
       const validLayers = ['frontend', 'backend', 'fullstack'];
       return extractedTasks
@@ -595,23 +515,8 @@ class RecordingAiService {
 
       const response = await this._callAiProvider(fullPrompt, null, { format: 'json' });
 
-      let improved = null;
-      try {
-        let cleanText = response.text.trim();
-        cleanText = cleanText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-        cleanText = cleanText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-
-        const firstBrace = cleanText.indexOf('{');
-        const lastBrace = cleanText.lastIndexOf('}');
-
-        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-          cleanText = cleanText.substring(firstBrace, lastBrace + 1);
-          improved = JSON.parse(cleanText);
-        } else {
-          improved = JSON.parse(cleanText);
-        }
-      } catch (e) {
-        console.error('Error parseando tarea mejorada:', e);
+      const improved = parseJsonObject(response.text);
+      if (!improved) {
         throw new Error('No se pudo parsear la respuesta de IA');
       }
 
