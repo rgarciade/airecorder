@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useAiProcessing } from '../../contexts/AiProcessingContext';
 import recordingsService from '../../services/recordingsService';
 import projectsService from '../../services/projectsService';
 import { getSettings, updateSettings } from '../../services/settingsService';

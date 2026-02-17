@@ -1,11 +1,11 @@
 /**
  * Servicio para análisis IA del proyecto
- * Utiliza aiService (Gemini) para generar análisis reales basados en las grabaciones del proyecto
+ * Genera análisis reales basados en las grabaciones del proyecto
  */
 
-import { getSettings } from './settingsService';
-import { sendToGemini } from './ai/geminiProvider';
-import { generateContent as ollamaGenerate } from './ai/ollamaProvider';
+import { callProvider } from './ai/providerRouter';
+import { parseJsonObject } from '../utils/aiResponseParser';
+import { projectAnalysisPrompt } from '../prompts/aiPrompts';
 
 class ProjectAiService {
   constructor() {
@@ -71,21 +71,10 @@ class ProjectAiService {
 
         console.log(`Detectados cambios en grabaciones. Regenerando análisis de proyecto...`);
 
-        // Obtener resúmenes de cada grabación (y generarlos si faltan)
         const summaries = [];
-        const recordingsWithDates = []; // Para ordenar cronológicamente
+        const recordingsWithDates = [];
 
-        // Importar dinámicamente recordingsService para evitar ciclos si fuera necesario, 
-        // pero mejor usar window.electronAPI directamente para datos simples y 
-        // recordingsService para generación compleja si pudiéramos, pero services no se pueden importar circularmente fácil.
-        // Asumiremos que si falta el resumen, debemos generarlo.
-        // Como projectAiService no tiene acceso fácil a recordingsService (ciclo), 
-        // usaremos una estrategia: intentar obtener, si falla, marcar como pendiente.
-        // PERO el requerimiento dice "sino lo creas".
-        // Solución: Usar window.electronAPI para obtener, y si es null, necesitamos una forma de generarlo.
-        // La forma más limpia es mover generateFullAnalysis a una utilidad compartida o duplicar la lógica mínima,
-        // O mejor, invocar al contexto... no, el servicio no puede usar hooks.
-        // Vamos a importar recordingsService aquí, esperando que el sistema de módulos lo maneje (ESM lo permite).
+        // Importación dinámica para evitar ciclos de dependencia
         const { default: recordingsService } = await import('./recordingsService');
 
         const successfulRecordingIds = [];
@@ -204,10 +193,6 @@ class ProjectAiService {
    */
   async getProjectMembers(projectId) {
     try {
-      // 1. Obtener miembros guardados en DB (projects.json)
-      // Necesitamos acceder a projectsService o similar. 
-      // Como no podemos importar projectsService fácilmente por ciclos, usamos window.electronAPI si expusieramos getProject
-      // O importamos dinámicamente.
       const { default: projectsService } = await import('./projectsService');
       const projects = await projectsService.getProjects();
       const project = projects.find(p => p.id === projectId || p.id == projectId);
@@ -353,7 +338,7 @@ class ProjectAiService {
       }
 
       const prompt = `Actúa como un asistente experto en el proyecto. Utiliza el siguiente contexto para responder a la pregunta del usuario.
-      
+
 Contexto del Proyecto:
 ${contextText}
 
@@ -365,20 +350,8 @@ Instrucciones:
 2. Si la información no está en el contexto, indícalo educadamente.
 3. Utiliza formato Markdown para mejorar la legibilidad.`;
 
-      const settings = await getSettings();
-      const provider = settings.aiProvider || 'gemini';
-      let responseText = '';
-
-      if (provider === 'ollama') {
-        const model = settings.ollamaModel;
-        if (!model) throw new Error('No se ha seleccionado un modelo de Ollama');
-        responseText = await ollamaGenerate(model, prompt);
-      } else {
-        const result = await sendToGemini(prompt);
-        responseText = result?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      }
-
-      return responseText || "No he podido generar una respuesta en este momento.";
+      const result = await callProvider(prompt);
+      return result.text || "No he podido generar una respuesta en este momento.";
     } catch (error) {
       console.error('Error en askProjectQuestion:', error);
       return "Error al procesar la consulta con la IA.";
@@ -428,107 +401,24 @@ Instrucciones:
 
   /**
    * Genera el análisis del proyecto usando el proveedor configurado
-   * @param {string} contextText 
+   * @param {string} contextText
    * @returns {Promise<Object>}
    */
   async _generateProjectAnalysis(contextText) {
-    const settings = await getSettings();
-    const provider = settings.aiProvider || 'gemini';
+    const prompt = projectAnalysisPrompt(contextText);
+    const result = await callProvider(prompt);
 
-    const prompt = `Actúa como un Project Manager experto. A continuación te proporciono los resúmenes de varias reuniones/grabaciones asociadas a un proyecto.
-Están presentadas en ORDEN CRONOLÓGICO (de la más antigua a la más reciente).
-Tu tarea es analizar esta información en conjunto y generar un reporte de estado del proyecto actualizado.
-
-Información de las grabaciones:
-${contextText}
-
-Responde EXCLUSIVAMENTE en Español.
-
-Responde EXCLUSIVAMENTE con un objeto JSON (sin markdown, sin bloques de código) con la siguiente estructura exacta:
-{
-  "resumen_breve": "Un resumen ejecutivo de 2-3 frases sobre el estado general del proyecto.",
-  "resumen_extenso": "Un análisis detallado del progreso, logros recientes y estado actual.",
-  "miembros": [
-    {
-      "name": "Nombre detectado",
-      "role": "Rol inferido (ej: PM, Dev, Diseño, Cliente)",
-      "participaciones": 0, // Número aproximado de menciones o apariciones inferidas
-      "initials": "XX"
-    }
-  ],
-  "hitos": [
-    {
-      "semana": "Semana X",
-      "titulo": "Título del hito",
-      "descripcion": "Descripción breve",
-      "fecha": "YYYY-MM-DD (estimada o mencionada)",
-      "estado": "completado" | "en_progreso" | "pendiente",
-      "icono": "emoji"
-    }
-  ],
-  "detalles": {
-    "nombre_proyecto": "Nombre inferido o del contexto",
-    "estado": "En Progreso" | "Completado" | "Pausado" | "En Riesgo",
-    "fecha_inicio": "YYYY-MM-DD",
-    "fecha_finalizacion": "YYYY-MM-DD",
-    "presupuesto": "Cifra mencionada o 'No especificado'",
-    "duracion_prevista": "Tiempo estimado",
-    "proximo_hito": "Siguiente paso importante",
-    "fecha_proximo_hito": "YYYY-MM-DD"
-  }
-}
-
-Si falta información para algún campo, haz una estimación razonable basada en el contexto o usa "No especificado".`;
-
-    let responseText = '';
-
-    if (provider === 'ollama') {
-      const model = settings.ollamaModel;
-      if (!model) {
-        throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
-      }
-      responseText = await ollamaGenerate(model, prompt);
-    } else {
-      // Gemini
-      // Usamos sendToGemini del provider, pero necesitamos adaptar el prompt
-      // sendToGemini espera un prompt simple, pero aquí tenemos uno complejo.
-      // Mejor usar la lógica directa de llamada a API si sendToGemini es muy específico,
-      // o adaptar sendToGemini.
-      // Revisando geminiProvider.js (no geminiService.js), sendToGemini es genérico?
-      // En el import arriba usamos './ai/geminiProvider'.
-      // Vamos a asumir que sendToGemini acepta un string.
-      
-      // NOTA: El import original era de './geminiService' que tenía sendProjectAnalysisPrompt.
-      // Ahora importamos de './ai/geminiProvider' que tiene sendToGemini.
-      // Verifiquemos qué hace sendToGemini en ai/geminiProvider.js si existe, 
-      // o si deberíamos usar el de geminiService.js pero refactorizado.
-      
-      // Por seguridad, usaremos la implementación directa aquí o reutilizaremos la de geminiService
-      // si la refactorizamos. Pero como estamos en projectAiService, implementemos la llamada aquí
-      // para tener control total y no depender de geminiService.js que parece estar deprecado/mezclado.
-      
-      // Sin embargo, para no duplicar código de API Key y URL, lo ideal es usar un provider.
-      // Vamos a usar el sendToGemini que importamos.
-      
-      const result = await sendToGemini(prompt);
-      // sendToGemini devuelve el objeto completo de respuesta de la API
-      responseText = result?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    }
-
-    if (!responseText) {
+    if (!result.text || result.text === 'Sin respuesta') {
       throw new Error('Respuesta vacía del proveedor de IA');
     }
 
-    // Intentar parsear JSON
-    try {
-      // Limpiar markdown
-      const cleanText = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-      return JSON.parse(cleanText);
-    } catch (e) {
-      console.error('Error parseando JSON de análisis de proyecto:', e);
-      console.log('Texto recibido:', responseText);
+    const parsed = parseJsonObject(result.text);
+    if (!parsed) {
+      console.error('Error parseando JSON de análisis de proyecto. Texto recibido:', result.text);
       throw new Error('La IA no devolvió un JSON válido');
     }
+
+    return parsed;
   }
 
   /**

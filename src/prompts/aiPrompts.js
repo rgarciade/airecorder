@@ -129,6 +129,52 @@ ${userInstructions}
 TAREA A MEJORAR:
 `;
 
+// Prompt para análisis completo de proyecto basado en grabaciones
+export const projectAnalysisPrompt = (contextText) => `Actúa como un Project Manager experto. A continuación te proporciono los resúmenes de varias reuniones/grabaciones asociadas a un proyecto.
+Están presentadas en ORDEN CRONOLÓGICO (de la más antigua a la más reciente).
+Tu tarea es analizar esta información en conjunto y generar un reporte de estado del proyecto actualizado.
+
+Información de las grabaciones:
+${contextText}
+
+Responde EXCLUSIVAMENTE en Español.
+
+Responde EXCLUSIVAMENTE con un objeto JSON (sin markdown, sin bloques de código) con la siguiente estructura exacta:
+{
+  "resumen_breve": "Un resumen ejecutivo de 2-3 frases sobre el estado general del proyecto.",
+  "resumen_extenso": "Un análisis detallado del progreso, logros recientes y estado actual.",
+  "miembros": [
+    {
+      "name": "Nombre detectado",
+      "role": "Rol inferido (ej: PM, Dev, Diseño, Cliente)",
+      "participaciones": 0,
+      "initials": "XX"
+    }
+  ],
+  "hitos": [
+    {
+      "semana": "Semana X",
+      "titulo": "Título del hito",
+      "descripcion": "Descripción breve",
+      "fecha": "YYYY-MM-DD (estimada o mencionada)",
+      "estado": "completado" | "en_progreso" | "pendiente",
+      "icono": "emoji"
+    }
+  ],
+  "detalles": {
+    "nombre_proyecto": "Nombre inferido o del contexto",
+    "estado": "En Progreso" | "Completado" | "Pausado" | "En Riesgo",
+    "fecha_inicio": "YYYY-MM-DD",
+    "fecha_finalizacion": "YYYY-MM-DD",
+    "presupuesto": "Cifra mencionada o 'No especificado'",
+    "duracion_prevista": "Tiempo estimado",
+    "proximo_hito": "Siguiente paso importante",
+    "fecha_proximo_hito": "YYYY-MM-DD"
+  }
+}
+
+Si falta información para algún campo, haz una estimación razonable basada en el contexto o usa "No especificado".`;
+
 // Prompts para proyectos (futuro)
 export const projectPrompts = {
   summary: `Analiza todas las grabaciones del proyecto y genera un resumen ejecutivo que incluya:

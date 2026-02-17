@@ -1,9 +1,7 @@
 // Servicio unificado para gestionar llamadas a IA (Gemini u Ollama)
+// Wrapper sobre providerRouter para mantener compatibilidad con consumidores existentes
 
-import { getSettings } from './settingsService';
-import { generateContent as ollamaGenerate } from './ollamaService';
-
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+import { callProvider, validateProviderConfig } from './ai/providerRouter';
 
 /**
  * Procesa el texto de respuesta para extraer puntos clave en formato --|-- punto --|-- texto
@@ -15,7 +13,6 @@ function processResponseWithKeyPoints(text) {
     return { processedText: text, keyPoints: {} };
   }
 
-  // Buscar patrones de puntos clave: --|-- punto --|-- texto
   const keyPointPattern = /--\|--\s*([^|]+?)\s*--\|--\s*([^|]+?)(?=\s*--\|--|$)/g;
   const keyPoints = {};
   let processedText = text;
@@ -24,15 +21,13 @@ function processResponseWithKeyPoints(text) {
   while ((match = keyPointPattern.exec(text)) !== null) {
     const point = match[1].trim();
     const description = match[2].trim();
-    
+
     if (point && description) {
       keyPoints[point] = description;
     }
   }
 
-  // Si se encontraron puntos clave, limpiar el texto original
   if (Object.keys(keyPoints).length > 0) {
-    // Remover las líneas que contienen los puntos clave del texto principal
     processedText = text.replace(keyPointPattern, '').trim();
   }
 
@@ -45,20 +40,10 @@ function processResponseWithKeyPoints(text) {
  * @returns {Promise<Object>} Respuesta de la IA en formato normalizado
  */
 export async function generateContent(prompt) {
-  const settings = await getSettings();
-  const provider = settings.aiProvider || 'gemini';
+  const response = await callProvider(prompt);
 
-  let response;
-  if (provider === 'ollama') {
-    response = await generateWithOllama(prompt, settings);
-  } else if (provider === 'gemini'){
-    response = await generateWithGemini(prompt, settings);
-  }
-  
-
-  // Procesar la respuesta para extraer puntos clave
   const { processedText, keyPoints } = processResponseWithKeyPoints(response.text);
-  
+
   return {
     ...response,
     text: processedText,
@@ -78,88 +63,9 @@ export async function generateWithContext(prompt, transcriptionText) {
 }
 
 /**
- * Genera contenido usando Gemini
- * @private
- */
-async function generateWithGemini(prompt, settings) {
-  const GEMINI_API_KEY = settings.geminiApiKey;
-  
-  if (!GEMINI_API_KEY) {
-    throw new Error('No se ha configurado la Gemini API Key en los ajustes.');
-  }
-
-  const body = {
-    contents: [
-      { parts: [{ text: prompt }] }
-    ]
-  };
-
-  const response = await fetch(GEMINI_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-goog-api-key': GEMINI_API_KEY,
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Error en la API de Gemini: ${response.status}`);
-  }
-
-  const data = await response.json();
-  
-  // Normalizar respuesta de Gemini
-  return {
-    text: data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta',
-    provider: 'gemini',
-    rawData: data
-  };
-}
-
-/**
- * Genera contenido usando Ollama
- * @private
- */
-async function generateWithOllama(prompt, settings) {
-  const model = settings.ollamaModel;
-  
-  if (!model) {
-    throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
-  }
-console.log('Generating with Ollama', model, prompt);
-  const response = await ollamaGenerate(model, prompt);
-  
-  // Normalizar respuesta de Ollama
-  return {
-    text: response || 'Sin respuesta',
-    provider: 'ollama',
-    rawData: { response }
-  };
-}
-
-/**
  * Valida la configuración del proveedor de IA actual
  * @returns {Promise<Object>} {valid: boolean, error: string}
  */
 export async function validateAiConfig() {
-  try {
-    const settings = await getSettings();
-    const provider = settings.aiProvider || 'gemini';
-
-    if (provider === 'gemini') {
-      if (!settings.geminiApiKey) {
-        return { valid: false, error: 'Falta configurar la Gemini API Key' };
-      }
-    } else if (provider === 'ollama') {
-      if (!settings.ollamaModel) {
-        return { valid: false, error: 'Falta seleccionar un modelo de Ollama' };
-      }
-    }
-
-    return { valid: true, error: null };
-  } catch (error) {
-    return { valid: false, error: error.message };
-  }
+  return await validateProviderConfig();
 }
-
