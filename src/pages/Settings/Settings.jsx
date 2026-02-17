@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getSystemMicrophones } from '../../services/audioService';
 import { getSettings, updateSettings } from '../../services/settingsService';
-import { getAvailableModels, checkOllamaAvailability } from '../../services/ollamaService';
+import { getAvailableModels, checkOllamaAvailability } from '../../services/ai/ollamaProvider';
 import { 
   MdMic, MdClose, MdCloud, MdAutoAwesome, MdComputer, MdTerminal, 
   MdFolder, MdVisibility, MdVisibilityOff, MdRefresh, MdInfo, MdCheck,
