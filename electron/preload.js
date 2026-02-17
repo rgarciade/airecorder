@@ -66,6 +66,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Guardar y leer histórico de preguntas
   saveQuestionHistory: (recordingId, qa) => ipcRenderer.invoke('save-question-history', recordingId, qa),
   getQuestionHistory: (recordingId) => ipcRenderer.invoke('get-question-history', recordingId),
+  clearQuestionHistory: (recordingId) => ipcRenderer.invoke('clear-question-history', recordingId),
   // Guardar y leer participantes
   saveParticipants: (recordingId, participants) => ipcRenderer.invoke('save-participants', recordingId, participants),
   getParticipants: (recordingId) => ipcRenderer.invoke('get-participants', recordingId),

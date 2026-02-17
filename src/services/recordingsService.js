@@ -279,11 +279,28 @@ class RecordingsService {
     try {
       if (!window.electronAPI?.getQuestionHistory) throw new Error('API de Electron no disponible');
       const result = await window.electronAPI.getQuestionHistory(recordingId);
-      if (!result.success) return [];
+      if (!result.success) throw new Error(result.error);
       return result.history;
     } catch (error) {
-      console.error('Error leyendo histórico de preguntas:', error);
+      console.error('Error getting history:', error);
       return [];
+    }
+  }
+
+  /**
+   * Borra el historial de preguntas del chat
+   * @param {string|number} recordingId
+   * @returns {Promise<boolean>}
+   */
+  async clearQuestionHistory(recordingId) {
+    try {
+      if (!window.electronAPI?.clearQuestionHistory) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.clearQuestionHistory(recordingId);
+      if (!result.success) throw new Error(result.error);
+      return true;
+    } catch (error) {
+      console.error('Error clearing history:', error);
+      return false;
     }
   }
 

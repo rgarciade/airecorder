@@ -54,6 +54,51 @@ export async function checkOllamaAvailability(baseUrl = null) {
 }
 
 /**
+ * Verifica si un modelo de Ollama soporta streaming
+ * Hace una llamada de prueba con stream=true y verifica la respuesta
+ * @param {string} model - Nombre del modelo a verificar
+ * @param {string} [baseUrl] - URL base opcional
+ * @returns {Promise<boolean>} true si el modelo soporta streaming
+ */
+export async function checkModelSupportsStreaming(model, baseUrl = null) {
+  const url = await getBaseUrl(baseUrl);
+  try {
+    console.log(`🔍 Verificando soporte de streaming para modelo: ${model}`);
+    
+    const response = await fetch(`${url}/api/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: model,
+        prompt: 'Hi',
+        stream: true,
+      }),
+    });
+
+    if (!response.ok) {
+      console.log(`❌ Modelo ${model} no soporta streaming (status: ${response.status})`);
+      return false;
+    }
+
+    // Verificar si la respuesta es un stream (tiene body readable)
+    if (response.body && response.body.getReader) {
+      // Cancelar la respuesta inmediatamente, solo queríamos verificar
+      response.body.getReader().cancel();
+      console.log(`✅ Modelo ${model} SÍ soporta streaming`);
+      return true;
+    }
+
+    console.log(`❌ Modelo ${model} no soporta streaming (no hay body stream)`);
+    return false;
+  } catch (error) {
+    console.error(`❌ Error verificando streaming para modelo ${model}:`, error.message);
+    return false;
+  }
+}
+
+/**
  * Genera contenido usando un modelo de Ollama
  * Incluye reintentos automáticos para errores de red y errores 5xx
  * @param {string} model - Nombre del modelo a usar

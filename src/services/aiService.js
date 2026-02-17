@@ -1,7 +1,7 @@
 // Servicio unificado para gestionar llamadas a IA (Gemini u Ollama)
 // Wrapper sobre providerRouter para mantener compatibilidad con consumidores existentes
 
-import { callProvider, validateProviderConfig } from './ai/providerRouter';
+import { callProvider, callProviderStreaming, validateProviderConfig } from './ai/providerRouter';
 
 /**
  * Procesa el texto de respuesta para extraer puntos clave en formato --|-- punto --|-- texto
@@ -68,4 +68,17 @@ export async function generateWithContext(prompt, transcriptionText) {
  */
 export async function validateAiConfig() {
   return await validateProviderConfig();
+}
+
+/**
+ * Genera contenido con contexto de transcripción usando streaming
+ * Solo para uso en chat, cuando el modelo lo soporta
+ * @param {string} prompt - Prompt base
+ * @param {string} transcriptionText - Texto de la transcripción
+ * @param {Function} onChunk - Callback que recibe cada chunk de la respuesta
+ * @returns {Promise<Object>} Respuesta de la IA
+ */
+export async function generateWithContextStreaming(prompt, transcriptionText, onChunk) {
+  const fullPrompt = `${prompt}\n\nTranscripción:\n${transcriptionText}`;
+  return await callProviderStreaming(fullPrompt, onChunk);
 }

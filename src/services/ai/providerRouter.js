@@ -5,7 +5,7 @@
 
 import { getSettings } from '../settingsService';
 import { sendToGemini } from './geminiProvider';
-import { generateContent as ollamaGenerate } from './ollamaProvider';
+import { generateContent as ollamaGenerate, generateContentStreaming as ollamaGenerateStreaming } from './ollamaProvider';
 
 /**
  * Envía un prompt al proveedor de IA configurado en settings
@@ -58,4 +58,45 @@ export async function validateProviderConfig() {
   } catch (error) {
     return { valid: false, error: error.message };
   }
+}
+
+/**
+ * Envía un prompt al proveedor de IA configurado con soporte para streaming
+ * Solo Ollama soporta streaming actualmente
+ * @param {string} prompt - Prompt completo (ya construido con contexto si aplica)
+ * @param {Function} onChunk - Callback que recibe cada chunk de la respuesta
+ * @returns {Promise<{text: string, provider: string, streaming: boolean}>}
+ */
+export async function callProviderStreaming(prompt, onChunk) {
+  const settings = await getSettings();
+  const provider = settings.aiProvider || 'gemini';
+  
+  console.log(`[callProviderStreaming] Provider: ${provider}, Streaming Supported: ${settings.ollamaModelSupportsStreaming}`);
+
+  if (provider === 'ollama' && settings.ollamaModelSupportsStreaming) {
+    const model = settings.ollamaModel;
+    if (!model) {
+      throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
+    }
+
+    console.log(`[callProviderStreaming] Iniciando streaming con modelo: ${model}`);
+    const fullResponse = await ollamaGenerateStreaming(model, prompt, onChunk);
+    return {
+      text: fullResponse || 'Sin respuesta',
+      provider: 'ollama',
+      streaming: true
+    };
+  }
+
+  // Para Gemini o si Ollama no soporta streaming, usar el método normal
+  console.log(`🔄 Usando modo no-streaming para ${provider} (Streaming flag: ${settings.ollamaModelSupportsStreaming})`);
+  const result = await callProvider(prompt);
+  if (onChunk && result.text) {
+    // Simular streaming llamando al callback con el texto completo
+    onChunk(result.text);
+  }
+  return {
+    ...result,
+    streaming: false
+  };
 }

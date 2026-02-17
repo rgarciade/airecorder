@@ -1,9 +1,26 @@
+const listeners = new Set();
+
+const notifyListeners = (settings) => {
+  listeners.forEach(listener => listener(settings));
+};
+
+export const addSettingsListener = (listener) => {
+  listeners.add(listener);
+  // Opcional: devolver una función para desuscribirse
+  return () => listeners.delete(listener);
+};
+
+export const removeSettingsListener = (listener) => {
+  listeners.delete(listener);
+};
+
 export const saveSettings = async (settings) => {
   try {
     const result = await window.electronAPI.saveSettings(settings);
     if (!result.success) {
       throw new Error(result.error);
     }
+    notifyListeners(settings); // Notificar a los listeners después de guardar
     return result;
   } catch (error) {
     console.error('Error saving settings:', error);
@@ -25,7 +42,8 @@ export const getSettings = async () => {
       geminiApiKey: '',
       aiProvider: 'gemini', // 'gemini' | 'ollama'
       ollamaModel: '',
-      ollamaHost: 'http://localhost:11434'
+      ollamaHost: 'http://localhost:11434',
+      ollamaModelSupportsStreaming: false
     };
   } catch (error) {
     console.error('Error getting settings:', error);
@@ -46,7 +64,9 @@ export const updateSettings = async (newSettings) => {
     
     console.log('Actualizando settings:', { currentSettings, newSettings, updatedSettings }); // Debug
     
-    return await saveSettings(updatedSettings);
+    const result = await saveSettings(updatedSettings);
+    notifyListeners(updatedSettings); // También notificar aquí para asegurar que se propaga
+    return result;
   } catch (error) {
     console.error('Error updating settings:', error);
     throw error;

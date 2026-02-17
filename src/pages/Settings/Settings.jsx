@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getSystemMicrophones } from '../../services/audioService';
 import { getSettings, updateSettings } from '../../services/settingsService';
-import { getAvailableModels, checkOllamaAvailability } from '../../services/ai/ollamaProvider';
+import { getAvailableModels, checkOllamaAvailability, checkModelSupportsStreaming } from '../../services/ai/ollamaProvider';
 import { 
   MdMic, MdClose, MdCloud, MdAutoAwesome, MdComputer, MdTerminal, 
   MdFolder, MdVisibility, MdVisibilityOff, MdRefresh, MdInfo, MdCheck,
@@ -52,6 +52,8 @@ export default function Settings({ onBack, onSettingsSaved }) {
   const [ollamaModels, setOllamaModels] = useState([]);
   const [ollamaAvailable, setOllamaAvailable] = useState(false);
   const [ollamaHost, setOllamaHost] = useState('http://localhost:11434');
+  const [ollamaModelSupportsStreaming, setOllamaModelSupportsStreaming] = useState(false);
+  const [isCheckingModel, setIsCheckingModel] = useState(false);
 
   // UI State
   const [showApiKey, setShowApiKey] = useState(false);
@@ -82,6 +84,7 @@ export default function Settings({ onBack, onSettingsSaved }) {
         setGeminiApiKey(savedSettings.geminiApiKey || '');
         setAiProvider(savedSettings.aiProvider || 'gemini');
         setOllamaModel(savedSettings.ollamaModel || '');
+        setOllamaModelSupportsStreaming(savedSettings.ollamaModelSupportsStreaming || false);
         if (savedSettings.ollamaHost) setOllamaHost(savedSettings.ollamaHost);
         if (savedSettings.outputDirectory) setOutputDirectory(savedSettings.outputDirectory);
       }
@@ -117,6 +120,28 @@ export default function Settings({ onBack, onSettingsSaved }) {
     }
   };
 
+  const handleOllamaModelChange = async (newModel) => {
+    setOllamaModel(newModel);
+
+    if (newModel && ollamaAvailable) {
+      setIsCheckingModel(true);
+      try {
+        console.log(`🔍 Verificando modelo ${newModel}...`);
+        const supportsStreaming = await checkModelSupportsStreaming(newModel, ollamaHost);
+        setOllamaModelSupportsStreaming(supportsStreaming);
+        console.log(`📝 Modelo ${newModel} - Streaming: ${supportsStreaming ? 'SÍ' : 'NO'}`);
+      } catch (error) {
+        console.error(`❌ Error verificando modelo ${newModel}:`, error);
+        setOllamaModelSupportsStreaming(false);
+      } finally {
+        setIsCheckingModel(false);
+      }
+    } else {
+      setOllamaModelSupportsStreaming(false);
+      setIsCheckingModel(false);
+    }
+  };
+
   const handleSaveSettings = async () => {
     setIsSaving(true);
     setSaveMessage('');
@@ -132,6 +157,7 @@ export default function Settings({ onBack, onSettingsSaved }) {
         aiProvider: aiProvider,
         ollamaModel: ollamaModel,
         ollamaHost: ollamaHost,
+        ollamaModelSupportsStreaming: ollamaModelSupportsStreaming,
         outputDirectory: outputDirectory
       });
       setSaveMessage('Changes saved successfully');
@@ -352,17 +378,28 @@ export default function Settings({ onBack, onSettingsSaved }) {
 
               <div className={styles.formGroup}>
                 <label className={styles.label}>Model</label>
-                <select 
+                <select
                   className={styles.input}
                   value={ollamaModel}
-                  onChange={(e) => setOllamaModel(e.target.value)}
-                  disabled={aiProvider !== 'ollama' || !ollamaAvailable}
+                  onChange={(e) => handleOllamaModelChange(e.target.value)}
+                  disabled={aiProvider !== 'ollama' || !ollamaAvailable || isCheckingModel}
                 >
                   <option value="" disabled>Select a model</option>
                   {ollamaModels.map(model => (
                     <option key={model.name} value={model.name}>{model.name}</option>
                   ))}
                 </select>
+                {isCheckingModel && (
+                  <p className={styles.helpText} style={{ color: '#0ea5e9', display: 'flex', alignItems: 'center' }}>
+                    <MdRefresh className={styles.spinner} style={{ marginRight: '4px' }} />
+                    Checking model...
+                  </p>
+                )}
+                {ollamaModel && !isCheckingModel && (
+                  <p className={styles.helpText} style={{ color: ollamaModelSupportsStreaming ? '#059669' : '#dc2626' }}>
+                    {ollamaModelSupportsStreaming ? '✓ Supports streaming' : '✗ Does not support streaming'}
+                  </p>
+                )}
               </div>
             </div>
           </section>
@@ -502,12 +539,12 @@ export default function Settings({ onBack, onSettingsSaved }) {
           <button className={styles.btnSecondary} onClick={() => {}}>
             Reset to Defaults
           </button>
-          <button 
-            className={styles.btnPrimary} 
+          <button
+            className={styles.btnPrimary}
             onClick={handleSaveSettings}
-            disabled={isSaving}
+            disabled={isSaving || isCheckingModel}
           >
-            {isSaving ? 'Saving...' : 'Save Changes'}
+            {isCheckingModel ? 'Verificando...' : (isSaving ? 'Saving...' : 'Save Changes')}
           </button>
         </div>
       </footer>
