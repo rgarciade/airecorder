@@ -135,8 +135,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   useEffect(() => {
     const handleSettingsChange = (settings) => {
       const provider = settings.aiProvider || 'gemini';
-      const modelSupportsStreaming = settings.ollamaModelSupportsStreaming || false;
-      const isStreamingSupported = provider === 'ollama' && modelSupportsStreaming;
+      // Gemini siempre soporta streaming nativamente
+      // Ollama depende de la configuración del modelo
+      const modelSupportsStreaming = provider === 'gemini' ? true : (settings.ollamaModelSupportsStreaming || false);
+      const isStreamingSupported = modelSupportsStreaming;
       
       console.log(`[Settings Listener] 🔄 Actualizando configuración en chat:`, {
         provider,
@@ -274,11 +276,13 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     try {
       // Usar estado local actualizado por el listener (más fiable y rápido)
       const provider = aiProvider;
-      const shouldUseStreaming = supportsStreaming; 
+      // Gemini siempre usa streaming, Ollama depende de si el modelo lo soporta
+      const shouldUseStreaming = provider === 'gemini' ? true : supportsStreaming;
 
       console.log('🤖 Preparando chat:', { 
         provider, 
         shouldUseStreaming, 
+        supportsStreaming,
         currentModel: provider === 'ollama' ? selectedOllamaModel : 'gemini' 
       });
 

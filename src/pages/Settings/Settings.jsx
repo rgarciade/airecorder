@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getSystemMicrophones } from '../../services/audioService';
 import { getSettings, updateSettings } from '../../services/settingsService';
 import { getAvailableModels, checkOllamaAvailability, checkModelSupportsStreaming } from '../../services/ai/ollamaProvider';
+import { getGeminiAvailableModels } from '../../services/ai/geminiProvider';
 import { 
   MdMic, MdClose, MdCloud, MdAutoAwesome, MdComputer, MdTerminal, 
   MdFolder, MdVisibility, MdVisibilityOff, MdRefresh, MdInfo, MdCheck,
@@ -45,8 +46,12 @@ export default function Settings({ onBack, onSettingsSaved }) {
 
   // AI Config
   const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [geminiModel, setGeminiModel] = useState('gemini-2.0-flash');
+  const [geminiModels, setGeminiModels] = useState([]);
+  const [geminiModelsLoading, setGeminiModelsLoading] = useState(false);
+  const [geminiModelsError, setGeminiModelsError] = useState('');
   const [aiProvider, setAiProvider] = useState('gemini'); // 'gemini' | 'ollama'
-  
+
   // Ollama
   const [ollamaModel, setOllamaModel] = useState('');
   const [ollamaModels, setOllamaModels] = useState([]);
@@ -82,6 +87,7 @@ export default function Settings({ onBack, onSettingsSaved }) {
         setNotificationsEnabled(savedSettings.notificationsEnabled !== false); // Default true
         setWhisperModel(savedSettings.whisperModel || 'small');
         setGeminiApiKey(savedSettings.geminiApiKey || '');
+        setGeminiModel(savedSettings.geminiModel || 'gemini-2.0-flash');
         setAiProvider(savedSettings.aiProvider || 'gemini');
         setOllamaModel(savedSettings.ollamaModel || '');
         setOllamaModelSupportsStreaming(savedSettings.ollamaModelSupportsStreaming || false);
@@ -91,6 +97,11 @@ export default function Settings({ onBack, onSettingsSaved }) {
       
       // Check Ollama with loaded/default host
       checkOllamaConnection(savedSettings?.ollamaHost || ollamaHost);
+      
+      // Load Gemini models if API key exists
+      if (savedSettings?.geminiApiKey) {
+        loadGeminiModels(savedSettings.geminiApiKey);
+      }
       
       setHasLoadedSettings(true);
     } catch (error) {
@@ -117,6 +128,33 @@ export default function Settings({ onBack, onSettingsSaved }) {
       }
     } else {
       setOllamaModels([]);
+    }
+  };
+
+  const loadGeminiModels = async (apiKey) => {
+    if (!apiKey) {
+      setGeminiModels([]);
+      setGeminiModelsError('');
+      return;
+    }
+
+    setGeminiModelsLoading(true);
+    setGeminiModelsError('');
+
+    try {
+      const models = await getGeminiAvailableModels(apiKey);
+      setGeminiModels(models);
+      // Si el modelo actual no está en la lista, seleccionar el primero
+      const currentModelExists = models.some(m => m.name === geminiModel);
+      if (!currentModelExists && models.length > 0) {
+        setGeminiModel(models[0].name);
+      }
+    } catch (error) {
+      console.error('Error cargando modelos de Gemini:', error);
+      setGeminiModelsError('No se pudieron cargar los modelos. Verifica tu API Key.');
+      setGeminiModels([]);
+    } finally {
+      setGeminiModelsLoading(false);
     }
   };
 
@@ -154,6 +192,7 @@ export default function Settings({ onBack, onSettingsSaved }) {
         fontSize: fontSize,
         whisperModel: whisperModel,
         geminiApiKey: geminiApiKey,
+        geminiModel: geminiModel,
         aiProvider: aiProvider,
         ollamaModel: ollamaModel,
         ollamaHost: ollamaHost,
@@ -291,7 +330,17 @@ export default function Settings({ onBack, onSettingsSaved }) {
                     className={styles.input}
                     placeholder="Paste your API key here"
                     value={geminiApiKey}
-                    onChange={(e) => setGeminiApiKey(e.target.value)}
+                    onChange={(e) => {
+                      const newKey = e.target.value;
+                      setGeminiApiKey(newKey);
+                      // Recargar modelos cuando cambia la API key (con debounce)
+                      if (newKey && newKey.length > 10) {
+                        clearTimeout(window.geminiKeyTimeout);
+                        window.geminiKeyTimeout = setTimeout(() => {
+                          loadGeminiModels(newKey);
+                        }, 1000);
+                      }
+                    }}
                     disabled={aiProvider !== 'gemini'}
                   />
                   <button 
@@ -305,6 +354,54 @@ export default function Settings({ onBack, onSettingsSaved }) {
                   <MdInfo size={14} />
                   Keys are stored securely in your system keychain.
                 </p>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Model</label>
+                <div className={styles.inputRow}>
+                  <select
+                    className={styles.input}
+                    value={geminiModel}
+                    onChange={(e) => setGeminiModel(e.target.value)}
+                    disabled={aiProvider !== 'gemini' || geminiModelsLoading || geminiModels.length === 0}
+                  >
+                    {geminiModels.length === 0 ? (
+                      <option value="" disabled>
+                        {geminiApiKey ? (geminiModelsLoading ? 'Cargando modelos...' : 'Sin modelos disponibles') : 'Introduce API Key primero'}
+                      </option>
+                    ) : (
+                      geminiModels.map(model => (
+                        <option key={model.name} value={model.name}>
+                          {model.label}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <button 
+                    className={styles.checkBtn}
+                    onClick={() => loadGeminiModels(geminiApiKey)}
+                    disabled={aiProvider !== 'gemini' || !geminiApiKey || geminiModelsLoading}
+                  >
+                    <MdRefresh size={18} className={geminiModelsLoading ? styles.spinner : ''} />
+                    Refresh
+                  </button>
+                </div>
+                {geminiModelsLoading && (
+                  <p className={styles.helpText} style={{ color: '#0ea5e9' }}>
+                    <MdRefresh className={styles.spinner} style={{ marginRight: '4px' }} />
+                    Loading available models...
+                  </p>
+                )}
+                {geminiModelsError && (
+                  <p className={styles.errorText}>
+                    {geminiModelsError}
+                  </p>
+                )}
+                {!geminiModelsLoading && !geminiModelsError && geminiModel && geminiModels.length > 0 && (
+                  <p className={styles.helpText} style={{ color: '#059669' }}>
+                    ✓ {geminiModels.find(m => m.name === geminiModel)?.description}
+                  </p>
+                )}
               </div>
             </div>
           </section>
