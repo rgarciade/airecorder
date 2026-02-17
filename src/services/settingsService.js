@@ -40,6 +40,7 @@ export const getSettings = async () => {
       language: 'es',
       microphone: '',
       geminiApiKey: '',
+      geminiModel: 'gemini-2.0-flash',
       aiProvider: 'gemini', // 'gemini' | 'ollama'
       ollamaModel: '',
       ollamaHost: 'http://localhost:11434',
