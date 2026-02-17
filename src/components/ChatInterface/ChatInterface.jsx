@@ -15,14 +15,33 @@ export default function ChatInterface({
   selectedOllamaModel = '',
   onOllamaModelChange = () => { },
   onNavigateToRecording,
-  onDeleteMessage
+  onDeleteMessage,
+  onResetChat
 }) {
   const [newMessage, setNewMessage] = useState('');
+  const [showOptions, setShowOptions] = useState(false);
   const messagesEndRef = useRef(null);
+  const optionsRef = useRef(null);
 
-  // Auto-scroll al fondo cuando cambia el historial
+  // Cerrar menú al hacer click fuera
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const handleClickOutside = (event) => {
+      if (optionsRef.current && !optionsRef.current.contains(event.target)) {
+        setShowOptions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Auto-scroll al fondo durante el streaming
+  // Solo hacemos scroll automático cuando isLoading es true (durante streaming)
+  // Cuando termina (isLoading = false), NO hacemos scroll para evitar el "salto" final
+  useEffect(() => {
+    if (isLoading) {
+      // Durante streaming: scroll instantáneo para seguir el texto en tiempo real
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+    }
   }, [chatHistory, isLoading]);
 
   const handleSubmit = async (e) => {
@@ -146,9 +165,33 @@ export default function ChatInterface({
           </div>
           
           <div className={styles.chatHeaderRight}>
-            <button className={styles.optionsButton}>
-              <MdMoreHoriz size={20} />
-            </button>
+            <div ref={optionsRef} className="relative">
+              <button 
+                className={styles.optionsButton}
+                onClick={() => setShowOptions(!showOptions)}
+                title="Opciones del chat"
+              >
+                <MdMoreHoriz size={20} />
+              </button>
+              
+              {showOptions && (
+                <div 
+                  className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-50 overflow-hidden"
+                  style={{ minWidth: '150px' }}
+                >
+                  <button
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                    onClick={() => {
+                      if (onResetChat) onResetChat();
+                      setShowOptions(false);
+                    }}
+                  >
+                    <MdDeleteOutline size={16} />
+                    Reiniciar Chat
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -194,7 +237,7 @@ export default function ChatInterface({
               </div>
             ))
           )}
-          {isLoading && (
+          {isLoading && !(chatHistory.length > 0 && chatHistory[chatHistory.length - 1]?.id === 'streaming') && (
             <div className={`${styles.message} ${styles.asistente}`}>
               <div className={styles.messageAvatar}>
                 <MdSmartToy size={16} />

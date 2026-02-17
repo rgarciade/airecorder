@@ -407,3 +407,18 @@
   padding: 0 12px;
   color: #059669;
 }
+
+.spinner {
+  display: inline-block;
+  margin-right: 6px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

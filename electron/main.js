@@ -702,7 +702,8 @@ ipcMain.handle('get-ai-summary', async (event, recordingId) => {
 // Guardar histórico de preguntas
 ipcMain.handle('save-question-history', async (event, recordingId, qa) => {
   try {
-    const folderName = await getFolderPathFromId(recordingId);
+    // recordingId es el nombre de la carpeta física (folderName)
+    const folderName = recordingId;
     const baseOutputDir = await getRecordingsPath();
     const analysisDir = path.join(baseOutputDir, folderName, 'analysis');
     
@@ -734,18 +735,56 @@ ipcMain.handle('save-question-history', async (event, recordingId, qa) => {
 // Obtener histórico de preguntas
 ipcMain.handle('get-question-history', async (event, recordingId) => {
   try {
-    const folderName = await getFolderPathFromId(recordingId);
+    // recordingId es el nombre de la carpeta física (folderName)
+    const folderName = recordingId;
     const baseOutputDir = await getRecordingsPath();
     const filePath = path.join(baseOutputDir, folderName, 'analysis', 'questions_history.json');
     
+    console.log(`[Main] get-question-history: Leyendo de ${filePath} (ID: ${recordingId})`);
+
     if (!fs.existsSync(filePath)) {
+      console.log(`[Main] get-question-history: Archivo no existe.`);
       return { success: true, history: [] };
     }
     
     const data = await fs.promises.readFile(filePath, 'utf8');
-    return { success: true, history: JSON.parse(data) };
+    const history = JSON.parse(data);
+    console.log(`[Main] get-question-history: Leídos ${history.length} mensajes.`);
+    return { success: true, history };
   } catch (error) {
     console.error('Error getting question history:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Limpiar histórico de preguntas (Reset Chat)
+ipcMain.handle('clear-question-history', async (event, recordingId) => {
+  console.log(`[Main] clear-question-history: Solicitud recibida. ID: ${recordingId}`);
+  try {
+    // recordingId es el nombre de la carpeta física (folderName)
+    const folderName = recordingId;
+    const baseOutputDir = await getRecordingsPath();
+    const analysisDir = path.join(baseOutputDir, folderName, 'analysis');
+    const filePath = path.join(analysisDir, 'questions_history.json');
+    
+    console.log(`[Main] clear-question-history: Intentando limpiar ${filePath}`);
+    
+    // Asegurar que el directorio existe
+    if (!fs.existsSync(analysisDir)) {
+      console.log('[Main] clear-question-history: Directorio analysis no existe, creando...');
+      fs.mkdirSync(analysisDir, { recursive: true });
+    }
+
+    // Sobreescribir con array vacío explícitamente
+    await fs.promises.writeFile(filePath, '[]', 'utf8');
+    
+    // Verificar que se escribió bien
+    const checkData = await fs.promises.readFile(filePath, 'utf8');
+    console.log(`[Main] clear-question-history: Verificación post-escritura: contenido='${checkData}'`);
+    
+    return { success: true };
+  } catch (error) {
+    console.error('[Main] Error clearing question history:', error);
     return { success: false, error: error.message };
   }
 });

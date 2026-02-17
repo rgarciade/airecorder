@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import recordingsService from '../../services/recordingsService';
 import projectsService from '../../services/projectsService';
-import { getSettings, updateSettings } from '../../services/settingsService';
+import { getSettings, updateSettings, addSettingsListener, removeSettingsListener } from '../../services/settingsService';
 import { getAvailableModels } from '../../services/ai/ollamaProvider';
-import { generateWithContext } from '../../services/aiService';
+import { generateWithContext, generateWithContextStreaming } from '../../services/aiService';
 import { chatQuestionPrompt } from '../../prompts/aiPrompts';
 import recordingAiService from '../../services/recordingAiService';
 
@@ -61,9 +61,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   // Chat State
   const [qaHistory, setQaHistory] = useState([]);
   const [questionLoading, setQuestionLoading] = useState(false);
+  const [streamingMessage, setStreamingMessage] = useState('');
   const [aiProvider, setAiProvider] = useState('gemini');
   const [ollamaModels, setOllamaModels] = useState([]);
   const [selectedOllamaModel, setSelectedOllamaModel] = useState('');
+  const [supportsStreaming, setSupportsStreaming] = useState(false);
 
   // Editing Title
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -128,6 +130,39 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       }
     });
   }, [recording]);
+
+  // Cargar configuración de streaming y escuchar cambios
+  useEffect(() => {
+    const handleSettingsChange = (settings) => {
+      const provider = settings.aiProvider || 'gemini';
+      const modelSupportsStreaming = settings.ollamaModelSupportsStreaming || false;
+      const isStreamingSupported = provider === 'ollama' && modelSupportsStreaming;
+      
+      console.log(`[Settings Listener] 🔄 Actualizando configuración en chat:`, {
+        provider,
+        modelSupportsStreaming,
+        isStreamingSupported,
+        ollamaModel: settings.ollamaModel
+      });
+
+      setAiProvider(provider);
+      setSupportsStreaming(isStreamingSupported);
+      if (settings.ollamaModel) {
+        setSelectedOllamaModel(settings.ollamaModel);
+      }
+    };
+
+    // Cargar config inicial
+    getSettings().then(handleSettingsChange);
+
+    // Escuchar cambios
+    const unsubscribe = addSettingsListener(handleSettingsChange);
+
+    // Limpiar listener al desmontar
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   // 2. Fetch Ollama models when provider changes to ollama
   useEffect(() => {
@@ -222,32 +257,131 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
   const handleAskQuestion = async (questionText) => {
     setQuestionLoading(true);
+    setStreamingMessage('');
+
+    // Crear ID temporal único para este mensaje
+    const tempId = Date.now().toString();
+    
+    // Añadir la pregunta del usuario inmediatamente al historial
+    const userMessage = { 
+      id: `user_${tempId}`, 
+      tipo: 'usuario', 
+      contenido: questionText, 
+      fecha: new Date().toISOString() 
+    };
+    setQaHistory(prev => [...prev, userMessage]);
+
     try {
+      // Usar estado local actualizado por el listener (más fiable y rápido)
+      const provider = aiProvider;
+      const shouldUseStreaming = supportsStreaming; 
+
+      console.log('🤖 Preparando chat:', { 
+        provider, 
+        shouldUseStreaming, 
+        currentModel: provider === 'ollama' ? selectedOllamaModel : 'gemini' 
+      });
+
       let context = detailedSummary;
       if (!context) {
         context = await recordingsService.getTranscriptionTxt(recording.id);
       }
-      
+
       const prompt = chatQuestionPrompt(questionText);
-      const response = await generateWithContext(prompt, context || "No context available.");
+
+      let answer = '';
+
+      // Usar streaming solo si el estado actual lo indica (Ollama + modelo compatible)
+      if (shouldUseStreaming) {
+        console.log('🚀 Iniciando chat en modo STREAMING');
+
+        const response = await generateWithContextStreaming(
+          prompt,
+          context || "No context available.",
+          (chunk) => {
+            answer += chunk;
+            setStreamingMessage(answer);
+          }
+        );
+
+        answer = response.text || answer || 'No answer generated.';
+      } else {
+        console.log('🔄 Iniciando chat en modo NORMAL (no streaming)');
+        const response = await generateWithContext(prompt, context || "No context available.");
+        answer = response.text || 'No answer generated.';
+      }
+
+      setStreamingMessage('');
       
-      const answer = response.text || 'No answer generated.';
+      // Crear el mensaje de la IA con la respuesta completa
+      const aiMessage = { 
+        id: `ai_${tempId}`, 
+        tipo: 'asistente', 
+        contenido: answer, 
+        fecha: new Date().toISOString() 
+      };
+      
+      // Añadir mensaje de la IA al historial
+      setQaHistory(prev => [...prev, aiMessage]);
+      
+      // Guardar en backend (formato compatible con el sistema actual)
       const qa = { pregunta: questionText, respuesta: answer, fecha: new Date().toISOString() };
-      
       await recordingsService.saveQuestionHistory(recording.id, qa);
-      setQaHistory(prev => [...prev, qa]);
+      
     } catch (err) {
-      console.error(err);
+      console.error('Error en handleAskQuestion:', err);
+      // Añadir mensaje de error al historial
+      const errorMessage = { 
+        id: `error_${tempId}`, 
+        tipo: 'asistente', 
+        contenido: 'Lo siento, ha ocurrido un error al procesar tu pregunta.', 
+        fecha: new Date().toISOString() 
+      };
+      setQaHistory(prev => [...prev, errorMessage]);
     } finally {
       setQuestionLoading(false);
+      setStreamingMessage('');
+    }
+  };
+
+  const handleResetChat = async () => {
+    if (window.confirm('¿Estás seguro de que quieres borrar todo el historial del chat? Esta acción no se puede deshacer.')) {
+      try {
+        await recordingsService.clearQuestionHistory(recording.id);
+        setQaHistory([]);
+        setStreamingMessage('');
+      } catch (error) {
+        console.error('Error resetting chat:', error);
+        alert('Error al borrar el historial');
+      }
     }
   };
 
   const convertChatHistory = () => {
-    return qaHistory.flatMap((qa, i) => [
-      { id: `u_${i}`, tipo: 'usuario', contenido: qa.pregunta, fecha: qa.fecha },
-      { id: `a_${i}`, tipo: 'asistente', contenido: qa.respuesta, fecha: qa.fecha }
-    ]);
+    // Manejar ambos formatos: el antiguo (pregunta/respuesta) y el nuevo (mensajes individuales)
+    const history = qaHistory.flatMap((item, i) => {
+      // Si es el formato nuevo (tiene tipo), devolverlo directamente
+      if (item.tipo) {
+        return [item];
+      }
+      // Si es el formato antiguo (tiene pregunta/respuesta), convertirlo
+      return [
+        { id: `u_${i}`, tipo: 'usuario', contenido: item.pregunta, fecha: item.fecha },
+        { id: `a_${i}`, tipo: 'asistente', contenido: item.respuesta, fecha: item.fecha }
+      ];
+    });
+
+    // Agregar mensaje en streaming si existe
+    if (streamingMessage) {
+      history.push({
+        id: 'streaming',
+        tipo: 'asistente',
+        contenido: streamingMessage,
+        fecha: new Date().toISOString()
+      });
+    }
+
+    return history;
   };
 
   const handleRegenerateClick = async () => {
@@ -738,7 +872,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
               title: "AI Assistant",
               aiProvider: aiProvider,
               ollamaModels: ollamaModels,
-              selectedOllamaModel: selectedOllamaModel
+              selectedOllamaModel: selectedOllamaModel,
+              onResetChat: handleResetChat
             }}
           />
         )}
