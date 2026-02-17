@@ -55,36 +55,59 @@ export async function checkOllamaAvailability(baseUrl = null) {
 
 /**
  * Genera contenido usando un modelo de Ollama
+ * Incluye reintentos automáticos para errores de red y errores 5xx
  * @param {string} model - Nombre del modelo a usar
  * @param {string} prompt - Prompt para el modelo
  * @param {Object} options - Opciones adicionales (ej: { format: 'json' })
  * @returns {Promise<string>} Respuesta generada
  */
 export async function generateContent(model, prompt, options = {}) {
+  const MAX_RETRIES = 3;
+  const BASE_DELAY = 1000;
   const url = await getBaseUrl();
-  try {
-    const response = await fetch(`${url}/api/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: model,
-        prompt: prompt,
-        stream: false,
-        ...options
-      }),
-    });
 
-    if (!response.ok) {
-      throw new Error(`Error en la API de Ollama: ${response.status}`);
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetch(`${url}/api/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: model,
+          prompt: prompt,
+          stream: false,
+          ...options
+        }),
+      });
+
+      if (response.status >= 500) {
+        throw new Error(`Ollama error ${response.status} (servidor)`);
+      }
+
+      if (!response.ok) {
+        throw new Error(`Error en la API de Ollama: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.response || '';
+    } catch (error) {
+      const isRetryable = error.message.includes('servidor') ||
+                          error.message.includes('fetch') ||
+                          error.message.includes('network') ||
+                          error.message.includes('Failed to fetch');
+      const isLastAttempt = attempt === MAX_RETRIES - 1;
+
+      if (isRetryable && !isLastAttempt) {
+        const delay = BASE_DELAY * Math.pow(2, attempt);
+        console.warn(`⚠️ Ollama error. Reintentando en ${delay / 1000}s... (Intento ${attempt + 1}/${MAX_RETRIES})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+
+      console.error('Error generando contenido con Ollama:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    return data.response || '';
-  } catch (error) {
-    console.error('Error generando contenido con Ollama:', error);
-    throw error;
   }
 }
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from './Onboarding.module.css';
 import { FaMicrophone, FaCheckCircle, FaExclamationTriangle, FaRobot, FaServer, FaArrowRight, FaArrowLeft, FaWaveSquare, FaBrain, FaFolder, FaMagic, FaVolumeUp, FaBell, FaCheck } from 'react-icons/fa';
-import { getAvailableModels, checkOllamaAvailability } from '../../services/ollamaService';
+import { getAvailableModels, checkOllamaAvailability } from '../../services/ai/ollamaProvider';
 import { updateSettings } from '../../services/settingsService';
 import PermissionsStep from './PermissionsStep';
 import ReadyStep from './ReadyStep';
