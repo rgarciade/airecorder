@@ -1,6 +1,6 @@
 #root {
   min-height: 100vh;
-  min-width: 99vw;
+  width: 100%;
 }
 
 :root {

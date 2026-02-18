@@ -39,12 +39,25 @@ export const getSettings = async () => {
       notificationsEnabled: true,
       language: 'es',
       microphone: '',
+      // Gemini Pro
       geminiApiKey: '',
       geminiModel: 'gemini-2.0-flash',
-      aiProvider: 'gemini', // 'gemini' | 'ollama'
+      // Gemini Free
+      geminiFreeApiKey: '',
+      // DeepSeek
+      deepseekApiKey: '',
+      deepseekModel: 'deepseek-chat',
+      // Kimi
+      kimiApiKey: '',
+      kimiModel: 'kimi-k2',
+      // Ollama
       ollamaModel: '',
       ollamaHost: 'http://localhost:11434',
-      ollamaModelSupportsStreaming: false
+      ollamaModelSupportsStreaming: false,
+      // LM Studio
+      lmStudioModel: '',
+      lmStudioHost: 'http://localhost:1234/v1',
+      aiProvider: 'ollama' // Cambiado a ollama por defecto según petición
     };
   } catch (error) {
     console.error('Error getting settings:', error);

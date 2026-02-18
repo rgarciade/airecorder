@@ -88,6 +88,49 @@
   color: #64748B; /* slate-500 */
 }
 
+/* Tabs */
+.tabsContainer {
+  display: flex;
+  gap: 8px;
+  background-color: #F1F5F9; /* slate-100 */
+  padding: 4px;
+  border-radius: 10px;
+  margin-bottom: 32px;
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #64748B; /* slate-500 */
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tabActive {
+  background-color: white;
+  color: #3994EF; /* primary */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.tabIcon {
+  font-size: 1.125rem;
+}
+
+.lmStudioIcon {
+  background-color: #E0E7FF; /* indigo-100 */
+  color: #4F46E5; /* indigo-600 */
+  border: 1px solid #C7D2FE; /* indigo-200 */
+}
+
 /* Sections */
 .section {
   margin-bottom: 32px;
