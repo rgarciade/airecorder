@@ -52,6 +52,8 @@ export const getSettings = async () => {
       kimiModel: 'kimi-k2',
       // Ollama
       ollamaModel: '',
+      ollamaRagModel: '', // Modelo de CHAT específico para RAG (ej: deepseek-r1)
+      ollamaEmbeddingModel: 'nomic-embed-text', // Modelo de EMBEDDINGS para RAG
       ollamaHost: 'http://localhost:11434',
       ollamaModelSupportsStreaming: false,
       // LM Studio

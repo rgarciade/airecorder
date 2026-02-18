@@ -132,4 +132,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Dashboard
   getDashboardStats: () => ipcRenderer.invoke('get-dashboard-stats'),
+
+  // RAG
+  indexRecording: (recordingId) => ipcRenderer.invoke('index-recording', recordingId),
+  searchRecording: (recordingId, query, topK) => ipcRenderer.invoke('search-recording', recordingId, query, topK),
+  getRagStatus: (recordingId) => ipcRenderer.invoke('get-rag-status', recordingId),
+  deleteRagIndex: (recordingId) => ipcRenderer.invoke('delete-rag-index', recordingId),
 }); 
