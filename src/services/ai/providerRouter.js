@@ -22,14 +22,16 @@ export async function callProvider(prompt, options = {}) {
 
   switch (provider) {
     case 'ollama': {
-      const model = settings.ollamaModel;
+      // Permitir override del modelo vía options.ragModel o usar el configurado
+      const model = options.ragModel || settings.ollamaModel;
       if (!model) {
         throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
       }
       const response = await ollamaGenerate(model, prompt, options);
       return {
         text: response || 'Sin respuesta',
-        provider: 'ollama'
+        provider: 'ollama',
+        model: model // Devolvemos el modelo usado para debug
       };
     }
 
@@ -147,9 +149,10 @@ export async function validateProviderConfig() {
  * Todos los proveedores soportan streaming nativamente
  * @param {string} prompt - Prompt completo (ya construido con contexto si aplica)
  * @param {Function} onChunk - Callback que recibe cada chunk de la respuesta
+ * @param {Object} options - Opciones adicionales (ej: { ragModel: 'deepseek-r1' })
  * @returns {Promise<{text: string, provider: string, streaming: boolean}>}
  */
-export async function callProviderStreaming(prompt, onChunk) {
+export async function callProviderStreaming(prompt, onChunk, options = {}) {
   const settings = await getSettings();
   const provider = settings.aiProvider || 'geminifree';
 
@@ -207,25 +210,29 @@ export async function callProviderStreaming(prompt, onChunk) {
     }
 
     case 'ollama': {
-      // Ollama solo si el modelo lo soporta
-      if (settings.ollamaModelSupportsStreaming) {
-        const model = settings.ollamaModel;
-        if (!model) {
-          throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
-        }
+      // Permitir override del modelo vía options.ragModel
+      const model = options.ragModel || settings.ollamaModel;
+      if (!model) {
+        throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
+      }
 
+      // Ollama solo si el modelo lo soporta (o si es un modelo RAG específico, usar sin streaming)
+      const useStreaming = settings.ollamaModelSupportsStreaming && !options.ragModel;
+
+      if (useStreaming) {
         console.log(`[callProviderStreaming] Iniciando streaming con Ollama modelo: ${model}`);
         const fullResponse = await ollamaGenerateStreaming(model, prompt, onChunk);
         return {
           text: fullResponse || 'Sin respuesta',
           provider: 'ollama',
+          model: model,
           streaming: true
         };
       }
-      
-      // Fallback: modo normal sin streaming
-      console.log(`🔄 Usando modo no-streaming para Ollama`);
-      const result = await callProvider(prompt);
+
+      // Fallback: modo normal sin streaming (para modelos RAG o si no soporta streaming)
+      console.log(`🔄 Usando modo no-streaming para Ollama${options.ragModel ? ` (RAG model: ${model})` : ''}`);
+      const result = await callProvider(prompt, options);
       if (onChunk && result.text) {
         onChunk(result.text);
       }

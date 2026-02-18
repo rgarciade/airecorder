@@ -148,6 +148,17 @@ class DbService {
         console.error('[DB] Error migrando task_suggestions:', e);
       }
 
+      // Migración para añadir rag_status a recordings (para RAG)
+      try {
+        const recInfo = this.db.prepare("PRAGMA table_info(recordings)").all();
+        if (!recInfo.some(c => c.name === 'rag_status')) {
+          console.log('[DB] Añadiendo columna rag_status a recordings...');
+          this.db.prepare("ALTER TABLE recordings ADD COLUMN rag_status TEXT").run();
+        }
+      } catch (e) {
+        console.error('[DB] Error migrando rag_status:', e);
+      }
+
       console.log(`[DB] Inicializada en: ${dbPath}`);
       return true;
     } catch (error) {
@@ -453,6 +464,29 @@ class DbService {
   deleteTaskSuggestion(id) {
     if (!this.db) return;
     this.db.prepare(DELETE_TASK_SUGGESTION).run(id);
+  }
+
+  // RAG
+  updateRagStatus(relativePath, status) {
+    if (!this.db) return { success: false };
+    try {
+      this.db.prepare("UPDATE recordings SET rag_status = ? WHERE relative_path = ?").run(status, relativePath);
+      return { success: true };
+    } catch (error) {
+      console.error('[DB] Error updateRagStatus:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  getRagStatus(relativePath) {
+    if (!this.db) return null;
+    try {
+      const row = this.db.prepare("SELECT rag_status FROM recordings WHERE relative_path = ?").get(relativePath);
+      return row ? row.rag_status : null;
+    } catch (error) {
+      console.error('[DB] Error getRagStatus:', error);
+      return null;
+    }
   }
 }
 

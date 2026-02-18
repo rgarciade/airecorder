@@ -320,6 +320,9 @@ class RecordingAiService {
       // 9. Limpiar estado de generación
       await this._clearGeneratingState(recordingId);
 
+      // 10. Indexar para RAG en background (no bloquea)
+      this._indexForRAG(recordingId);
+
       console.log(`✅ Resumen generado exitosamente para ${recordingId}`);
       return dataToSave;
 
@@ -331,6 +334,29 @@ class RecordingAiService {
       
       throw error;
     }
+  }
+
+  /**
+   * Indexa la transcripción para RAG en background
+   * @private
+   * @param {string} recordingId
+   */
+  _indexForRAG(recordingId) {
+    if (!window.electronAPI?.indexRecording) return;
+
+    window.electronAPI.indexRecording(recordingId)
+      .then(result => {
+        if (result.success && result.indexed) {
+          console.log(`🔍 [RAG] Indexado ${recordingId}: ${result.totalChunks} chunks`);
+        } else if (result.skippedRag) {
+          console.log(`🔍 [RAG] Skip para ${recordingId}: transcripción corta`);
+        } else if (result.error) {
+          console.warn(`🔍 [RAG] No se pudo indexar ${recordingId}: ${result.error}`);
+        }
+      })
+      .catch(err => {
+        console.warn(`🔍 [RAG] Error indexando ${recordingId}:`, err.message);
+      });
   }
 
   /**

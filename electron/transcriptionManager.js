@@ -164,10 +164,12 @@ class TranscriptionManager {
             this.process = null;
             if (code === 0) {
                 dbService.updateStatus(folderName, 'transcribed');
+                // Resetear estado RAG para que se re-indexe con la nueva transcripción
+                dbService.updateRagStatus(folderName, null);
                 if (task.model) {
                     dbService.updateTranscriptionModel(folderName, task.model);
                 }
-                
+
                 // Intentar actualizar duración si es 0
                 this.updateDurationIfNeeded(folderName);
 

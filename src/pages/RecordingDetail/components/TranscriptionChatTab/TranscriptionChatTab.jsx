@@ -3,13 +3,17 @@ import styles from './TranscriptionChatTab.module.css';
 import TranscriptionViewer from '../../../../components/TranscriptionViewer/TranscriptionViewer';
 import ChatInterface from '../../../../components/ChatInterface/ChatInterface';
 import AudioPlayer from '../../../../components/AudioPlayer/AudioPlayer';
+import ContextBar from '../../../../components/ContextBar/ContextBar';
 import { MdSearch, MdKeyboardArrowUp, MdKeyboardArrowDown, MdClose, MdTranslate } from 'react-icons/md';
 
-export default function TranscriptionChatTab({ 
-  transcription, 
-  transcriptionLoading, 
+export default function TranscriptionChatTab({
+  transcription,
+  transcriptionLoading,
   transcriptionError,
   chatProps,
+  contextInfo,
+  ragIndexed,
+  ragTotalChunks,
   transcriptionModel,
   audioUrls,
   duration,
@@ -158,10 +162,11 @@ export default function TranscriptionChatTab({
         onMouseDown={startResizing}
       />
 
-      <div 
-        className={styles.chatColumn} 
+      <div
+        className={styles.chatColumn}
         style={{ width: `${chatWidth}px` }}
       >
+        <ContextBar contextInfo={contextInfo} ragIndexed={ragIndexed} ragTotalChunks={ragTotalChunks} />
         <ChatInterface {...chatProps} />
       </div>
     </div>

@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import recordingsService from '../../services/recordingsService';
 import projectsService from '../../services/projectsService';
 import { getSettings, updateSettings, addSettingsListener, removeSettingsListener } from '../../services/settingsService';
 import { getAvailableModels } from '../../services/ai/ollamaProvider';
 import { generateWithContext, generateWithContextStreaming } from '../../services/aiService';
+import { callProvider, callProviderStreaming } from '../../services/ai/providerRouter';
 import { chatQuestionPrompt } from '../../prompts/aiPrompts';
+import { ragChatPrompt, compressChatHistory } from '../../prompts/ragPrompts';
+import ragService from '../../services/ragService';
 import recordingAiService from '../../services/recordingAiService';
 
 import styles from './RecordingDetail.module.css';
@@ -14,18 +17,19 @@ import EpicsTab from './components/EpicsTab/EpicsTab';
 
 // Icons
 import { 
-  MdArrowBack, 
-  MdEdit, 
+  MdArrowBack,
+  MdEdit,
   MdDeleteOutline,
-  MdCheck, 
-  MdClose, 
-  MdAutorenew, 
-  MdShare, 
+  MdCheck,
+  MdClose,
+  MdAutorenew,
+  MdShare,
   MdFileDownload,
   MdCalendarToday,
   MdAccessTime,
   MdFolderOpen,
-  MdTranslate
+  MdTranslate,
+  MdSync
 } from 'react-icons/md';
 
 const whisperModels = [
@@ -65,7 +69,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [aiProvider, setAiProvider] = useState('geminifree');
   const [ollamaModels, setOllamaModels] = useState([]);
   const [selectedOllamaModel, setSelectedOllamaModel] = useState('');
+  const [ollamaRagModel, setOllamaRagModel] = useState(''); // Modelo específico para RAG
   const [supportsStreaming, setSupportsStreaming] = useState(true);
+  const [contextInfo, setContextInfo] = useState(null); // { mode: 'rag'|'full', chunksUsed, estimatedTokens }
+  const [ragIndexed, setRagIndexed] = useState(null); // null=checking, false=indexando, true=listo, 'skipped'=transcripción corta
+  const [ragTotalChunks, setRagTotalChunks] = useState(0);
 
   // Editing Title
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -87,6 +95,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   // Re-transcribe Modal
   const [showTranscribeModal, setShowTranscribeModal] = useState(false);
   const [selectedWhisperModel, setSelectedWhisperModel] = useState('small');
+  
+  // Ref para evitar indexación duplicada en mount
+  const isIndexingRef = useRef(false);
 
   // --- EFFECTS ---
 
@@ -154,6 +165,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       setSupportsStreaming(isStreamingSupported);
       if (settings.ollamaModel) {
         setSelectedOllamaModel(settings.ollamaModel);
+      }
+      // Cargar modelo RAG específico si existe
+      if (settings.ollamaRagModel) {
+        setOllamaRagModel(settings.ollamaRagModel);
       }
     };
 
@@ -235,7 +250,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                setGeminiData(summary);
                setDetailedSummary(summary.resumen_detallado || '');
              }
-             
+
              // Also try to extract participants if none exist
              if (!savedParticipants || savedParticipants.length === 0) {
                 const newParticipants = await recordingAiService.extractParticipants(recording.id);
@@ -248,6 +263,34 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
              console.error("Auto-generation failed:", err);
            } finally {
              setIsGeneratingAi(false);
+           }
+        } else if (hasTranscription && hasSummary) {
+           // Si ya hay análisis pero no hay índice RAG, indexar en background
+           // Evitar llamadas duplicadas con ref
+           if (isIndexingRef.current) return;
+           
+           const ragStatus = await ragService.getStatus(recording.id);
+           if (!ragStatus.indexed) {
+             console.log('🔍 [RAG] Indexando grabación existente en background...');
+             isIndexingRef.current = true;
+             setRagIndexed(false);
+             try {
+               const result = await ragService.indexRecording(recording.id);
+               if (result.success && result.indexed) {
+                 setRagIndexed(true);
+                 setRagTotalChunks(result.totalChunks);
+               } else if (result.skippedRag) {
+                 setRagIndexed('skipped');
+               } else {
+                 setRagIndexed(null);
+               }
+             } finally {
+               isIndexingRef.current = false;
+             }
+           } else {
+             console.log(`🔍 [RAG] Grabación ya indexada: ${ragStatus.totalChunks} chunks`);
+             setRagIndexed(true);
+             setRagTotalChunks(ragStatus.totalChunks || 0);
            }
         }
       } catch (err) {
@@ -266,13 +309,13 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
     // Crear ID temporal único para este mensaje
     const tempId = Date.now().toString();
-    
+
     // Añadir la pregunta del usuario inmediatamente al historial
-    const userMessage = { 
-      id: `user_${tempId}`, 
-      tipo: 'usuario', 
-      contenido: questionText, 
-      fecha: new Date().toISOString() 
+    const userMessage = {
+      id: `user_${tempId}`,
+      tipo: 'usuario',
+      contenido: questionText,
+      fecha: new Date().toISOString()
     };
     setQaHistory(prev => [...prev, userMessage]);
 
@@ -283,70 +326,128 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       const cloudProviders = ['geminifree', 'gemini', 'deepseek', 'kimi', 'lmstudio'];
       const shouldUseStreaming = cloudProviders.includes(provider) ? true : supportsStreaming;
 
-      console.log('🤖 Preparando chat:', { 
-        provider, 
-        shouldUseStreaming, 
+      console.log('🤖 Preparando chat:', {
+        provider,
+        shouldUseStreaming,
         supportsStreaming,
         currentModel: provider === 'ollama' ? selectedOllamaModel : provider
       });
 
-      let context = detailedSummary;
-      if (!context) {
-        context = await recordingsService.getTranscriptionTxt(recording.id);
+      // --- Decidir modo RAG vs clásico ---
+      let useRag = false;
+      let ragChunks = [];
+
+      try {
+        const ragStatus = await ragService.getStatus(recording.id);
+        if (ragStatus.success && ragStatus.indexed) {
+          setRagIndexed(true);
+          const searchResult = await ragService.search(recording.id, questionText, 10);
+          if (searchResult.success && searchResult.chunks && searchResult.chunks.length > 0) {
+            useRag = true;
+            ragChunks = searchResult.chunks;
+          }
+        }
+      } catch (ragErr) {
+        console.warn('🔍 [RAG] Error consultando, usando modo clásico:', ragErr.message);
       }
 
-      const prompt = chatQuestionPrompt(questionText);
-
+      let prompt;
       let answer = '';
 
-      // Usar streaming solo si el estado actual lo indica (Ollama + modelo compatible)
-      if (shouldUseStreaming) {
-        console.log('🚀 Iniciando chat en modo STREAMING');
+      if (useRag) {
+        // --- MODO RAG: prompt con chunks relevantes ---
+        console.log(`🔍 [RAG] Usando ${ragChunks.length} chunks relevantes`);
+        const history = compressChatHistory(qaHistory);
+        prompt = ragChatPrompt(questionText, ragChunks, history);
 
-        const response = await generateWithContextStreaming(
-          prompt,
-          context || "No context available.",
-          (chunk) => {
+        setContextInfo({
+          mode: 'rag',
+          chunksUsed: ragChunks.length,
+          estimatedTokens: Math.ceil(prompt.length / 4)
+        });
+
+        // Opciones para RAG: usar modelo específico si está configurado
+        const ragOptions = ollamaRagModel ? { ragModel: ollamaRagModel } : {};
+        console.log('🤖 [RAG] Configuración:', {
+          ollamaRagModel: ollamaRagModel || 'no configurado',
+          provider: aiProvider,
+          options: ragOptions
+        });
+
+        if (shouldUseStreaming) {
+          console.log('🚀 Iniciando chat RAG en modo STREAMING');
+          const response = await callProviderStreaming(prompt, (chunk) => {
             answer += chunk;
             setStreamingMessage(answer);
-          }
-        );
-
-        answer = response.text || answer || 'No answer generated.';
+          }, ragOptions);
+          console.log('✅ [RAG] Respuesta recibida:', { provider: response.provider, model: response.model });
+          answer = response.text || answer || 'No answer generated.';
+        } else {
+          console.log('🔄 Iniciando chat RAG en modo NORMAL');
+          const response = await callProvider(prompt, ragOptions);
+          console.log('✅ [RAG] Respuesta recibida:', { provider: response.provider, model: response.model });
+          answer = response.text || 'No answer generated.';
+        }
       } else {
-        console.log('🔄 Iniciando chat en modo NORMAL (no streaming)');
-        const response = await generateWithContext(prompt, context || "No context available.");
-        answer = response.text || 'No answer generated.';
+        // --- MODO CLÁSICO: transcripción completa como contexto ---
+        let context = detailedSummary;
+        if (!context) {
+          context = await recordingsService.getTranscriptionTxt(recording.id);
+        }
+
+        prompt = chatQuestionPrompt(questionText);
+
+        setContextInfo({
+          mode: 'full',
+          estimatedTokens: Math.ceil((prompt.length + (context?.length || 0)) / 4)
+        });
+
+        if (shouldUseStreaming) {
+          console.log('🚀 Iniciando chat en modo STREAMING');
+          const response = await generateWithContextStreaming(
+            prompt,
+            context || "No context available.",
+            (chunk) => {
+              answer += chunk;
+              setStreamingMessage(answer);
+            }
+          );
+          answer = response.text || answer || 'No answer generated.';
+        } else {
+          console.log('🔄 Iniciando chat en modo NORMAL (no streaming)');
+          const response = await generateWithContext(prompt, context || "No context available.");
+          answer = response.text || 'No answer generated.';
+        }
       }
 
       setStreamingMessage('');
-      
+
       // Crear el mensaje de la IA con la respuesta completa
-      const aiMessage = { 
-        id: `ai_${tempId}`, 
-        tipo: 'asistente', 
-        contenido: answer, 
-        fecha: new Date().toISOString() 
+      const aiMessage = {
+        id: `ai_${tempId}`,
+        tipo: 'asistente',
+        contenido: answer,
+        fecha: new Date().toISOString()
       };
-      
+
       // Añadir mensaje de la IA al historial
       setQaHistory(prev => [...prev, aiMessage]);
-      
+
       // Guardar en backend (formato compatible con el sistema actual)
       const qa = { pregunta: questionText, respuesta: answer, fecha: new Date().toISOString() };
       await recordingsService.saveQuestionHistory(recording.id, qa);
-      
+
     } catch (err) {
       console.error('Error en handleAskQuestion:', err);
       // Lanzar alerta con el error como solicitó el usuario
       alert(`Error de IA: ${err.message || 'Ocurrió un error inesperado'}`);
-      
+
       // Añadir mensaje de error al historial
-      const errorMessage = { 
-        id: `error_${tempId}`, 
-        tipo: 'asistente', 
-        contenido: 'Lo siento, ha ocurrido un error al procesar tu pregunta.', 
-        fecha: new Date().toISOString() 
+      const errorMessage = {
+        id: `error_${tempId}`,
+        tipo: 'asistente',
+        contenido: 'Lo siento, ha ocurrido un error al procesar tu pregunta.',
+        fecha: new Date().toISOString()
       };
       setQaHistory(prev => [...prev, errorMessage]);
     } finally {
@@ -660,6 +761,25 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     setShowTranscribeModal(true);
   };
 
+  const handleReIndexRAG = async () => {
+    setRagIndexed(false);
+    setRagTotalChunks(0);
+    try {
+      await ragService.deleteIndex(recording.id);
+    } catch {
+      // ignorar si no existía
+    }
+    const result = await ragService.indexRecording(recording.id);
+    if (result.success && result.indexed) {
+      setRagIndexed(true);
+      setRagTotalChunks(result.totalChunks);
+    } else if (result.skippedRag) {
+      setRagIndexed('skipped');
+    } else {
+      setRagIndexed(null);
+    }
+  };
+
   const handleConfirmReTranscribe = async () => {
     setShowTranscribeModal(false);
     try {
@@ -813,7 +933,16 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         </div>
         
         <div className={styles.headerRight}>
-          <button 
+          <button
+            className={`${styles.actionButton} ${styles.reTranscribeBtn}`}
+            onClick={handleReIndexRAG}
+            disabled={ragIndexed === false}
+            title={ragIndexed === true ? 'Re-indexar para RAG' : ragIndexed === false ? 'Indexando...' : 'Indexar para RAG'}
+          >
+            <MdSync size={18} className={ragIndexed === false ? styles.spinning : ''} />
+            {ragIndexed === false ? 'Indexando...' : 'RAG'}
+          </button>
+          <button
             className={`${styles.actionButton} ${styles.reTranscribeBtn}`}
             onClick={handleReTranscribeClick}
             title="Re-run Transcription"
@@ -877,10 +1006,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             audioUrls={audioUrls}
             duration={localRecording.duration}
             transcriptionDuration={transcriptionDuration}
+            contextInfo={contextInfo}
+            ragIndexed={ragIndexed}
+            ragTotalChunks={ragTotalChunks}
             chatProps={{
               chatHistory: convertChatHistory(),
               onSendMessage: handleAskQuestion,
-              isLoading: questionLoading,
+              isLoading: questionLoading || ragIndexed === false,
+              placeholder: ragIndexed === false ? 'Indexando transcripción...' : undefined,
               title: "AI Assistant",
               aiProvider: aiProvider,
               ollamaModels: ollamaModels,

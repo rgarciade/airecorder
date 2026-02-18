@@ -74,7 +74,10 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
 
   // Ollama
   const [ollamaModel, setOllamaModel] = useState('');
+  const [ollamaRagModel, setOllamaRagModel] = useState('');
+  const [ollamaEmbeddingModel, setOllamaEmbeddingModel] = useState('');
   const [ollamaModels, setOllamaModels] = useState([]);
+  const [ollamaEmbeddingModels, setOllamaEmbeddingModels] = useState([]);
   const [ollamaAvailable, setOllamaAvailable] = useState(false);
   const [ollamaHost, setOllamaHost] = useState('http://localhost:11434');
   const [ollamaModelSupportsStreaming, setOllamaModelSupportsStreaming] = useState(false);
@@ -135,7 +138,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         
         // Gemini Pro
         setGeminiApiKey(savedSettings.geminiApiKey || '');
-        setGeminiModel(savedSettings.geminiModel || 'gemini-2.0-flash');
+        setGeminiModel(savedSettings.geminiModel || 'gemini-1.5-pro');
         
         // DeepSeek
         setDeepseekApiKey(savedSettings.deepseekApiKey || '');
@@ -151,13 +154,21 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         
         setAiProvider(savedSettings.aiProvider || 'ollama');
         setOllamaModel(savedSettings.ollamaModel || '');
+        console.log('📥 [Settings] Cargando ollamaRagModel:', savedSettings.ollamaRagModel);
+        setOllamaRagModel(savedSettings.ollamaRagModel || '');
+        setOllamaEmbeddingModel(savedSettings.ollamaEmbeddingModel || 'nomic-embed-text');
         setOllamaModelSupportsStreaming(savedSettings.ollamaModelSupportsStreaming || false);
         if (savedSettings.ollamaHost) setOllamaHost(savedSettings.ollamaHost);
         if (savedSettings.outputDirectory) setOutputDirectory(savedSettings.outputDirectory);
       }
       
       // Check Ollama with loaded/default host
-      checkOllamaConnection(savedSettings?.ollamaHost || ollamaHost);
+      // Pasamos explícitamente los modelos guardados
+      await checkOllamaConnection(
+        savedSettings?.ollamaHost || ollamaHost, 
+        savedSettings?.ollamaModel,
+        savedSettings?.ollamaEmbeddingModel
+      );
       
       // Check LM Studio
       checkLMStudioConnection(savedSettings?.lmStudioHost || lmStudioHost);
@@ -178,23 +189,53 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
     }
   };
 
-  const checkOllamaConnection = async (hostToCheck) => {
+  const checkOllamaConnection = async (hostToCheck, savedChatModel = null, savedEmbeddingModel = null) => {
     const host = hostToCheck || ollamaHost;
     const isAvailable = await checkOllamaAvailability(host);
     setOllamaAvailable(isAvailable);
     if (isAvailable) {
       try {
         const models = await getAvailableModels(host);
-        setOllamaModels(models);
-        // Default model selection logic
-        if (!ollamaModel && models.length > 0) {
-          setOllamaModel(models[0].name);
+        
+        // 1. Filtrar modelos de CHAT (sin 'embed')
+        const chatModels = models.filter(m => !m.name.includes('embed'));
+        const modelsToUse = chatModels.length > 0 ? chatModels : models;
+        setOllamaModels(modelsToUse);
+        
+        // 2. Filtrar modelos de EMBEDDINGS (con 'embed' o todos)
+        // Si no hay modelos con 'embed', mostramos todos para que el usuario elija
+        const embeddingModels = models.filter(m => m.name.includes('embed'));
+        const embeddingModelsToUse = embeddingModels.length > 0 ? embeddingModels : models;
+        setOllamaEmbeddingModels(embeddingModelsToUse);
+
+        // --- Selección Default Chat Model ---
+        const currentChatModel = savedChatModel || ollamaModel;
+        const isValidChatModel = modelsToUse.some(m => m.name === currentChatModel);
+        
+        if ((!currentChatModel || !isValidChatModel) && modelsToUse.length > 0) {
+          setOllamaModel(modelsToUse[0].name);
+        } else if (currentChatModel && isValidChatModel) {
+            setOllamaModel(currentChatModel);
         }
+
+        // --- Selección Default Embedding Model ---
+        const currentEmbeddingModel = savedEmbeddingModel || ollamaEmbeddingModel;
+        const isValidEmbeddingModel = embeddingModelsToUse.some(m => m.name === currentEmbeddingModel);
+
+        if (currentEmbeddingModel && isValidEmbeddingModel) {
+            setOllamaEmbeddingModel(currentEmbeddingModel);
+        } else if (embeddingModelsToUse.length > 0) {
+            // Preferir nomic-embed-text si existe
+            const nomic = embeddingModelsToUse.find(m => m.name.includes('nomic'));
+            setOllamaEmbeddingModel(nomic ? nomic.name : embeddingModelsToUse[0].name);
+        }
+
       } catch (err) {
         console.error("Error obteniendo modelos de ollama", err);
       }
     } else {
       setOllamaModels([]);
+      setOllamaEmbeddingModels([]);
     }
   };
 
@@ -297,6 +338,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
     setSaveMessage('');
     
     try {
+      console.log('💾 [Settings] Guardando ollamaRagModel:', ollamaRagModel);
       await updateSettings({
         language: selectedLanguage,
         microphone: selectedMicrophone,
@@ -321,6 +363,8 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         // Ollama
         aiProvider: aiProvider,
         ollamaModel: ollamaModel,
+        ollamaRagModel: ollamaRagModel,
+        ollamaEmbeddingModel: ollamaEmbeddingModel,
         ollamaHost: ollamaHost,
         ollamaModelSupportsStreaming: ollamaModelSupportsStreaming,
         outputDirectory: outputDirectory
@@ -491,6 +535,45 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         {ollamaModelSupportsStreaming ? '✓ Soporta streaming' : '✗ No soporta streaming'}
                       </p>
                     )}
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Modelo de Chat para RAG (opcional)</label>
+                    <select
+                      className={styles.input}
+                      value={ollamaRagModel}
+                      onChange={(e) => {
+                        console.log('📝 [Settings] Cambiando ollamaRagModel a:', e.target.value);
+                        setOllamaRagModel(e.target.value);
+                      }}
+                      disabled={aiProvider !== 'ollama' || !ollamaAvailable}
+                    >
+                      <option value="">Usar modelo principal</option>
+                      {ollamaModels.map(model => (
+                        <option key={model.name} value={model.name}>{model.name}</option>
+                      ))}
+                    </select>
+                    <p className={styles.helpText}>
+                      Modelo específico para responder consultas RAG (ej: deepseek-r1). Dejar vacío para usar el modelo principal.
+                    </p>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Modelo de Embeddings (Ollama)</label>
+                    <select
+                      className={styles.input}
+                      value={ollamaEmbeddingModel}
+                      onChange={(e) => setOllamaEmbeddingModel(e.target.value)}
+                      disabled={aiProvider !== 'ollama' || !ollamaAvailable}
+                    >
+                      {ollamaEmbeddingModels.length === 0 && <option value="">Cargando...</option>}
+                      {ollamaEmbeddingModels.map(model => (
+                        <option key={model.name} value={model.name}>{model.name}</option>
+                      ))}
+                    </select>
+                    <p className={styles.helpText}>
+                      Modelo usado para indexar y buscar fragmentos (ej: nomic-embed-text).
+                    </p>
                   </div>
                 </div>
 
