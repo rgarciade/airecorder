@@ -232,7 +232,7 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
         onStart={handleStart} 
         microphoneLabel={currentMicLabel}
         languageLabel={currentLangLabel}
-        onOpenSettings={onSettings}
+        onOpenSettings={() => onSettings('general')}
       />
       
       <StatsRow 

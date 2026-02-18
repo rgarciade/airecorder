@@ -11,6 +11,7 @@ const getGeminiUrl = (model, streaming = false) => {
 
 /**
  * Obtiene la lista de modelos Gemini disponibles para la API Key configurada
+ * Filtra solo modelos de texto que soportan generateContent
  * @param {string} apiKey - API Key de Gemini
  * @returns {Promise<Array>} Lista de modelos disponibles
  */
@@ -29,32 +30,86 @@ export async function getGeminiAvailableModels(apiKey) {
 
     const data = await response.json();
     
-    // Filtrar solo modelos que soportan generateContent (útiles para chat)
+    // Filtrar solo modelos de TEXTO que soportan generateContent
     const models = (data.models || [])
       .filter(model => {
-        // Solo incluir modelos Gemini que soporten generateContent
-        return model.name && 
-               model.name.startsWith('models/gemini') &&
-               model.supportedGenerationMethods?.includes('generateContent');
+        const name = model.name || '';
+        // Solo modelos Gemini
+        if (!name.startsWith('models/gemini')) return false;
+        
+        // Debe soportar generateContent
+        if (!model.supportedGenerationMethods?.includes('generateContent')) return false;
+        
+        // EXCLUIR modelos de embedding, vision-only, o especializados
+        const modelId = name.replace('models/', '').toLowerCase();
+        
+        // Excluir modelos de embedding
+        if (modelId.includes('embedding')) return false;
+        
+        // Excluir modelos que son solo para visión/imagen (si terminan en -vision sin soporte de texto)
+        // Nota: gemini-pro-vision SÍ soporta texto + imagen, así que lo incluimos
+        
+        // Excluir modelos avery (específicos de tuning)
+        if (modelId.includes('avery')) return false;
+        
+        // Excluir modelos experimentales o deprecated
+        if (modelId.includes('deprecated') || modelId.includes('experimental')) return false;
+        
+        return true;
       })
       .map(model => {
         const name = model.name.replace('models/', '');
+        
+        // Crear etiqueta amigable
+        let label = model.displayName || name;
+        
+        // Simplificar nombres largos
+        if (label.includes('Gemini 1.0 Pro')) label = 'Gemini 1.0 Pro';
+        else if (label.includes('Gemini 1.5 Pro')) label = 'Gemini 1.5 Pro';
+        else if (label.includes('Gemini 1.5 Flash')) label = 'Gemini 1.5 Flash';
+        else if (label.includes('Gemini 2.0 Flash')) {
+          if (label.includes('Lite')) label = 'Gemini 2.0 Flash Lite';
+          else label = 'Gemini 2.0 Flash';
+        }
+        
+        // Determinar si es modelo de visión
+        const isVision = name.toLowerCase().includes('vision') || 
+                        model.supportedGenerationMethods?.includes('generateImages');
+        
         return {
           name: name,
-          label: model.displayName || name,
-          description: model.description || 'Modelo Gemini',
+          label: label + (isVision ? ' (Multimodal)' : ''),
+          description: model.description || `Modelo Gemini para generación de texto${isVision ? ' e imágenes' : ''}`,
           version: model.version,
-          supportedMethods: model.supportedGenerationMethods
+          supportedMethods: model.supportedGenerationMethods,
+          inputTokenLimit: model.inputTokenLimit,
+          outputTokenLimit: model.outputTokenLimit
         };
       })
       .sort((a, b) => {
-        // Ordenar: modelos más nuevos primero
-        if (a.name.includes('2.0') && !b.name.includes('2.0')) return -1;
-        if (!a.name.includes('2.0') && b.name.includes('2.0')) return 1;
+        // Ordenar: modelos más nuevos primero (2.0 > 1.5 > 1.0)
+        const getVersion = (name) => {
+          if (name.includes('2.0')) return 3;
+          if (name.includes('1.5')) return 2;
+          if (name.includes('1.0')) return 1;
+          return 0;
+        };
+        
+        const versionA = getVersion(a.name);
+        const versionB = getVersion(b.name);
+        
+        if (versionA !== versionB) return versionB - versionA;
+        
+        // Dentro de la misma versión: Flash antes que Pro
+        if (a.name.includes('Flash') && !b.name.includes('Flash')) return -1;
+        if (!a.name.includes('Flash') && b.name.includes('Flash')) return 1;
+        
         return 0;
       });
 
-    console.log(`[Gemini] ${models.length} modelos disponibles encontrados`);
+    console.log(`[Gemini] ${models.length} modelos de texto disponibles encontrados`);
+    models.forEach(m => console.log(`  - ${m.name}: ${m.label}`));
+    
     return models;
   } catch (error) {
     console.error('Error obteniendo modelos de Gemini:', error);
@@ -66,29 +121,30 @@ export async function getGeminiAvailableModels(apiKey) {
 const defaultPrompt = `A continuación tienes una transcripción. Quiero que me des dos resúmenes y una lista de ideas principales o temas destacados que se mencionan.\n\nResponde en formato JSON con la siguiente estructura:\n\n{\n  "resumen_breve": "Resumen muy breve (1-2 frases)",\n  "resumen_extenso": "Resumen más detallado (varios párrafos si es necesario)",\n  "ideas": [\n    "Idea o tema 1",\n    "Idea o tema 2",\n    "Idea o tema 3"\n  ]\n}\n\nSi la transcripción está vacía, responde con un JSON vacío.`;
 
 /**
- * Obtiene la lista de modelos Gemini disponibles
- * @returns {Array} Lista de modelos Gemini
- */
-export function getGeminiAvailableModels() {
-  return GEMINI_MODELS;
-}
-
-/**
  * Envía el texto a Gemini con manejo de reintentos para errores 429
  * @param {string} textContent - El contenido a enviar (prompt + contexto o solo contexto)
  * @param {boolean} isRaw - Si es true, envía textContent tal cual. Si es false, le añade el defaultPrompt.
+ * @param {boolean} useFreeTier - Si es true, usa geminiFreeApiKey en lugar de geminiApiKey
  * @returns {Promise<Object>} - Respuesta de Gemini
  */
-export async function sendToGemini(textContent, isRaw = false) {
+export async function sendToGemini(textContent, isRaw = false, useFreeTier = false) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000; // 2 segundos
 
   const settings = await getSettings();
-  const GEMINI_API_KEY = settings.geminiApiKey;
-  const geminiModel = settings.geminiModel || 'gemini-2.0-flash';
+  // Usar geminiFreeApiKey si está configurado y se solicita el tier gratuito
+  const GEMINI_API_KEY = useFreeTier && settings.geminiFreeApiKey 
+    ? settings.geminiFreeApiKey 
+    : settings.geminiApiKey;
+  
+  // Usar geminiFreeModel si se solicita el tier gratuito
+  const geminiModel = useFreeTier && settings.geminiFreeModel
+    ? settings.geminiFreeModel
+    : (settings.geminiModel || 'gemini-2.0-flash');
   
   if (!GEMINI_API_KEY) {
-    throw new Error('No se ha configurado la Gemini API Key en los ajustes.');
+    const keyType = useFreeTier ? 'Gemini Free' : 'Gemini';
+    throw new Error(`No se ha configurado la ${keyType} API Key en los ajustes.`);
   }
 
   // Construir el cuerpo de la petición
@@ -106,7 +162,7 @@ export async function sendToGemini(textContent, isRaw = false) {
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
       const apiUrl = getGeminiUrl(geminiModel, false);
-      console.log(`[Gemini] Usando modelo: ${geminiModel}`);
+      console.log(`[Gemini] Usando modelo: ${geminiModel} (${useFreeTier ? 'Free tier' : 'Pro'})`);
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -149,18 +205,27 @@ export async function sendToGemini(textContent, isRaw = false) {
  * Envía el texto a Gemini en modo streaming
  * @param {string} textContent - El contenido a enviar (prompt + contexto)
  * @param {Function} onChunk - Callback que recibe cada chunk de texto
+ * @param {boolean} useFreeTier - Si es true, usa geminiFreeApiKey en lugar de geminiApiKey
  * @returns {Promise<string>} - Texto completo de la respuesta
  */
-export async function sendToGeminiStreaming(textContent, onChunk) {
+export async function sendToGeminiStreaming(textContent, onChunk, useFreeTier = false) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
   const settings = await getSettings();
-  const GEMINI_API_KEY = settings.geminiApiKey;
-  const geminiModel = settings.geminiModel || 'gemini-2.0-flash';
+  // Usar geminiFreeApiKey si está configurado y se solicita el tier gratuito
+  const GEMINI_API_KEY = useFreeTier && settings.geminiFreeApiKey 
+    ? settings.geminiFreeApiKey 
+    : settings.geminiApiKey;
+  
+  // Usar geminiFreeModel si se solicita el tier gratuito
+  const geminiModel = useFreeTier && settings.geminiFreeModel
+    ? settings.geminiFreeModel
+    : (settings.geminiModel || 'gemini-2.0-flash');
   
   if (!GEMINI_API_KEY) {
-    throw new Error('No se ha configurado la Gemini API Key en los ajustes.');
+    const keyType = useFreeTier ? 'Gemini Free' : 'Gemini';
+    throw new Error(`No se ha configurado la ${keyType} API Key en los ajustes.`);
   }
 
   const body = {
@@ -172,7 +237,7 @@ export async function sendToGeminiStreaming(textContent, onChunk) {
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
       const streamingUrl = getGeminiUrl(geminiModel, true);
-      console.log(`[Gemini Streaming] Usando modelo: ${geminiModel}`);
+      console.log(`[Gemini Streaming] Usando modelo: ${geminiModel} (${useFreeTier ? 'Free tier' : 'Pro'})`);
       
       const response = await fetch(streamingUrl, {
         method: 'POST',

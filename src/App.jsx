@@ -23,6 +23,7 @@ export default function App() {
   const [appSettings, setAppSettings] = useState(null)
   const [queueCount, setQueueCount] = useState(0)
   const [queueState, setQueueState] = useState({ active: [], history: [] })
+  const [settingsInitialTab, setSettingsInitialTab] = useState('agents')
   const { isRecording } = useSelector((state) => state.recording)
 
   useEffect(() => {
@@ -154,7 +155,10 @@ export default function App() {
         )}
         {currentView === 'home' && (
           <Home
-            onSettings={() => setCurrentView('settings')}
+            onSettings={(tab = 'agents') => {
+              setSettingsInitialTab(tab);
+              setCurrentView('settings');
+            }}
             onProjects={() => setCurrentView('projects')}
             onRecordingStart={handleRecordingStart}
             onRecordingSelect={(recording) => {
@@ -166,7 +170,11 @@ export default function App() {
           />
         )}
         {currentView === 'settings' && (
-          <Settings onBack={handleBack} onSettingsSaved={loadAppSettings} />
+          <Settings 
+            onBack={handleBack} 
+            onSettingsSaved={loadAppSettings} 
+            initialTab={settingsInitialTab} 
+          />
         )}
         {currentView === 'projects' && (
           <Projects 

@@ -2,8 +2,8 @@
   display: flex;
   width: 100%;
   min-height: 100vh;
-  min-width: 100vw;
   background-color: #F8F9FB;
+  overflow-x: hidden;
 }
 
 .mainContent {

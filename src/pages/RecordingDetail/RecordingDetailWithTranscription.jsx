@@ -62,10 +62,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [qaHistory, setQaHistory] = useState([]);
   const [questionLoading, setQuestionLoading] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState('');
-  const [aiProvider, setAiProvider] = useState('gemini');
+  const [aiProvider, setAiProvider] = useState('geminifree');
   const [ollamaModels, setOllamaModels] = useState([]);
   const [selectedOllamaModel, setSelectedOllamaModel] = useState('');
-  const [supportsStreaming, setSupportsStreaming] = useState(false);
+  const [supportsStreaming, setSupportsStreaming] = useState(true);
 
   // Editing Title
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -122,7 +122,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
     // Load AI Config
     getSettings().then(settings => {
-      setAiProvider(settings.aiProvider || 'gemini');
+      setAiProvider(settings.aiProvider || 'geminifree');
       setSelectedWhisperModel(settings.whisperModel || 'small');
       if (settings.aiProvider === 'ollama') {
         getAvailableModels().then(models => setOllamaModels(models.map(m => m.name || m)));
@@ -134,10 +134,13 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   // Cargar configuración de streaming y escuchar cambios
   useEffect(() => {
     const handleSettingsChange = (settings) => {
-      const provider = settings.aiProvider || 'gemini';
-      // Gemini siempre soporta streaming nativamente
+      const provider = settings.aiProvider || 'geminifree';
+      // Todos los proveedores cloud soportan streaming nativamente (y LM Studio)
       // Ollama depende de la configuración del modelo
-      const modelSupportsStreaming = provider === 'gemini' ? true : (settings.ollamaModelSupportsStreaming || false);
+      const cloudProviders = ['geminifree', 'gemini', 'deepseek', 'kimi', 'lmstudio'];
+      const modelSupportsStreaming = cloudProviders.includes(provider) 
+        ? true 
+        : (settings.ollamaModelSupportsStreaming || false);
       const isStreamingSupported = modelSupportsStreaming;
       
       console.log(`[Settings Listener] 🔄 Actualizando configuración en chat:`, {
@@ -276,14 +279,15 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     try {
       // Usar estado local actualizado por el listener (más fiable y rápido)
       const provider = aiProvider;
-      // Gemini siempre usa streaming, Ollama depende de si el modelo lo soporta
-      const shouldUseStreaming = provider === 'gemini' ? true : supportsStreaming;
+      // Todos los proveedores cloud usan streaming, Ollama depende de configuración
+      const cloudProviders = ['geminifree', 'gemini', 'deepseek', 'kimi', 'lmstudio'];
+      const shouldUseStreaming = cloudProviders.includes(provider) ? true : supportsStreaming;
 
       console.log('🤖 Preparando chat:', { 
         provider, 
         shouldUseStreaming, 
         supportsStreaming,
-        currentModel: provider === 'ollama' ? selectedOllamaModel : 'gemini' 
+        currentModel: provider === 'ollama' ? selectedOllamaModel : provider
       });
 
       let context = detailedSummary;
@@ -334,6 +338,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       
     } catch (err) {
       console.error('Error en handleAskQuestion:', err);
+      // Lanzar alerta con el error como solicitó el usuario
+      alert(`Error de IA: ${err.message || 'Ocurrió un error inesperado'}`);
+      
       // Añadir mensaje de error al historial
       const errorMessage = { 
         id: `error_${tempId}`, 
@@ -400,10 +407,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     // Refresh config
     try {
       const settings = await getSettings();
-      setAiProvider(settings.aiProvider || 'gemini');
+      const provider = settings.aiProvider || 'geminifree';
+      setAiProvider(provider);
       setSelectedOllamaModel(settings.ollamaModel || '');
       
-      if (settings.aiProvider === 'ollama' || !settings.aiProvider) {
+      if (provider === 'ollama') {
         const models = await getAvailableModels();
         setOllamaModels(models.map(m => m.name || m));
       }
@@ -916,8 +924,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                   value={aiProvider}
                   onChange={(e) => setAiProvider(e.target.value)}
                 >
-                  <option value="gemini">Google Gemini (Cloud)</option>
+                  <option value="geminifree">Gemini Free (Google)</option>
+                  <option value="gemini">Gemini Pro (Google)</option>
+                  <option value="deepseek">DeepSeek</option>
+                  <option value="kimi">Kimi (Moonshot)</option>
                   <option value="ollama">Ollama (Local)</option>
+                  <option value="lmstudio">LM Studio (Local)</option>
                 </select>
 
                 {aiProvider === 'ollama' && (
