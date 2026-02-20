@@ -205,9 +205,10 @@ export default function App() {
           />
         )}
         {currentView === 'queue' && (
-          <TranscriptionQueue 
-            onBack={handleBack} 
+          <TranscriptionQueue
+            onBack={handleBack}
             queueState={queueState}
+            onNavigateToRecording={handleNavigateToRecording}
           />
         )}
       </div>

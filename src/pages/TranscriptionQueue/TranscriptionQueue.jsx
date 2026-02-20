@@ -5,7 +5,7 @@ import {
   MdMic, MdVideoCameraFront, MdAudiotrack, MdCheck, MdUpload 
 } from 'react-icons/md';
 
-export default function TranscriptionQueue({ onBack, queueState }) {
+export default function TranscriptionQueue({ onBack, queueState, onNavigateToRecording }) {
   const [activeTask, setActiveTask] = useState(null);
   const [queue, setQueue] = useState([]);
   const [history, setHistory] = useState([]);
@@ -265,7 +265,11 @@ export default function TranscriptionQueue({ onBack, queueState }) {
                       )}
                     </span>
                     <p className={styles.logText}>
-                      Transcription {item.status} for <span className={styles.highlightText}>{item.recording_name}</span>
+                      Transcription {item.status} for <span
+                        className={styles.highlightText}
+                        onClick={() => onNavigateToRecording && onNavigateToRecording(item.recording_id)}
+                        style={{ cursor: onNavigateToRecording ? 'pointer' : 'default' }}
+                      >{item.recording_name}</span>
                     </p>
                     <div className={styles.logBadgeRow}>
                       {item.status === 'completed' ? (

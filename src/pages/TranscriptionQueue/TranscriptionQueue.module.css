@@ -585,6 +585,12 @@
 
 .highlightText {
   color: #3994ef;
+  transition: all 0.2s;
+}
+
+.highlightText:hover {
+  color: #2563eb;
+  text-decoration: underline;
 }
 
 .logBadgeRow {
