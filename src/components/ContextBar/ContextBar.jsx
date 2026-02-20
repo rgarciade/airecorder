@@ -3,6 +3,7 @@ import styles from './ContextBar.module.css';
 
 const ModeToggle = ({ ragMode, onRagModeChange }) => (
   <div className={styles.modeToggle}>
+    <div className={`${styles.modeSlider} ${ragMode === 'detallado' ? styles.modeSliderRight : ''}`} />
     <button
       className={`${styles.modeBtn} ${ragMode === 'auto' ? styles.modeBtnActive : ''}`}
       onClick={() => onRagModeChange('auto')}

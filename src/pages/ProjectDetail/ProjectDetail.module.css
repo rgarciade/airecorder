@@ -465,9 +465,16 @@
 .recordingOptionLabel {
   font-size: 13px;
   color: #1e293b;
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.recordingOptionDate {
+  font-size: 11px;
+  color: #94a3b8;
 }
 
 .modalActions {

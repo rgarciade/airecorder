@@ -88,8 +88,8 @@
 
 /* Toggle Auto / Detallado */
 .modeToggle {
+  position: relative;
   display: flex;
-  gap: 2px;
   margin-left: auto;
   background: #E5E7EB;
   border-radius: 4px;
@@ -97,18 +97,39 @@
   flex-shrink: 0;
 }
 
+.modeSlider {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  bottom: 2px;
+  background: #fff;
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.modeSliderRight {
+  transform: translateX(100%);
+}
+
 .modeBtn {
   position: relative;
+  z-index: 1;
   padding: 1px 7px;
   border: none;
   background: none;
   border-radius: 3px;
   font-size: 10px;
   font-weight: 600;
+  padding-left: 20px;
   color: #6B7280;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: color 0.2s;
   line-height: 1.6;
+  flex: 1;
+  text-align: center;
 }
 
 .modeBtn:hover {
@@ -139,7 +160,5 @@
 }
 
 .modeBtnActive {
-  background: #fff;
   color: #374151;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }

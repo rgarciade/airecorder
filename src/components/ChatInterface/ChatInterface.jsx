@@ -295,8 +295,8 @@ export default function ChatInterface({
             <button className={styles.suggestionChip} onClick={() => handleSuggestionClick("Summarize Action Items")}>
               Summarize Action Items
             </button>
-            <button className={styles.suggestionChip} onClick={() => handleSuggestionClick("Key Decisions")}>
-              Key Decisions
+            <button className={styles.suggestionChip} onClick={() => handleSuggestionClick("Most important decisions")}>
+              Most important decisions
             </button>
           </div>
         )}
