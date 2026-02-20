@@ -37,6 +37,11 @@
   color: #2563EB;
 }
 
+.iconTeams {
+  background-color: #EEEEFF;
+  color: #5C59C0;
+}
+
 .headerRight {
   display: flex;
   align-items: center;

@@ -394,3 +394,96 @@
   outline: none;
   max-width: 100px;
 }
+
+/* Model pill selector */
+.modelPill {
+  position: relative;
+}
+
+.modelPillBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: #F3F4F6;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.modelPillBtn:hover:not(:disabled) {
+  background: #E5E7EB;
+}
+
+.modelPillBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.modelName {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  font-size: 9px;
+  color: #9CA3AF;
+  flex-shrink: 0;
+}
+
+.verifySpinner {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border: 2px solid #E5E7EB;
+  border-top-color: #3994EF;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.modelDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: #fff;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 160px;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.modelOption {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 13px;
+  color: #374151;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.modelOption:hover {
+  background: #F9FAFB;
+}
+
+.modelOptionActive {
+  font-weight: 700;
+  color: #3994EF;
+}

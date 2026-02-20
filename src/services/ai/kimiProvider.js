@@ -24,13 +24,13 @@ export function getKimiAvailableModels() {
  * @param {string} textContent - El contenido a enviar
  * @returns {Promise<string>} - Respuesta generada
  */
-export async function sendToKimi(textContent) {
+export async function sendToKimi(textContent, modelOverride = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
   const settings = await getSettings();
   const apiKey = settings.kimiApiKey;
-  const model = settings.kimiModel || 'kimi-k2';
+  const model = modelOverride || settings.kimiModel || 'kimi-k2';
 
   if (!apiKey) {
     throw new Error('No se ha configurado la Kimi API Key en los ajustes.');
@@ -90,7 +90,7 @@ export async function sendToKimi(textContent) {
  * @param {Function} onChunk - Callback que recibe cada chunk de texto
  * @returns {Promise<string>} - Texto completo de la respuesta
  */
-export async function sendToKimiStreaming(textContent, onChunk) {
+export async function sendToKimiStreaming(textContent, onChunk, modelOverride = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
@@ -98,7 +98,7 @@ export async function sendToKimiStreaming(textContent, onChunk) {
 
   const settings = await getSettings();
   const apiKey = settings.kimiApiKey;
-  const model = settings.kimiModel || 'kimi-k2';
+  const model = modelOverride || settings.kimiModel || 'kimi-k2';
 
   if (!apiKey) {
     console.error('[Kimi] Falta API Key');

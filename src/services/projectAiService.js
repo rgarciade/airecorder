@@ -6,6 +6,7 @@
 import { callProvider } from './ai/providerRouter';
 import { parseJsonObject } from '../utils/aiResponseParser';
 import { projectAnalysisPrompt } from '../prompts/aiPrompts';
+import { projectRagChatPrompt, compressChatHistory } from '../prompts/ragPrompts';
 
 class ProjectAiService {
   constructor() {
@@ -18,9 +19,9 @@ class ProjectAiService {
    * @param {string} projectId - ID del proyecto
    * @returns {Promise<Object>} Análisis completo del proyecto
    */
-  async _ensureAnalysis(projectId) {
-    // 1. Si ya tenemos datos en caché, devolverlos
-    if (this.analysisCache.has(projectId)) {
+  async _ensureAnalysis(projectId, forceRefresh = false) {
+    // 1. Si ya tenemos datos en caché y no forzamos refresco, devolverlos
+    if (!forceRefresh && this.analysisCache.has(projectId)) {
       return this.analysisCache.get(projectId);
     }
 
@@ -33,35 +34,37 @@ class ProjectAiService {
     const analysisPromise = (async () => {
       try {
         console.log(`Iniciando análisis inteligente para proyecto ${projectId}...`);
-        
+
         // Obtener grabaciones del proyecto
         const result = await window.electronAPI.getProjectRecordings(projectId);
         if (!result.success) throw new Error(result.error);
-        
+
         const recordingIds = result.recordings;
-        
+
         if (recordingIds.length === 0) {
           return this._getEmptyProjectData();
         }
 
         // Verificar si necesitamos re-analizar
-        // Intentar cargar desde disco primero
+        // Intentar cargar desde disco primero (salvo que forcemos refresco)
         let cachedAnalysis = null;
-        try {
-          const diskResult = await window.electronAPI.getProjectAnalysis(projectId);
-          if (diskResult.success && diskResult.analysis) {
-            cachedAnalysis = diskResult.analysis;
+        if (!forceRefresh) {
+          try {
+            const diskResult = await window.electronAPI.getProjectAnalysis(projectId);
+            if (diskResult.success && diskResult.analysis) {
+              cachedAnalysis = diskResult.analysis;
+            }
+          } catch (e) {
+            console.warn('No se pudo cargar análisis desde disco', e);
           }
-        } catch (e) {
-          console.warn('No se pudo cargar análisis desde disco', e);
         }
 
         // Comprobar si las grabaciones han cambiado
         const currentRecordingIdsSet = new Set(recordingIds);
         const cachedRecordingIdsSet = new Set(cachedAnalysis?.analyzedRecordingIds || []);
-        
+
         const areSetsEqual = (a, b) => a.size === b.size && [...a].every(value => b.has(value));
-        const needsUpdate = !cachedAnalysis || !areSetsEqual(currentRecordingIdsSet, cachedRecordingIdsSet);
+        const needsUpdate = forceRefresh || !cachedAnalysis || !areSetsEqual(currentRecordingIdsSet, cachedRecordingIdsSet);
 
         if (!needsUpdate) {
           console.log(`Análisis de proyecto ${projectId} actualizado. Usando caché.`);
@@ -71,7 +74,6 @@ class ProjectAiService {
 
         console.log(`Detectados cambios en grabaciones. Regenerando análisis de proyecto...`);
 
-        const summaries = [];
         const recordingsWithDates = [];
 
         // Importación dinámica para evitar ciclos de dependencia
@@ -314,21 +316,62 @@ class ProjectAiService {
   }
 
   /**
-   * Pregunta a la IA sobre el proyecto con contexto real
+   * Pregunta a la IA sobre el proyecto con contexto real.
+   * Usa RAG si las grabaciones están indexadas; si no, usa los resúmenes JSON.
    * @param {string} projectId - ID del proyecto
    * @param {string} question - Pregunta del usuario
    * @param {Array} recordingIds - IDs de grabaciones para el contexto
-   * @returns {Promise<string>} Respuesta de la IA
+   * @param {Object} recordingTitles - Mapa { [recId]: string } con títulos de grabaciones
+   * @param {Array} chatHistory - Historial de mensajes del chat
+   * @param {'auto'|'detallado'} ragMode - Modo de búsqueda RAG
+   * @returns {Promise<{text: string, contextInfo: Object|null}>}
    */
-  async askProjectQuestion(projectId, question, recordingIds = []) {
+  async askProjectQuestion(projectId, question, recordingIds = [], recordingTitles = {}, chatHistory = [], ragMode = 'auto', options = {}) {
     try {
-      const analysis = await this._ensureAnalysis(projectId);
-      
-      // 1. Recopilar transcripciones/resúmenes de las grabaciones seleccionadas
-      let contextText = `Información General del Proyecto:\n${analysis.resumen_breve}\n\n`;
-      
+      // Calcular topK según modo: auto reparte un presupuesto de 20 chunks entre grabaciones
+      const topKPerRecording = ragMode === 'detallado'
+        ? 10
+        : Math.max(3, Math.floor(20 / Math.max(1, recordingIds.length)));
+
+      // 1. Intentar RAG en todas las grabaciones del contexto
+      const allChunks = [];
       if (recordingIds.length > 0) {
-        contextText += "Contexto específico de grabaciones seleccionadas:\n";
+        for (const recId of recordingIds) {
+          try {
+            const result = await window.electronAPI.searchRecording(recId, question, topKPerRecording);
+            const chunks = result?.success ? result.chunks : [];
+            if (chunks && chunks.length > 0) {
+              const title = recordingTitles[recId] || `Grabación ${recId}`;
+              chunks.forEach(chunk => {
+                allChunks.push({ ...chunk, recordingTitle: title });
+              });
+            }
+          } catch {
+            // Grabación no indexada o error: ignorar silenciosamente
+          }
+        }
+      }
+
+      // 2a. Si hay chunks RAG, usarlos
+      if (allChunks.length > 0) {
+        console.log(`[ProjectAI] RAG: ${allChunks.length} chunks de ${recordingIds.length} grabaciones`);
+        const history = compressChatHistory(chatHistory);
+        const prompt = projectRagChatPrompt(question, allChunks, history);
+        const result = await callProvider(prompt, options);
+        const estimatedTokens = Math.round(prompt.length / 4);
+        return {
+          text: result.text || 'No he podido generar una respuesta en este momento.',
+          contextInfo: { mode: 'rag', chunksUsed: allChunks.length, estimatedTokens }
+        };
+      }
+
+      // 2b. Fallback: resúmenes JSON
+      console.log('[ProjectAI] Sin chunks RAG, usando resúmenes JSON como contexto');
+      const analysis = await this._ensureAnalysis(projectId);
+      let contextText = `Información General del Proyecto:\n${analysis.resumen_breve}\n\n`;
+
+      if (recordingIds.length > 0) {
+        contextText += 'Contexto específico de grabaciones seleccionadas:\n';
         for (const recId of recordingIds) {
           const summaryResult = await window.electronAPI.getAiSummary(recId);
           if (summaryResult.success && summaryResult.summary) {
@@ -350,11 +393,15 @@ Instrucciones:
 2. Si la información no está en el contexto, indícalo educadamente.
 3. Utiliza formato Markdown para mejorar la legibilidad.`;
 
-      const result = await callProvider(prompt);
-      return result.text || "No he podido generar una respuesta en este momento.";
+      const result = await callProvider(prompt, options);
+      const estimatedTokens = Math.round(prompt.length / 4);
+      return {
+        text: result.text || 'No he podido generar una respuesta en este momento.',
+        contextInfo: { mode: 'full', estimatedTokens }
+      };
     } catch (error) {
       console.error('Error en askProjectQuestion:', error);
-      return "Error al procesar la consulta con la IA.";
+      return { text: 'Error al procesar la consulta con la IA.', contextInfo: null };
     }
   }
 
@@ -423,10 +470,20 @@ Instrucciones:
 
   /**
    * Fuerza la regeneración del análisis (útil si se añaden nuevas grabaciones)
-   * @param {string} projectId 
+   * @param {string} projectId
    */
   clearCache(projectId) {
     this.analysisCache.delete(projectId);
+  }
+
+  /**
+   * Regenera el análisis del proyecto ignorando cualquier caché
+   * @param {string} projectId
+   * @returns {Promise<Object>} Nuevo análisis
+   */
+  async regenerateAnalysis(projectId) {
+    this.analysisCache.delete(projectId);
+    return this._ensureAnalysis(projectId, true);
   }
 }
 

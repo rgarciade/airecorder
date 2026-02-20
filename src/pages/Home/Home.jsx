@@ -107,18 +107,17 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
   const loadRecordings = async () => {
     try {
       setLoading(true);
-      
+
       const list = await recordingsService.getRecordings();
       // Sort by date desc
       list.sort((a, b) => new Date(b.date) - new Date(a.date));
       setRecordings(list);
-      
-      // Calculate stats (Legacy fallback removed or kept as backup?)
-      // We rely on getDashboardStats now for the counters.
-      
+      return list;
+
     } catch (err) {
       console.error("Error loading recordings:", err);
       setError("Failed to load recordings");
+      return [];
     } finally {
       setLoading(false);
     }
@@ -138,6 +137,28 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
       }
     } catch (err) {
       console.error('Error transcribing:', err);
+      alert('Error: ' + err.message);
+    }
+  };
+
+  const handleImportTeams = async () => {
+    try {
+      const result = await window.electronAPI.importTeamsTranscript();
+      if (result?.canceled) return;
+      if (result?.success && result?.recording) {
+        const list = await loadRecordings();
+        if (onRecordingSelect) {
+          // Buscar el objeto completo por carpeta (relative_path) o ID de BD
+          const rec = list.find(r => r.id === result.recording.relative_path || r.dbId === result.recording.id);
+          if (rec) {
+            onRecordingSelect(rec);
+          }
+        }
+      } else {
+        alert('Error importando la transcripción: ' + (result?.error || 'Error desconocido'));
+      }
+    } catch (err) {
+      console.error('Error importando transcripción de Teams:', err);
       alert('Error: ' + err.message);
     }
   };
@@ -228,8 +249,9 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
         </div>
       )}
 
-      <NewSessionCard 
-        onStart={handleStart} 
+      <NewSessionCard
+        onStart={handleStart}
+        onImport={handleImportTeams}
         microphoneLabel={currentMicLabel}
         languageLabel={currentLangLabel}
         onOpenSettings={() => onSettings('general')}

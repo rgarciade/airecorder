@@ -22,8 +22,8 @@ export async function callProvider(prompt, options = {}) {
 
   switch (provider) {
     case 'ollama': {
-      // Permitir override del modelo vía options.ragModel o usar el configurado
-      const model = options.ragModel || settings.ollamaModel;
+      // Permitir override del modelo vía options.model > options.ragModel > settings
+      const model = options.model || options.ragModel || settings.ollamaModel;
       if (!model) {
         throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
       }
@@ -47,7 +47,7 @@ export async function callProvider(prompt, options = {}) {
       if (!settings.deepseekApiKey) {
         throw new Error('No se ha configurado la DeepSeek API Key en los ajustes.');
       }
-      const response = await sendToDeepseek(prompt);
+      const response = await sendToDeepseek(prompt, options.model || null);
       return {
         text: response || 'Sin respuesta',
         provider: 'deepseek'
@@ -58,7 +58,7 @@ export async function callProvider(prompt, options = {}) {
       if (!settings.kimiApiKey) {
         throw new Error('No se ha configurado la Kimi API Key en los ajustes.');
       }
-      const response = await sendToKimi(prompt);
+      const response = await sendToKimi(prompt, options.model || null);
       return {
         text: response || 'Sin respuesta',
         provider: 'kimi'
@@ -181,7 +181,7 @@ export async function callProviderStreaming(prompt, onChunk, options = {}) {
 
     case 'deepseek': {
       console.log('[callProviderStreaming] Iniciando streaming con DeepSeek');
-      const fullResponse = await sendToDeepseekStreaming(prompt, onChunk);
+      const fullResponse = await sendToDeepseekStreaming(prompt, onChunk, options.model || null);
       return {
         text: fullResponse || 'Sin respuesta',
         provider: 'deepseek',
@@ -191,7 +191,7 @@ export async function callProviderStreaming(prompt, onChunk, options = {}) {
 
     case 'kimi': {
       console.log('[callProviderStreaming] Iniciando streaming con Kimi');
-      const fullResponse = await sendToKimiStreaming(prompt, onChunk);
+      const fullResponse = await sendToKimiStreaming(prompt, onChunk, options.model || null);
       return {
         text: fullResponse || 'Sin respuesta',
         provider: 'kimi',
@@ -210,13 +210,14 @@ export async function callProviderStreaming(prompt, onChunk, options = {}) {
     }
 
     case 'ollama': {
-      // Permitir override del modelo vía options.ragModel
-      const model = options.ragModel || settings.ollamaModel;
+      // Permitir override del modelo vía options.model > options.ragModel > settings
+      const model = options.model || options.ragModel || settings.ollamaModel;
       if (!model) {
         throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
       }
 
-      // Ollama solo si el modelo lo soporta (o si es un modelo RAG específico, usar sin streaming)
+      // Streaming: soportado si settings lo indica Y no es modelo RAG override
+      // Con options.model (sesión) mantenemos el supportsStreaming del estado local
       const useStreaming = settings.ollamaModelSupportsStreaming && !options.ragModel;
 
       if (useStreaming) {

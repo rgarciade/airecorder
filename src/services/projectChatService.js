@@ -94,24 +94,48 @@ class ProjectChatService {
   }
 
   /**
+   * Borra todos los mensajes de un chat (reiniciar)
+   * @param {string} chatId
+   */
+  async clearChatHistory(chatId) {
+    if (!window.electronAPI?.clearProjectChatMessages) return;
+    await window.electronAPI.clearProjectChatMessages(chatId);
+  }
+
+  /**
    * Genera una respuesta de la IA real basada en el contexto del chat y del proyecto
    * @param {string} projectId - ID del proyecto
    * @param {string} question - Pregunta del usuario
    * @param {string} chatId - ID del chat para obtener el contexto
-   * @returns {Promise<string>} Respuesta de la IA
+   * @param {Array} chatHistory - Historial de mensajes para contexto RAG
+   * @param {'auto'|'detallado'} ragMode - Modo de búsqueda RAG
+   * @returns {Promise<{text: string, contextInfo: Object|null}>} Respuesta de la IA con metadatos de contexto
    */
-  async generateAiResponse(projectId, question, chatId) {
+  async generateAiResponse(projectId, question, chatId, chatHistory = [], ragMode = 'auto', options = {}) {
     try {
       // Obtener el chat para ver su contexto
       const chats = await this.getProjectChats(projectId);
       const chat = chats.find(c => c.id === chatId);
       const recordingIds = chat?.contexto || [];
-      
-      // Llamar al servicio de IA con el contexto específico
-      return await projectAiService.askProjectQuestion(projectId, question, recordingIds);
+
+      // Construir mapa de títulos para RAG multi-grabación
+      const recordingTitles = {};
+      if (recordingIds.length > 0) {
+        try {
+          const summaries = await projectAiService.getProjectRecordingSummaries(projectId);
+          summaries.forEach(s => {
+            recordingTitles[s.id] = s.title;
+          });
+        } catch {
+          // Si falla, los chunks se mostrarán sin título específico
+        }
+      }
+
+      // Llamar al servicio de IA con contexto RAG
+      return await projectAiService.askProjectQuestion(projectId, question, recordingIds, recordingTitles, chatHistory, ragMode, options);
     } catch (error) {
       console.error('Error generando respuesta IA:', error);
-      return "Lo siento, ha ocurrido un error al procesar tu pregunta.";
+      return { text: 'Lo siento, ha ocurrido un error al procesar tu pregunta.', contextInfo: null };
     }
   }
 }

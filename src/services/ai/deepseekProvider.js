@@ -24,13 +24,13 @@ export function getDeepseekAvailableModels() {
  * @param {string} textContent - El contenido a enviar
  * @returns {Promise<string>} - Respuesta generada
  */
-export async function sendToDeepseek(textContent) {
+export async function sendToDeepseek(textContent, modelOverride = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
   const settings = await getSettings();
   const apiKey = settings.deepseekApiKey;
-  const model = settings.deepseekModel || 'deepseek-chat';
+  const model = modelOverride || settings.deepseekModel || 'deepseek-chat';
 
   if (!apiKey) {
     throw new Error('No se ha configurado la DeepSeek API Key en los ajustes.');
@@ -89,7 +89,7 @@ export async function sendToDeepseek(textContent) {
  * @param {Function} onChunk - Callback que recibe cada chunk de texto
  * @returns {Promise<string>} - Texto completo de la respuesta
  */
-export async function sendToDeepseekStreaming(textContent, onChunk) {
+export async function sendToDeepseekStreaming(textContent, onChunk, modelOverride = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
@@ -97,7 +97,7 @@ export async function sendToDeepseekStreaming(textContent, onChunk) {
 
   const settings = await getSettings();
   const apiKey = settings.deepseekApiKey;
-  const model = settings.deepseekModel || 'deepseek-chat';
+  const model = modelOverride || settings.deepseekModel || 'deepseek-chat';
 
   if (!apiKey) {
     console.error('[DeepSeek] Falta API Key');

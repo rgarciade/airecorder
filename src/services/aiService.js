@@ -57,9 +57,11 @@ export async function generateContent(prompt) {
  * @param {string} transcriptionText - Texto de la transcripción
  * @returns {Promise<Object>} Respuesta de la IA
  */
-export async function generateWithContext(prompt, transcriptionText) {
+export async function generateWithContext(prompt, transcriptionText, options = {}) {
   const fullPrompt = `${prompt}\n\nTranscripción:\n${transcriptionText}`;
-  return await generateContent(fullPrompt);
+  const response = await callProvider(fullPrompt, options);
+  const { processedText, keyPoints } = processResponseWithKeyPoints(response.text);
+  return { ...response, text: processedText, keyPoints };
 }
 
 /**
@@ -78,7 +80,7 @@ export async function validateAiConfig() {
  * @param {Function} onChunk - Callback que recibe cada chunk de la respuesta
  * @returns {Promise<Object>} Respuesta de la IA
  */
-export async function generateWithContextStreaming(prompt, transcriptionText, onChunk) {
+export async function generateWithContextStreaming(prompt, transcriptionText, onChunk, options = {}) {
   const fullPrompt = `${prompt}\n\nTranscripción:\n${transcriptionText}`;
-  return await callProviderStreaming(fullPrompt, onChunk);
+  return await callProviderStreaming(fullPrompt, onChunk, options);
 }

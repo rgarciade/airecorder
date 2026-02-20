@@ -34,14 +34,25 @@ export default function RecordingCard({ recording, onClick, onTranscribe }) {
   return (
     <div className={styles.card} onClick={() => onClick(recording)}>
       <div className={styles.header}>
-        <div className={styles.icon}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-            <line x1="12" y1="19" x2="12" y2="23"/>
-            <line x1="8" y1="23" x2="16" y2="23"/>
-          </svg>
-        </div>
+        {recording.transcriptionModel === 'teams-import' ? (
+          <div className={`${styles.icon} ${styles.iconTeams}`}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M15.5 5.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>
+              <path d="M20 7h-9a1 1 0 0 0-1 1v7.5a3.5 3.5 0 0 0 7 0V9h3a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/>
+              <path d="M9 8H3a1 1 0 0 0-1 1v5a4 4 0 0 0 8 0V9a1 1 0 0 0-1-1z"/>
+              <circle cx="6" cy="4.5" r="2.5"/>
+            </svg>
+          </div>
+        ) : (
+          <div className={styles.icon}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+          </div>
+        )}
         <div className={styles.headerRight}>
           {statusInfo.label === 'Recorded' && onTranscribe && (
             <button 

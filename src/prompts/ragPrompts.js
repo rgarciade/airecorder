@@ -54,6 +54,48 @@ export const ragChatPrompt = (question, chunks, chatHistory = '') => {
 };
 
 /**
+ * Construye el prompt para chat de proyecto con RAG multi-grabación.
+ * Los chunks tienen el campo adicional `recordingTitle`.
+ * @param {string} question
+ * @param {Array<{ textDisplay: string, score: number, startTime: number, endTime: number, recordingTitle: string }>} chunks
+ * @param {string} [chatHistory]
+ * @returns {string}
+ */
+export const projectRagChatPrompt = (question, chunks, chatHistory = '') => {
+  let prompt = `Eres un asistente experto que responde preguntas sobre un proyecto basándote en fragmentos relevantes de las transcripciones de sus reuniones.
+
+REGLAS:
+1. Basa tu respuesta SOLO en los fragmentos proporcionados
+2. Si los fragmentos no contienen información suficiente, indícalo claramente
+3. Al citar información, usa SIEMPRE el nombre de la reunión y el minuto exacto (ej: "En 'Reunión de kick-off', a las 24:05...")
+4. NUNCA uses expresiones como "Fragmento N" u otras referencias numéricas
+5. Responde en español usando formato Markdown
+6. Sé conciso y directo`;
+
+  prompt += '\n\n--- FRAGMENTOS RELEVANTES DE LAS REUNIONES ---\n';
+  chunks.forEach((chunk) => {
+    const startMin = chunk.startTime != null ? formatTime(chunk.startTime) : '';
+    const endMin = chunk.endTime != null ? formatTime(chunk.endTime) : '';
+    const timeLabel = startMin ? `${startMin} - ${endMin}` : '';
+    const reunionLabel = chunk.recordingTitle
+      ? `[Reunión: "${chunk.recordingTitle}"${timeLabel ? ` · ${timeLabel}` : ''}]`
+      : `[${timeLabel}]`;
+    prompt += `\n${reunionLabel}\n`;
+    prompt += chunk.textDisplay + '\n';
+  });
+  prompt += '\n--- FIN FRAGMENTOS ---\n';
+
+  if (chatHistory) {
+    prompt += `\n--- HISTORIAL RECIENTE ---\n${chatHistory}\n--- FIN HISTORIAL ---\n`;
+  }
+
+  prompt += `\n--- PREGUNTA ---\n${question}\n`;
+  prompt += `\nResponde de forma concisa usando formato Markdown.`;
+
+  return prompt;
+};
+
+/**
  * Comprime el historial de chat reciente para incluirlo en el prompt RAG
  * @param {Array<{ tipo: string, contenido: string }>} messages - Mensajes del chat
  * @param {number} maxMessages - Máximo de mensajes a incluir (pares pregunta/respuesta)
