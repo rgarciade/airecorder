@@ -39,10 +39,16 @@ module.exports = {
 
   // Obtener estadísticas para el Dashboard
   GET_DASHBOARD_STATS: `
-    SELECT 
+    SELECT
       COALESCE(SUM(duration), 0) as totalSeconds,
       COUNT(CASE WHEN status IN ('transcribed', 'analyzed') THEN 1 END) as totalTranscriptions,
-      COUNT(id) as totalRecordings
+      COUNT(id) as totalRecordings,
+      COALESCE(SUM(CASE
+        WHEN created_at >= datetime('now', 'localtime', '-' || ((CAST(strftime('%w', 'now', 'localtime') AS INTEGER) + 6) % 7) || ' days', 'start of day')
+         AND created_at < datetime('now', 'localtime', '-' || ((CAST(strftime('%w', 'now', 'localtime') AS INTEGER) + 6) % 7) || ' days', 'start of day', '+5 days')
+        THEN duration
+        ELSE 0
+      END), 0) as weekSeconds
     FROM recordings;
   `,
 

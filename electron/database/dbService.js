@@ -231,20 +231,22 @@ class DbService {
 
   // Obtener estadísticas
   getDashboardStats() {
-    if (!this.db) return { totalHours: 0, totalTranscriptions: 0, totalRecordings: 0 };
+    if (!this.db) return { totalHours: 0, totalTranscriptions: 0, totalRecordings: 0, weekHours: 0 };
     try {
       const stmt = this.db.prepare(GET_DASHBOARD_STATS);
       const result = stmt.get();
       // Convertir segundos a horas formateadas (ej: 1.5)
       const totalHours = result.totalSeconds ? (result.totalSeconds / 3600).toFixed(1) : "0.0";
+      const weekHours = result.weekSeconds ? (result.weekSeconds / 3600).toFixed(1) : "0.0";
       return {
         totalHours,
         totalTranscriptions: result.totalTranscriptions,
-        totalRecordings: result.totalRecordings
+        totalRecordings: result.totalRecordings,
+        weekHours
       };
     } catch (error) {
       console.error('[DB] Error getStats:', error);
-      return { totalHours: 0, totalTranscriptions: 0, totalRecordings: 0 };
+      return { totalHours: 0, totalTranscriptions: 0, totalRecordings: 0, weekHours: 0 };
     }
   }
 

@@ -40,21 +40,21 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
     if (window.electronAPI?.getDashboardStats) {
       try {
         const stats = await window.electronAPI.getDashboardStats();
-        // stats = { totalHours: "1.5", totalTranscriptions: 5, totalRecordings: 10 }
-        
+        // stats = { totalHours: "1.5", weekHours: "0.5", totalTranscriptions: 5, totalRecordings: 10 }
+
         const totalHoursNum = parseFloat(stats.totalHours);
         const hours = Math.floor(totalHoursNum);
         const minutes = Math.floor((totalHoursNum - hours) * 60);
-        
-        // Saved time calculation (approx)
-        const savedHoursNum = totalHoursNum * 0.8;
-        const savedHours = Math.floor(savedHoursNum);
-        const savedMinutes = Math.floor((savedHoursNum - savedHours) * 60);
+
+        // Week time (Monday to Friday)
+        const weekHoursNum = parseFloat(stats.weekHours);
+        const weekHours = Math.floor(weekHoursNum);
+        const weekMinutes = Math.floor((weekHoursNum - weekHours) * 60);
 
         setTotalTimeStr(`${hours}h ${minutes}m`);
         setTotalFiles(stats.totalTranscriptions); // Or totalRecordings if you prefer total files
-        setSavedTimeStr(`${savedHours}h ${savedMinutes}m`);
-        
+        setSavedTimeStr(`${weekHours}h ${weekMinutes}m`);
+
       } catch (err) {
         console.error("Error loading dashboard stats:", err);
       }
