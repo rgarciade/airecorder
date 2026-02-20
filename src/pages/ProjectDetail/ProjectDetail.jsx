@@ -667,7 +667,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
               
               <span className={styles.modalSubtitle}>Contexto del chat:</span>
               <div className={styles.recordingSelector}>
-                {recordingSummaries.map(rec => (
+                {[...recordingSummaries].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).map(rec => (
                   <label key={rec.id} className={styles.recordingOption}>
                     <input 
                       type="checkbox"
@@ -676,6 +676,11 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                     />
                     <span className={styles.recordingOptionLabel}>
                       {rec.title || `Grabación ${rec.id}`}
+                      {rec.date && (
+                        <span className={styles.recordingOptionDate}>
+                          {new Date(rec.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </span>
+                      )}
                     </span>
                   </label>
                 ))}

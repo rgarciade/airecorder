@@ -423,14 +423,15 @@ Instrucciones:
           // Intentar obtener info básica (nombre de carpeta/path)
           const recResult = await window.electronAPI.getRecordingById(recId);
           const title = recResult.success ? recResult.recording.relative_path : `Grabación ${recId}`;
+          const date = recResult.success ? recResult.recording.created_at || null : null;
 
           const summaryResult = await window.electronAPI.getAiSummary(recId);
-          
+
           if (summaryResult.success && summaryResult.summary) {
             summaries.push({
               id: recId,
               title: title,
-              date: null,
+              date: date,
               summary: summaryResult.summary
             });
           }
