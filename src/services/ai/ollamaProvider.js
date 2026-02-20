@@ -122,7 +122,7 @@ export async function generateContent(model, prompt, options = {}) {
           model: model,
           prompt: prompt,
           stream: false,
-          ...options
+          ...(options.format ? { format: options.format } : {})
         }),
       });
 

@@ -643,3 +643,86 @@
   font-weight: 500;
   color: #4B5563;
 }
+
+/* Header del contexto del chat (acordeón + botón re-indexar) */
+.chatContextHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chatContextHeader .chatContextTitle {
+  flex: 1;
+}
+
+/* Botón re-indexar RAG en chat */
+.reindexButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: none;
+  border: 1px solid #D1D5DB;
+  border-radius: 5px;
+  color: #6B7280;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.reindexButton:hover:not(:disabled) {
+  background: #F3F4F6;
+  color: #374151;
+  border-color: #9CA3AF;
+}
+
+.reindexButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Botón regenerar resumen IA */
+.sectionTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.sectionTitleRow .sectionTitle {
+  margin-bottom: 0;
+}
+
+.regenerateButton {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: none;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  color: #6B7280;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.regenerateButton:hover:not(:disabled) {
+  background: #F3F4F6;
+  color: #374151;
+  border-color: #9CA3AF;
+}
+
+.regenerateButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Animación de rotación para icono de carga */
+.spinning {
+  animation: spin 1s linear infinite;
+}

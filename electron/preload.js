@@ -106,6 +106,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteProjectChat: (chatId) => ipcRenderer.invoke('delete-project-chat', chatId),
   getProjectChatHistory: (chatId) => ipcRenderer.invoke('get-project-chat-history', chatId),
   saveProjectChatMessage: (chatId, message) => ipcRenderer.invoke('save-project-chat-message', chatId, message),
+  clearProjectChatMessages: (chatId) => ipcRenderer.invoke('clear-project-chat-messages', chatId),
 
   // Obtener duración total del proyecto
   getProjectTotalDuration: (projectId) => ipcRenderer.invoke('get-project-total-duration', projectId),
@@ -138,4 +139,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   searchRecording: (recordingId, query, topK) => ipcRenderer.invoke('search-recording', recordingId, query, topK),
   getRagStatus: (recordingId) => ipcRenderer.invoke('get-rag-status', recordingId),
   deleteRagIndex: (recordingId) => ipcRenderer.invoke('delete-rag-index', recordingId),
+
+  // Importar transcripción de Teams (.docx)
+  importTeamsTranscript: () => ipcRenderer.invoke('import-teams-transcript'),
 }); 

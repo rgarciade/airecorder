@@ -101,3 +101,28 @@
   font-size: 0.75rem; /* Smaller text */
   letter-spacing: 0.1em;
 }
+
+.importRow {
+  margin-top: 10px;
+}
+
+.importButton {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background-color: #EEEEFF;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  color: #5C59C0;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: background 0.2s, box-shadow 0.2s;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.importButton:hover {
+  background-color: #E0E0FF;
+  box-shadow: 0 2px 8px rgba(92, 89, 192, 0.2);
+}

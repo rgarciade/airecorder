@@ -30,6 +30,7 @@ const {
   DELETE_CHAT,
   INSERT_MESSAGE,
   SELECT_CHAT_MESSAGES,
+  DELETE_CHAT_MESSAGES,
   INSERT_QUEUE_TASK,
   UPDATE_QUEUE_TASK,
   UPDATE_QUEUE_TASK_WITH_START,
@@ -387,6 +388,11 @@ class DbService {
       contenido: m.content,
       fecha: m.created_at
     }));
+  }
+
+  clearChatMessages(chatId) {
+    if (!this.db) return;
+    this.db.prepare(DELETE_CHAT_MESSAGES).run(chatId);
   }
 
   saveProjectChatMessage(chatId, type, content) {

@@ -500,25 +500,34 @@ class RecordingAiService {
       const combinedPrompt = `${taskSuggestionsPrompt}\n${txt}\n${taskSuggestionsPromptSuffix}`;
       const response = await this._callAiProvider(combinedPrompt, null, { format: 'json' });
 
-      const extractedTasks = parseJsonArray(
-        response.text,
-        ['tasks', 'tareas', 'items', 'data']
-      );
-
       const validLayers = ['frontend', 'backend', 'fullstack'];
-      return extractedTasks
+
+      let rawTasks = parseJsonArray(response.text, ['tasks', 'tareas', 'items', 'data']);
+
+      // Fallback: la IA a veces devuelve un objeto agrupado por capa {"frontend": [...], "backend": [...]}
+      if (rawTasks.length === 0) {
+        const grouped = parseJsonObject(response.text);
+        if (grouped && typeof grouped === 'object' && !Array.isArray(grouped)) {
+          for (const layerKey of validLayers) {
+            if (Array.isArray(grouped[layerKey])) {
+              rawTasks = rawTasks.concat(
+                grouped[layerKey].map(t => ({ ...t, _layerFromKey: layerKey }))
+              );
+            }
+          }
+        }
+      }
+
+      return rawTasks
         .filter(t => t && typeof t === 'object' && (t.title || t.titulo || t.nombre || t.name))
         .map(t => {
-          // Normalizar título — acepta cualquier variante que devuelva el modelo
           const title = (t.title || t.titulo || t.nombre || t.name || '').trim();
-          // Normalizar contenido — concatenar descripción + detalles si ambos existen
           const desc = (t.content || t.description || t.descripcion || t.detalles || t.detail || '').trim();
           const extra = (t.detalles && t.descripcion && t.detalles !== t.descripcion)
             ? `\n\n${t.detalles.trim()}`
             : '';
           const content = desc + extra;
-          // Normalizar capa
-          const rawLayer = (t.layer || t.capa || t.tipo || 'general').toLowerCase().trim();
+          const rawLayer = (t._layerFromKey || t.layer || t.capa || t.tipo || 'general').toLowerCase().trim();
           const layer = validLayers.includes(rawLayer) ? rawLayer : 'general';
           return { title, content, layer, createdByAi: true };
         });

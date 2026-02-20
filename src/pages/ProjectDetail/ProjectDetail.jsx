@@ -8,7 +8,22 @@ import ProjectTimeline from '../../components/ProjectTimeline/ProjectTimeline';
 import ParticipantsList from '../../components/ParticipantsList/ParticipantsList';
 import ProjectRecordingSummaries from '../../components/ProjectRecordingSummaries/ProjectRecordingSummaries';
 import ChatInterface from '../../components/ChatInterface/ChatInterface';
-import { MdArrowBack } from 'react-icons/md';
+import { MdArrowBack, MdRefresh } from 'react-icons/md';
+import ragService from '../../services/ragService';
+import ContextBar from '../../components/ContextBar/ContextBar';
+import { getSettings } from '../../services/settingsService';
+import { getAvailableModels, checkModelSupportsStreaming } from '../../services/ai/ollamaProvider';
+
+const DEEPSEEK_CHAT_MODELS = [
+  { value: 'deepseek-chat', label: 'DeepSeek Chat' },
+  { value: 'deepseek-reasoner', label: 'DeepSeek Reasoner' },
+  { value: 'deepseek-coder', label: 'DeepSeek Coder' },
+];
+const KIMI_CHAT_MODELS = [
+  { value: 'kimi-k2', label: 'Kimi K2' },
+  { value: 'kimi-k2-turbo-preview', label: 'Kimi K2 Turbo' },
+  { value: 'kimi-k2.5', label: 'Kimi K2.5' },
+];
 
 export default function ProjectDetail({ project, onBack, onNavigateToRecording: navigateToRecordingProp }) {
   // Wrapper para usar el prop renombrado
@@ -33,12 +48,60 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const [isLoading, setIsLoading] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
 
+  // Estados para RAG de proyecto
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [ragStatuses, setRagStatuses] = useState({}); // { [recId]: null|false|true|'skipped' }
+  const [ragTotalChunks, setRagTotalChunks] = useState({}); // { [recId]: number }
+  const [lastContextInfo, setLastContextInfo] = useState(null);
+  const [ragMode, setRagMode] = useState('auto'); // 'auto' | 'detallado'
+
+  // Estados para selector de modelo de sesión
+  const [aiProvider, setAiProvider] = useState('geminifree');
+  const [settingsModel, setSettingsModel] = useState('');
+  const [sessionModel, setSessionModel] = useState(null);
+  const [isVerifyingModel, setIsVerifyingModel] = useState(false);
+  const [projectOllamaModels, setProjectOllamaModels] = useState([]);
+  const [ollamaHost, setOllamaHost] = useState('http://localhost:11434');
+
   // Estados para modales
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [newChatName, setNewChatName] = useState('');
   const [selectedRecordingIds, setSelectedRecordingIds] = useState([]);
 
   // --- EFFECTS ---
+  // Cargar configuración de IA al montar
+  useEffect(() => {
+    (async () => {
+      try {
+        const s = await getSettings();
+        const provider = s.aiProvider || 'geminifree';
+        setAiProvider(provider);
+        const host = s.ollamaHost || 'http://localhost:11434';
+        setOllamaHost(host);
+        const modelByProvider = {
+          ollama: s.ollamaModel,
+          deepseek: s.deepseekModel,
+          kimi: s.kimiModel,
+          gemini: s.geminiModel,
+          geminifree: s.geminiFreeModel,
+          lmstudio: s.lmStudioModel,
+        };
+        setSettingsModel(modelByProvider[provider] || '');
+        if (provider === 'ollama') {
+          try {
+            const models = await getAvailableModels(host);
+            const modelNames = models.map(m => m.name || m);
+            setProjectOllamaModels(modelNames.filter(m => !m.toLowerCase().includes('embed')));
+          } catch {
+            setProjectOllamaModels([]);
+          }
+        }
+      } catch (e) {
+        console.error('Error cargando configuración de IA en ProjectDetail:', e);
+      }
+    })();
+  }, []);
+
   // Cargar datos del proyecto al montar
   useEffect(() => {
     if (project) {
@@ -59,6 +122,36 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       loadChatHistory(activeChatId);
     }
   }, [activeChatId, project]);
+
+  // Auto-indexar grabaciones del chat activo cuando cambia el chat seleccionado
+  useEffect(() => {
+    if (!activeChatId) return;
+    const chat = chats.find(c => c.id === activeChatId);
+    if (!chat?.contexto?.length) return;
+
+    chat.contexto.forEach(async (recId) => {
+      if (ragStatuses[recId] !== undefined) return;
+
+      const statusResult = await ragService.getStatus(recId);
+      if (statusResult.indexed) {
+        setRagStatuses(prev => ({ ...prev, [recId]: true }));
+        setRagTotalChunks(prev => ({ ...prev, [recId]: statusResult.totalChunks || 0 }));
+        return;
+      }
+
+      // No indexado: lanzar indexación
+      setRagStatuses(prev => ({ ...prev, [recId]: false }));
+      const result = await ragService.indexRecording(recId);
+      if (result.skippedRag) {
+        setRagStatuses(prev => ({ ...prev, [recId]: 'skipped' }));
+      } else if (result.indexed) {
+        setRagStatuses(prev => ({ ...prev, [recId]: true }));
+        setRagTotalChunks(prev => ({ ...prev, [recId]: result.totalChunks || 0 }));
+      } else {
+        setRagStatuses(prev => ({ ...prev, [recId]: null }));
+      }
+    });
+  }, [activeChatId, chats]);
 
   // --- HANDLERS ---
   const loadProjectData = async () => {
@@ -200,6 +293,70 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     }
   };
 
+  const handleRegenerateProjectSummary = async () => {
+    setIsRegenerating(true);
+    try {
+      await projectAiService.regenerateAnalysis(project.id);
+      await loadProjectData();
+    } catch (error) {
+      console.error('Error regenerando análisis:', error);
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
+  const handleSessionModelChange = async (model) => {
+    setSessionModel(model);
+    if (aiProvider === 'ollama') {
+      setIsVerifyingModel(true);
+      try {
+        const ok = await checkModelSupportsStreaming(model, ollamaHost);
+        // En el chat de proyecto no usamos streaming directo, pero actualizamos el estado
+        console.log(`[ProjectDetail] Modelo ${model} soporta streaming: ${ok}`);
+      } catch {
+        // ignorar
+      } finally {
+        setIsVerifyingModel(false);
+      }
+    }
+  };
+
+  const handleResetChat = async () => {
+    if (!activeChatId) return;
+    if (!window.confirm('¿Borrar todo el historial de este chat? Esta acción no se puede deshacer.')) return;
+    try {
+      await projectChatService.clearChatHistory(activeChatId);
+      setChatHistory([]);
+      setLastContextInfo(null);
+    } catch (error) {
+      console.error('Error reiniciando chat:', error);
+    }
+  };
+
+  const handleReIndexRAG = async () => {
+    const chat = chats.find(c => c.id === activeChatId);
+    if (!chat?.contexto?.length) return;
+    const recordingIds = chat.contexto;
+
+    // Marcar todas como indexando
+    const indexingState = {};
+    recordingIds.forEach(id => { indexingState[id] = false; });
+    setRagStatuses(prev => ({ ...prev, ...indexingState }));
+
+    for (const recId of recordingIds) {
+      await ragService.deleteIndex(recId);
+      const result = await ragService.indexRecording(recId);
+      if (result.skippedRag) {
+        setRagStatuses(prev => ({ ...prev, [recId]: 'skipped' }));
+      } else if (result.indexed) {
+        setRagStatuses(prev => ({ ...prev, [recId]: true }));
+        setRagTotalChunks(prev => ({ ...prev, [recId]: result.totalChunks || 0 }));
+      } else {
+        setRagStatuses(prev => ({ ...prev, [recId]: null }));
+      }
+    }
+  };
+
   const handleSendMessage = async (messageText) => {
     if (!messageText.trim() || !activeChatId || isSendingMessage) return;
 
@@ -224,7 +381,11 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       });
 
       // 3. Generar respuesta de la IA
-      const aiResponse = await projectChatService.generateAiResponse(project.id, trimmedMessage, activeChatId);
+      const sessionOptions = { model: sessionModel || undefined };
+      const { text: aiResponse, contextInfo } = await projectChatService.generateAiResponse(
+        project.id, trimmedMessage, activeChatId, chatHistory, ragMode, sessionOptions
+      );
+      setLastContextInfo(contextInfo || null);
 
       // 4. Guardar respuesta de la IA en DB
       await projectChatService.saveProjectChatMessage(project.id, activeChatId, {
@@ -261,6 +422,14 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   }
 
   const activeChat = chats.find(c => c.id === activeChatId);
+
+  // Cómputo agregado del estado RAG para el chat activo
+  const activeChatRecordingIds = activeChat?.contexto || [];
+  const isAnyIndexing = activeChatRecordingIds.some(id => ragStatuses[id] === false);
+  const allRagKnown = activeChatRecordingIds.length > 0 && activeChatRecordingIds.every(id => ragStatuses[id] !== undefined);
+  const someRagIndexed = activeChatRecordingIds.some(id => ragStatuses[id] === true);
+  const totalRagChunksCount = activeChatRecordingIds.reduce((s, id) => s + (ragTotalChunks[id] || 0), 0);
+  const aggregateRagIndexed = isAnyIndexing ? false : (allRagKnown ? (someRagIndexed ? true : 'skipped') : null);
 
   return (
     <div className={styles.container}>
@@ -304,7 +473,18 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
             <div className={styles.leftColumn}>
               {/* Resumen del Proyecto */}
               <div className={styles.section}>
-                <h2 className={styles.sectionTitle}>Resumen del Proyecto</h2>
+                <div className={styles.sectionTitleRow}>
+                  <h2 className={styles.sectionTitle}>Resumen del Proyecto</h2>
+                  <button
+                    onClick={handleRegenerateProjectSummary}
+                    disabled={isRegenerating}
+                    className={styles.regenerateButton}
+                    title="Regenerar resumen con IA"
+                  >
+                    <MdRefresh size={16} className={isRegenerating ? styles.spinning : ''} />
+                    {isRegenerating ? 'Regenerando...' : 'Regenerar'}
+                  </button>
+                </div>
                 <p className={styles.projectSummary}>
                   {projectSummary?.resumen_breve || 'Cargando resumen del proyecto...'}
                 </p>
@@ -373,41 +553,71 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
           <div className={styles.chatGrid}>
             {/* Chat Principal */}
             <div className={styles.chatMain}>
+              {activeChatRecordingIds.length > 0 && (
+                <ContextBar
+                  contextInfo={lastContextInfo}
+                  ragIndexed={aggregateRagIndexed}
+                  ragTotalChunks={totalRagChunksCount}
+                  ragMode={ragMode}
+                  onRagModeChange={setRagMode}
+                />
+              )}
               <div className={styles.chatInterfaceWrapper}>
                 <ChatInterface
                   chatHistory={chatHistory}
                   onSendMessage={handleSendMessage}
-                  isLoading={isSendingMessage}
-                  placeholder="Haz una pregunta sobre el proyecto..."
+                  isLoading={isSendingMessage || isAnyIndexing}
+                  placeholder={isAnyIndexing ? 'Indexando grabaciones...' : 'Haz una pregunta sobre el proyecto...'}
                   title={activeChat ? `Chat: ${activeChat.nombre}` : "Chat del Proyecto"}
+                  onResetChat={handleResetChat}
                   onNavigateToRecording={(recordingId, timestamp) => {
                     if (props.onNavigateToRecording) {
                       props.onNavigateToRecording(recordingId, timestamp);
                     }
                   }}
+                  currentModel={sessionModel || settingsModel}
+                  availableModels={
+                    aiProvider === 'ollama'   ? projectOllamaModels.map(m => ({ value: m, label: m })) :
+                    aiProvider === 'deepseek' ? DEEPSEEK_CHAT_MODELS :
+                    aiProvider === 'kimi'     ? KIMI_CHAT_MODELS :
+                    []
+                  }
+                  onModelChange={handleSessionModelChange}
+                  isVerifyingModel={isVerifyingModel}
                 />
               </div>
               {activeChat?.contexto && activeChat.contexto.length > 0 && (
                 <div className={styles.chatContextInfo}>
-                  <button 
-                    className={styles.chatContextTitle}
-                    onClick={() => setIsContextExpanded(!isContextExpanded)}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256">
-                      <path d="M200,64V168a8,8,0,0,1-16,0V83.31L69.66,197.66a8,8,0,0,1-11.32-11.32L172.69,72H88a8,8,0,0,1,0-16H192A8,8,0,0,1,200,64Z"></path>
-                    </svg>
-                    <span>Contexto del Chat ({activeChat.contexto.length} grabaciones)</span>
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      width="12" 
-                      height="12" 
-                      fill="currentColor" 
-                      viewBox="0 0 256 256"
-                      className={`${styles.contextChevron} ${isContextExpanded ? styles.expanded : ''}`}
+                  <div className={styles.chatContextHeader}>
+                    <button
+                      className={styles.chatContextTitle}
+                      onClick={() => setIsContextExpanded(!isContextExpanded)}
                     >
-                      <path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80a8,8,0,0,1,11.32-11.32L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"></path>
-                    </svg>
-                  </button>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256">
+                        <path d="M200,64V168a8,8,0,0,1-16,0V83.31L69.66,197.66a8,8,0,0,1-11.32-11.32L172.69,72H88a8,8,0,0,1,0-16H192A8,8,0,0,1,200,64Z"></path>
+                      </svg>
+                      <span>Contexto del Chat ({activeChat.contexto.length} grabaciones)</span>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="12"
+                        height="12"
+                        fill="currentColor"
+                        viewBox="0 0 256 256"
+                        className={`${styles.contextChevron} ${isContextExpanded ? styles.expanded : ''}`}
+                      >
+                        <path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80a8,8,0,0,1,11.32-11.32L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"></path>
+                      </svg>
+                    </button>
+                    <button
+                      className={styles.reindexButton}
+                      onClick={handleReIndexRAG}
+                      disabled={isAnyIndexing}
+                      title="Re-indexar todas las grabaciones del contexto"
+                    >
+                      <MdRefresh size={13} className={isAnyIndexing ? styles.spinning : ''} />
+                      Re-indexar
+                    </button>
+                  </div>
                   {isContextExpanded && (
                     <div className={styles.chatContextList}>
                       {activeChat.contexto.map(recId => {

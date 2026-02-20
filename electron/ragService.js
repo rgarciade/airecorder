@@ -1,15 +1,15 @@
 /* global require, module */
-const fs = require('fs');
-const path = require('path');
-const embeddingService = require('./embeddingService');
+const fs = require("fs");
+const path = require("path");
+const embeddingService = require("./embeddingService");
 
 // Umbral: transcripciones menores a este valor no usan RAG
 const MIN_TEXT_LENGTH_FOR_RAG = 8000; // ~2000 tokens
 
 // Configuración de chunking
 const DEFAULT_WINDOW_SECONDS = 15; // Reducido de 30s a 15s para mayor granularidad
-const DEFAULT_OVERLAP_SECONDS = 5;  // Reducido proporcionalmente
-const MAX_EMBEDDING_CHARS = 2000; // Límite conservador para no exceder context length del modelo de embeddings
+const DEFAULT_OVERLAP_SECONDS = 5; // Reducido proporcionalmente
+const MAX_EMBEDDING_CHARS = 1500; // Límite conservador para no exceder context length del modelo de embeddings
 
 // Cache de conexiones LanceDB por path
 const connectionCache = new Map();
@@ -23,9 +23,10 @@ const connectionCache = new Map();
 function parseTranscriptionTxt(txtContent) {
   const lines = [];
   // Regex mejorado para soportar horas de 1 o 2 dígitos
-  const lineRegex = /^\[(\d{1,2}):(\d{2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2}):(\d{2})\]\s*[^\s]+\s+(.+?):\s*$/;
+  const lineRegex =
+    /^\[(\d{1,2}):(\d{2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2}):(\d{2})\]\s*[^\s]+\s+(.+?):\s*$/;
 
-  const rawLines = txtContent.split('\n');
+  const rawLines = txtContent.split("\n");
   let currentEntry = null;
 
   for (let i = 0; i < rawLines.length; i++) {
@@ -38,21 +39,27 @@ function parseTranscriptionTxt(txtContent) {
         lines.push(currentEntry);
       }
 
-      const startTime = parseInt(match[1]) * 3600 + parseInt(match[2]) * 60 + parseInt(match[3]);
-      const endTime = parseInt(match[4]) * 3600 + parseInt(match[5]) * 60 + parseInt(match[6]);
+      const startTime =
+        parseInt(match[1]) * 3600 +
+        parseInt(match[2]) * 60 +
+        parseInt(match[3]);
+      const endTime =
+        parseInt(match[4]) * 3600 +
+        parseInt(match[5]) * 60 +
+        parseInt(match[6]);
       const speaker = match[7].trim();
 
       currentEntry = {
         startTime,
         endTime,
         speaker,
-        text: '',
-        rawLine: line
+        text: "",
+        rawLine: line,
       };
     } else if (currentEntry && line.trim()) {
       // Línea de texto del segmento actual
-      currentEntry.text += (currentEntry.text ? ' ' : '') + line.trim();
-      currentEntry.rawLine += '\n' + line;
+      currentEntry.text += (currentEntry.text ? " " : "") + line.trim();
+      currentEntry.rawLine += "\n" + line;
     }
   }
 
@@ -85,23 +92,26 @@ function createChunks(parsedLines, options = {}) {
 
     // Seleccionar líneas que caen en esta ventana
     const chunkLines = parsedLines.filter(
-      line => line.endTime > windowStart && line.startTime < windowEnd
+      (line) => line.endTime > windowStart && line.startTime < windowEnd,
     );
 
     if (chunkLines.length > 0) {
       // Texto limpio para embedding (sin timestamps)
-      const fullText = chunkLines.map(l => `${l.speaker}: ${l.text}`).join('\n');
-      
+      const fullText = chunkLines
+        .map((l) => `${l.speaker}: ${l.text}`)
+        .join("\n");
+
       // Truncar texto para embedding si es necesario
-      const text = fullText.length > MAX_EMBEDDING_CHARS 
-        ? fullText.substring(0, MAX_EMBEDDING_CHARS) + '...'
-        : fullText;
+      const text =
+        fullText.length > MAX_EMBEDDING_CHARS
+          ? fullText.substring(0, MAX_EMBEDDING_CHARS) + "..."
+          : fullText;
 
       // Texto con timestamps para mostrar al LLM (completo, no truncado)
-      const textDisplay = chunkLines.map(l => l.rawLine).join('\n');
+      const textDisplay = chunkLines.map((l) => l.rawLine).join("\n");
 
       // Speakers únicos
-      const speakers = [...new Set(chunkLines.map(l => l.speaker))].join(',');
+      const speakers = [...new Set(chunkLines.map((l) => l.speaker))].join(",");
 
       chunks.push({
         chunkId,
@@ -109,14 +119,14 @@ function createChunks(parsedLines, options = {}) {
         textDisplay,
         startTime: chunkLines[0].startTime,
         endTime: chunkLines[chunkLines.length - 1].endTime,
-        speakers
+        speakers,
       });
 
       chunkId++;
     }
 
     // Avanzar ventana con overlap
-    windowStart += (windowSeconds - overlapSeconds);
+    windowStart += windowSeconds - overlapSeconds;
   }
 
   return chunks;
@@ -132,7 +142,7 @@ async function getConnection(vectordbPath) {
     return connectionCache.get(vectordbPath);
   }
 
-  const lancedb = require('@lancedb/lancedb');
+  const lancedb = require("@lancedb/lancedb");
   const connection = await lancedb.connect(vectordbPath);
   connectionCache.set(vectordbPath, connection);
   return connection;
@@ -144,47 +154,71 @@ async function getConnection(vectordbPath) {
  * @returns {Promise<{ indexed: boolean, skippedRag: boolean, totalChunks: number, error?: string }>}
  */
 async function indexRecording(recordingPath) {
-  const analysisPath = path.join(recordingPath, 'analysis');
-  const txtPath = path.join(analysisPath, 'transcripcion_combinada.txt');
-  const vectordbPath = path.join(analysisPath, 'vectordb');
+  const analysisPath = path.join(recordingPath, "analysis");
+  const txtPath = path.join(analysisPath, "transcripcion_combinada.txt");
+  const vectordbPath = path.join(analysisPath, "vectordb");
 
   // Verificar que existe la transcripción
   if (!fs.existsSync(txtPath)) {
-    return { indexed: false, skippedRag: false, totalChunks: 0, error: 'No existe transcripcion_combinada.txt' };
+    return {
+      indexed: false,
+      skippedRag: false,
+      totalChunks: 0,
+      error: "No existe transcripcion_combinada.txt",
+    };
   }
 
   // Leer transcripción
-  const txtContent = await fs.promises.readFile(txtPath, 'utf8');
+  const txtContent = await fs.promises.readFile(txtPath, "utf8");
 
   // Verificar longitud mínima
   if (txtContent.length < MIN_TEXT_LENGTH_FOR_RAG) {
-    console.log(`[RAG] Transcripción corta (${txtContent.length} chars), skip RAG`);
+    console.log(
+      `[RAG] Transcripción corta (${txtContent.length} chars), skip RAG`,
+    );
     return { indexed: false, skippedRag: true, totalChunks: 0 };
   }
 
   // Detectar provider de embeddings
   const provider = await embeddingService.detectEmbeddingProvider();
   if (!provider) {
-    return { indexed: false, skippedRag: false, totalChunks: 0, error: 'No hay provider de embeddings disponible (Ollama/LM Studio)' };
+    return {
+      indexed: false,
+      skippedRag: false,
+      totalChunks: 0,
+      error: "No hay provider de embeddings disponible (Ollama/LM Studio)",
+    };
   }
 
   // Verificar/descargar modelo
   const modelReady = await embeddingService.ensureModel(provider);
   if (!modelReady) {
-    return { indexed: false, skippedRag: false, totalChunks: 0, error: `No se pudo preparar el modelo ${embeddingService.DEFAULT_EMBEDDING_MODEL}` };
+    return {
+      indexed: false,
+      skippedRag: false,
+      totalChunks: 0,
+      error: `No se pudo preparar el modelo ${embeddingService.DEFAULT_EMBEDDING_MODEL}`,
+    };
   }
 
   // Parsear y crear chunks
   const parsedLines = parseTranscriptionTxt(txtContent);
   if (parsedLines.length === 0) {
-    return { indexed: false, skippedRag: false, totalChunks: 0, error: 'No se pudieron parsear segmentos de la transcripción' };
+    return {
+      indexed: false,
+      skippedRag: false,
+      totalChunks: 0,
+      error: "No se pudieron parsear segmentos de la transcripción",
+    };
   }
 
   const chunks = createChunks(parsedLines);
-  console.log(`[RAG] Creados ${chunks.length} chunks de ${parsedLines.length} segmentos`);
+  console.log(
+    `[RAG] Creados ${chunks.length} chunks de ${parsedLines.length} segmentos`,
+  );
 
   // Generar embeddings
-  const texts = chunks.map(c => c.text);
+  const texts = chunks.map((c) => c.text);
   console.log(`[RAG] Generando embeddings para ${texts.length} chunks...`);
   const vectors = await embeddingService.embedBatch(texts, provider);
 
@@ -194,7 +228,7 @@ async function indexRecording(recordingPath) {
     connectionCache.delete(vectordbPath);
     await fs.promises.rm(vectordbPath, { recursive: true, force: true });
     // Pequeño delay para asegurar que el FS libere los recursos
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
   await fs.promises.mkdir(vectordbPath, { recursive: true });
 
@@ -206,7 +240,7 @@ async function indexRecording(recordingPath) {
     start_time: chunk.startTime,
     end_time: chunk.endTime,
     speakers: chunk.speakers,
-    vector: vectors[i]
+    vector: vectors[i],
   }));
 
   let lastError;
@@ -214,32 +248,44 @@ async function indexRecording(recordingPath) {
     try {
       // Invalidar cache en cada intento
       connectionCache.delete(vectordbPath);
-      
+
       const db = await getConnection(vectordbPath);
-      await db.createTable('chunks', data, { mode: 'overwrite' });
+      await db.createTable("chunks", data, { mode: "overwrite" });
 
       // Crear índice FTS para búsqueda por palabras clave (no fatal si falla)
       try {
-        const lancedb = require('@lancedb/lancedb');
-        const tbl = await db.openTable('chunks');
-        await tbl.createIndex('text', { config: lancedb.Index.fts() });
-        console.log('[RAG] Índice FTS creado correctamente');
+        const lancedb = require("@lancedb/lancedb");
+        const tbl = await db.openTable("chunks");
+        await tbl.createIndex("text", { config: lancedb.Index.fts() });
+        console.log("[RAG] Índice FTS creado correctamente");
       } catch (ftsErr) {
-        console.warn('[RAG] No se pudo crear índice FTS (la búsqueda keyword estará deshabilitada):', ftsErr.message);
+        console.warn(
+          "[RAG] No se pudo crear índice FTS (la búsqueda keyword estará deshabilitada):",
+          ftsErr.message,
+        );
       }
 
-      console.log(`[RAG] Indexación completada: ${chunks.length} chunks en ${vectordbPath}`);
+      console.log(
+        `[RAG] Indexación completada: ${chunks.length} chunks en ${vectordbPath}`,
+      );
       return { indexed: true, skippedRag: false, totalChunks: chunks.length };
     } catch (error) {
       lastError = error;
       console.warn(`[RAG] Intento ${attempt + 1}/3 fallido: ${error.message}`);
       if (attempt < 2) {
-        await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+        await new Promise((resolve) =>
+          setTimeout(resolve, 500 * (attempt + 1)),
+        );
       }
     }
   }
-  
-  return { indexed: false, skippedRag: false, totalChunks: 0, error: lastError.message };
+
+  return {
+    indexed: false,
+    skippedRag: false,
+    totalChunks: 0,
+    error: lastError.message,
+  };
 }
 
 /**
@@ -250,20 +296,23 @@ async function indexRecording(recordingPath) {
  * @returns {Promise<Array<{ chunkId: number, text: string, textDisplay: string, startTime: number, endTime: number, speakers: string, score: number }>>}
  */
 async function searchRecording(recordingPath, query, topK = 10) {
-  const vectordbPath = path.join(recordingPath, 'analysis', 'vectordb');
+  const vectordbPath = path.join(recordingPath, "analysis", "vectordb");
 
   if (!fs.existsSync(vectordbPath)) {
     return [];
   }
+  console.log("[RAG] Buscando en:", vectordbPath);
 
   // Detectar provider
   const provider = await embeddingService.detectEmbeddingProvider();
   if (!provider) {
-    throw new Error('No hay provider de embeddings disponible para búsqueda');
+    throw new Error("No hay provider de embeddings disponible para búsqueda");
   }
 
   // Generar embedding de la query
-  console.log(`[RAG] Buscando: "${query.substring(0, 100)}${query.length > 100 ? '...' : ''}" (topK=${topK})`);
+  console.log(
+    `[RAG] Buscando: "${query.substring(0, 100)}${query.length > 100 ? "..." : ""}" (topK=${topK})`,
+  );
   const queryVector = await embeddingService.embed(query, provider);
 
   // Buscar en LanceDB
@@ -271,14 +320,17 @@ async function searchRecording(recordingPath, query, topK = 10) {
 
   let table;
   try {
-    table = await db.openTable('chunks');
+    table = await db.openTable("chunks");
   } catch {
-    console.warn('[RAG] Tabla chunks no encontrada');
+    console.warn("[RAG] Tabla chunks no encontrada");
     return [];
   }
 
   // --- 1. Búsqueda vectorial (semántica) ---
-  const vectorRows = await table.search(queryVector).limit(topK * 4).toArray();
+  const vectorRows = await table
+    .search(queryVector)
+    .limit(topK * 4)
+    .toArray();
 
   // Construir map chunkId → chunk con score vectorial
   const chunkMap = new Map();
@@ -292,14 +344,17 @@ async function searchRecording(recordingPath, query, topK = 10) {
       startTime: row.start_time,
       endTime: row.end_time,
       speakers: row.speakers,
-      score
+      score,
     });
   }
 
   // --- 2. Búsqueda keyword (FTS) ---
   let keywordMatchCount = 0;
   try {
-    const ftsRows = await table.search(query, 'fts').limit(topK * 2).toArray();
+    const ftsRows = await table
+      .search(query, "fts")
+      .limit(topK * 2)
+      .toArray();
     keywordMatchCount = ftsRows.length;
     for (const row of ftsRows) {
       if (chunkMap.has(row.chunk_id)) {
@@ -315,7 +370,7 @@ async function searchRecording(recordingPath, query, topK = 10) {
           startTime: row.start_time,
           endTime: row.end_time,
           speakers: row.speakers,
-          score: 0.8
+          score: 0.8,
         });
       }
     }
@@ -324,13 +379,15 @@ async function searchRecording(recordingPath, query, topK = 10) {
   }
 
   // --- 3. Ordenar por score descendente ---
-  const scoredResults = [...chunkMap.values()].sort((a, b) => b.score - a.score);
+  const scoredResults = [...chunkMap.values()].sort(
+    (a, b) => b.score - a.score,
+  );
 
   // --- 4. Deduplicar chunks solapados temporalmente ---
   // Si dos chunks comparten más del 50% de su rango temporal, quedarse solo con el de mayor score
   const deduplicated = [];
   for (const candidate of scoredResults) {
-    const overlapWithExisting = deduplicated.some(kept => {
+    const overlapWithExisting = deduplicated.some((kept) => {
       const overlapStart = Math.max(candidate.startTime, kept.startTime);
       const overlapEnd = Math.min(candidate.endTime, kept.endTime);
       if (overlapEnd <= overlapStart) return false;
@@ -346,10 +403,15 @@ async function searchRecording(recordingPath, query, topK = 10) {
 
   const finalResults = deduplicated;
 
-  console.log(`[RAG] Vectorial: ${vectorRows.length}, keyword: ${keywordMatchCount}, tras deduplicar: ${finalResults.length}`);
+  console.log(
+    `[RAG] Vectorial: ${vectorRows.length}, keyword: ${keywordMatchCount}, tras deduplicar: ${finalResults.length}`,
+  );
   finalResults.forEach((r, i) => {
-    const preview = r.text.length > 60 ? r.text.substring(0, 60) + '...' : r.text;
-    console.log(`   [${i}] Chunk ${r.chunkId} (${formatTime(r.startTime)}-${formatTime(r.endTime)}) Score: ${r.score.toFixed(4)} - "${preview}"`);
+    const preview =
+      r.text.length > 60 ? r.text.substring(0, 60) + "..." : r.text;
+    console.log(
+      `   [${i}] Chunk ${r.chunkId} (${formatTime(r.startTime)}-${formatTime(r.endTime)}) Score: ${r.score.toFixed(4)} - "${preview}"`,
+    );
   });
 
   return finalResults;
@@ -365,9 +427,9 @@ function formatTime(seconds) {
   const m = Math.floor((seconds % 3600) / 60);
   const s = Math.floor(seconds % 60);
   if (h > 0) {
-    return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   }
-  return `${m}:${s.toString().padStart(2, '0')}`;
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 /**
@@ -376,7 +438,7 @@ function formatTime(seconds) {
  * @returns {Promise<{ indexed: boolean, totalChunks: number }>}
  */
 async function getStatus(recordingPath) {
-  const vectordbPath = path.join(recordingPath, 'analysis', 'vectordb');
+  const vectordbPath = path.join(recordingPath, "analysis", "vectordb");
 
   if (!fs.existsSync(vectordbPath)) {
     return { indexed: false, totalChunks: 0 };
@@ -384,7 +446,7 @@ async function getStatus(recordingPath) {
 
   try {
     const db = await getConnection(vectordbPath);
-    const table = await db.openTable('chunks');
+    const table = await db.openTable("chunks");
     const count = await table.countRows();
     return { indexed: true, totalChunks: count };
   } catch {
@@ -397,7 +459,7 @@ async function getStatus(recordingPath) {
  * @param {string} recordingPath
  */
 async function deleteIndex(recordingPath) {
-  const vectordbPath = path.join(recordingPath, 'analysis', 'vectordb');
+  const vectordbPath = path.join(recordingPath, "analysis", "vectordb");
   connectionCache.delete(vectordbPath);
 
   if (fs.existsSync(vectordbPath)) {
@@ -412,5 +474,5 @@ module.exports = {
   indexRecording,
   searchRecording,
   getStatus,
-  deleteIndex
+  deleteIndex,
 };

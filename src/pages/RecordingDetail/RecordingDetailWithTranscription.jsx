@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import recordingsService from '../../services/recordingsService';
 import projectsService from '../../services/projectsService';
 import { getSettings, updateSettings, addSettingsListener, removeSettingsListener } from '../../services/settingsService';
-import { getAvailableModels } from '../../services/ai/ollamaProvider';
+import { getAvailableModels, checkModelSupportsStreaming } from '../../services/ai/ollamaProvider';
 import { generateWithContext, generateWithContextStreaming } from '../../services/aiService';
 import { callProvider, callProviderStreaming } from '../../services/ai/providerRouter';
 import { chatQuestionPrompt } from '../../prompts/aiPrompts';
@@ -40,6 +40,18 @@ const whisperModels = [
   { value: 'large', label: 'Large (Precise)' },
 ];
 
+const DEEPSEEK_CHAT_MODELS = [
+  { value: 'deepseek-chat', label: 'DeepSeek Chat' },
+  { value: 'deepseek-reasoner', label: 'DeepSeek Reasoner' },
+  { value: 'deepseek-coder', label: 'DeepSeek Coder' },
+];
+
+const KIMI_CHAT_MODELS = [
+  { value: 'kimi-k2', label: 'Kimi K2' },
+  { value: 'kimi-k2-turbo-preview', label: 'Kimi K2 Turbo' },
+  { value: 'kimi-k2.5', label: 'Kimi K2.5' },
+];
+
 export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject }) {
   // --- STATE MANAGEMENT ---
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'transcription' | 'tasks'
@@ -74,6 +86,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [contextInfo, setContextInfo] = useState(null); // { mode: 'rag'|'full', chunksUsed, estimatedTokens }
   const [ragIndexed, setRagIndexed] = useState(null); // null=checking, false=indexando, true=listo, 'skipped'=transcripción corta
   const [ragTotalChunks, setRagTotalChunks] = useState(0);
+
+  // Session model (override temporal, no persiste)
+  const [sessionModel, setSessionModel] = useState(null);
+  const [isVerifyingModel, setIsVerifyingModel] = useState(false);
+  const [settingsModel, setSettingsModel] = useState('');
 
   // Editing Title
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -170,6 +187,16 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       if (settings.ollamaRagModel) {
         setOllamaRagModel(settings.ollamaRagModel);
       }
+      // Guardar modelo de settings según proveedor
+      const modelByProvider = {
+        ollama: settings.ollamaModel,
+        deepseek: settings.deepseekModel,
+        kimi: settings.kimiModel,
+        gemini: settings.geminiModel,
+        geminifree: settings.geminiFreeModel,
+        lmstudio: settings.lmStudioModel,
+      };
+      setSettingsModel(modelByProvider[provider] || '');
     };
 
     // Cargar config inicial
@@ -366,10 +393,13 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           estimatedTokens: Math.ceil(prompt.length / 4)
         });
 
-        // Opciones para RAG: usar modelo específico si está configurado
-        const ragOptions = ollamaRagModel ? { ragModel: ollamaRagModel } : {};
+        // Opciones para RAG: ragModel (settings) tiene prioridad; si no hay, usar sessionModel
+        const ragOptions = ollamaRagModel
+          ? { ragModel: ollamaRagModel }
+          : { model: sessionModel || undefined };
         console.log('🤖 [RAG] Configuración:', {
           ollamaRagModel: ollamaRagModel || 'no configurado',
+          sessionModel: sessionModel || 'settings',
           provider: aiProvider,
           options: ragOptions
         });
@@ -402,6 +432,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           estimatedTokens: Math.ceil((prompt.length + (context?.length || 0)) / 4)
         });
 
+        const classicOptions = { model: sessionModel || undefined };
+
         if (shouldUseStreaming) {
           console.log('🚀 Iniciando chat en modo STREAMING');
           const response = await generateWithContextStreaming(
@@ -410,12 +442,13 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             (chunk) => {
               answer += chunk;
               setStreamingMessage(answer);
-            }
+            },
+            classicOptions
           );
           answer = response.text || answer || 'No answer generated.';
         } else {
           console.log('🔄 Iniciando chat en modo NORMAL (no streaming)');
-          const response = await generateWithContext(prompt, context || "No context available.");
+          const response = await generateWithContext(prompt, context || "No context available.", classicOptions);
           answer = response.text || 'No answer generated.';
         }
       }
@@ -453,6 +486,22 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     } finally {
       setQuestionLoading(false);
       setStreamingMessage('');
+    }
+  };
+
+  const handleSessionModelChange = async (model) => {
+    setSessionModel(model);
+    if (aiProvider === 'ollama') {
+      setIsVerifyingModel(true);
+      try {
+        const s = await getSettings();
+        const ok = await checkModelSupportsStreaming(model, s.ollamaHost);
+        setSupportsStreaming(ok);
+      } catch {
+        setSupportsStreaming(false);
+      } finally {
+        setIsVerifyingModel(false);
+      }
     }
   };
 
@@ -937,19 +986,21 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             className={`${styles.actionButton} ${styles.reTranscribeBtn}`}
             onClick={handleReIndexRAG}
             disabled={ragIndexed === false}
-            title={ragIndexed === true ? 'Re-indexar para RAG' : ragIndexed === false ? 'Indexando...' : 'Indexar para RAG'}
+            title={ragIndexed === true ? 'Actualizar contexto de búsqueda' : ragIndexed === false ? 'Preparando contexto...' : 'Preparar contexto de búsqueda'}
           >
             <MdSync size={18} className={ragIndexed === false ? styles.spinning : ''} />
-            {ragIndexed === false ? 'Indexando...' : 'RAG'}
+            {ragIndexed === false ? 'Preparando...' : 'Contexto'}
           </button>
-          <button
-            className={`${styles.actionButton} ${styles.reTranscribeBtn}`}
-            onClick={handleReTranscribeClick}
-            title="Re-run Transcription"
-          >
-            <MdTranslate size={18} />
-            Transcribe
-          </button>
+          {localRecording?.transcriptionModel !== 'teams-import' && (
+            <button
+              className={`${styles.actionButton} ${styles.reTranscribeBtn}`}
+              onClick={handleReTranscribeClick}
+              title="Re-run Transcription"
+            >
+              <MdTranslate size={18} />
+              Transcribe
+            </button>
+          )}
           <button 
             className={`${styles.actionButton} ${styles.regenerateBtn}`}
             onClick={handleRegenerateClick}
@@ -1018,7 +1069,15 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
               aiProvider: aiProvider,
               ollamaModels: ollamaModels,
               selectedOllamaModel: selectedOllamaModel,
-              onResetChat: handleResetChat
+              onResetChat: handleResetChat,
+              currentModel: sessionModel || settingsModel,
+              availableModels:
+                aiProvider === 'ollama'   ? ollamaModels.filter(m => !m.toLowerCase().includes('embed')).map(m => ({ value: m, label: m })) :
+                aiProvider === 'deepseek' ? DEEPSEEK_CHAT_MODELS :
+                aiProvider === 'kimi'     ? KIMI_CHAT_MODELS :
+                [],
+              onModelChange: handleSessionModelChange,
+              isVerifyingModel,
             }}
           />
         )}

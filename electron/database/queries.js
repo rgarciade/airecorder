@@ -265,6 +265,10 @@ module.exports = {
     SELECT * FROM project_messages WHERE chat_id = ? ORDER BY created_at ASC;
   `,
 
+  DELETE_CHAT_MESSAGES: `
+    DELETE FROM project_messages WHERE chat_id = ?;
+  `,
+
   // ========================================
   // SUGERENCIAS DE TAREAS
   // ========================================

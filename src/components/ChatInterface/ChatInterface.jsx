@@ -16,18 +16,28 @@ export default function ChatInterface({
   onOllamaModelChange = () => { },
   onNavigateToRecording,
   onDeleteMessage,
-  onResetChat
+  onResetChat,
+  // Selector de modelo de sesión
+  currentModel = '',
+  availableModels = [],
+  onModelChange = null,
+  isVerifyingModel = false,
 }) {
   const [newMessage, setNewMessage] = useState('');
   const [showOptions, setShowOptions] = useState(false);
+  const [showModelDropdown, setShowModelDropdown] = useState(false);
   const messagesEndRef = useRef(null);
   const optionsRef = useRef(null);
+  const modelDropdownRef = useRef(null);
 
-  // Cerrar menú al hacer click fuera
+  // Cerrar menús al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (optionsRef.current && !optionsRef.current.contains(event.target)) {
         setShowOptions(false);
+      }
+      if (modelDropdownRef.current && !modelDropdownRef.current.contains(event.target)) {
+        setShowModelDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -165,6 +175,31 @@ export default function ChatInterface({
           </div>
           
           <div className={styles.chatHeaderRight}>
+            {currentModel && (
+              <div className={styles.modelPill} ref={modelDropdownRef}>
+                <button
+                  className={styles.modelPillBtn}
+                  onClick={() => availableModels.length > 1 && setShowModelDropdown(v => !v)}
+                  disabled={isVerifyingModel || isLoading}
+                  title={availableModels.length > 1 ? 'Cambiar modelo' : 'Modelo activo'}
+                >
+                  {isVerifyingModel && <span className={styles.verifySpinner} />}
+                  <span className={styles.modelName}>{currentModel}</span>
+                  {availableModels.length > 1 && !isVerifyingModel && <span className={styles.chevron}>▾</span>}
+                </button>
+                {showModelDropdown && (
+                  <div className={styles.modelDropdown}>
+                    {availableModels.map(m => (
+                      <button
+                        key={m.value}
+                        className={`${styles.modelOption} ${m.value === currentModel ? styles.modelOptionActive : ''}`}
+                        onClick={() => { onModelChange?.(m.value); setShowModelDropdown(false); }}
+                      >{m.label}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <div ref={optionsRef} className="relative">
               <button 
                 className={styles.optionsButton}
@@ -260,8 +295,8 @@ export default function ChatInterface({
             <button className={styles.suggestionChip} onClick={() => handleSuggestionClick("Summarize Action Items")}>
               Summarize Action Items
             </button>
-            <button className={styles.suggestionChip} onClick={() => handleSuggestionClick("Sentiment Analysis")}>
-              Sentiment Analysis
+            <button className={styles.suggestionChip} onClick={() => handleSuggestionClick("Key Decisions")}>
+              Key Decisions
             </button>
           </div>
         )}

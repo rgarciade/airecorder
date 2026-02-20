@@ -1,7 +1,7 @@
 import React from 'react';
 import styles from './NewSessionCard.module.css';
 
-export default function NewSessionCard({ onStart, microphoneLabel, languageLabel, onOpenSettings }) {
+export default function NewSessionCard({ onStart, microphoneLabel, languageLabel, onOpenSettings, onImport }) {
   return (
     <div className={styles.card}>
       <div className={styles.content}>
@@ -23,6 +23,17 @@ export default function NewSessionCard({ onStart, microphoneLabel, languageLabel
           <button className={styles.controlBtn} onClick={onOpenSettings} title="Change Language">
              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             {languageLabel || 'English (US)'}
+          </button>
+        </div>
+        <div className={styles.importRow}>
+          <button className={styles.importButton} onClick={onImport} title="Importar transcripción .docx de Microsoft Teams">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15.5 5.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>
+              <path d="M20 7h-9a1 1 0 0 0-1 1v7.5a3.5 3.5 0 0 0 7 0V9h3a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/>
+              <path d="M9 8H3a1 1 0 0 0-1 1v5a4 4 0 0 0 8 0V9a1 1 0 0 0-1-1z"/>
+              <circle cx="6" cy="4.5" r="2.5"/>
+            </svg>
+            Importar de Teams
           </button>
         </div>
       </div>
