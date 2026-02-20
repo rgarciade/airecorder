@@ -733,3 +733,57 @@
 .spinning {
   animation: spin 1s linear infinite;
 }
+
+/* Highlights de últimas 2 reuniones */
+.recentHighlights {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.highlightGroup {
+  padding-bottom: 16px;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.highlightGroup:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.highlightRecordingTitle {
+  color: #374151;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+.highlightList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.highlightItem {
+  color: #4B5563;
+  font-size: var(--app-font-size);
+  line-height: 1.5;
+  padding-left: 20px;
+  position: relative;
+}
+
+.highlightItem::before {
+  content: '•';
+  position: absolute;
+  left: 8px;
+  color: #3994EF;
+  font-weight: 700;
+}
+
+.highlightItem strong {
+  color: #111827;
+  font-weight: 600;
+}
