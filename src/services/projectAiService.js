@@ -414,7 +414,7 @@ Instrucciones:
     try {
       const result = await window.electronAPI.getProjectRecordings(projectId);
       if (!result.success) return [];
-      
+
       const recordingIds = result.recordings;
       const summaries = [];
 
@@ -439,7 +439,14 @@ Instrucciones:
           console.warn(`Error cargando resumen para ${recId}`, e);
         }
       }
-      
+
+      // Ordenar por fecha descendente (más nuevas primero)
+      summaries.sort((a, b) => {
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        return new Date(b.date) - new Date(a.date);
+      });
+
       return summaries;
     } catch (error) {
       console.error('Error obteniendo resúmenes de grabaciones:', error);

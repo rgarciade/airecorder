@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import styles from './ProjectDetail.module.css';
 import projectAiService from '../../services/projectAiService';
 import projectChatService from '../../services/projectChatService';
@@ -489,6 +490,43 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                   {projectSummary?.resumen_breve || 'Cargando resumen del proyecto...'}
                 </p>
               </div>
+
+              {/* Highlights de las Últimas 2 Reuniones */}
+              {recordingSummaries.length > 0 && (() => {
+                const lastTwoRecordings = recordingSummaries.slice(0, 2);
+
+                const recordingsWithHighlights = lastTwoRecordings.filter(rec =>
+                  rec.summary?.ideas && rec.summary.ideas.length > 0
+                );
+
+                if (recordingsWithHighlights.length === 0) return null;
+
+                return (
+                  <div className={styles.section}>
+                    <h2 className={styles.sectionTitle}>Highlights de las Últimas 2 Reuniones</h2>
+                    <div className={styles.recentHighlights}>
+                      {recordingsWithHighlights.map((recording, idx) => {
+                        const highlights = recording.summary.ideas;
+
+                        return (
+                          <div key={recording.id} className={styles.highlightGroup}>
+                            <h4 className={styles.highlightRecordingTitle}>
+                              Reunión {idx + 1}: {recording.title}
+                            </h4>
+                            <ul className={styles.highlightList}>
+                              {highlights.map((highlight, highlightIdx) => (
+                                <li key={highlightIdx} className={styles.highlightItem}>
+                                  <ReactMarkdown>{highlight}</ReactMarkdown>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Resúmenes de Grabaciones */}
               <div className={styles.section}>
