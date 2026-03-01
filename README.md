@@ -20,8 +20,8 @@ Esta sección documenta el funcionamiento del backend de procesamiento de audio 
 ### Arquitectura de Audio
 
 1.  **Archivos:** 
-    *   `audio_sync_analyzer.py`: Se encarga de procesar los audios (recortar, emparejar canales). Utiliza `librosa` para calcular el desfase (correlación cruzada) entre la pista del micrófono y la de sistema, y `whisper` para transcribir.
-    *   `audio_stream_daemon.py`: (Uso en experimentación/streaming, revisar el código fuente para estado actual).
+    *   `python/audio_sync_analyzer.py`: Se encarga de procesar los audios (recortar, emparejar canales). Utiliza `librosa` para calcular el desfase (correlación cruzada) entre la pista del micrófono y la de sistema, y `whisper` para transcribir.
+    *   `python/audio_stream_daemon.py`: (Uso en experimentación/streaming, revisar el código fuente para estado actual).
 
 2.  **Gestor de Colas (Electron):**
     *   `electron/transcriptionManager.js` controla la ejecución.
@@ -33,7 +33,7 @@ Esta sección documenta el funcionamiento del backend de procesamiento de audio 
 Dado que la transcripción es un proceso pesado, Python informa al proceso de Node/Electron de su progreso imprimiendo cadenas formateadas en su salida estándar (`stdout`).
 
 *   **Comando de ejecución:** Electron lanza Python mediante `child_process.spawn`:
-    `python audio_sync_analyzer.py --basename <carpeta_del_audio> --model <modelo_whisper>`
+    `python python/audio_sync_analyzer.py --basename <carpeta_del_audio> --model <modelo_whisper>`
 *   **Reporte de Progreso:** Dentro de Python, cada cierto tiempo se imprime:
     `PROGRESS:15` (o el porcentaje correspondiente).
 *   **Análisis (Parsing):** `transcriptionManager.js` captura el evento `.on('data', ...)` del proceso, busca la cadena `PROGRESS:XX`, actualiza la base de datos y emite un evento al frontend para actualizar la barra de progreso en React.

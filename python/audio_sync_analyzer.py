@@ -43,12 +43,10 @@ class AudioSyncAnalyzer:
         
     def load_whisper_model(self):
         """Cargar el modelo Whisper para transcripción"""
-        print(f"PROGRESS:5", flush=True)
         print(f"🤖 Cargando modelo Whisper '{WHISPER_MODEL}'...", flush=True)
         try:
             self.whisper_model = whisper.load_model(WHISPER_MODEL)
             print("✅ Modelo Whisper cargado correctamente", flush=True)
-            print(f"PROGRESS:15", flush=True)
             return True
         except Exception as e:
             print(f"❌ Error cargando modelo Whisper: {e}")
@@ -57,7 +55,6 @@ class AudioSyncAnalyzer:
     def load_audio_files(self, mic_exists=True):
         """Cargar los archivos de audio usando pydub"""
         print("🎵 Cargando archivos de audio...", flush=True)
-        print(f"PROGRESS:20", flush=True)
         
         try:
             if mic_exists:
@@ -70,7 +67,6 @@ class AudioSyncAnalyzer:
             self.system_audio = AudioSegment.from_file(self.system_file)
             print(f"📁 Sistema: {len(self.system_audio)/1000:.2f} segundos")
             print(f"📊 Sample rate sistema: {self.system_audio.frame_rate} Hz")
-            print(f"PROGRESS:30", flush=True)
             
             return True
             
@@ -81,7 +77,6 @@ class AudioSyncAnalyzer:
     def convert_to_numpy(self, mic_exists=True):
         """Convertir audio a arrays numpy usando librosa para análisis avanzado"""
         print("🔄 Convirtiendo a arrays numpy...")
-        print(f"PROGRESS:35", flush=True)
         
         try:
             temp_sys = "/tmp/temp_sys.wav"
@@ -103,7 +98,6 @@ class AudioSyncAnalyzer:
             else:
                 print(f"✅ Array creado - Solo sistema: {len(self.system_data)} samples")
             
-            print(f"PROGRESS:45", flush=True)
             return True
             
         except Exception as e:
@@ -114,7 +108,6 @@ class AudioSyncAnalyzer:
         """Analizar propiedades básicas de los audios"""
         print("\n📊 ANÁLISIS DE PROPIEDADES")
         print("=" * 50)
-        print(f"PROGRESS:48", flush=True)
         
         if self.system_data is not None:
             sys_duration = len(self.system_data) / SAMPLE_RATE
@@ -134,13 +127,11 @@ class AudioSyncAnalyzer:
             sys_silence = np.sum(np.abs(self.system_data) < 0.01) / len(self.system_data) * 100
             print(f"🔇 Silencio sistema: {sys_silence:.1f}%")
         
-        print(f"PROGRESS:50", flush=True)
     
     def detect_cross_correlation(self, mic_exists=True):
         """Detectar sincronización usando correlación cruzada"""
         print("\n🔍 ANÁLISIS DE SINCRONIZACIÓN")
         print("=" * 50)
-        print(f"PROGRESS:52", flush=True)
         
         if not mic_exists or self.mic_data is None or self.system_data is None:
             print("⚠️  No hay datos de micrófono, se omite correlación cruzada.")
@@ -168,14 +159,12 @@ class AudioSyncAnalyzer:
         else:
             print("❌ Desfase significativo detectado")
         
-        print(f"PROGRESS:55", flush=True)
         return lag_seconds
     
     def create_synchronized_chunks(self, lag_seconds=0, mic_exists=True):
         """Crear chunks sincronizados para análisis temporal"""
         print(f"\n⏰ CREANDO CHUNKS SINCRONIZADOS (lag: {lag_seconds:.3f}s)")
         print("=" * 50)
-        print(f"PROGRESS:58", flush=True)
         
         if not mic_exists or self.mic_audio is None:
             print("⚠️  Solo se procesará el sistema.")
@@ -201,7 +190,6 @@ class AudioSyncAnalyzer:
                         'both_active': None
                     }
                     chunks_info.append(chunk_info)
-                print(f"PROGRESS:60", flush=True)
                 return chunks_info
             return []
         
@@ -256,14 +244,12 @@ class AudioSyncAnalyzer:
             
             chunks_info.append(chunk_info)
         
-        print(f"PROGRESS:60", flush=True)
         return chunks_info
     
     def transcribe_audio_files(self, lag_seconds=0, mic_exists=True):
         """Transcribir ambos archivos de audio usando Whisper con parámetros avanzados para evitar repeticiones y falsos positivos por música"""
         print("\n🎙️ TRANSCRIBIENDO ARCHIVOS DE AUDIO")
         print("=" * 50)
-        print(f"PROGRESS:62", flush=True)
         
         # Crear el directorio de salida
         os.makedirs(self.output_dir, exist_ok=True)
@@ -295,7 +281,6 @@ class AudioSyncAnalyzer:
             mic_result = None
             if mic_exists and temp_mic_wav and self.whisper_model:
                 print("🎤 Transcribiendo audio de micrófono...", flush=True)
-                print(f"PROGRESS:65", flush=True)
                 mic_result = self.whisper_model.transcribe(
                     temp_mic_wav,
                     word_timestamps=True,
@@ -306,13 +291,12 @@ class AudioSyncAnalyzer:
                     suppress_tokens="-1",  # Suprime tokens no hablados (como música)
                     verbose=False
                 )
-                print(f"PROGRESS:80", flush=True)
+            print("PROGRESS:60", flush=True)
             
             # Transcribir sistema
             sys_result = None
             if temp_sys_wav and self.whisper_model:
                 print("🔊 Transcribiendo audio de sistema...", flush=True)
-                print(f"PROGRESS:82", flush=True)
                 sys_result = self.whisper_model.transcribe(
                     temp_sys_wav,
                     word_timestamps=True,
@@ -323,7 +307,7 @@ class AudioSyncAnalyzer:
                     suppress_tokens="-1",
                     verbose=False
                 )
-                print(f"PROGRESS:95", flush=True)
+            print("PROGRESS:90", flush=True)
             
             # Limpiar archivos temporales
             if temp_mic_wav and os.path.exists(temp_mic_wav):
@@ -332,7 +316,6 @@ class AudioSyncAnalyzer:
                 os.remove(temp_sys_wav)
             
             print("✅ Transcripción completada")
-            print(f"PROGRESS:98", flush=True)
             
             return mic_result, sys_result
             
@@ -591,6 +574,7 @@ class AudioSyncAnalyzer:
     
     def run_full_analysis(self):
         """Ejecutar análisis completo incluyendo transcripción"""
+        print("PROGRESS:0", flush=True)
         print("🚀 INICIANDO ANÁLISIS COMPLETO DE AUDIO DUAL")
         print("=" * 60)
         mic_exists = os.path.exists(self.mic_file)
@@ -606,23 +590,28 @@ class AudioSyncAnalyzer:
         # Cargar modelo Whisper
         if not self.load_whisper_model():
             return False
+        print("PROGRESS:5", flush=True)
         # Ejecutar pasos del análisis
         if not self.load_audio_files(mic_exists=mic_exists):
             return False
+        print("PROGRESS:10", flush=True)
         if not self.convert_to_numpy(mic_exists=mic_exists):
             return False
         self.analyze_audio_properties(mic_exists=mic_exists)
         lag_seconds = self.detect_cross_correlation(mic_exists=mic_exists)
+        print("PROGRESS:15", flush=True)
         chunks_info = self.create_synchronized_chunks(lag_seconds, mic_exists=mic_exists)
         self.generate_activity_report(chunks_info, mic_exists=mic_exists)
         self.create_waveform_visualization(mic_exists=mic_exists)
         # NUEVA FUNCIONALIDAD: Transcripción y combinación
+        print("PROGRESS:20", flush=True)
         mic_result, sys_result = self.transcribe_audio_files(lag_seconds, mic_exists=mic_exists)
         if sys_result:  # Solo combinar si hay sistema
             self.combine_transcriptions(mic_result, sys_result, mic_exists=mic_exists)
         print(f"\n🎉 ANÁLISIS COMPLETADO")
         print(f"📁 Archivos de salida en: {self.output_dir}")
         print(f"📝 Transcripción combinada: transcripcion_combinada.txt")
+        print("PROGRESS:100", flush=True)
         return True
 
 def parse_args():

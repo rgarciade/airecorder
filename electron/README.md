@@ -2,12 +2,12 @@
 
 Este directorio contiene el "Proceso Principal" (Main Process) de la aplicación, encargado de manejar ventanas, sistema de archivos, procesos hijos (Python), bases de datos y la comunicación con el Frontend de React.
 
-## 1. El "Monolito": `main.js`
+## 1. El Orquestador: `main.js` y `ipc-handlers/`
 
-El archivo `main.js` es el corazón de la aplicación. Debido a su tamaño y complejidad (~1400 líneas), **es vital entender su estructura antes de modificarlo:**
+El archivo `main.js` es el corazón de la aplicación y actúa como orquestador. Para mantener el código limpio y evitar un archivo monolítico, la lógica de comunicación está dividida:
 
-*   **Inicialización:** Arranca la base de datos (`dbService.init()`), sincroniza archivos vs base de datos (`migrationService.syncRecordings()`) y arranca el `transcriptionManager`.
-*   **Manejadores IPC (`ipcMain.handle`):** La gran mayoría del archivo consiste en registros de eventos IPC que escuchan peticiones desde el frontend de React.
+*   **Inicialización (`main.js`):** Arranca la base de datos (`dbService.init()`), sincroniza archivos vs base de datos (`migrationService.syncRecordings()`), arranca el `transcriptionManager` y crea la ventana.
+*   **Manejadores IPC (`ipc-handlers/`):** Todos los eventos que escuchan peticiones desde el frontend de React (`ipcMain.handle`) han sido extraídos a archivos específicos por dominio dentro de la carpeta `ipc-handlers/` (ej. `audio.js`, `settings.js`, `projects.js`). `main.js` los importa y les inyecta explícitamente las dependencias que necesitan.
 
 ### Patrón de Retorno IPC (¡Obligatorio!)
 Todo manejador de IPC en `main.js` debe estar envuelto en un bloque `try/catch` para evitar crasheos silenciosos de la app, y **siempre** debe devolver un objeto unificado:

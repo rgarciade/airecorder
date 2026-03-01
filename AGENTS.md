@@ -10,6 +10,7 @@ Este archivo contiene el contexto crítico general y las reglas de comportamient
 2. **Seguridad ante todo:** Comprueba siempre si un archivo existe antes de leer/escribir.
 3. **Rutas Hardcodeadas:** Si una ruta parece estar "hardcodeada" (fija) a un directorio local de usuario (ej. `/Users/raul.garciad/...`), **mantenla como está** a menos que se indique explícitamente refactorizarla.
 4. **Git y Commits:** **NUNCA crees commits de git de forma autónoma**. Limítate a modificar los archivos y deja el proceso de staging/commit al usuario.
+5. **Evitar Archivos Monolíticos:** No permitas que los archivos crezcan desproporcionadamente. Si un archivo concentra demasiada lógica, aplica estrategias de división mediante importación de módulos más pequeños agrupados por contexto.
 
 ## 2. Comandos de Compilación Rápidos
 
@@ -40,4 +41,4 @@ Las IAs tienen la obligación estricta de mantener el contexto de la aplicación
 | `electron/database/dbService.js` | `electron/README.md` (Sección Base de Datos) |
 | `src/services/ai/providerRouter.js`, `src/services/ai/*` | `src/services/ai/README.md` (Sección Proveedores de IA) |
 | `src/prompts/aiPrompts.js` | `src/services/ai/README.md` (Sección Prompts y Formatos) |
-| `electron/transcriptionManager.js`, `audio_sync_analyzer.py` | `README.md` (raíz) (Sección Pipeline de Transcripción) |
+| `electron/transcriptionManager.js`, `python/audio_sync_analyzer.py` | `README.md` (raíz) (Sección Pipeline de Transcripción) |
