@@ -15,7 +15,8 @@ export default function OverviewTab({
   onAddParticipant,
   onRemoveParticipant,
   onUpdateParticipant,
-  isGeneratingAi
+  isGeneratingAi,
+  hasTranscription
 }) {
   
   // Custom markdown components
@@ -31,7 +32,7 @@ export default function OverviewTab({
   };
 
   const hasAiData = summary || (highlights && highlights.length > 0) || detailedSummary;
-  const showBlur = isGeneratingAi || !hasAiData;
+  const showBlur = isGeneratingAi || (!hasAiData && hasTranscription);
 
   return (
     <div className={styles.container}>
@@ -53,7 +54,24 @@ export default function OverviewTab({
         </div>
       )}
 
-      <div className={`${styles.mainColumn} ${showBlur ? styles.blurredContent : ''}`}>
+      {/* Si NO hay transcripción, mostramos un aviso limpio y simple en lugar de la tarjeta con blur */}
+      {!hasTranscription && !isGeneratingAi && !hasAiData && (
+        <div className={styles.blurOverlay} style={{ backgroundColor: 'transparent', backdropFilter: 'none' }}>
+           <div className={styles.loadingContainer}>
+            <div className={styles.aiSpinner} style={{ animation: 'none', opacity: 0.5 }}>
+              <MdHourglassEmpty size={48} />
+            </div>
+            <h3 className={styles.loadingTitle} style={{ color: 'var(--text-secondary)' }}>
+              Aún no hay transcripción
+            </h3>
+            <p className={styles.loadingSubtitle}>
+              La inteligencia artificial necesita la transcripción para poder generar el resumen y los temas clave.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className={`${styles.mainColumn} ${(showBlur || (!hasTranscription && !hasAiData)) ? styles.blurredContent : ''}`}>
         <div className={styles.grid}>
           {/* Left Column (Content) */}
           <div className={styles.leftPanel}>

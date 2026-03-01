@@ -144,6 +144,20 @@ class TranscriptionManager {
             args.push('--model', task.model);
         }
 
+        // Leer cpuThreads de settings si existe
+        try {
+            const { settingsPath } = require('../utils/paths');
+            if (fs.existsSync(settingsPath)) {
+                const settingsData = fs.readFileSync(settingsPath, 'utf8');
+                const settings = JSON.parse(settingsData);
+                if (settings.cpuThreads) {
+                    args.push('--threads', settings.cpuThreads.toString());
+                }
+            }
+        } catch (e) {
+            console.error('[Manager] Error leyendo settings para cpuThreads', e);
+        }
+
         this.process = spawn(pythonPath, args);
 
         this.process.stdout.on('data', (data) => {

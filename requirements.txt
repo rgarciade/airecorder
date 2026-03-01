@@ -3,4 +3,4 @@ librosa>=0.10.1
 soundfile>=0.12.1
 numpy>=1.21.0
 matplotlib>=3.5.0
-openai-whisper>=20231117 
+faster-whisper>=1.0.0 

@@ -259,15 +259,16 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         // Check if transcription exists first to avoid errors
         let hasTranscription = false;
         try {
-           // Quick check or rely on the previous load. 
-           // We can check localRecording.status or fetch transcription check
            const tCheck = await recordingsService.getTranscription(recording.id);
            hasTranscription = !!tCheck;
         } catch (e) {
            hasTranscription = false;
         }
 
-        if (hasTranscription && !hasSummary && !isGeneratingAi) {
+        // NO auto-generar si la grabación está actualmente en proceso de transcripción
+        const isCurrentlyTranscribing = recording.status === 'processing' || recording.status === 'pending';
+
+        if (hasTranscription && !hasSummary && !isGeneratingAi && !isCurrentlyTranscribing) {
            console.log("Auto-starting AI analysis...");
            setIsGeneratingAi(true);
            try {
@@ -1046,6 +1047,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             onRemoveParticipant={handleRemoveParticipant}
             onUpdateParticipant={handleUpdateParticipant}
             isGeneratingAi={isGeneratingAi}
+            hasTranscription={!!transcription}
           />
         )}
         {activeTab === 'transcription' && (
