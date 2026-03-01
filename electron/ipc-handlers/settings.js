@@ -1,11 +1,20 @@
 const { ipcMain, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const notificationService = require('../services/notificationService');
 const { settingsPath, DEFAULT_BASE_RECORDER_PATH } = require('../utils/paths');
 
 module.exports.registerSettingsHandlers = () => {
   
+  // Obtener info del sistema (CPU)
+  ipcMain.handle('get-system-info', () => {
+    return {
+      cpuCores: os.cpus().length,
+      platform: os.platform()
+    };
+  });
+
   // Manejador para guardar configuración
   ipcMain.handle('save-settings', async (event, settings) => {
     try {
