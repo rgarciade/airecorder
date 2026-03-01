@@ -113,6 +113,16 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [showTranscribeModal, setShowTranscribeModal] = useState(false);
   const [selectedWhisperModel, setSelectedWhisperModel] = useState('small');
   
+  // Export Modal
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState('pdf');
+  const [exportOptions, setExportOptions] = useState({
+    summary: true,
+    highlights: true,
+    transcription: true,
+    participants: true
+  });
+  
   // Ref para evitar indexación duplicada en mount
   const isIndexingRef = useRef(false);
 
@@ -911,6 +921,50 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
   const transcriptionDuration = getTranscriptionDuration();
 
+  const handleExportConfirm = async () => {
+    try {
+      const data = {
+        title: localName || 'Untitled Recording',
+        date: dateStr,
+      };
+
+      if (exportOptions.participants) {
+        data.participants = participants;
+      }
+      if (exportOptions.summary) {
+        data.summary = geminiData.resumen_breve;
+      }
+      if (exportOptions.highlights) {
+        data.highlights = geminiData.ideas;
+      }
+      if (exportOptions.transcription && transcription?.segments) {
+        // Formatear transcripción para exportar
+        data.transcription = transcription.segments.map(s => {
+          const m = Math.floor(s.start / 60);
+          const sec = Math.floor(s.start % 60).toString().padStart(2, '0');
+          return {
+            speaker: s.speaker || 'Speaker',
+            timestamp: `${m}:${sec}`,
+            text: s.text.trim()
+          };
+        });
+      }
+
+      const result = await window.electronAPI.exportDocument(data, exportFormat);
+      if (result.success && !result.canceled) {
+        // Mostrar notificación de éxito (opcional)
+        console.log('Exportado con éxito:', result.filePath);
+      } else if (!result.success) {
+        alert('Error al exportar: ' + result.error);
+      }
+    } catch (e) {
+      console.error('Export error:', e);
+      alert('Error al exportar el documento');
+    } finally {
+      setShowExportModal(false);
+    }
+  };
+
   return (
     <div className={styles.container}>
       {/* Header */}
@@ -983,6 +1037,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         </div>
         
         <div className={styles.headerRight}>
+          <button
+            className={`${styles.actionButton} ${styles.exportBtn}`}
+            onClick={() => setShowExportModal(true)}
+            title="Export Document"
+          >
+            <MdFileDownload size={18} />
+            Exportar
+          </button>
           <button
             className={`${styles.actionButton} ${styles.reTranscribeBtn}`}
             onClick={handleReIndexRAG}
@@ -1273,6 +1335,86 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           </div>
         </div>
       )}
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h3 className={styles.modalTitle}>Exportar Documento</h3>
+            <p className={styles.modalText}>
+              Selecciona el formato y qué contenido deseas incluir en la exportación.
+            </p>
+            
+            <div className={styles.modalForm}>
+              <div className={styles.modalSection}>
+                <label className={styles.modalLabel}>Formato</label>
+                <select 
+                  className={styles.select}
+                  value={exportFormat}
+                  onChange={(e) => setExportFormat(e.target.value)}
+                >
+                  <option value="pdf">PDF Document (.pdf)</option>
+                  <option value="docx">Word Document (.docx)</option>
+                  <option value="md">Markdown (.md)</option>
+                </select>
+              </div>
+              
+              <div className={styles.modalSection}>
+                <label className={styles.modalLabel}>Contenido a incluir</label>
+                <div className={styles.checkboxGroup} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                  <label className={styles.checkboxLabel} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={exportOptions.summary}
+                      onChange={(e) => setExportOptions({...exportOptions, summary: e.target.checked})}
+                    />
+                    Resumen
+                  </label>
+                  <label className={styles.checkboxLabel} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={exportOptions.highlights}
+                      onChange={(e) => setExportOptions({...exportOptions, highlights: e.target.checked})}
+                    />
+                    Puntos Clave
+                  </label>
+                  <label className={styles.checkboxLabel} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={exportOptions.transcription}
+                      onChange={(e) => setExportOptions({...exportOptions, transcription: e.target.checked})}
+                    />
+                    Transcripción Completa
+                  </label>
+                  <label className={styles.checkboxLabel} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={exportOptions.participants}
+                      onChange={(e) => setExportOptions({...exportOptions, participants: e.target.checked})}
+                    />
+                    Participantes
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.modalButtons}>
+              <button 
+                className={styles.cancelModalBtn} 
+                onClick={() => setShowExportModal(false)}
+              >
+                Cancelar
+              </button>
+              <button 
+                className={styles.confirmModalBtn} 
+                onClick={handleExportConfirm}
+              >
+                Exportar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

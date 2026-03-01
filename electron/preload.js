@@ -76,6 +76,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   updateTaskSuggestion: (id, title, content, layer) => ipcRenderer.invoke('update-task-suggestion', id, title, content, layer),
   deleteTaskSuggestion: (id) => ipcRenderer.invoke('delete-task-suggestion', id),
 
+  // Exportar documento
+  exportDocument: (data, format) => ipcRenderer.invoke('export-document', { data, format }),
+
   // FUNCIONES DE PROYECTOS
   // Obtener todos los proyectos
   getProjects: () => ipcRenderer.invoke('get-projects'),
