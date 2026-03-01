@@ -235,8 +235,13 @@ class SystemAudioRecorder {
 
     try {
       console.log('Solicitando captura de audio del sistema...');
-      
-      // Usar getDisplayMedia que ahora está manejado por setDisplayMediaRequestHandler
+
+      // Activar loopback audio handler (electron-audio-loopback)
+      if (window.electronAPI?.enableLoopbackAudio) {
+        await window.electronAPI.enableLoopbackAudio();
+      }
+
+      // Obtener stream de audio del sistema (interceptado por electron-audio-loopback)
       this.systemStream = await navigator.mediaDevices.getDisplayMedia({
         video: true, // Requerido por la API
         audio: true  // Solicitar audio del sistema
@@ -301,7 +306,7 @@ class SystemAudioRecorder {
       
       let errorMessage = error.message;
       if (error.message.includes('Error starting capture') || error.message.includes('Permission denied')) {
-        errorMessage = 'Error de permisos. En macOS, asegúrate de permitir "Grabación de pantalla" para esta aplicación en Ajustes del Sistema > Privacidad y Seguridad.';
+        errorMessage = 'Error al capturar audio del sistema. Verifica los permisos de audio en tu sistema operativo.';
       }
       
       this.stopSystemRecording();
@@ -329,6 +334,13 @@ class SystemAudioRecorder {
       // Detener el stream
       if (this.systemStream) {
         this.systemStream.getTracks().forEach(track => track.stop());
+      }
+
+      // Desactivar loopback audio handler
+      if (window.electronAPI?.disableLoopbackAudio) {
+        window.electronAPI.disableLoopbackAudio().catch(err =>
+          console.warn('Error desactivando loopback:', err)
+        );
       }
 
       this.isRecording = false;

@@ -36,7 +36,13 @@
         }
       ],
       "category": "public.app-category.productivity",
-      "icon": "build/icon.icns"
+      "icon": "build/icon.icns",
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "AIRecorder necesita acceso al micrófono para grabar audio.",
+        "NSAudioCaptureUsageDescription": "AIRecorder necesita acceso a la captura de audio para grabar el audio del sistema."
+      }
     }
   },
   "description": "AI-powered audio recorder and transcription tool",
@@ -47,6 +53,7 @@
     "better-sqlite3": "^12.6.2",
     "data_file_database": "^1.0.2",
     "docx": "^9.6.0",
+    "electron-audio-loopback": "^1.0.6",
     "ffmpeg-static": "^5.2.0",
     "howler": "^2.2.4",
     "jspdf": "^4.2.0",
@@ -69,7 +76,7 @@
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.19",
     "concurrently": "^8.2.2",
-    "electron": "^29.1.4",
+    "electron": "^31.0.1",
     "electron-builder": "^26.0.12",
     "electron-rebuild": "^3.2.9",
     "eslint": "^8.57.0",
