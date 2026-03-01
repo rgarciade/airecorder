@@ -1,73 +1,44 @@
-# AI Agent Guidelines
-RESPONDEME SIEMPRE EN ESPAÑOL
+> 🔗 **NOTA:** `CLAUDE.md` es un enlace simbólico a este archivo (`AGENTS.md`). Modificar este archivo actualizará ambos.
 
-This document provides instructions for AI coding agents (and human developers) working on the **AIRecorder** repository. It covers build commands, code style, and architectural conventions.
+# Reglas Globales para Agentes de IA (AIRecorder)
 
-## 1. Environment & Build Commands
+Este archivo contiene el contexto crítico general y las reglas de comportamiento para trabajar en el repositorio **AIRecorder**. Para detalles técnicos específicos, **debes leer los archivos `README.md` ubicados en las carpetas correspondientes**.
 
-This is a **hybrid Electron + React + Python** application.
+## 1. Comportamiento y Reglas Estrictas
 
-### Prerequisites
-- Node.js (v18+)
-- Python 3.x (with virtual environment in `venv/`)
-- System dependencies for audio (ffmpeg, sox) might be required.
+1. **Idioma:** RESPONDE SIEMPRE EN ESPAÑOL. La UI y logs usan español; los nombres de variables y funciones van en inglés (camelCase/PascalCase).
+2. **Seguridad ante todo:** Comprueba siempre si un archivo existe antes de leer/escribir.
+3. **Rutas Hardcodeadas:** Si una ruta parece estar "hardcodeada" (fija) a un directorio local de usuario (ej. `/Users/raul.garciad/...`), **mantenla como está** a menos que se indique explícitamente refactorizarla.
+4. **Git y Commits:** **NUNCA crees commits de git de forma autónoma**. Limítate a modificar los archivos y deja el proceso de staging/commit al usuario.
+5. **Evitar Archivos Monolíticos:** No permitas que los archivos crezcan desproporcionadamente. Si un archivo concentra demasiada lógica, aplica estrategias de división mediante importación de módulos más pequeños agrupados por contexto.
 
-### Commands
-| Action | Command | Description |
-|--------|---------|-------------|
-| **Start Dev** | `npm run dev` | Runs Vite (frontend) and Electron (backend) concurrently. |
-| **Lint** | `npm run lint` | Runs ESLint on JS/JSX files. |
-| **Build Frontend** | `npm run build` | Builds the React application via Vite. |
-| **Build App** | `npm run electron:build` | Builds the final Electron executable (macOS). |
-| **Test** | *No tests configured* | Currently, there are no test scripts. If adding tests, prefer **Vitest** for React. |
+## 2. Comandos de Compilación Rápidos
 
-**Note on Python:** The application spawns a Python process for audio analysis (`audio_sync_analyzer.py`). Ensure the virtual environment at `./venv` is active or used when running Python scripts manually.
+| Acción | Comando |
+|--------|---------|
+| **Dev (frontend + electron)** | `npm run dev` |
+| **Build Frontend** | `npm run build` |
+| **Build macOS DMG** | `npm run electron:build` |
+| **Rebuild Native Modules** | `npm run rebuild` |
 
-## 2. Code Style & Conventions
+## 3. Arquitectura Basada en Componentes (Lee antes de actuar)
 
-### Frontend (React/Vite)
-- **Framework:** React 18 with Functional Components and Hooks.
-- **State Management:** Redux Toolkit (`useSelector`, `useDispatch`).
-- **Styling:** Tailwind CSS (`className="..."`).
-- **Routing:** `react-router-dom`.
-- **File Structure:**
-  - `src/pages/`: Main views (Home, Settings, Projects).
-  - `src/components/`: Reusable UI components.
-  - `src/store/`: Redux slices and store configuration.
-- **Naming:**
-  - Components: PascalCase (e.g., `RecordingOverlay.jsx`).
-  - Functions/Variables: camelCase.
-  - Files: PascalCase for components, camelCase for utilities/hooks.
+El código está segmentado. **NO intentes adivinar cómo funciona el sistema.** Si vas a trabajar en un área específica, **LEE** su archivo correspondiente primero:
 
-### Backend (Electron)
-- **Module System:** CommonJS (`require`).
-- **IPC:** Use `ipcMain.handle` in `main.js` and `ipcRenderer.invoke` in the frontend.
-- **File Handling:** Direct `fs` usage is permitted in the main process.
-- **Hardcoded Paths:** Be aware that some paths (e.g., user directories) might be hardcoded in `main.js` or Python scripts. **Do not change these unless refactoring for portability.**
-- **Process Spawning:** Python scripts are executed via `child_process.spawn`.
+- 🧠 **Para lógica de IA (Prompts, Gemini, Ollama):** Lee `src/services/ai/README.md`
+- 🖥️ **Para lógica de Frontend/Electron (Main, IPC, BD):** Lee `electron/README.md`
+- 🐍 **Para lógica de Python (Audio, Whisper):** Lee `README.md` en la raíz.
 
-### Python (Audio Analysis)
-- **Style:** PEP 8 compliance.
-- **Language:** Spanish comments and log messages are preferred (e.g., `print("🎵 Cargando...")`).
-- **Libraries:** `whisper` (transcription), `librosa` (analysis), `pydub` (manipulation).
-- **Structure:** Class-based architecture (e.g., `AudioSyncAnalyzer`).
+---
 
-## 3. General Rules for Agents
+## ⚠️ MATRIZ DE MANTENIMIENTO OBLIGATORIO DE DOCUMENTACIÓN ⚠️
 
-1.  **Safety First:** 
-    - Always check if a file exists before reading/writing.
-    - Do not modify `package.json` or `requirements.txt` unless explicitly asked to add dependencies.
-2.  **No Guesswork:** 
-    - If a path seems hardcoded (e.g., `/Users/raul.garciad/...`), **preserve it** unless the task specifically asks to fix it.
-3.  **Language:** 
-    - The UI and logs use **Spanish** mixed with English variable names. Maintain this consistency (e.g., user-facing strings in Spanish).
-4.  **Error Handling:**
-    - Frontend: Graceful degradation, console logs for errors.
-    - Electron: `try/catch` blocks in IPC handlers are mandatory to prevent app crashes.
-5.  **Imports:**
-    - Group imports: 3rd party first, then local components, then styles.
+Las IAs tienen la obligación estricta de mantener el contexto de la aplicación actualizado. **NUNCA des por terminada una tarea que altere la lógica de estos archivos sin antes leer el documento correspondiente y aplicar los cambios necesarios para que no quede obsoleto.**
 
-## 4. Testing
-*Currently, no automated testing suite is set up.* 
-- When implementing critical features, verify manually by running the app (`npm run dev`).
-- If asked to write tests, propose setting up **Vitest** for React components.
+| Si modificas código o lógica en... | Estás OBLIGADO a actualizar el archivo... |
+| :--- | :--- |
+| `electron/main.js`, `electron/preload.js` | `electron/README.md` (Sección IPC / Comunicación) |
+| `electron/database/dbService.js` | `electron/README.md` (Sección Base de Datos) |
+| `src/services/ai/providerRouter.js`, `src/services/ai/*` | `src/services/ai/README.md` (Sección Proveedores de IA) |
+| `src/prompts/aiPrompts.js` | `src/services/ai/README.md` (Sección Prompts y Formatos) |
+| `electron/transcriptionManager.js`, `python/audio_sync_analyzer.py` | `README.md` (raíz) (Sección Pipeline de Transcripción) |

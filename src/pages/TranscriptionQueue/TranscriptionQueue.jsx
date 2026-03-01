@@ -52,10 +52,23 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
 
   const getStepNumber = (step) => {
     switch (step) {
-      case 'queued': return '1/3';
-      case 'transcribing': return '2/3';
-      case 'analyzing': return '3/3';
-      default: return '1/3';
+      case 'queued': return '0/4';
+      case 'preparing': return '1/4';
+      case 'transcribing': return '2/4';
+      case 'analyzing': return '3/4';
+      case 'saving': return '4/4';
+      default: return '1/4';
+    }
+  };
+
+  const getStepLabel = (step) => {
+    switch (step) {
+      case 'queued': return 'En cola...';
+      case 'preparing': return 'Preparando archivos (1/2)...';
+      case 'transcribing': return 'Transcribiendo audio con Whisper (2/2)...';
+      case 'analyzing': return 'Analizando transcripción con IA...';
+      case 'saving': return 'Guardando resultados...';
+      default: return 'Procesando...';
     }
   };
 
@@ -172,7 +185,7 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
                     </div>
                     <h3 className={styles.taskName}>{activeTask.recording_name}</h3>
                     <p className={styles.taskStatus}>
-                      {activeTask.step === 'transcribing' ? 'Transcribing audio with Whisper...' : 'Finalizing analysis...'}
+                      {getStepLabel(activeTask.step)}
                     </p>
                     
                     {/* Visual Waveform */}
