@@ -233,8 +233,8 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
     <div className={styles.container}>
       <header className={styles.header}>
         <div>
-          <h1 className={styles.greeting}>Good Morning, User</h1>
-          <p className={styles.subtitle}>Ready to capture your next big idea?</p>
+          <h1 className={styles.greeting}>Welcome!</h1>
+          <p className={styles.subtitle}>What would you like to record today?</p>
         </div>
         <div className={styles.headerActions}>
           <input 
