@@ -1,30 +1,43 @@
-# React + Vite
+# 🎙️ AIRecorder
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Una aplicación de escritorio para macOS (Electron + React + Python) para grabar audio con transcripción y análisis impulsados por IA. 
+Graba audio de doble canal (micrófono + sistema), transcribe mediante OpenAI Whisper (Python), y proporciona resúmenes/chat por IA mediante múltiples proveedores locales y en la nube (Gemini, Ollama, etc.).
 
-Currently, two official plugins are available:
+## 📁 Navegación de Documentación (Para IAs y Desarrolladores)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Este proyecto utiliza un modelo de **Documentación por Proximidad**. Si vas a trabajar en un área específica, lee el README correspondiente a esa carpeta:
 
-## Expanding the ESLint configuration
+*   🤖 **Lógica de IA y Prompts:** Lee `src/services/ai/README.md`
+*   🖥️ **Lógica Principal, IPC y Base de Datos (SQLite):** Lee `electron/README.md`
+*   📜 **Reglas Generales y Comandos:** Lee `AGENTS.md` (o `CLAUDE.md`)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+---
 
+## 🐍 Pipeline de Audio y Transcripción (Python)
 
-# por hacer
+Esta sección documenta el funcionamiento del backend de procesamiento de audio escrito en Python y cómo se comunica con Electron.
 
-- [x] al cambiar el nombre de la grabacion, se esta cambiando el de la carpeta pero no el de los archivos de audio, lo que da error
-- [x] tarda mucho en iniciar el procesado de la grabacion al darle al boton
-- [ ] revisar la ventana del proyecto, hay datos moqueados para el chat
-- [ ] revisar el liack de grabaciones, la flecha no navega
-- [ ] quiero que al desplegar una grabacion en esta vista, tambien aparezcan los archivos d eaudio y pueda reproducirlos desde el minuto que quiera yo.
-- [ ] quiero que los aspectos destacados funcionen como el apartado de participantes de un proyecto, que la ia proponga y yo pueda agregar mas, indicando quien lo genero. y pudiendolo modificar previa confirmacion manual.
-- [ ] tambien necesito un boton para poder relanzar las peticiones de ia del proyecto "solo del nivel del proyecto." que se vea igual que el del componente de la grabacion.
-- [ ] tambien necesito poder elegir el modelo de llamada como en la otra vista. puede que el componente chat pueda ser reutilizable
-- [ ] hacer que la transcipcion sea mas rapida
-- [ ] revisar el codigo y hacer tests
-- [ ] hay un fallo, cuando das a guardar, sigue activo el model de grabacion y da flasazos la interfaz de gaurdado. deberia tener el boton de guardar, que guarde con el nombre basico "fecha etc" y se actualice al asignarle un nombre y proyecto
-- [ ] quiero poder abrir un audio por un segundo especifico, que yo le indique, para sacar informacion en voz de una riunion en un momento que me haga falta
-- [ ] quiero sacar un mensaje para que el usuario agregue una descripcio o intruccion a al record antes de generar el resumen de ia.
-- [ ] quiero poder generar epicas con las trasncripciones y ayudarme de la ia para mejorarlas
+### Arquitectura de Audio
+
+1.  **Archivos:** 
+    *   `python/audio_sync_analyzer.py`: Se encarga de procesar los audios (recortar, emparejar canales). Utiliza `librosa` para calcular el desfase (correlación cruzada) entre la pista del micrófono y la de sistema, y `whisper` para transcribir.
+    *   `python/audio_stream_daemon.py`: (Uso en experimentación/streaming, revisar el código fuente para estado actual).
+
+2.  **Gestor de Colas (Electron):**
+    *   `electron/transcriptionManager.js` controla la ejecución.
+    *   Mantiene una tabla SQLite `transcription_queue` (estado `pending`, `processing`, `completed`, `failed`).
+    *   Se asegura de que **solo haya una transcripción activa a la vez** (`this.activeTask`).
+
+### Comunicación Python <-> Electron (El patrón de Progreso)
+
+Dado que la transcripción es un proceso pesado, Python informa al proceso de Node/Electron de su progreso imprimiendo cadenas formateadas en su salida estándar (`stdout`).
+
+*   **Comando de ejecución:** Electron lanza Python mediante `child_process.spawn`:
+    `python python/audio_sync_analyzer.py --basename <carpeta_del_audio> --model <modelo_whisper>`
+*   **Reporte de Progreso:** Dentro de Python, cada cierto tiempo se imprime:
+    `PROGRESS:15` (o el porcentaje correspondiente).
+*   **Análisis (Parsing):** `transcriptionManager.js` captura el evento `.on('data', ...)` del proceso, busca la cadena `PROGRESS:XX`, actualiza la base de datos y emite un evento al frontend para actualizar la barra de progreso en React.
+
+### Dependencias y Entorno
+El código de Python requiere ejecutarse dentro de un entorno virtual que contenga `whisper`, `librosa`, `pydub`, `ffmpeg` (en sistema) y `torch`. 
+*   **Aviso para Agentes de IA:** Los scripts de Python pueden tener rutas hardcodeadas (como la ruta al ejecutable de `python` dentro de `venv/`). **Consérvalas a menos que el usuario pida explícitamente refactorizar la portabilidad.**

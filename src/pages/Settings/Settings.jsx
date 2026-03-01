@@ -40,6 +40,8 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
   const [fontSize, setFontSize] = useState('medium');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [whisperModel, setWhisperModel] = useState('small');
+  const [cpuThreads, setCpuThreads] = useState(4);
+  const [maxCpuThreads, setMaxCpuThreads] = useState(4);
   const [microphones, setMicrophones] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -131,6 +133,16 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         setFontSize(savedSettings.fontSize || 'medium');
         setNotificationsEnabled(savedSettings.notificationsEnabled !== false); // Default true
         setWhisperModel(savedSettings.whisperModel || 'small');
+        
+        try {
+          const sysInfo = await window.electronAPI.getSystemInfo();
+          if (sysInfo && sysInfo.cpuCores) {
+            setMaxCpuThreads(sysInfo.cpuCores);
+            setCpuThreads(savedSettings.cpuThreads || Math.floor(sysInfo.cpuCores / 2) || 4);
+          }
+        } catch (e) {
+          console.warn("Could not fetch system info", e);
+        }
         
         // Gemini Free
         setGeminiFreeApiKey(savedSettings.geminiFreeApiKey || '');
@@ -345,6 +357,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         notificationsEnabled: notificationsEnabled,
         fontSize: fontSize,
         whisperModel: whisperModel,
+        cpuThreads: cpuThreads,
         // Gemini Free
         geminiFreeApiKey: geminiFreeApiKey,
         geminiFreeModel: geminiFreeModel,
@@ -1017,7 +1030,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                     </p>
                   </div>
 
-                  <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                  <div className={styles.formGroup} style={{ marginBottom: '1rem' }}>
                     <label className={styles.label}>Tamaño del Modelo Whisper</label>
                     <select 
                       className={styles.input}
@@ -1030,6 +1043,24 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                     </select>
                     <p className={styles.helpText}>
                       Elige el modelo por defecto para nuevas transcripciones. Los modelos pequeños son más rápidos pero menos precisos.
+                    </p>
+                  </div>
+
+                  <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                    <label className={styles.label}>Hilos de CPU para Transcripción</label>
+                    <select 
+                      className={styles.input}
+                      value={cpuThreads}
+                      onChange={(e) => setCpuThreads(parseInt(e.target.value))}
+                    >
+                      {Array.from({ length: maxCpuThreads }, (_, i) => i + 1).map(num => (
+                        <option key={num} value={num}>
+                          {num} {num === Math.floor(maxCpuThreads / 2) ? '(Recomendado)' : ''} {num === maxCpuThreads ? '(Máximo)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <p className={styles.helpText}>
+                      Más hilos aumentan la velocidad de transcripción pero consumen más recursos del ordenador.
                     </p>
                   </div>
                 </div>

@@ -4,6 +4,7 @@ import { startRecording } from '../../store/recordingSlice';
 import { MixedAudioRecorder, getSystemMicrophones } from '../../services/audioService';
 import { getSettings } from '../../services/settingsService';
 import recordingsService from '../../services/recordingsService';
+import { MdChevronLeft, MdChevronRight } from 'react-icons/md';
 import styles from './Home.module.css';
 
 import NewSessionCard from './components/NewSessionCard';
@@ -19,6 +20,10 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   
   // Settings display
   const [currentMicLabel, setCurrentMicLabel] = useState('Default Mic');
@@ -214,12 +219,22 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
     }
   };
 
+  const filteredRecordings = recordings.filter(rec => 
+    rec.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredRecordings.length / itemsPerPage);
+  const paginatedRecordings = filteredRecordings.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
         <div>
-          <h1 className={styles.greeting}>Good Morning, User</h1>
-          <p className={styles.subtitle}>Ready to capture your next big idea?</p>
+          <h1 className={styles.greeting}>Welcome!</h1>
+          <p className={styles.subtitle}>What would you like to record today?</p>
         </div>
         <div className={styles.headerActions}>
           <input 
@@ -227,7 +242,10 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
             placeholder="Search recordings..." 
             className={styles.searchInput} 
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1); // Reset to first page on search
+            }}
           />
         </div>
       </header>
@@ -271,9 +289,7 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
       {loading && <p>Loading recordings...</p>}
       
       <div className={styles.grid}>
-        {recordings
-          .filter(rec => rec.name.toLowerCase().includes(searchTerm.toLowerCase()))
-          .map(rec => (
+        {paginatedRecordings.map(rec => (
             <RecordingCard 
               key={rec.id} 
               recording={rec} 
@@ -285,6 +301,28 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
           <p className={styles.noRecordingsMessage}>No recordings yet. Start a new session!</p>
         )}
       </div>
+
+      {totalPages > 1 && (
+        <div className={styles.pagination}>
+          <button 
+            className={styles.pageBtn} 
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(prev => prev - 1)}
+          >
+            <MdChevronLeft size={20} />
+          </button>
+          <span className={styles.pageInfo}>
+            Page {currentPage} of {totalPages}
+          </span>
+          <button 
+            className={styles.pageBtn} 
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(prev => prev + 1)}
+          >
+            <MdChevronRight size={20} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

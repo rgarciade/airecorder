@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from pydub import AudioSegment
 from pydub.utils import make_chunks
 import soundfile as sf
-import whisper
+from faster_whisper import WhisperModel
 import json
 from datetime import timedelta
 import argparse
@@ -43,12 +43,15 @@ class AudioSyncAnalyzer:
         
     def load_whisper_model(self):
         """Cargar el modelo Whisper para transcripción"""
-        print(f"PROGRESS:5", flush=True)
-        print(f"🤖 Cargando modelo Whisper '{WHISPER_MODEL}'...", flush=True)
+        print(f"🤖 Cargando modelo Whisper '{WHISPER_MODEL}' con {CPU_THREADS} hilos...", flush=True)
         try:
-            self.whisper_model = whisper.load_model(WHISPER_MODEL)
+            self.whisper_model = WhisperModel(
+                WHISPER_MODEL, 
+                device="cpu", 
+                compute_type="int8",
+                cpu_threads=CPU_THREADS
+            )
             print("✅ Modelo Whisper cargado correctamente", flush=True)
-            print(f"PROGRESS:15", flush=True)
             return True
         except Exception as e:
             print(f"❌ Error cargando modelo Whisper: {e}")
@@ -57,7 +60,6 @@ class AudioSyncAnalyzer:
     def load_audio_files(self, mic_exists=True):
         """Cargar los archivos de audio usando pydub"""
         print("🎵 Cargando archivos de audio...", flush=True)
-        print(f"PROGRESS:20", flush=True)
         
         try:
             if mic_exists:
@@ -70,7 +72,6 @@ class AudioSyncAnalyzer:
             self.system_audio = AudioSegment.from_file(self.system_file)
             print(f"📁 Sistema: {len(self.system_audio)/1000:.2f} segundos")
             print(f"📊 Sample rate sistema: {self.system_audio.frame_rate} Hz")
-            print(f"PROGRESS:30", flush=True)
             
             return True
             
@@ -81,7 +82,6 @@ class AudioSyncAnalyzer:
     def convert_to_numpy(self, mic_exists=True):
         """Convertir audio a arrays numpy usando librosa para análisis avanzado"""
         print("🔄 Convirtiendo a arrays numpy...")
-        print(f"PROGRESS:35", flush=True)
         
         try:
             temp_sys = "/tmp/temp_sys.wav"
@@ -103,7 +103,6 @@ class AudioSyncAnalyzer:
             else:
                 print(f"✅ Array creado - Solo sistema: {len(self.system_data)} samples")
             
-            print(f"PROGRESS:45", flush=True)
             return True
             
         except Exception as e:
@@ -114,7 +113,6 @@ class AudioSyncAnalyzer:
         """Analizar propiedades básicas de los audios"""
         print("\n📊 ANÁLISIS DE PROPIEDADES")
         print("=" * 50)
-        print(f"PROGRESS:48", flush=True)
         
         if self.system_data is not None:
             sys_duration = len(self.system_data) / SAMPLE_RATE
@@ -134,13 +132,11 @@ class AudioSyncAnalyzer:
             sys_silence = np.sum(np.abs(self.system_data) < 0.01) / len(self.system_data) * 100
             print(f"🔇 Silencio sistema: {sys_silence:.1f}%")
         
-        print(f"PROGRESS:50", flush=True)
     
     def detect_cross_correlation(self, mic_exists=True):
         """Detectar sincronización usando correlación cruzada"""
         print("\n🔍 ANÁLISIS DE SINCRONIZACIÓN")
         print("=" * 50)
-        print(f"PROGRESS:52", flush=True)
         
         if not mic_exists or self.mic_data is None or self.system_data is None:
             print("⚠️  No hay datos de micrófono, se omite correlación cruzada.")
@@ -168,14 +164,12 @@ class AudioSyncAnalyzer:
         else:
             print("❌ Desfase significativo detectado")
         
-        print(f"PROGRESS:55", flush=True)
         return lag_seconds
     
     def create_synchronized_chunks(self, lag_seconds=0, mic_exists=True):
         """Crear chunks sincronizados para análisis temporal"""
         print(f"\n⏰ CREANDO CHUNKS SINCRONIZADOS (lag: {lag_seconds:.3f}s)")
         print("=" * 50)
-        print(f"PROGRESS:58", flush=True)
         
         if not mic_exists or self.mic_audio is None:
             print("⚠️  Solo se procesará el sistema.")
@@ -201,7 +195,6 @@ class AudioSyncAnalyzer:
                         'both_active': None
                     }
                     chunks_info.append(chunk_info)
-                print(f"PROGRESS:60", flush=True)
                 return chunks_info
             return []
         
@@ -256,14 +249,12 @@ class AudioSyncAnalyzer:
             
             chunks_info.append(chunk_info)
         
-        print(f"PROGRESS:60", flush=True)
         return chunks_info
     
     def transcribe_audio_files(self, lag_seconds=0, mic_exists=True):
         """Transcribir ambos archivos de audio usando Whisper con parámetros avanzados para evitar repeticiones y falsos positivos por música"""
         print("\n🎙️ TRANSCRIBIENDO ARCHIVOS DE AUDIO")
         print("=" * 50)
-        print(f"PROGRESS:62", flush=True)
         
         # Crear el directorio de salida
         os.makedirs(self.output_dir, exist_ok=True)
@@ -291,39 +282,72 @@ class AudioSyncAnalyzer:
                     system_adjusted = self.system_audio
                 system_adjusted.export(temp_sys_wav, format="wav")
             
+            # Configurar beam size dinámicamente según el modelo
+            dynamic_beam_size = 5 if WHISPER_MODEL in ['tiny', 'base'] else (2 if WHISPER_MODEL == 'small' else 1)
+
             # Transcribir micrófono
             mic_result = None
             if mic_exists and temp_mic_wav and self.whisper_model:
                 print("🎤 Transcribiendo audio de micrófono...", flush=True)
-                print(f"PROGRESS:65", flush=True)
-                mic_result = self.whisper_model.transcribe(
+                segments, info = self.whisper_model.transcribe(
                     temp_mic_wav,
                     word_timestamps=True,
                     language=TRANSCRIPTION_LANGUAGE,
                     no_speech_threshold=0.7,  # Más estricto para ignorar música
-                    logprob_threshold=-0.5,   # Más estricto para ignorar baja confianza
                     condition_on_previous_text=False,  # Evita repeticiones
-                    suppress_tokens="-1",  # Suprime tokens no hablados (como música)
-                    verbose=False
+                    suppress_tokens=[-1],  # Suprime tokens no hablados (como música)
+                    beam_size=dynamic_beam_size,
+                    vad_filter=True,
+                    vad_parameters=dict(min_silence_duration_ms=500)
                 )
-                print(f"PROGRESS:80", flush=True)
+                
+                mic_segments = []
+                for segment in segments:
+                    mic_segments.append({'start': segment.start, 'end': segment.end, 'text': segment.text})
+                    # Progreso: 10% base + hasta 45% (total 55%)
+                    if info.duration > 0:
+                        current_progress = int(10 + (segment.end / info.duration) * 45)
+                        print(f"PROGRESS:{min(55, current_progress)}", flush=True)
+                
+                mic_result = {
+                    'text': ' '.join(s['text'] for s in mic_segments),
+                    'segments': mic_segments
+                }
+            print("PROGRESS:55", flush=True)
             
             # Transcribir sistema
             sys_result = None
             if temp_sys_wav and self.whisper_model:
                 print("🔊 Transcribiendo audio de sistema...", flush=True)
-                print(f"PROGRESS:82", flush=True)
-                sys_result = self.whisper_model.transcribe(
+                segments, info = self.whisper_model.transcribe(
                     temp_sys_wav,
                     word_timestamps=True,
                     language=TRANSCRIPTION_LANGUAGE,
                     no_speech_threshold=0.7,
-                    logprob_threshold=-0.5,
                     condition_on_previous_text=False,
-                    suppress_tokens="-1",
-                    verbose=False
+                    suppress_tokens=[-1],
+                    beam_size=dynamic_beam_size,
+                    vad_filter=True,
+                    vad_parameters=dict(min_silence_duration_ms=500)
                 )
-                print(f"PROGRESS:95", flush=True)
+                
+                sys_segments = []
+                # Si no hay micro, el sistema asume todo el progreso del 10% al 95% (85% total)
+                # Si hay micro, asume del 55% al 95% (40% total)
+                base_progress = 55 if mic_exists else 10
+                progress_weight = 40 if mic_exists else 85
+                
+                for segment in segments:
+                    sys_segments.append({'start': segment.start, 'end': segment.end, 'text': segment.text})
+                    if info.duration > 0:
+                        current_progress = int(base_progress + (segment.end / info.duration) * progress_weight)
+                        print(f"PROGRESS:{min(95, current_progress)}", flush=True)
+                
+                sys_result = {
+                    'text': ' '.join(s['text'] for s in sys_segments),
+                    'segments': sys_segments
+                }
+            print("PROGRESS:95", flush=True)
             
             # Limpiar archivos temporales
             if temp_mic_wav and os.path.exists(temp_mic_wav):
@@ -332,7 +356,6 @@ class AudioSyncAnalyzer:
                 os.remove(temp_sys_wav)
             
             print("✅ Transcripción completada")
-            print(f"PROGRESS:98", flush=True)
             
             return mic_result, sys_result
             
@@ -591,6 +614,7 @@ class AudioSyncAnalyzer:
     
     def run_full_analysis(self):
         """Ejecutar análisis completo incluyendo transcripción"""
+        print("PROGRESS:0", flush=True)
         print("🚀 INICIANDO ANÁLISIS COMPLETO DE AUDIO DUAL")
         print("=" * 60)
         mic_exists = os.path.exists(self.mic_file)
@@ -606,23 +630,28 @@ class AudioSyncAnalyzer:
         # Cargar modelo Whisper
         if not self.load_whisper_model():
             return False
+        print("PROGRESS:5", flush=True)
         # Ejecutar pasos del análisis
         if not self.load_audio_files(mic_exists=mic_exists):
             return False
+        print("PROGRESS:10", flush=True)
         if not self.convert_to_numpy(mic_exists=mic_exists):
             return False
         self.analyze_audio_properties(mic_exists=mic_exists)
         lag_seconds = self.detect_cross_correlation(mic_exists=mic_exists)
+        print("PROGRESS:15", flush=True)
         chunks_info = self.create_synchronized_chunks(lag_seconds, mic_exists=mic_exists)
         self.generate_activity_report(chunks_info, mic_exists=mic_exists)
         self.create_waveform_visualization(mic_exists=mic_exists)
         # NUEVA FUNCIONALIDAD: Transcripción y combinación
+        print("PROGRESS:20", flush=True)
         mic_result, sys_result = self.transcribe_audio_files(lag_seconds, mic_exists=mic_exists)
         if sys_result:  # Solo combinar si hay sistema
             self.combine_transcriptions(mic_result, sys_result, mic_exists=mic_exists)
         print(f"\n🎉 ANÁLISIS COMPLETADO")
         print(f"📁 Archivos de salida en: {self.output_dir}")
         print(f"📝 Transcripción combinada: transcripcion_combinada.txt")
+        print("PROGRESS:100", flush=True)
         return True
 
 def parse_args():
@@ -631,6 +660,7 @@ def parse_args():
     parser.add_argument('--model', type=str, default="small", help='Modelo de Whisper (tiny, base, small, medium, large)')
     parser.add_argument('--language', type=str, default="es", help='Idioma para la transcripción (ej: es, en)')
     parser.add_argument('--base_dir', type=str, help='Directorio base de grabaciones')
+    parser.add_argument('--threads', type=int, default=4, help='Hilos de CPU a utilizar')
     return parser.parse_args()
 
 def main():
@@ -648,8 +678,11 @@ def main():
     global TRANSCRIPTION_LANGUAGE
     TRANSCRIPTION_LANGUAGE = args.language
     
+    global CPU_THREADS
+    CPU_THREADS = args.threads
+    
     print(f"🎵 AUDIO SYNC ANALYZER & TRANSCRIBER")
-    print(f"Modelo: {WHISPER_MODEL} | Idioma: {TRANSCRIPTION_LANGUAGE} | Directorio: {base_dir}")
+    print(f"Modelo: {WHISPER_MODEL} | Idioma: {TRANSCRIPTION_LANGUAGE} | Hilos: {CPU_THREADS} | Directorio: {base_dir}")
     print("=" * 60)
 
     basename = args.basename

@@ -1,7 +1,7 @@
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
-const dbService = require('./database/dbService');
+const dbService = require('../database/dbService');
 const notificationService = require('./notificationService');
 
 class TranscriptionManager {
@@ -120,7 +120,7 @@ class TranscriptionManager {
 
   runTranscription(task) {
     return new Promise((resolve, reject) => {
-        const scriptPath = path.join(__dirname, '../audio_sync_analyzer.py');
+        const scriptPath = path.join(__dirname, '../../python/audio_sync_analyzer.py');
         const pythonPath = '/Users/raul.garciad/Proyectos/personal/airecorder/venv/bin/python'; 
 
       // Fetch recording details to get relative_path
@@ -144,16 +144,37 @@ class TranscriptionManager {
             args.push('--model', task.model);
         }
 
+        // Leer cpuThreads de settings si existe
+        try {
+            const { settingsPath } = require('../utils/paths');
+            if (fs.existsSync(settingsPath)) {
+                const settingsData = fs.readFileSync(settingsPath, 'utf8');
+                const settings = JSON.parse(settingsData);
+                if (settings.cpuThreads) {
+                    args.push('--threads', settings.cpuThreads.toString());
+                }
+            }
+        } catch (e) {
+            console.error('[Manager] Error leyendo settings para cpuThreads', e);
+        }
+
         this.process = spawn(pythonPath, args);
 
         this.process.stdout.on('data', (data) => {
             const message = data.toString().trim();
             console.log(`[Transcription ${task.id}]: ${message}`);
             
-            // Simple progress heuristics based on log messages
-            if (message.includes('Cargando')) this.updateProgress(10, 'loading');
-            if (message.includes('Transcribiendo')) this.updateProgress(30, 'transcribing');
-            if (message.includes('Guardando')) this.updateProgress(90, 'saving');
+            // Leer progreso exacto dictado por Python
+            const progressMatch = message.match(/PROGRESS:\s*(\d+)/);
+            if (progressMatch) {
+                const percent = parseInt(progressMatch[1], 10);
+                let step = 'processing';
+                if (percent < 20) step = 'preparing';
+                else if (percent < 95) step = 'transcribing';
+                else step = 'saving';
+                
+                this.updateProgress(percent, step);
+            }
         });
 
         this.process.stderr.on('data', (data) => {

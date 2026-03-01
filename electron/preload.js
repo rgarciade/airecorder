@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getDefaultRecordingPath: () => ipcRenderer.invoke('get-default-recording-path'),
 
   // Funciones para la configuración
+  getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   loadSettings: () => ipcRenderer.invoke('load-settings'),
   
