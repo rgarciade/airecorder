@@ -304,16 +304,16 @@ class AudioSyncAnalyzer:
                 mic_segments = []
                 for segment in segments:
                     mic_segments.append({'start': segment.start, 'end': segment.end, 'text': segment.text})
-                    # Progreso: 10% base + hasta 45% (total 55%)
+                    # Progreso: 20% base + hasta 35% (total 55%)
                     if info.duration > 0:
-                        current_progress = int(10 + (segment.end / info.duration) * 45)
+                        current_progress = int(20 + (segment.end / info.duration) * 35)
                         print(f"PROGRESS:{min(55, current_progress)}", flush=True)
                 
                 mic_result = {
                     'text': ' '.join(s['text'] for s in mic_segments),
                     'segments': mic_segments
                 }
-            print("PROGRESS:55", flush=True)
+                print("PROGRESS:55", flush=True)
             
             # Transcribir sistema
             sys_result = None
@@ -332,10 +332,10 @@ class AudioSyncAnalyzer:
                 )
                 
                 sys_segments = []
-                # Si no hay micro, el sistema asume todo el progreso del 10% al 95% (85% total)
+                # Si no hay micro, el sistema asume todo el progreso del 20% al 95% (75% total)
                 # Si hay micro, asume del 55% al 95% (40% total)
-                base_progress = 55 if mic_exists else 10
-                progress_weight = 40 if mic_exists else 85
+                base_progress = 55 if mic_exists else 20
+                progress_weight = 40 if mic_exists else 75
                 
                 for segment in segments:
                     sys_segments.append({'start': segment.start, 'end': segment.end, 'text': segment.text})

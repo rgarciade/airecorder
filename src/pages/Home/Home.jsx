@@ -117,6 +117,7 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
       // Sort by date desc
       list.sort((a, b) => new Date(b.date) - new Date(a.date));
       setRecordings(list);
+      setCurrentPage(1);
       return list;
 
     } catch (err) {
