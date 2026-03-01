@@ -17,7 +17,7 @@ const STEPS = [
 export default function Onboarding({ onComplete }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [micStatus, setMicStatus] = useState('unknown'); 
-  const [systemAudioStatus, setSystemAudioStatus] = useState('unknown'); // Mock state for now
+  const [systemAudioStatus, setSystemAudioStatus] = useState('granted'); // Manejado automáticamente por electron-audio-loopback
   const [notificationStatus, setNotificationStatus] = useState('unknown');
   
   // AI Settings State
@@ -62,20 +62,8 @@ export default function Onboarding({ onComplete }) {
   };
 
   const requestSystemAudio = async () => {
-    // There is no direct "request permission" API for system audio that doesn't involve starting a stream.
-    // However, on macOS, trying to list sources might trigger it or we can just guide them.
-    // For this UI, we'll pretend we checked it or trigger a dummy getSources.
-    if (window.electronAPI?.getDesktopSources) {
-       try {
-         await window.electronAPI.getDesktopSources();
-         // If successful, we likely have permission or it will prompt.
-         setSystemAudioStatus('granted');
-       } catch (e) {
-         console.error("System audio check failed", e);
-       }
-    } else {
-        setSystemAudioStatus('granted'); // Dev fallback
-    }
+    // Con electron-audio-loopback, no se necesita permiso explícito de Screen Recording
+    setSystemAudioStatus('granted');
   };
 
   const toggleNotifications = async () => {

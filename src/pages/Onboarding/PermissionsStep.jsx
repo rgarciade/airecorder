@@ -59,34 +59,21 @@ const PermissionsStep = ({
           </div>
 
           {/* System Audio Card */}
-          <div className="bg-red-50 border border-red-100 rounded-2xl p-6 flex items-center gap-5 transition-all hover:shadow-sm">
-            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-500 text-xl flex-shrink-0">
+          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 flex items-center gap-5 transition-all hover:shadow-sm">
+            <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-xl flex-shrink-0">
               <FaVolumeUp />
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-1">
                 <h3 className="font-bold text-slate-900 text-lg">System Audio</h3>
-                {systemAudioStatus === 'granted' ? (
-                   <span className="bg-emerald-200/50 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded-full">Granted</span>
-                ) : (
-                   <span className="bg-red-200/50 text-red-800 text-xs font-bold px-2 py-0.5 rounded-full">Required</span>
-                )}
+                <span className="bg-emerald-200/50 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded-full">Automatic</span>
               </div>
-              <p className="text-slate-500 text-sm">Required to capture audio from remote participants.</p>
+              <p className="text-slate-500 text-sm">La captura de audio del sistema se maneja automáticamente. No requiere permisos adicionales.</p>
             </div>
             <div className="flex-shrink-0">
-              {systemAudioStatus === 'granted' ? (
-                <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white text-lg shadow-sm">
-                  <FaCheck />
-                </div>
-              ) : (
-                <button 
-                  onClick={onRequestSystemAudio}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2.5 rounded-full font-semibold text-sm flex items-center gap-2 transition-colors shadow-sm"
-                >
-                  Grant <FaArrowRight size={12} />
-                </button>
-              )}
+              <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white text-lg shadow-sm">
+                <FaCheck />
+              </div>
             </div>
           </div>
 

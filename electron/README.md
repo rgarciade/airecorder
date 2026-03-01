@@ -31,6 +31,22 @@ ipcMain.handle('mi-evento', async (event, params) => {
 *   **Puente Seguro:** `preload.js` expone de forma segura (Context Bridge) las funciones necesarias al renderizador, mapeándolas con `ipcRenderer.invoke()`.
 *   **Backend al React:** El backend puede enviar eventos no solicitados (como actualizaciones de estado de transcripción) utilizando `win.webContents.send('evento-nombre', datos)`. El frontend debe tener listeners (ej. `window.electronAPI.onQueueUpdate()`).
 
+### Captura de Audio del Sistema (`electron-audio-loopback`)
+
+La captura de audio del sistema usa el paquete `electron-audio-loopback` (requiere Electron >= 31). Este paquete evita la necesidad del permiso de "Grabación de pantalla" en macOS:
+
+*   **macOS:** Usa Core Audio Tap API (solo requiere permiso de "System Audio Recording", no "Screen Recording").
+*   **Windows:** Usa WASAPI (Windows Audio Session API), sin permisos especiales.
+*   **Linux:** Usa PulseAudio.
+
+**Flujo:**
+1.  `initMain()` se llama en `main.js` **antes** de `app.whenReady()` para configurar los switches de Chromium.
+2.  El renderer llama a `window.electronAPI.enableLoopbackAudio()` antes de iniciar la captura.
+3.  Se invoca `getDisplayMedia({ video: true, audio: true })` — interceptado por la librería para devolver solo audio loopback.
+4.  Al detener la grabación, se llama a `window.electronAPI.disableLoopbackAudio()`.
+
+**Entitlements macOS:** Se requiere `NSAudioCaptureUsageDescription` en `Info.plist` y el entitlement `com.apple.security.device.audio-input` (configurados en `build/entitlements.mac.plist` y `package.json`).
+
 ## 3. Bases de Datos (`/database`)
 
 ### SQLite (`dbService.js`)

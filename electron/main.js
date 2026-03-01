@@ -3,7 +3,8 @@
 // ========================================
 // 1. IMPORTACIONES GLOBALES
 // ========================================
-const { app, BrowserWindow, ipcMain, systemPreferences, desktopCapturer, session, protocol } = require('electron');
+const { app, BrowserWindow, ipcMain, systemPreferences, session, protocol } = require('electron');
+const { initMain } = require('electron-audio-loopback');
 const path = require('path');
 const fs = require('fs');
 
@@ -83,23 +84,6 @@ function createWindow() {
 
   notificationService.setMainWindow(mainWindow);
 
-  session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
-    desktopCapturer.getSources({ types: ['screen'] }).then((sources) => {
-      const screenSource = sources.find(source => source.id.includes('screen:'));
-      if (screenSource) {
-        callback({ video: screenSource, audio: 'loopback' });
-      } else {
-        desktopCapturer.getSources({ types: ['window'] }).then((windowSources) => {
-           if (windowSources.length > 0) {
-             callback({ video: windowSources[0], audio: 'loopback' });
-           } else {
-             callback({});
-           }
-        }).catch(() => callback({}));
-      }
-    }).catch(() => callback({}));
-  }, { useSystemPicker: false });
-
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173');
   } else {
@@ -176,6 +160,9 @@ async function initApp() {
 // Establecer nombre de la aplicación inmediatamente (Ayuda en menú/Dock)
 app.setName('AIRecorder');
 app.setAppUserModelId('com.airecorder.app');
+
+// Inicializar audio loopback (debe ser ANTES de app.whenReady)
+initMain();
 
 // Arranque de la aplicación
 app.whenReady().then(initApp);

@@ -27,6 +27,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // Función para obtener fuentes de escritorio (audio del sistema)
   getDesktopSources: () => ipcRenderer.invoke('get-desktop-sources'),
+
+  // Audio loopback (electron-audio-loopback) - captura audio del sistema sin permiso de Screen Recording
+  enableLoopbackAudio: () => ipcRenderer.invoke('enable-loopback-audio'),
+  disableLoopbackAudio: () => ipcRenderer.invoke('disable-loopback-audio'),
   
   // Nueva función para guardar audio del sistema
   saveSystemAudio: (audioData, fileName) => ipcRenderer.invoke('save-system-audio', audioData, fileName),
