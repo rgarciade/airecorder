@@ -26,6 +26,7 @@ const { registerProjectsHandlers } = require('./ipc-handlers/projects');
 const { registerRagHandlers } = require('./ipc-handlers/rag');
 const { registerIntegrationsHandlers } = require('./ipc-handlers/integrations');
 const { registerDashboardHandlers } = require('./ipc-handlers/dashboard');
+const { registerExportHandlers } = require('./ipc-handlers/export');
 
 
 // ========================================
@@ -42,6 +43,7 @@ function registerIpcHandlers() {
   registerRagHandlers();
   registerIntegrationsHandlers();
   registerDashboardHandlers();
+  registerExportHandlers();
 }
 
 async function checkMicrophonePermission() {
