@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Verificar permisos
   getMicrophonePermission: () => ipcRenderer.invoke('get-microphone-permission'),
+  openMicrophonePreferences: () => ipcRenderer.invoke('open-microphone-preferences'),
 
   // Seleccionar directorio
   selectDirectory: () => ipcRenderer.invoke('select-directory'),

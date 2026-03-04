@@ -229,7 +229,11 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
     if (isRecording) return;
 
     if (permissionDenied) {
-      alert('⚠️ Acceso al micrófono denegado.\n\nPor favor, habilita el permiso en Ajustes del Sistema > Privacidad y Seguridad > Micrófono.');
+      if (window.confirm('⚠️ Acceso al micrófono denegado.\n\nPor favor, habilita el permiso en Ajustes del Sistema > Privacidad y Seguridad > Micrófono.\n\n¿Quieres abrir los Ajustes del Sistema ahora?')) {
+        if (window.electronAPI?.openMicrophonePreferences) {
+          window.electronAPI.openMicrophonePreferences();
+        }
+      }
       return;
     }
 
@@ -267,7 +271,13 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
       
       if (err.name === 'NotAllowedError' || err.message.toLowerCase().includes('permission denied')) {
         setPermissionDenied(true); 
-        errorMessage = '⚠️ Acceso al micrófono denegado.\n\nPor favor, habilita el permiso de micrófono para la aplicación en:\n\nAjustes del Sistema > Privacidad y Seguridad > Micrófono.';
+        errorMessage = '⚠️ Acceso al micrófono denegado.\n\nPor favor, habilita el permiso de micrófono para la aplicación en Ajustes del Sistema.';
+        if (window.confirm(errorMessage + '\n\n¿Quieres abrir los Ajustes del Sistema ahora?')) {
+          if (window.electronAPI?.openMicrophonePreferences) {
+            window.electronAPI.openMicrophonePreferences();
+          }
+        }
+        return;
       } else if (err.name === 'NotFoundError') {
         errorMessage = '⚠️ No se encontró ningún micrófono.\n\nPor favor, conecta un micrófono e intenta de nuevo.';
       }
@@ -316,11 +326,28 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
             <line x1="8" y1="23" x2="16" y2="23"/>
             <line x1="1" y1="1" x2="23" y2="23"/>
           </svg>
-          <span>
-            Acceso al micrófono denegado. La aplicación no podrá grabar audio.
-            <br />
-            <span style={{ fontSize: '0.85rem', fontWeight: 400 }}>Ve a Ajustes del Sistema &gt; Privacidad y Seguridad &gt; Micrófono y habilita AIRecorder.</span>
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <span>
+              Acceso al micrófono denegado. La aplicación no podrá grabar audio.
+              <br />
+              <span style={{ fontSize: '0.85rem', fontWeight: 400 }}>Ve a Ajustes del Sistema &gt; Privacidad y Seguridad &gt; Micrófono y habilita AIRecorder.</span>
+            </span>
+            <button 
+              onClick={() => window.electronAPI?.openMicrophonePreferences?.()}
+              style={{
+                alignSelf: 'flex-start',
+                backgroundColor: 'transparent',
+                border: '1px solid currentColor',
+                borderRadius: '4px',
+                padding: '4px 8px',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                color: 'inherit'
+              }}
+            >
+              Abrir Ajustes del Sistema
+            </button>
+          </div>
         </div>
       )}
 

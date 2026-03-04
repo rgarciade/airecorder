@@ -55,9 +55,25 @@ export default function Onboarding({ onComplete }) {
   };
 
   const requestPermission = async () => {
-    if (window.electronAPI?.requestMicrophonePermission) {
-      const status = await window.electronAPI.requestMicrophonePermission();
-      setMicStatus(status);
+    if (micStatus === 'denied') {
+      if (window.electronAPI?.openMicrophonePreferences) {
+        await window.electronAPI.openMicrophonePreferences();
+      }
+      return;
+    }
+
+    try {
+      // Usar la API web estándar para forzar el prompt nativo de permisos de Electron/OS
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // Si llegamos aquí, el usuario concedió el permiso
+      // Apagamos el micrófono inmediatamente para no dejarlo abierto
+      stream.getTracks().forEach(track => track.stop());
+      
+      setMicStatus('granted');
+    } catch (error) {
+      console.error("Microphone permission denied:", error);
+      setMicStatus('denied');
     }
   };
 
@@ -68,8 +84,9 @@ export default function Onboarding({ onComplete }) {
 
   const toggleNotifications = async () => {
     if (notificationStatus === 'granted') {
-        // Can't really revoke in web, but we can simulate state for the UI
-        // Actually, let's just leave it as is if granted.
+        // No podemos revocar el permiso a nivel de SO desde JS, 
+        // pero podemos simular el estado para desactivarlas en la configuración de la app
+        setNotificationStatus('denied');
     } else {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
@@ -120,9 +137,10 @@ export default function Onboarding({ onComplete }) {
       const settingsToSave = {
         isFirstRun: false,
         aiProvider,
-        geminiApiKey: geminiKey,
         ollamaHost: ollamaHost,
-        ollamaModel: selectedOllamaModel
+        lmStudioHost: aiProvider === 'lmstudio' ? 'http://localhost:1234/v1' : undefined,
+        ollamaModel: selectedOllamaModel,
+        notificationsEnabled: notificationStatus === 'granted'
       };
       
       await updateSettings(settingsToSave);
@@ -313,7 +331,7 @@ export default function Onboarding({ onComplete }) {
   if (currentStep === 3) return (
     <ReadyStep 
       aiProvider={aiProvider}
-      modelName={aiProvider === 'gemini' ? 'Gemini Pro' : selectedOllamaModel}
+      modelName={aiProvider === 'lmstudio' ? 'LM Studio Model' : selectedOllamaModel}
       onComplete={saveAndClose}
       StepProgressComponent={renderStepProgress()}
     />
