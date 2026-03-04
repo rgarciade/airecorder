@@ -1,4 +1,4 @@
-const { ipcMain, systemPreferences, desktopCapturer } = require('electron');
+const { ipcMain, systemPreferences, desktopCapturer, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const dbService = require('../database/dbService');
@@ -15,6 +15,16 @@ module.exports.registerAudioHandlers = () => {
       return systemPreferences.getMediaAccessStatus('microphone');
     }
     return 'granted';
+  });
+
+  // Manejador para abrir las preferencias del sistema
+  ipcMain.handle('open-microphone-preferences', async () => {
+    if (process.platform === 'darwin') {
+      // Esta URL específica abre la sección "Privacidad > Micrófono" en macOS
+      await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone');
+      return true;
+    }
+    return false;
   });
 
   // Manejador para solicitar permisos de micrófono explícitamente
