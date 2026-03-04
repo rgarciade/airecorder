@@ -99,9 +99,8 @@ async function checkMicrophonePermission() {
   if (process.platform === 'darwin') {
     const status = systemPreferences.getMediaAccessStatus('microphone');
     console.log('[Main] Estado de permisos del micrófono:', status);
-    if (status === 'not-determined') {
-      await systemPreferences.askForMediaAccess('microphone');
-    }
+    // Eliminado: no pedir permisos al inicio para no molestar al usuario.
+    // Se pedirán a través de getUserMedia en el Onboarding o la primera vez que intente grabar.
   }
 }
 

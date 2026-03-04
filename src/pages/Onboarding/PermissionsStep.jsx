@@ -39,6 +39,9 @@ const PermissionsStep = ({
                 {micStatus === 'granted' && (
                   <span className="bg-emerald-200/50 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded-full">Granted</span>
                 )}
+                {micStatus === 'denied' && (
+                  <span className="bg-red-100 text-red-800 text-xs font-bold px-2 py-0.5 rounded-full">Denied</span>
+                )}
               </div>
               <p className="text-slate-500 text-sm">Required to record your voice during meetings.</p>
             </div>
@@ -50,9 +53,9 @@ const PermissionsStep = ({
               ) : (
                 <button 
                   onClick={onRequestMic}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-full font-semibold text-sm flex items-center gap-2 transition-colors shadow-sm"
+                  className={`${micStatus === 'denied' ? 'bg-slate-700 hover:bg-slate-800' : 'bg-emerald-500 hover:bg-emerald-600'} text-white px-5 py-2.5 rounded-full font-semibold text-sm flex items-center gap-2 transition-colors shadow-sm`}
                 >
-                  Grant <FaArrowRight size={12} />
+                  {micStatus === 'denied' ? 'Open Settings' : 'Grant'} <FaArrowRight size={12} />
                 </button>
               )}
             </div>
