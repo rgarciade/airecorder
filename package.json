@@ -9,8 +9,10 @@
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "electron:dev": "NODE_ENV=development electron .",
-    "electron:build": "vite build && electron-builder --mac",
-    "electron:build:dir": "vite build && electron-builder --mac --dir",
+    "python:build": "bash scripts/build-python.sh",
+    "electron:build": "npm run python:build && vite build && electron-builder --mac",
+    "electron:build:js": "vite build && electron-builder --mac",
+    "electron:build:dir": "npm run python:build && vite build && electron-builder --mac --dir",
     "reset:onboarding": "node scripts/reset-onboarding.js",
     "rebuild": "electron-rebuild --arch=arm64"
   },
@@ -25,12 +27,24 @@
       "electron/**/*",
       "package.json"
     ],
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**/*",
+      "node_modules/ffprobe-static/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "python-dist/${arch}/audio_sync_analyzer",
+        "to": "python-bin",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "mac": {
       "target": [
         {
           "target": "dmg",
           "arch": [
-            "x64",
             "arm64"
           ]
         }
@@ -55,6 +69,7 @@
     "docx": "^9.6.0",
     "electron-audio-loopback": "^1.0.6",
     "ffmpeg-static": "^5.2.0",
+    "ffprobe-static": "^3.1.0",
     "howler": "^2.2.4",
     "jspdf": "^4.2.0",
     "node-audiorecorder": "^3.0.0",
