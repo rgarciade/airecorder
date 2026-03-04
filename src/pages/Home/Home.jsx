@@ -34,6 +34,10 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
   const [totalFiles, setTotalFiles] = useState(0);
   const [savedTimeStr, setSavedTimeStr] = useState("0h 0m");
 
+  // Import Modal
+  const [importModal, setImportModal] = useState(null);
+  const [importName, setImportName] = useState('');
+
   useEffect(() => {
     loadRecordings();
     loadDashboardStats();
@@ -168,6 +172,59 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
     }
   };
 
+  const handleImportAudio = async () => {
+    try {
+      const result = await window.electronAPI.importAudioFile();
+      if (result?.canceled) return;
+      if (result?.success && result?.recording) {
+        let recordingId = result.recording.id;
+        let recordingPath = result.recording.relative_path;
+
+        // Mostrar modal para pedir nombre
+        const suggestedName = result.recording.relative_path.replace(/^imported_audio_/, '').replace(/_[0-9-]+$/, '');
+        
+        setImportName(suggestedName);
+        setImportModal({ recordingId, recordingPath });
+      } else {
+        alert('Error importando audio: ' + (result?.error || 'Error desconocido'));
+      }
+    } catch (err) {
+      console.error('Error importando archivo de audio:', err);
+      alert('Error: ' + err.message);
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!importModal) return;
+    
+    let { recordingId, recordingPath } = importModal;
+    setImportModal(null); // Cerrar modal
+    
+    try {
+      if (importName && importName.trim() !== '') {
+        const renameResult = await window.electronAPI.renameRecording(recordingId || recordingPath, importName);
+        if (renameResult?.success) {
+          recordingPath = renameResult.folderName;
+        }
+      }
+
+      // Iniciar transcripción automáticamente
+      const settings = await getSettings();
+      const defaultModel = settings.whisperModel || 'small';
+      await window.electronAPI.transcribeRecording(recordingId || recordingPath, defaultModel);
+
+      const list = await loadRecordings();
+      if (onRecordingSelect) {
+        const rec = list.find(r => r.id === recordingId || r.folderName === recordingPath || r.id === recordingPath);
+        if (rec) {
+          onRecordingSelect(rec);
+        }
+      }
+    } catch (err) {
+      console.error('Error confirmando importación:', err);
+    }
+  };
+
   const handleStart = async () => {
     if (isRecording) return;
 
@@ -270,6 +327,7 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
       <NewSessionCard
         onStart={handleStart}
         onImport={handleImportTeams}
+        onImportAudio={handleImportAudio}
         microphoneLabel={currentMicLabel}
         languageLabel={currentLangLabel}
         onOpenSettings={() => onSettings('general')}
@@ -321,6 +379,46 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
           >
             <MdChevronRight size={20} />
           </button>
+        </div>
+      )}
+
+      {/* Modal para renombrar la grabación importada */}
+      {importModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h3 className={styles.modalTitle}>Import Audio</h3>
+            <p className={styles.modalText}>
+              The audio has been imported successfully. You can rename it before starting the transcription.
+            </p>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Recording Name</label>
+              <input 
+                type="text" 
+                className={styles.input} 
+                value={importName} 
+                onChange={(e) => setImportName(e.target.value)} 
+                placeholder="Name"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleConfirmImport();
+                }}
+              />
+            </div>
+            <div className={styles.buttonGroup}>
+              <button 
+                className={styles.cancelBtn} 
+                onClick={() => setImportModal(null)}
+              >
+                Cancel
+              </button>
+              <button 
+                className={styles.confirmBtn} 
+                onClick={handleConfirmImport}
+              >
+                Start Transcription
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

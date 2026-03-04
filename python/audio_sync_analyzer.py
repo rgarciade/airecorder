@@ -730,8 +730,15 @@ def main():
     print("=" * 60)
 
     basename = args.basename
-    mic_file = os.path.join(base_dir, basename, f"{basename}-microphone.webm")
-    system_file = os.path.join(base_dir, basename, f"{basename}-system.webm")
+    import glob
+    mic_pattern = os.path.join(base_dir, basename, f"{basename}-microphone.*")
+    sys_pattern = os.path.join(base_dir, basename, f"{basename}-system.*")
+    
+    mic_files = [f for f in glob.glob(mic_pattern) if f.split('.')[-1].lower() in ['webm', 'wav', 'mp3', 'm4a', 'ogg', 'aac', 'flac']]
+    sys_files = [f for f in glob.glob(sys_pattern) if f.split('.')[-1].lower() in ['webm', 'wav', 'mp3', 'm4a', 'ogg', 'aac', 'flac']]
+
+    mic_file = mic_files[0] if mic_files else os.path.join(base_dir, basename, f"{basename}-microphone.webm")
+    system_file = sys_files[0] if sys_files else os.path.join(base_dir, basename, f"{basename}-system.webm")
     output_dir = os.path.join(base_dir, basename, "analysis")
 
     analyzer = AudioSyncAnalyzer(mic_file, system_file, output_dir)
