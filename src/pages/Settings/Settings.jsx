@@ -1140,14 +1140,36 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       </div>
                     </div>
                     <label className={styles.toggleWrapper}>
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         className={styles.toggleInput}
                         checked={notificationsEnabled}
                         onChange={(e) => setNotificationsEnabled(e.target.checked)}
                       />
                       <div className={styles.toggleSlider}></div>
                     </label>
+                  </div>
+                </div>
+
+                {/* Developer Tools */}
+                <div className={styles.card} style={{marginTop: '16px'}}>
+                  <div className={styles.cardHeader}>
+                    <div className={styles.providerInfo}>
+                      <div className={`${styles.providerIcon}`} style={{backgroundColor: '#fef3c7', color: '#d97706'}}>
+                        <MdTerminal size={24} />
+                      </div>
+                      <div>
+                        <h4 className={styles.providerName}>Herramientas de Desarrollo</h4>
+                        <p className={styles.providerDesc}>Abrir consola de depuración de Chromium</p>
+                      </div>
+                    </div>
+                    <button
+                      className={styles.checkBtn}
+                      onClick={() => window.electronAPI?.toggleDevTools?.()}
+                    >
+                      <MdTerminal size={18} />
+                      Abrir DevTools
+                    </button>
                   </div>
                 </div>
               </section>

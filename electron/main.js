@@ -31,6 +31,54 @@ const { registerExportHandlers } = require('./ipc-handlers/export');
 
 
 // ========================================
+// 1.5 REDIRIGIR LOGS DEL MAIN AL RENDERER (DevTools)
+// ========================================
+const originalLog = console.log;
+const originalError = console.error;
+const originalWarn = console.warn;
+
+function sendLogToRenderer(...args) {
+  try {
+    const windows = BrowserWindow.getAllWindows();
+    if (windows.length > 0 && windows[0].webContents) {
+      const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+      windows[0].webContents.executeJavaScript(
+        `console.log('%c[Main]', 'color: #8b5cf6; font-weight: bold;', ${JSON.stringify(message)})`
+      ).catch(() => {});
+    }
+  } catch (_) { /* ignore */ }
+}
+
+console.log = (...args) => {
+  originalLog(...args);
+  sendLogToRenderer(...args);
+};
+console.error = (...args) => {
+  originalError(...args);
+  try {
+    const windows = BrowserWindow.getAllWindows();
+    if (windows.length > 0 && windows[0].webContents) {
+      const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+      windows[0].webContents.executeJavaScript(
+        `console.error('%c[Main]', 'color: #ef4444; font-weight: bold;', ${JSON.stringify(message)})`
+      ).catch(() => {});
+    }
+  } catch (_) { /* ignore */ }
+};
+console.warn = (...args) => {
+  originalWarn(...args);
+  try {
+    const windows = BrowserWindow.getAllWindows();
+    if (windows.length > 0 && windows[0].webContents) {
+      const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+      windows[0].webContents.executeJavaScript(
+        `console.warn('%c[Main]', 'color: #f59e0b; font-weight: bold;', ${JSON.stringify(message)})`
+      ).catch(() => {});
+    }
+  } catch (_) { /* ignore */ }
+};
+
+// ========================================
 // 2. FUNCIONES DE CONFIGURACIÓN DE APP
 // ========================================
 function registerIpcHandlers() {
@@ -84,13 +132,20 @@ function createWindow() {
 
   notificationService.setMainWindow(mainWindow);
 
+  // Handler IPC para abrir/cerrar DevTools desde Settings
+  ipcMain.handle('toggle-devtools', () => {
+    if (mainWindow.webContents.isDevToolsOpened()) {
+      mainWindow.webContents.closeDevTools();
+    } else {
+      mainWindow.webContents.openDevTools();
+    }
+  });
+
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173');
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
-  
-  mainWindow.webContents.openDevTools();
 }
 
 

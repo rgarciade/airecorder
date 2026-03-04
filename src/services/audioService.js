@@ -57,14 +57,12 @@ class AudioRecorder {
       // 1. Obtener stream del micrófono
       const microphoneConstraints = {
         audio: {
-          deviceId: deviceId ? { exact: deviceId } : undefined,
-          sampleRate: this.options.frequency,
-          channelCount: this.options.channels,
-          sampleSize: this.options.bitwidth,
-          echoCancellation: true,        // Cancelación de eco
-          noiseSuppression: true,        // Supresión de ruido
-          autoGainControl: true,            // Baja latencia
-          volume: 0.8                   // Reducir volumen del micrófono
+          deviceId: deviceId ? { ideal: deviceId } : undefined,
+          sampleRate: { ideal: this.options.frequency },
+          channelCount: { ideal: this.options.channels },
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
         }
       };
 
