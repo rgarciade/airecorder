@@ -1,6 +1,7 @@
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const { app } = require('electron');
 const dbService = require('../database/dbService');
 const notificationService = require('./notificationService');
 
@@ -45,6 +46,8 @@ class TranscriptionManager {
   }
 
   addTask(recordingId, options = {}) {
+    console.log(`[Manager] addTask llamado con recordingId=${recordingId} (type: ${typeof recordingId}), options=`, options);
+
     // Resolve numeric ID if string provided (relative_path)
     let numericId = recordingId;
     let folderName = recordingId;
@@ -53,10 +56,12 @@ class TranscriptionManager {
         const rec = dbService.getRecording(recordingId);
         if (rec) {
             numericId = rec.id;
+            console.log(`[Manager] Resuelto path "${recordingId}" -> numericId=${numericId}`);
         } else {
             // Try to see if it's already a number in string form
             if (!isNaN(parseInt(recordingId))) {
                 numericId = parseInt(recordingId);
+                console.log(`[Manager] Parseado como número: ${numericId}`);
             } else {
                 console.error(`[Manager] Recording not found in DB for path: ${recordingId}`);
                 return { success: false, error: 'Recording not found in DB' };
@@ -66,15 +71,19 @@ class TranscriptionManager {
         // It's a number, find the folder name for logging/UI
         const rec = dbService.getRecordingById(recordingId);
         if (rec) folderName = rec.relative_path;
+        console.log(`[Manager] ID numérico=${numericId}, folderName=${folderName}`);
     }
 
     // Check if already in queue or active
     const status = dbService.getRecordingTaskStatus(numericId);
+    console.log(`[Manager] Estado actual en cola para recording ${numericId}:`, status);
     if (status && (status.status === 'pending' || status.status === 'processing')) {
+        console.log(`[Manager] Ya en cola (${status.status}), no se agrega`);
         return { success: false, error: 'Already queued' };
     }
 
     const taskId = dbService.enqueueTask(numericId, options.model);
+    console.log(`[Manager] Tarea encolada con taskId=${taskId}`);
     this.notifyUpdate();
     this.processQueue();
     return { success: true, taskId };
@@ -88,13 +97,21 @@ class TranscriptionManager {
   }
 
   async processQueue() {
-    if (this.activeTask) return; // Busy
+    console.log(`[Manager] processQueue: activeTask=${this.activeTask ? this.activeTask.id : 'null'}`);
+    if (this.activeTask) {
+      console.log('[Manager] processQueue: ocupado, saliendo');
+      return;
+    }
 
     const nextTask = dbService.getNextTask();
-    if (!nextTask) return; // Empty
+    console.log(`[Manager] processQueue: nextTask=`, nextTask);
+    if (!nextTask) {
+      console.log('[Manager] processQueue: cola vacía');
+      return;
+    }
 
     this.activeTask = nextTask;
-    
+
     // Update status to processing in DB
     dbService.updateTask(nextTask.id, 'processing', 'transcribing', 0);
     this.notifyUpdate();
@@ -120,8 +137,46 @@ class TranscriptionManager {
 
   runTranscription(task) {
     return new Promise((resolve, reject) => {
-        const scriptPath = path.join(__dirname, '../../python/audio_sync_analyzer.py');
-        const pythonPath = '/Users/raul.garciad/Proyectos/personal/airecorder/venv/bin/python'; 
+        const isDev = !app.isPackaged;
+        let executablePath;
+        let execArgs;
+        let ffmpegPath = null;
+        let ffprobePath = null;
+
+        if (isDev) {
+            // DESARROLLO: usar venv local + script .py directamente
+            const pythonPath = '/Users/raul.garciad/Proyectos/personal/airecorder/venv/bin/python';
+            const systemPython = process.platform === 'win32' ? 'python' : 'python3';
+            executablePath = fs.existsSync(pythonPath) ? pythonPath : systemPython;
+            const scriptPath = path.join(__dirname, '../../python/audio_sync_analyzer.py');
+            execArgs = [scriptPath];
+        } else {
+            // PRODUCCION: usar binario PyInstaller + ffmpeg bundled
+            const resourcesPath = process.resourcesPath;
+            executablePath = path.join(resourcesPath, 'python-bin', 'audio_sync_analyzer');
+            execArgs = [];
+
+            // ffmpeg bundled — usar ruta directa al binario desempaquetado
+            ffmpegPath = path.join(resourcesPath, 'app.asar.unpacked',
+                'node_modules', 'ffmpeg-static', 'ffmpeg');
+            if (!fs.existsSync(ffmpegPath)) {
+                console.warn(`[Manager] ffmpeg no encontrado en: ${ffmpegPath}`);
+                ffmpegPath = null;
+            }
+
+            // ffprobe bundled
+            ffprobePath = path.join(resourcesPath, 'app.asar.unpacked',
+                'node_modules', 'ffprobe-static', 'bin', 'darwin', 'arm64', 'ffprobe');
+            if (!fs.existsSync(ffprobePath)) {
+                console.warn(`[Manager] ffprobe no encontrado en: ${ffprobePath}`);
+                ffprobePath = null;
+            }
+        }
+
+        console.log(`[Manager] Modo: ${isDev ? 'DESARROLLO' : 'PRODUCCIÓN'}`);
+        console.log(`[Manager] Executable: ${executablePath}`);
+        if (ffmpegPath) console.log(`[Manager] ffmpeg: ${ffmpegPath}`);
+        if (ffprobePath) console.log(`[Manager] ffprobe: ${ffprobePath}`);
 
       // Fetch recording details to get relative_path
       let folderName = task.recording_id;
@@ -135,13 +190,19 @@ class TranscriptionManager {
       }
 
         console.log(`[Manager] Starting transcription for task ${task.id} (recording: ${folderName})`);
-        
-        const args = [scriptPath, '--basename', folderName];
+
+        const args = [...execArgs, '--basename', folderName];
         if (this.basePath) {
             args.push('--base_dir', this.basePath);
         }
         if (task.model) {
             args.push('--model', task.model);
+        }
+        if (ffmpegPath) {
+            args.push('--ffmpeg', ffmpegPath);
+        }
+        if (ffprobePath) {
+            args.push('--ffprobe', ffprobePath);
         }
 
         // Leer cpuThreads de settings si existe
@@ -158,7 +219,27 @@ class TranscriptionManager {
             console.error('[Manager] Error leyendo settings para cpuThreads', e);
         }
 
-        this.process = spawn(pythonPath, args);
+        console.log(`[Manager] Spawn: ${executablePath}`);
+        console.log(`[Manager] Args array: ${JSON.stringify(args)}`);
+        console.log(`[Manager] Executable exists: ${fs.existsSync(executablePath)}`);
+
+        // Entorno para el proceso Python
+        const spawnEnv = { ...process.env };
+        spawnEnv.PYTHONUNBUFFERED = '1'; // Forzar stdout sin buffer (garantiza flush inmediato)
+        if (ffmpegPath) {
+            spawnEnv.FFMPEG_PATH = ffmpegPath;
+            // Añadir directorio de ffmpeg al PATH para que pydub lo encuentre vía which()
+            spawnEnv.PATH = path.dirname(ffmpegPath) + ':' + (spawnEnv.PATH || '');
+        }
+        if (ffprobePath) {
+            spawnEnv.FFPROBE_PATH = ffprobePath;
+            // Añadir directorio de ffprobe al PATH para que pydub lo encuentre vía which()
+            spawnEnv.PATH = path.dirname(ffprobePath) + ':' + (spawnEnv.PATH || '');
+        }
+        // HF_HOME NO se sobreescribe: faster_whisper usa ~/.cache/huggingface (estándar)
+        // donde el modelo ya está cacheado tras la primera descarga.
+
+        this.process = spawn(executablePath, args, { env: spawnEnv });
 
         this.process.stdout.on('data', (data) => {
             const message = data.toString().trim();
@@ -182,6 +263,7 @@ class TranscriptionManager {
         });
 
         this.process.on('close', (code) => {
+            console.log(`[Manager] Proceso Python terminó con código: ${code}`);
             this.process = null;
             if (code === 0) {
                 dbService.updateStatus(folderName, 'transcribed');
@@ -203,6 +285,7 @@ class TranscriptionManager {
 
                 resolve();
             } else {
+                console.error(`[Manager] Transcripción FALLIDA (código ${code}) para: ${folderName}`);
                 reject(new Error(`Process exited with code ${code}`));
             }
         });
