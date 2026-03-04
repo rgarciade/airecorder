@@ -144,50 +144,46 @@ const AiConfigStep = ({
             </div>
           </div>
 
-          {/* Option 2: Cloud AI (Gemini) */}
+          {/* Option 2: Local AI (LM Studio) */}
           <div 
             className={`
               relative bg-white border-2 rounded-2xl p-8 cursor-pointer transition-all flex flex-col h-full min-h-[480px] overflow-hidden group
-              ${aiProvider === 'gemini' 
+              ${aiProvider === 'lmstudio' 
                 ? 'border-blue-500 bg-blue-50/20 shadow-none ring-1 ring-blue-500/20' 
                 : 'border-slate-200 hover:border-blue-400 hover:shadow-lg'}
             `}
-            onClick={() => setAiProvider('gemini')}
+            onClick={() => setAiProvider('lmstudio')}
           >
             <div className="flex justify-between items-start mb-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl">
+                <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center text-2xl">
                   <FaServer />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 leading-tight">Google Gemini (Cloud)</h3>
-                  <p className="text-slate-500 text-sm">Managed processing</p>
+                  <h3 className="text-xl font-bold text-slate-900 leading-tight">LM Studio (Local)</h3>
+                  <p className="text-slate-500 text-sm">Self-hosted processing</p>
                 </div>
               </div>
               <div className={`
                 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all
-                ${aiProvider === 'gemini' ? 'border-blue-500 bg-blue-500' : 'border-slate-300'}
+                ${aiProvider === 'lmstudio' ? 'border-blue-500 bg-blue-500' : 'border-slate-300'}
               `}>
-                <div className={`w-2.5 h-2.5 rounded-full bg-white transition-transform ${aiProvider === 'gemini' ? 'scale-100' : 'scale-0'}`}></div>
+                <div className={`w-2.5 h-2.5 rounded-full bg-white transition-transform ${aiProvider === 'lmstudio' ? 'scale-100' : 'scale-0'}`}></div>
               </div>
             </div>
 
             <p className="text-slate-600 mb-6 leading-relaxed">
-              Perfect for getting started immediately. We handle the heavy lifting using Google's powerful Gemini models.
+              Run GGUF models via LM Studio's local server. Provides a simple GUI for downloading and managing models.
             </p>
 
             <ul className="flex flex-col gap-3 mb-8">
               <li className="flex items-center gap-3 text-slate-600 text-sm">
                 <FaCheckCircle className="text-blue-500 text-lg flex-shrink-0" />
-                <span>Zero configuration required</span>
+                <span>100% Private & Offline</span>
               </li>
               <li className="flex items-center gap-3 text-slate-600 text-sm">
                 <FaCheckCircle className="text-blue-500 text-lg flex-shrink-0" />
-                <span>Highest transcription accuracy</span>
-              </li>
-              <li className="flex items-center gap-3 text-slate-600 text-sm">
-                <FaCheckCircle className="text-blue-500 text-lg flex-shrink-0" />
-                <span>Access from any device</span>
+                <span>OpenAI API compatible</span>
               </li>
             </ul>
 
@@ -195,21 +191,17 @@ const AiConfigStep = ({
               className="mt-auto pt-6 border-t border-slate-100" 
               onClick={(e) => e.stopPropagation()}
             >
-               <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">Gemini API Key</label>
-               <input 
-                  type="password" 
+                <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">LM Studio Server URL</label>
+                <input 
+                  type="text" 
                   className="w-full p-2.5 border border-slate-300 rounded-lg text-sm font-mono bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={geminiKey}
-                  onChange={(e) => setGeminiKey(e.target.value)}
-                  placeholder="Paste your API key here"
+                  value={aiProvider === 'lmstudio' ? 'http://localhost:1234/v1' : 'http://localhost:1234/v1'}
+                  disabled
+                  title="Configurable in settings later"
                 />
-            </div>
-
-            <div className="mt-6 bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs text-slate-500">
-              <div className="flex items-center gap-2 font-bold text-slate-700 mb-1">
-                <FaCheckCircle className="text-emerald-500" /> Data Privacy
-              </div>
-              Your data is encrypted at rest and in transit. We do not use your data to train our models.
+                <p className="text-xs text-slate-400 mt-2">
+                  * Default URL. You can change this in the app settings later.
+                </p>
             </div>
           </div>
 

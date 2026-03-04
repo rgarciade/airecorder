@@ -8,7 +8,7 @@ import { checkLMStudioAvailability } from '../../services/ai/lmStudioProvider';
 import { 
   MdMic, MdClose, MdCloud, MdAutoAwesome, MdComputer, MdTerminal, 
   MdFolder, MdVisibility, MdVisibilityOff, MdRefresh, MdInfo, MdCheck,
-  MdTextFormat, MdTranslate, MdNotifications, MdSmartToy, MdSettings
+  MdTextFormat, MdTranslate, MdNotifications, MdSmartToy, MdSettings, MdSecurity
 } from 'react-icons/md';
 import styles from './Settings.module.css';
 
@@ -43,6 +43,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
   const [cpuThreads, setCpuThreads] = useState(4);
   const [maxCpuThreads, setMaxCpuThreads] = useState(4);
   const [microphones, setMicrophones] = useState([]);
+  const [micStatus, setMicStatus] = useState('unknown');
   const [isLoading, setIsLoading] = useState(true);
   
   // Storage
@@ -127,6 +128,14 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
       // Load microphones
       const systemMicrophones = await getSystemMicrophones();
       setMicrophones(systemMicrophones);
+      
+      // Load mic permission status
+      if (window.electronAPI?.getMicrophonePermission) {
+        const status = await window.electronAPI.getMicrophonePermission();
+        setMicStatus(status);
+      } else {
+        setMicStatus('granted');
+      }
       
       // Load settings
       const savedSettings = await getSettings();
@@ -377,6 +386,28 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
     } else {
       setOllamaModelSupportsStreaming(false);
       setIsCheckingModel(false);
+    }
+  };
+
+  const handleRequestMicPermission = async () => {
+    if (micStatus === 'denied') {
+      if (window.electronAPI?.openMicrophonePreferences) {
+        await window.electronAPI.openMicrophonePreferences();
+      }
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop());
+      setMicStatus('granted');
+      
+      // Recargar micrófonos ahora que hay permisos
+      const systemMicrophones = await getSystemMicrophones();
+      setMicrophones(systemMicrophones);
+    } catch (error) {
+      console.error("Microphone permission denied:", error);
+      setMicStatus('denied');
     }
   };
 
@@ -1243,6 +1274,50 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       <MdTerminal size={18} />
                       Abrir DevTools
                     </button>
+                  </div>
+                </div>
+              </section>
+
+              {/* --- Permissions Section --- */}
+              <section className={styles.section}>
+                <div className={styles.sectionHeader}>
+                  <div className={styles.sectionTitleGroup}>
+                    <MdSecurity className={styles.sectionIcon} size={20} />
+                    <h3 className={styles.sectionTitle}>Permisos y Privacidad</h3>
+                  </div>
+                </div>
+                <div className={styles.card}>
+                  <div className={styles.cardHeader}>
+                    <div className={styles.providerInfo}>
+                      <div className={`${styles.providerIcon}`} style={{backgroundColor: '#fce7f3', color: '#d97706'}}>
+                        <MdMic size={24} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className={styles.providerName} style={{margin: 0}}>Acceso al Micrófono</h4>
+                          {micStatus === 'granted' && (
+                            <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded-full">Concedido</span>
+                          )}
+                          {micStatus === 'denied' && (
+                            <span className="bg-red-100 text-red-800 text-xs font-bold px-2 py-0.5 rounded-full">Denegado</span>
+                          )}
+                        </div>
+                        <p className={styles.providerDesc}>Necesario para grabar tu voz durante las reuniones.</p>
+                      </div>
+                    </div>
+                    {micStatus !== 'granted' && (
+                      <button
+                        className={styles.checkBtn}
+                        onClick={handleRequestMicPermission}
+                        style={{
+                          backgroundColor: micStatus === 'denied' ? '#f1f5f9' : '#10b981',
+                          color: micStatus === 'denied' ? '#475569' : '#ffffff',
+                          border: micStatus === 'denied' ? '1px solid #cbd5e1' : 'none'
+                        }}
+                      >
+                        {micStatus === 'denied' ? 'Abrir Ajustes' : 'Otorgar Permiso'}
+                      </button>
+                    )}
                   </div>
                 </div>
               </section>
