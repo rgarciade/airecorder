@@ -133,6 +133,7 @@ function createWindow() {
   notificationService.setMainWindow(mainWindow);
 
   // Handler IPC para abrir/cerrar DevTools desde Settings
+  ipcMain.removeHandler('toggle-devtools');
   ipcMain.handle('toggle-devtools', () => {
     if (mainWindow.webContents.isDevToolsOpened()) {
       mainWindow.webContents.closeDevTools();
