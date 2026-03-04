@@ -1,17 +1,28 @@
 #!/usr/bin/env python3
-print("🚀 Inicializando entorno Python...", flush=True)
-"""
-Audio Sync Analyzer - Herramienta para analizar y sincronizar dos archivos de audio grabados simultáneamente
-Diseñado para trabajar con archivos generados por la aplicación de grabación dual.
-
-Requisitos:
-pip install pydub librosa soundfile numpy matplotlib openai-whisper
-
-Uso:
-python audio_sync_analyzer.py --basename prueba1
-"""
+import multiprocessing
+multiprocessing.freeze_support()
 
 import os
+import sys
+import tempfile
+
+# Configurar matplotlib ANTES de importarlo
+os.environ['MPLCONFIGDIR'] = os.path.join(tempfile.gettempdir(), 'matplotlib_cache')
+import matplotlib
+matplotlib.use('Agg')  # Backend sin GUI, sin intentar abrir ventanas
+
+# Configurar ffmpeg para pydub ANTES de importar pydub
+# (se recibe por env var FFMPEG_PATH, que Electron pasa al spawn)
+_ffmpeg_env = os.environ.get('FFMPEG_PATH', '')
+if _ffmpeg_env and os.path.isfile(_ffmpeg_env):
+    os.environ['PATH'] = os.path.dirname(_ffmpeg_env) + os.pathsep + os.environ.get('PATH', '')
+
+# Suprimir warnings cosméticos de pydub (no encuentra ffmpeg en PATH al importar)
+import warnings
+warnings.filterwarnings('ignore', category=RuntimeWarning, module='pydub')
+
+print("INIT:start", flush=True)
+
 import numpy as np
 import librosa
 import matplotlib.pyplot as plt
@@ -22,6 +33,8 @@ from faster_whisper import WhisperModel
 import json
 from datetime import timedelta
 import argparse
+
+print("INIT:imports_ok", flush=True)
 
 BASE_DIR = "/Users/raul.garciad/Desktop/recorder/grabaciones"
 
@@ -251,6 +264,20 @@ class AudioSyncAnalyzer:
         
         return chunks_info
     
+    def _transcribe_with_fallback(self, audio_file, **kwargs):
+        """Llama a whisper_model.transcribe con los kwargs dados.
+        Si falla por un modelo ONNX/VAD no encontrado, reintenta sin vad_filter."""
+        try:
+            return self.whisper_model.transcribe(audio_file, **kwargs)
+        except Exception as e:
+            err_str = str(e).lower()
+            if 'silero_vad' in err_str or 'onnx' in err_str or 'no_such_file' in err_str or 'no such file' in err_str:
+                print(f"⚠️  VAD no disponible ({type(e).__name__}), reintentando sin filtro de voz...", flush=True)
+                kwargs.pop('vad_filter', None)
+                kwargs.pop('vad_parameters', None)
+                return self.whisper_model.transcribe(audio_file, **kwargs)
+            raise
+
     def transcribe_audio_files(self, lag_seconds=0, mic_exists=True):
         """Transcribir ambos archivos de audio usando Whisper con parámetros avanzados para evitar repeticiones y falsos positivos por música"""
         print("\n🎙️ TRANSCRIBIENDO ARCHIVOS DE AUDIO")
@@ -289,18 +316,17 @@ class AudioSyncAnalyzer:
             mic_result = None
             if mic_exists and temp_mic_wav and self.whisper_model:
                 print("🎤 Transcribiendo audio de micrófono...", flush=True)
-                segments, info = self.whisper_model.transcribe(
+                segments, info = self._transcribe_with_fallback(
                     temp_mic_wav,
                     word_timestamps=True,
                     language=TRANSCRIPTION_LANGUAGE,
                     no_speech_threshold=0.7,  # Más estricto para ignorar música
                     condition_on_previous_text=False,  # Evita repeticiones
-                    suppress_tokens=[-1],  # Suprime tokens no hablados (como música)
                     beam_size=dynamic_beam_size,
                     vad_filter=True,
                     vad_parameters=dict(min_silence_duration_ms=500)
                 )
-                
+
                 mic_segments = []
                 for segment in segments:
                     mic_segments.append({'start': segment.start, 'end': segment.end, 'text': segment.text})
@@ -308,24 +334,23 @@ class AudioSyncAnalyzer:
                     if info.duration > 0:
                         current_progress = int(10 + (segment.end / info.duration) * 45)
                         print(f"PROGRESS:{min(55, current_progress)}", flush=True)
-                
+
                 mic_result = {
                     'text': ' '.join(s['text'] for s in mic_segments),
                     'segments': mic_segments
                 }
             print("PROGRESS:55", flush=True)
-            
+
             # Transcribir sistema
             sys_result = None
             if temp_sys_wav and self.whisper_model:
                 print("🔊 Transcribiendo audio de sistema...", flush=True)
-                segments, info = self.whisper_model.transcribe(
+                segments, info = self._transcribe_with_fallback(
                     temp_sys_wav,
                     word_timestamps=True,
                     language=TRANSCRIPTION_LANGUAGE,
                     no_speech_threshold=0.7,
                     condition_on_previous_text=False,
-                    suppress_tokens=[-1],
                     beam_size=dynamic_beam_size,
                     vad_filter=True,
                     vad_parameters=dict(min_silence_duration_ms=500)
@@ -360,7 +385,11 @@ class AudioSyncAnalyzer:
             return mic_result, sys_result
             
         except Exception as e:
-            print(f"❌ Error en transcripción: {e}")
+            import traceback
+            err_msg = traceback.format_exc()
+            sys.stderr.write(f"TRANSCRIPTION_ERROR: {e}\n{err_msg}\n")
+            sys.stderr.flush()
+            print(f"❌ Error en transcripción: {e}", flush=True)
             return None, None
     
     def merge_close_segments(self, segments, min_gap_seconds=1.2):
@@ -661,12 +690,27 @@ def parse_args():
     parser.add_argument('--language', type=str, default="es", help='Idioma para la transcripción (ej: es, en)')
     parser.add_argument('--base_dir', type=str, help='Directorio base de grabaciones')
     parser.add_argument('--threads', type=int, default=4, help='Hilos de CPU a utilizar')
+    parser.add_argument('--ffmpeg', type=str, default=None, help='Ruta al binario de ffmpeg (para modo bundled)')
+    parser.add_argument('--ffprobe', type=str, default=None, help='Ruta al binario de ffprobe (para modo bundled)')
     return parser.parse_args()
 
 def main():
     """Función principal"""
     args = parse_args()
-    
+
+    # Configurar ffmpeg y ffprobe bundled si se proporcionan las rutas
+    if args.ffmpeg and os.path.isfile(args.ffmpeg):
+        from pydub import AudioSegment
+        AudioSegment.converter = args.ffmpeg
+        AudioSegment.ffmpeg = args.ffmpeg
+        os.environ['PATH'] = os.path.dirname(args.ffmpeg) + os.pathsep + os.environ.get('PATH', '')
+        print(f"ffmpeg configurado: {args.ffmpeg}", flush=True)
+
+    if args.ffprobe and os.path.isfile(args.ffprobe):
+        from pydub import AudioSegment
+        AudioSegment.ffprobe = args.ffprobe
+        print(f"ffprobe configurado: {args.ffprobe}", flush=True)
+
     # Usar el directorio base proporcionado o el default
     base_dir = args.base_dir if args.base_dir else BASE_DIR
     
@@ -701,4 +745,12 @@ def main():
         print("\n❌ Error durante el análisis")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        import traceback
+        # Escribir a stderr para que aparezca en rojo en la consola de Electron
+        sys.stderr.write(f"FATAL_ERROR: {e}\n")
+        sys.stderr.write(traceback.format_exc())
+        sys.stderr.flush()
+        sys.exit(1)
