@@ -27,4 +27,6 @@ dataFileDatabase
 
 .agents/
 opencode.json
+python-dist/
+python/build/
 Auto SOX - Generador de IPES - Sesión Trabajo.docx
