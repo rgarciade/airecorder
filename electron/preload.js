@@ -153,4 +153,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Importar transcripción de Teams (.docx)
   importTeamsTranscript: () => ipcRenderer.invoke('import-teams-transcript'),
+
+  // Importar archivo de audio externo
+  importAudioFile: () => ipcRenderer.invoke('import-audio-file'),
 }); 
