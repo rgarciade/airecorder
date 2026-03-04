@@ -87,7 +87,11 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
 
   // LM Studio
   const [lmStudioModel, setLmStudioModel] = useState('');
+  const [lmStudioRagModel, setLmStudioRagModel] = useState('');
+  const [lmStudioEmbeddingModel, setLmStudioEmbeddingModel] = useState('');
   const [lmStudioModels, setLmStudioModels] = useState([]);
+  const [lmStudioChatModels, setLmStudioChatModels] = useState([]);
+  const [lmStudioEmbeddingModels, setLmStudioEmbeddingModels] = useState([]);
   const [lmStudioHost, setLmStudioHost] = useState('http://localhost:1234/v1');
   const [lmStudioAvailable, setLmStudioAvailable] = useState(false);
 
@@ -163,6 +167,8 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         // LM Studio
         setLmStudioHost(savedSettings.lmStudioHost || 'http://localhost:1234/v1');
         setLmStudioModel(savedSettings.lmStudioModel || '');
+        setLmStudioRagModel(savedSettings.lmStudioRagModel || '');
+        setLmStudioEmbeddingModel(savedSettings.lmStudioEmbeddingModel || '');
         
         setAiProvider(savedSettings.aiProvider || 'ollama');
         setOllamaModel(savedSettings.ollamaModel || '');
@@ -182,8 +188,12 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         savedSettings?.ollamaEmbeddingModel
       );
       
-      // Check LM Studio
-      checkLMStudioConnection(savedSettings?.lmStudioHost || lmStudioHost);
+      // Check LM Studio (pasar modelos guardados)
+      checkLMStudioConnection(
+        savedSettings?.lmStudioHost || lmStudioHost,
+        savedSettings?.lmStudioModel,
+        savedSettings?.lmStudioEmbeddingModel
+      );
       
       // Load Gemini models if API key exists
       if (savedSettings?.geminiFreeApiKey) {
@@ -251,7 +261,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
     }
   };
 
-  const checkLMStudioConnection = async (hostToCheck) => {
+  const checkLMStudioConnection = async (hostToCheck, savedChatModel = null, savedEmbeddingModel = null) => {
     const host = hostToCheck || lmStudioHost;
     const isAvailable = await checkLMStudioAvailability(host);
     setLmStudioAvailable(isAvailable);
@@ -259,14 +269,39 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
       try {
         const models = await getLMStudioModels(host);
         setLmStudioModels(models);
-        if (!lmStudioModel && models.length > 0) {
-          setLmStudioModel(models[0].name);
+
+        // Filtrar modelos de CHAT (sin 'embed' en el nombre)
+        const chatModels = models.filter(m => !m.name.toLowerCase().includes('embed'));
+        const chatModelsToUse = chatModels.length > 0 ? chatModels : models;
+        setLmStudioChatModels(chatModelsToUse);
+
+        // Filtrar modelos de EMBEDDINGS (con 'embed' en el nombre)
+        const embeddingModels = models.filter(m => m.name.toLowerCase().includes('embed'));
+        const embeddingModelsToUse = embeddingModels.length > 0 ? embeddingModels : models;
+        setLmStudioEmbeddingModels(embeddingModelsToUse);
+
+        // Auto-seleccionar modelo de chat si no hay uno válido
+        const currentChatModel = savedChatModel || lmStudioModel;
+        const isValidChatModel = chatModelsToUse.some(m => m.name === currentChatModel);
+        if ((!currentChatModel || !isValidChatModel) && chatModelsToUse.length > 0) {
+          setLmStudioModel(chatModelsToUse[0].name);
+        }
+
+        // Auto-seleccionar modelo de embeddings si no hay uno válido
+        const currentEmbeddingModel = savedEmbeddingModel || lmStudioEmbeddingModel;
+        const isValidEmbeddingModel = embeddingModelsToUse.some(m => m.name === currentEmbeddingModel);
+        if (currentEmbeddingModel && isValidEmbeddingModel) {
+          setLmStudioEmbeddingModel(currentEmbeddingModel);
+        } else if (embeddingModelsToUse.length > 0) {
+          setLmStudioEmbeddingModel(embeddingModelsToUse[0].name);
         }
       } catch (err) {
         console.error("Error fetching LM Studio models", err);
       }
     } else {
       setLmStudioModels([]);
+      setLmStudioChatModels([]);
+      setLmStudioEmbeddingModels([]);
     }
   };
 
@@ -373,6 +408,8 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         // LM Studio
         lmStudioHost: lmStudioHost,
         lmStudioModel: lmStudioModel,
+        lmStudioRagModel: lmStudioRagModel,
+        lmStudioEmbeddingModel: lmStudioEmbeddingModel,
         // Ollama
         aiProvider: aiProvider,
         ollamaModel: ollamaModel,
@@ -645,7 +682,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Modelo Cargado</label>
+                    <label className={styles.label}>Modelo</label>
                     <select
                       className={styles.input}
                       value={lmStudioModel}
@@ -653,7 +690,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       disabled={aiProvider !== 'lmstudio' || !lmStudioAvailable}
                     >
                       <option value="" disabled>Selecciona un modelo</option>
-                      {lmStudioModels.map(model => (
+                      {(lmStudioChatModels.length > 0 ? lmStudioChatModels : lmStudioModels).map(model => (
                         <option key={model.name} value={model.name}>{model.name}</option>
                       ))}
                     </select>
@@ -662,6 +699,42 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         • No se encontraron modelos. Asegúrate de tener uno cargado en LM Studio.
                       </p>
                     )}
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Modelo de Chat para RAG (opcional)</label>
+                    <select
+                      className={styles.input}
+                      value={lmStudioRagModel}
+                      onChange={(e) => setLmStudioRagModel(e.target.value)}
+                      disabled={aiProvider !== 'lmstudio' || !lmStudioAvailable}
+                    >
+                      <option value="">Usar modelo principal</option>
+                      {(lmStudioChatModels.length > 0 ? lmStudioChatModels : lmStudioModels).map(model => (
+                        <option key={model.name} value={model.name}>{model.name}</option>
+                      ))}
+                    </select>
+                    <p className={styles.helpText}>
+                      Modelo específico para responder consultas RAG. Dejar vacío para usar el modelo principal.
+                    </p>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Modelo de Embeddings (LM Studio)</label>
+                    <select
+                      className={styles.input}
+                      value={lmStudioEmbeddingModel}
+                      onChange={(e) => setLmStudioEmbeddingModel(e.target.value)}
+                      disabled={aiProvider !== 'lmstudio' || !lmStudioAvailable}
+                    >
+                      {lmStudioEmbeddingModels.length === 0 && <option value="">Sin modelos disponibles</option>}
+                      {lmStudioEmbeddingModels.map(model => (
+                        <option key={model.name} value={model.name}>{model.name}</option>
+                      ))}
+                    </select>
+                    <p className={styles.helpText}>
+                      Modelo usado para indexar y buscar fragmentos. Debe ser un modelo de embeddings cargado en LM Studio.
+                    </p>
                   </div>
                 </div>
               </section>

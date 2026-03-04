@@ -36,10 +36,15 @@ export async function callProvider(prompt, options = {}) {
     }
 
     case 'lmstudio': {
-      const response = await sendToLMStudio(prompt);
+      const model = options.model || options.ragModel || settings.lmStudioModel;
+      if (!model) {
+        throw new Error('No se ha seleccionado un modelo en LM Studio.');
+      }
+      const response = await sendToLMStudio(prompt, model);
       return {
         text: response || 'Sin respuesta',
-        provider: 'lmstudio'
+        provider: 'lmstudio',
+        model: model
       };
     }
 
@@ -200,11 +205,16 @@ export async function callProviderStreaming(prompt, onChunk, options = {}) {
     }
 
     case 'lmstudio': {
-      console.log('[callProviderStreaming] Iniciando streaming con LM Studio');
-      const fullResponse = await sendToLMStudioStreaming(prompt, onChunk);
+      const model = options.model || options.ragModel || settings.lmStudioModel;
+      if (!model) {
+        throw new Error('No se ha seleccionado un modelo en LM Studio.');
+      }
+      console.log(`[callProviderStreaming] Iniciando streaming con LM Studio modelo: ${model}`);
+      const fullResponse = await sendToLMStudioStreaming(prompt, onChunk, model);
       return {
         text: fullResponse || 'Sin respuesta',
         provider: 'lmstudio',
+        model: model,
         streaming: true
       };
     }

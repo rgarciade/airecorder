@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+html[data-font-size="small"] { font-size: 14px; }
+html[data-font-size="medium"] { font-size: 16px; }
+html[data-font-size="large"] { font-size: 18px; }
+html[data-font-size="xlarge"] { font-size: 20px; }
+
 :root {
   font-family: "Plus Jakarta Sans", "Noto Sans", sans-serif;
   line-height: 1.5;
