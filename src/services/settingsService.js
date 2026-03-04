@@ -58,6 +58,8 @@ export const getSettings = async () => {
       ollamaModelSupportsStreaming: false,
       // LM Studio
       lmStudioModel: '',
+      lmStudioRagModel: '', // Modelo de CHAT específico para RAG
+      lmStudioEmbeddingModel: '', // Modelo de EMBEDDINGS para RAG
       lmStudioHost: 'http://localhost:1234/v1',
       aiProvider: 'ollama' // Cambiado a ollama por defecto según petición
     };

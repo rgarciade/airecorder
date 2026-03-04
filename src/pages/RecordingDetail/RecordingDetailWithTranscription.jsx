@@ -81,7 +81,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [aiProvider, setAiProvider] = useState('geminifree');
   const [ollamaModels, setOllamaModels] = useState([]);
   const [selectedOllamaModel, setSelectedOllamaModel] = useState('');
-  const [ollamaRagModel, setOllamaRagModel] = useState(''); // Modelo específico para RAG
+  const [ollamaRagModel, setOllamaRagModel] = useState(''); // Modelo específico para RAG (Ollama)
+  const [lmStudioRagModel, setLmStudioRagModel] = useState(''); // Modelo específico para RAG (LM Studio)
   const [supportsStreaming, setSupportsStreaming] = useState(true);
   const [contextInfo, setContextInfo] = useState(null); // { mode: 'rag'|'full', chunksUsed, estimatedTokens }
   const [ragIndexed, setRagIndexed] = useState(null); // null=checking, false=indexando, true=listo, 'skipped'=transcripción corta
@@ -193,9 +194,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       if (settings.ollamaModel) {
         setSelectedOllamaModel(settings.ollamaModel);
       }
-      // Cargar modelo RAG específico si existe
+      // Cargar modelos RAG específicos si existen
       if (settings.ollamaRagModel) {
         setOllamaRagModel(settings.ollamaRagModel);
+      }
+      if (settings.lmStudioRagModel) {
+        setLmStudioRagModel(settings.lmStudioRagModel);
       }
       // Guardar modelo de settings según proveedor
       const modelByProvider = {
@@ -405,11 +409,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         });
 
         // Opciones para RAG: ragModel (settings) tiene prioridad; si no hay, usar sessionModel
-        const ragOptions = ollamaRagModel
-          ? { ragModel: ollamaRagModel }
+        const activeRagModel = aiProvider === 'lmstudio' ? lmStudioRagModel : ollamaRagModel;
+        const ragOptions = activeRagModel
+          ? { ragModel: activeRagModel }
           : { model: sessionModel || undefined };
         console.log('🤖 [RAG] Configuración:', {
-          ollamaRagModel: ollamaRagModel || 'no configurado',
+          activeRagModel: activeRagModel || 'no configurado',
           sessionModel: sessionModel || 'settings',
           provider: aiProvider,
           options: ragOptions

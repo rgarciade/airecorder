@@ -29,22 +29,39 @@ function loadSettings() {
 }
 
 /**
- * Obtiene el modelo de embeddings configurado
+ * Obtiene el modelo de embeddings configurado según el proveedor activo
  */
 function getEmbeddingModel() {
   const settings = loadSettings();
+  if (settings.aiProvider === 'lmstudio' && settings.lmStudioEmbeddingModel) {
+    return settings.lmStudioEmbeddingModel;
+  }
   return settings.ollamaEmbeddingModel || DEFAULT_EMBEDDING_MODEL_FALLBACK;
 }
 
 /**
  * Detecta qué provider de embeddings está disponible
- * Prioridad: Ollama > LM Studio
+ * Prioridad: proveedor activo en settings > fallback al otro
  * @returns {{ provider: string, baseUrl: string } | null}
  */
 async function detectEmbeddingProvider() {
   const settings = loadSettings();
+  const activeProvider = settings.aiProvider;
 
-  // Intentar Ollama primero
+  // Si el proveedor activo es lmstudio, intentar LM Studio primero
+  if (activeProvider === 'lmstudio') {
+    const lmStudioUrl = settings.lmStudioHost || DEFAULT_LMSTUDIO_URL;
+    try {
+      const response = await fetch(`${lmStudioUrl}/models`, { signal: AbortSignal.timeout(3000) });
+      if (response.ok) {
+        return { provider: 'lmstudio', baseUrl: lmStudioUrl };
+      }
+    } catch {
+      // LM Studio no disponible
+    }
+  }
+
+  // Intentar Ollama
   const ollamaUrl = settings.ollamaHost || DEFAULT_OLLAMA_URL;
   try {
     const response = await fetch(`${ollamaUrl}/api/tags`, { signal: AbortSignal.timeout(3000) });
@@ -55,15 +72,17 @@ async function detectEmbeddingProvider() {
     // Ollama no disponible
   }
 
-  // Intentar LM Studio
-  const lmStudioUrl = settings.lmStudioHost || DEFAULT_LMSTUDIO_URL;
-  try {
-    const response = await fetch(`${lmStudioUrl}/models`, { signal: AbortSignal.timeout(3000) });
-    if (response.ok) {
-      return { provider: 'lmstudio', baseUrl: lmStudioUrl };
+  // Intentar LM Studio como fallback
+  if (activeProvider !== 'lmstudio') {
+    const lmStudioUrl = settings.lmStudioHost || DEFAULT_LMSTUDIO_URL;
+    try {
+      const response = await fetch(`${lmStudioUrl}/models`, { signal: AbortSignal.timeout(3000) });
+      if (response.ok) {
+        return { provider: 'lmstudio', baseUrl: lmStudioUrl };
+      }
+    } catch {
+      // LM Studio no disponible
     }
-  } catch {
-    // LM Studio no disponible
   }
 
   return null;

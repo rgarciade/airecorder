@@ -45,10 +45,10 @@ export async function checkLMStudioAvailability(baseUrl = null) {
 /**
  * Envía una petición a LM Studio (modo normal)
  */
-export async function sendToLMStudio(textContent) {
+export async function sendToLMStudio(textContent, modelOverride = null) {
   const settings = await getSettings();
   const url = settings.lmStudioHost || 'http://localhost:1234/v1';
-  const model = settings.lmStudioModel;
+  const model = modelOverride || settings.lmStudioModel;
 
   if (!model) throw new Error('No hay modelo cargado o seleccionado en LM Studio');
 
@@ -74,10 +74,10 @@ export async function sendToLMStudio(textContent) {
 /**
  * Envía una petición a LM Studio (modo streaming)
  */
-export async function sendToLMStudioStreaming(textContent, onChunk) {
+export async function sendToLMStudioStreaming(textContent, onChunk, modelOverride = null) {
   const settings = await getSettings();
   const url = settings.lmStudioHost || 'http://localhost:1234/v1';
-  const model = settings.lmStudioModel;
+  const model = modelOverride || settings.lmStudioModel;
 
   if (!model) throw new Error('No hay modelo cargado o seleccionado en LM Studio');
 

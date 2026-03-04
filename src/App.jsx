@@ -53,6 +53,14 @@ export default function App() {
     // No cleanup for root app listener
   }, []);
 
+  useEffect(() => {
+    if (appSettings?.fontSize) {
+      document.documentElement.setAttribute('data-font-size', appSettings.fontSize);
+    } else {
+      document.documentElement.setAttribute('data-font-size', 'medium');
+    }
+  }, [appSettings?.fontSize]);
+
   const loadQueueData = async () => {
     try {
       if (window.electronAPI?.getTranscriptionQueue) {
