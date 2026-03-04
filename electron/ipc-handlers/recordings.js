@@ -27,7 +27,8 @@ module.exports.registerRecordingsHandlers = () => {
           if (stats.isDirectory()) {
             const folderContents = await fs.promises.readdir(itemPath);
             const audioFiles = folderContents.filter(file => 
-              file.endsWith('.webm') || file.endsWith('.wav') || file.endsWith('.mp3')
+              file.endsWith('.webm') || file.endsWith('.wav') || file.endsWith('.mp3') || 
+              file.endsWith('.m4a') || file.endsWith('.ogg') || file.endsWith('.aac') || file.endsWith('.flac')
             );
             
             // Incluir la carpeta si tiene audio O si tiene transcripción (ej. importación de Teams)

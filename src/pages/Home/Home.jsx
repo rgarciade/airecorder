@@ -168,6 +168,27 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
     }
   };
 
+  const handleImportAudio = async () => {
+    try {
+      const result = await window.electronAPI.importAudioFile();
+      if (result?.canceled) return;
+      if (result?.success && result?.recording) {
+        const list = await loadRecordings();
+        if (onRecordingSelect) {
+          const rec = list.find(r => r.id === result.recording.relative_path || r.dbId === result.recording.id);
+          if (rec) {
+            onRecordingSelect(rec);
+          }
+        }
+      } else {
+        alert('Error importando audio: ' + (result?.error || 'Error desconocido'));
+      }
+    } catch (err) {
+      console.error('Error importando archivo de audio:', err);
+      alert('Error: ' + err.message);
+    }
+  };
+
   const handleStart = async () => {
     if (isRecording) return;
 
@@ -270,6 +291,7 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
       <NewSessionCard
         onStart={handleStart}
         onImport={handleImportTeams}
+        onImportAudio={handleImportAudio}
         microphoneLabel={currentMicLabel}
         languageLabel={currentLangLabel}
         onOpenSettings={() => onSettings('general')}
