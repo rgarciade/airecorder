@@ -31,6 +31,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Audio loopback (electron-audio-loopback) - captura audio del sistema sin permiso de Screen Recording
   enableLoopbackAudio: () => ipcRenderer.invoke('enable-loopback-audio'),
   disableLoopbackAudio: () => ipcRenderer.invoke('disable-loopback-audio'),
+
+  // DevTools (abrir/cerrar desde Settings)
+  toggleDevTools: () => ipcRenderer.invoke('toggle-devtools'),
   
   // Nueva función para guardar audio del sistema
   saveSystemAudio: (audioData, fileName) => ipcRenderer.invoke('save-system-audio', audioData, fileName),
