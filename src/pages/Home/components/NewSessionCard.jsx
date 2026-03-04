@@ -1,7 +1,7 @@
 import React from 'react';
 import styles from './NewSessionCard.module.css';
 
-export default function NewSessionCard({ onStart, microphoneLabel, languageLabel, onOpenSettings, onImport }) {
+export default function NewSessionCard({ onStart, microphoneLabel, languageLabel, onOpenSettings, onImport, onImportAudio }) {
   return (
     <div className={styles.card}>
       <div className={styles.content}>
@@ -33,7 +33,15 @@ export default function NewSessionCard({ onStart, microphoneLabel, languageLabel
               <path d="M9 8H3a1 1 0 0 0-1 1v5a4 4 0 0 0 8 0V9a1 1 0 0 0-1-1z"/>
               <circle cx="6" cy="4.5" r="2.5"/>
             </svg>
-            Importar de Teams
+            Teams
+          </button>
+          <button className={styles.importButton} onClick={onImportAudio} title="Importar archivo de audio generado externamente (ej. móvil)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            Audio
           </button>
         </div>
       </div>
