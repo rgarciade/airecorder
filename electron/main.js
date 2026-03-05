@@ -1,5 +1,8 @@
 /* global require, process, __dirname */
 
+// Cargar variables de entorno del archivo .env en desarrollo
+require('dotenv').config();
+
 // ========================================
 // 1. IMPORTACIONES GLOBALES
 // ========================================
@@ -7,6 +10,10 @@ const { app, BrowserWindow, ipcMain, systemPreferences, session, protocol } = re
 const { initMain } = require('electron-audio-loopback');
 const path = require('path');
 const fs = require('fs');
+const sentryService = require('./services/sentryService');
+
+// Inicializar servicio de telemetría y errores
+sentryService.init();
 
 // Servicios de arranque
 const dbService = require('./database/dbService');
@@ -30,7 +37,7 @@ const { registerIntegrationsHandlers } = require('./ipc-handlers/integrations');
 const { registerDashboardHandlers } = require('./ipc-handlers/dashboard');
 const { registerExportHandlers } = require('./ipc-handlers/export');
 const { registerUpdateHandlers } = require('./ipc-handlers/updates');
-
+const { registerSystemHandlers } = require('./ipc-handlers/system');
 
 // ========================================
 // 1.5 REDIRIGIR LOGS DEL MAIN AL RENDERER (DevTools)
@@ -57,6 +64,10 @@ console.log = (...args) => {
 };
 console.error = (...args) => {
   originalError(...args);
+
+  // Enviar a Sentry a través del nuevo servicio centralizado
+  sentryService.logError(args.map(a => typeof a === 'object' && a instanceof Error ? a.stack || a.message : (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' '));
+
   try {
     const windows = BrowserWindow.getAllWindows();
     if (windows.length > 0 && windows[0].webContents) {
@@ -85,6 +96,7 @@ console.warn = (...args) => {
 // ========================================
 function registerIpcHandlers() {
   console.log('[Main] Registrando módulos de IPC Handlers...');
+  registerSystemHandlers();
   registerSettingsHandlers();
   registerAudioHandlers();
   registerTranscriptionHandlers();
@@ -125,6 +137,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: false, // Requerido para que Sentry pueda hacer require() en el preload
       preload: path.join(__dirname, 'preload.js'),
       allowRunningInsecureContent: true,
       experimentalFeatures: true,
@@ -146,6 +159,9 @@ function createWindow() {
 
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173');
+    if (process.env.ENABLE_DEVTOOLS === 'true' || process.env.VITE_ENABLE_DEVTOOLS === 'true') {
+      mainWindow.webContents.openDevTools();
+    }
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }

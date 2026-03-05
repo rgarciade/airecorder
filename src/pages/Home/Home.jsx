@@ -155,6 +155,13 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
       const result = await window.electronAPI.importTeamsTranscript();
       if (result?.canceled) return;
       if (result?.success && result?.recording) {
+        // Tracking Sentry
+        if (import.meta.env.VITE_SENTRY_DSN) {
+          if (window.electronAPI && window.electronAPI.sentryLogInfo) {
+            window.electronAPI.sentryLogInfo('Nueva grabación guardada con éxito (Importación Teams)');
+          }
+        }
+
         const list = await loadRecordings();
         if (onRecordingSelect) {
           // Buscar el objeto completo por carpeta (relative_path) o ID de BD
@@ -201,6 +208,13 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
     setImportModal(null); // Cerrar modal
     
     try {
+      // Tracking Sentry
+      if (import.meta.env.VITE_SENTRY_DSN) {
+        if (window.electronAPI && window.electronAPI.sentryLogInfo) {
+          window.electronAPI.sentryLogInfo('Nueva grabación guardada con éxito (Importación Audio)');
+        }
+      }
+
       if (importName && importName.trim() !== '') {
         const renameResult = await window.electronAPI.renameRecording(recordingId || recordingPath, importName);
         if (renameResult?.success) {

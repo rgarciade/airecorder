@@ -92,6 +92,13 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
       setRecordingId(nameToSave);
       setDbId(data.dbId);
 
+      // Tracking Sentry
+      if (import.meta.env.VITE_SENTRY_DSN) {
+        if (window.electronAPI && window.electronAPI.sentryLogInfo) {
+          window.electronAPI.sentryLogInfo('Nueva grabación guardada con éxito');
+        }
+      }
+
       setTimeout(() => {
         setShowProcessing(false);
         setProcessingComplete(false);

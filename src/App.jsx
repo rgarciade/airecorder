@@ -9,7 +9,7 @@ import TranscriptionQueue from './pages/TranscriptionQueue/TranscriptionQueue'
 import RecordingOverlay from './components/RecordingOverlay/RecordingOverlay'
 import Sidebar from './components/Sidebar/Sidebar';
 import Onboarding from './pages/Onboarding/Onboarding';
-import { getSettings } from './services/settingsService';
+import { getSettings, updateSettings } from './services/settingsService';
 import styles from './App.module.css'
 import './App.css'
 
@@ -85,7 +85,37 @@ export default function App() {
     try {
       const settings = await getSettings();
       setAppSettings(settings);
+
+      // Tracking: Primer inicio del día
+      if (import.meta.env.VITE_SENTRY_DSN) {
+        const today = new Date().toISOString().split('T')[0];
+        if (settings.lastLoginDate !== today) {
+          if (window.electronAPI && window.electronAPI.sentryLogInfo) {
+            window.electronAPI.sentryLogInfo('Usuario ha entrado en la app (Daily Login)');
+          }
+          // Actualizamos el settings de forma asíncrona pero sin bloquear la carga principal
+          updateSettings({ lastLoginDate: today }).catch(err => console.error(err));
+        }
+      }
       
+      // Tracking: Actualización de versión
+      if (window.electronAPI?.getAppVersion) {
+        const r = await window.electronAPI.getAppVersion();
+        if (r?.success) {
+          const currentVersion = r.version;
+          if (settings.lastVersion && settings.lastVersion !== currentVersion) {
+            if (import.meta.env.VITE_SENTRY_DSN) {
+              if (window.electronAPI && window.electronAPI.sentryLogInfo) {
+                window.electronAPI.sentryLogInfo(`App actualizada: de v${settings.lastVersion} a v${currentVersion}`);
+              }
+            }
+          }
+          if (settings.lastVersion !== currentVersion) {
+            await updateSettings({ lastVersion: currentVersion });
+          }
+        }
+      }
+
       // Check onboarding
       if (settings.isFirstRun) {
         setCurrentView('onboarding');
