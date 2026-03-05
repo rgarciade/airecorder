@@ -2,22 +2,22 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "AIRecorder Dev",
+      "name": "dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173
     },
     {
-      "name": "Frontend Preview",
+      "name": "electron:dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "preview"],
-      "port": 4173
+      "runtimeArgs": ["run", "electron:dev"],
+      "port": null
     },
     {
-      "name": "Landing Page (docs)",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "docs", "-p", "3000"],
-      "port": 3000
+      "name": "build",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "build"],
+      "port": null
     }
   ]
 }

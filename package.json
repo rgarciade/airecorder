@@ -1,7 +1,7 @@
 {
   "name": "airecorder",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "main": "electron/main.js",
   "scripts": {
     "dev": "NODE_ENV=development concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
@@ -10,9 +10,11 @@
     "preview": "vite preview",
     "electron:dev": "NODE_ENV=development electron .",
     "python:build": "bash scripts/build-python.sh",
-    "electron:build": "npm run python:build && vite build && electron-builder --mac",
-    "electron:build:js": "vite build && electron-builder --mac",
-    "electron:build:dir": "npm run python:build && vite build && electron-builder --mac --dir",
+    "obfuscate:electron": "node scripts/obfuscate-electron.js",
+    "clean:obfuscated": "rm -rf electron-obfuscated",
+    "electron:build": "npm run python:build && vite build && npm run obfuscate:electron && electron-builder --mac && npm run clean:obfuscated",
+    "electron:build:js": "vite build && npm run obfuscate:electron && electron-builder --mac && npm run clean:obfuscated",
+    "electron:build:dir": "npm run python:build && vite build && npm run obfuscate:electron && electron-builder --mac --dir && npm run clean:obfuscated",
     "reset:onboarding": "node scripts/reset-onboarding.js",
     "rebuild": "electron-rebuild --arch=arm64"
   },
@@ -24,9 +26,13 @@
     },
     "files": [
       "dist/**/*",
-      "electron/**/*",
+      "electron-obfuscated/**/*",
       "package.json"
     ],
+    "afterPack": "scripts/protect-asar.js",
+    "extraMetadata": {
+      "main": "electron-obfuscated/main.js"
+    },
     "asarUnpack": [
       "node_modules/ffmpeg-static/**/*",
       "node_modules/ffprobe-static/**/*"
@@ -89,6 +95,7 @@
     "@types/react": "^18.2.64",
     "@types/react-dom": "^18.2.21",
     "@vitejs/plugin-react": "^4.2.1",
+    "asarmor": "^3.0.2",
     "autoprefixer": "^10.4.19",
     "concurrently": "^8.2.2",
     "electron": "^31.0.1",
@@ -98,6 +105,7 @@
     "eslint-plugin-react": "^7.34.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
+    "javascript-obfuscator": "^5.3.0",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.1",
     "vite": "^5.1.6",

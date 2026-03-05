@@ -61,5 +61,39 @@ La captura de audio del sistema usa el paquete `electron-audio-loopback` (requie
 El sistema guarda metadatos en la base de datos (ID, duración, estados), pero el contenido pesado (archivos WAV, archivos JSON de los resúmenes de IA, transcripciones txt) reside en el sistema de archivos (Filesystem).
 *   *Importante:* El ID de la grabación (`recordingId`) en la base de datos es numérico. En el disco, las carpetas de las grabaciones usan strings (`relative_path`). La función `getFolderPathFromId()` se utiliza para traducir el ID numérico a la ruta correcta en disco.
 
-## 4. `projectsDatabase.README.md`
+## 4. Sistema de Actualizaciones (`services/updateChecker.js` + `ipc-handlers/updates.js`)
+
+Sistema de notificación de actualizaciones manuales usando GitHub Releases API (la app no está firmada, por lo que no usa `electron-updater`).
+
+### Arquitectura
+- **`services/updateChecker.js`**: Singleton que consulta `https://api.github.com/repos/rgarciade/airecorder/releases/latest` usando `https` nativo. Compara la versión remota (`tag_name`) con `app.getVersion()` usando comparación semántica.
+- **`ipc-handlers/updates.js`**: Expone 3 handlers IPC: `check-for-updates`, `get-app-version`, `open-download-url`.
+
+### Flujo
+1. Al arrancar la app (`initApp()`), se llama a `updateChecker.startPeriodicCheck()`.
+2. Tras 5 segundos, se ejecuta la primera verificación (no silenciosa → muestra `dialog.showMessageBox` si hay actualización).
+3. Cada 4 horas se verifica silenciosamente (solo envía evento `update-available` al renderer).
+4. El usuario puede verificar manualmente desde Settings → General → "Buscar actualizaciones".
+5. Si acepta, se abre el navegador con `shell.openExternal(release.html_url)` para descarga manual.
+
+### Métodos expuestos en `preload.js`
+| Método | Descripción |
+|--------|-------------|
+| `checkForUpdates()` | Verificar manualmente (muestra diálogo nativo) |
+| `getAppVersion()` | Obtener versión instalada |
+| `openDownloadUrl(url)` | Abrir URL de descarga en navegador |
+| `onUpdateAvailable(cb)` | Listener de evento `update-available` |
+| `offUpdateAvailable()` | Eliminar listeners de actualización |
+
+## 5. Protección de Código (Build de producción)
+
+El build de producción aplica 3 capas de protección:
+
+1. **Ofuscación JS** (`scripts/obfuscate-electron.js`): Copia `electron/` → `electron-obfuscated/` y ofusca todos los `.js` con `javascript-obfuscator` (control flow flattening, string array encoding, dead code injection).
+2. **Protección ASAR** (`scripts/protect-asar.js`): Hook `afterPack` de electron-builder que aplica `asarmor` (bloat patch) al `.asar` para dificultar la extracción.
+3. **Minificación frontend**: Vite minifica el código React en producción.
+
+**Nota**: La ofuscación solo se ejecuta en la cadena de build (`npm run electron:build`). En desarrollo (`npm run dev`), se usa el código original sin modificar.
+
+## 6. `projectsDatabase.README.md`
 Existe un archivo adicional en esta carpeta (`projectsDatabase.README.md`) que detalla un motor de base de datos específico en JSON que sirve de legado o apoyo para ciertos datos de proyecto. Revísalo si vas a tocar `projectsDatabase.js`.
