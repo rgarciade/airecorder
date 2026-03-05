@@ -31,4 +31,19 @@ module.exports.registerUpdateHandlers = () => {
       return { success: false, error: error.message };
     }
   });
+
+  // Probar el dialogo de update (solo dev)
+  ipcMain.handle('test-update-dialog', async () => {
+    try {
+      await updateChecker._showUpdateDialog({
+        latestVersion: '9.9.9-beta',
+        currentVersion: updateChecker.getCurrentVersion(),
+        releaseNotes: 'Esta es una versión simulada para probar el diálogo de actualización.\n\n- Nueva funcionalidad X\n- Corrección Y',
+        downloadUrl: 'https://github.com/rgarciade/airecorder/releases/latest'
+      });
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
 };
