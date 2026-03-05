@@ -6,9 +6,10 @@ import { getGeminiAvailableModels } from '../../services/ai/geminiProvider';
 import { getDeepseekAvailableModels, getKimiAvailableModels, getLMStudioModels } from '../../services/ai/providerRouter';
 import { checkLMStudioAvailability } from '../../services/ai/lmStudioProvider';
 import { 
-  MdMic, MdClose, MdCloud, MdAutoAwesome, MdComputer, MdTerminal, 
+  MdMic, MdClose, MdCloud, MdAutoAwesome, MdComputer, MdTerminal,
   MdFolder, MdVisibility, MdVisibilityOff, MdRefresh, MdInfo, MdCheck,
-  MdTextFormat, MdTranslate, MdNotifications, MdSmartToy, MdSettings, MdSecurity
+  MdTextFormat, MdTranslate, MdNotifications, MdSmartToy, MdSettings, MdSecurity,
+  MdSystemUpdate
 } from 'react-icons/md';
 import styles from './Settings.module.css';
 
@@ -104,8 +105,17 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
   const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
   const hasScrolledRef = useRef(false);
 
+  // Actualizaciones
+  const [appVersion, setAppVersion] = useState('');
+  const [updateInfo, setUpdateInfo] = useState(null);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState('');
+
   useEffect(() => {
     loadSettings();
+    window.electronAPI?.getAppVersion?.().then(r => {
+      if (r?.success) setAppVersion(r.version);
+    });
   }, []);
 
   useEffect(() => {
@@ -1318,6 +1328,75 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         {micStatus === 'denied' ? 'Abrir Ajustes' : 'Otorgar Permiso'}
                       </button>
                     )}
+                  </div>
+                </div>
+              </section>
+
+              {/* --- Acerca de / Actualizaciones --- */}
+              <section className={styles.section}>
+                <div className={styles.sectionHeader}>
+                  <div className={styles.sectionTitleGroup}>
+                    <MdSystemUpdate className={styles.sectionIcon} size={20} />
+                    <h3 className={styles.sectionTitle}>Acerca de AIRecorder</h3>
+                  </div>
+                  {appVersion && (
+                    <span className={styles.badge} style={{backgroundColor: '#e0e7ff', color: '#4338ca'}}>
+                      v{appVersion}
+                    </span>
+                  )}
+                </div>
+                <div className={styles.card}>
+                  <div className={styles.cardHeader}>
+                    <div className={styles.providerInfo}>
+                      <div className={`${styles.providerIcon}`} style={{backgroundColor: '#dbeafe', color: '#2563eb'}}>
+                        <MdSystemUpdate size={24} />
+                      </div>
+                      <div>
+                        <h4 className={styles.providerName}>Actualizaciones</h4>
+                        <p className={styles.providerDesc}>
+                          {updateInfo
+                            ? `Nueva versión disponible: v${updateInfo.latestVersion}`
+                            : updateMessage || 'Comprueba si hay una versión más reciente disponible'}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{display: 'flex', gap: '8px'}}>
+                      {updateInfo && (
+                        <button
+                          className={styles.checkBtn}
+                          style={{backgroundColor: '#10b981', color: '#fff', border: 'none'}}
+                          onClick={() => window.electronAPI?.openDownloadUrl?.(updateInfo.downloadUrl)}
+                        >
+                          Descargar
+                        </button>
+                      )}
+                      <button
+                        className={styles.checkBtn}
+                        onClick={async () => {
+                          setCheckingUpdate(true);
+                          setUpdateMessage('');
+                          setUpdateInfo(null);
+                          try {
+                            const result = await window.electronAPI?.checkForUpdates?.();
+                            if (result?.success && result.updateAvailable) {
+                              setUpdateInfo(result);
+                            } else if (result?.success) {
+                              setUpdateMessage('Estás al día');
+                            } else {
+                              setUpdateMessage(result?.error || 'Error al verificar');
+                            }
+                          } catch {
+                            setUpdateMessage('No se pudo conectar');
+                          } finally {
+                            setCheckingUpdate(false);
+                          }
+                        }}
+                        disabled={checkingUpdate}
+                      >
+                        <MdRefresh size={18} className={checkingUpdate ? styles.spinner : ''} />
+                        {checkingUpdate ? 'Verificando...' : 'Buscar actualizaciones'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </section>
