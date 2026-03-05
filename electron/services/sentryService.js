@@ -13,26 +13,29 @@ class SentryService {
 
     if (dsn && (!isDev || enableInDev)) {
       try {
+          debugger
         console.log('[SentryService] Inicializando Sentry en Backend con DSN:', dsn);
         Sentry.init({
           dsn: dsn,
-          environment: 'development',
-          enableLogs: true,
+          environment: isDev ? 'development' : 'production',
         });
         this.isInitialized = true;
       } catch (error) {
+          debugger
         console.error('[SentryService] Error inicializando Sentry:', error);
       }
     } else {
+        debugger
       console.log('[SentryService] Sentry desactivado en entorno actual.');
     }
   }
 
   logInfo(message, context = {}) {
+    debugger
     if (!this.isInitialized) return;
-    
+      debugger
     try {
-      Sentry.logger.info(message, context);
+      Sentry.captureMessage(message, {contexts: context,level: "info" });
       console.log('[SentryService] Log de info enviado a Sentry:', message, context);
     } catch (err) {
       console.error('[SentryService] Error al enviar logInfo:', err);
@@ -42,7 +45,7 @@ class SentryService {
     if (!this.isInitialized) return;
     
     try {
-      Sentry.logger.warning(message, context);
+      Sentry.captureMessage(message, {contexts: context,level: "warning" });
       console.log('[SentryService] Log de advertencia enviado a Sentry:', message, context);
     } catch (err) {
       console.error('[SentryService] Error al enviar logWarning:', err);
@@ -62,7 +65,7 @@ class SentryService {
           Sentry.captureException(errorOrMessage);
           console.error('[SentryService] Error enviado a Sentry:', errorOrMessage, context);
         } else {
-          Sentry.captureMessage(String(errorOrMessage), 'error');
+          Sentry.captureMessage(String(errorOrMessage), {contexts: context,level: "error" });
           console.error('[SentryService] Mensaje de error enviado a Sentry:', errorOrMessage, context);
         }
       });
