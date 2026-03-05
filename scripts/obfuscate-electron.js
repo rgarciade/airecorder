@@ -7,10 +7,14 @@
 const fs = require('fs');
 const path = require('path');
 const JavaScriptObfuscator = require('javascript-obfuscator');
+const dotenv = require('dotenv');
 
 const ROOT_DIR = path.join(__dirname, '..');
 const SOURCE_DIR = path.join(ROOT_DIR, 'electron');
 const OUTPUT_DIR = path.join(ROOT_DIR, 'electron-obfuscated');
+
+// Cargar variables de entorno
+const envConfig = dotenv.config({ path: path.join(ROOT_DIR, '.env') }).parsed || {};
 
 const obfuscationConfig = {
   compact: true,
@@ -64,7 +68,17 @@ function getAllJsFiles(dir) {
 }
 
 function obfuscateFile(filePath) {
-  const code = fs.readFileSync(filePath, 'utf8');
+  let code = fs.readFileSync(filePath, 'utf8');
+
+  // Inyectar variables de entorno VITE_* desde el .env
+  Object.keys(envConfig).forEach(key => {
+    if (key.startsWith('VITE_')) {
+      // Reemplaza process.env.VITE_NOMBRE_VAR por "su_valor"
+      const regex = new RegExp(`process\\.env\\.${key}`, 'g');
+      code = code.replace(regex, JSON.stringify(envConfig[key]));
+    }
+  });
+
   try {
     const result = JavaScriptObfuscator.obfuscate(code, obfuscationConfig);
     fs.writeFileSync(filePath, result.getObfuscatedCode());
