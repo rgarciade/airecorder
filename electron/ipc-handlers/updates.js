@@ -6,7 +6,7 @@ module.exports.registerUpdateHandlers = () => {
   // Verificar actualizaciones manualmente (desde Settings o UI)
   ipcMain.handle('check-for-updates', async () => {
     try {
-      const updateInfo = await updateChecker.checkForUpdates(false);
+      const updateInfo = await updateChecker.checkForUpdates(false, true);
       if (updateInfo) {
         return { success: true, updateAvailable: true, ...updateInfo };
       }
