@@ -1,7 +1,7 @@
 {
   "name": "airecorder",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.1.1",
   "main": "electron/main.js",
   "scripts": {
     "dev": "NODE_ENV=development concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
@@ -70,9 +70,12 @@
   "dependencies": {
     "@lancedb/lancedb": "^0.26.2",
     "@reduxjs/toolkit": "^2.8.2",
+    "@sentry/electron": "^7.9.0",
+    "@sentry/vite-plugin": "^5.1.1",
     "better-sqlite3": "^12.6.2",
     "data_file_database": "^1.0.2",
     "docx": "^9.6.0",
+    "dotenv": "^17.3.1",
     "electron-audio-loopback": "^1.0.6",
     "ffmpeg-static": "^5.2.0",
     "ffprobe-static": "^3.1.0",

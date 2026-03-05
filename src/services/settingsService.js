@@ -74,6 +74,20 @@ export const updateSettings = async (newSettings) => {
     // Obtener configuración actual para preservar valores existentes
     const currentSettings = await getSettings();
     
+    // Tracking: Detectar cambios en proveedor o modelo de IA
+    if (import.meta.env.VITE_SENTRY_DSN && window.electronAPI && window.electronAPI.sentryLogInfo) {
+      if (newSettings.aiProvider && currentSettings.aiProvider !== newSettings.aiProvider) {
+        window.electronAPI.sentryLogInfo(`Cambio de proveedor IA: de ${currentSettings.aiProvider || 'ninguno'} a ${newSettings.aiProvider}`);
+      }
+      
+      const modelsToCheck = ['geminiModel', 'geminiFreeModel', 'deepseekModel', 'kimiModel', 'ollamaModel', 'lmStudioModel', 'whisperModel'];
+      for (const modelKey of modelsToCheck) {
+        if (newSettings[modelKey] && currentSettings[modelKey] !== newSettings[modelKey]) {
+          window.electronAPI.sentryLogInfo(`Cambio de modelo IA (${modelKey}): de ${currentSettings[modelKey] || 'ninguno'} a ${newSettings[modelKey]}`);
+        }
+      }
+    }
+
     // Combinar configuración actual con los nuevos valores
     const updatedSettings = {
       ...currentSettings,

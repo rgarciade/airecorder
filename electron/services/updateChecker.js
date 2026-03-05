@@ -126,6 +126,12 @@ class UpdateChecker {
   }
 
   startPeriodicCheck() {
+    // No verificar actualizaciones si estamos en entorno de desarrollo
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[UpdateChecker] Entorno de desarrollo detectado. Verificación automática de actualizaciones desactivada.');
+      return;
+    }
+
     console.log('[UpdateChecker] Iniciando verificación periódica de actualizaciones...');
 
     // Verificar al inicio con delay de 5 segundos (no silencioso)

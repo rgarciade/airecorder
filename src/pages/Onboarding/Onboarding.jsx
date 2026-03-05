@@ -144,6 +144,15 @@ export default function Onboarding({ onComplete }) {
       };
       
       await updateSettings(settingsToSave);
+      
+      // Tracking: Informar a Sentry de que el usuario completó el onboarding
+      if (import.meta.env.VITE_SENTRY_DSN) {
+        console.log('[Onboarding] Enviando log a Sentry...');
+        if (window.electronAPI && window.electronAPI.sentryLogInfo) {
+          window.electronAPI.sentryLogInfo('Usuario ha completado el Onboarding (Primera vez)');
+        }
+      }
+
       if (onComplete) onComplete();
     } catch (error) {
       console.error("Error saving settings:", error);
