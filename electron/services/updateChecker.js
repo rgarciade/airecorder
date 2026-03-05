@@ -1,5 +1,8 @@
 const { app, dialog, shell, BrowserWindow } = require('electron');
 const https = require('https');
+const fs = require('fs');
+const path = require('path');
+const { settingsPath } = require('../utils/paths');
 
 const GITHUB_OWNER = 'rgarciade';
 const GITHUB_REPO = 'airecorder';
@@ -20,7 +23,34 @@ class UpdateChecker {
     return app.getVersion();
   }
 
-  async checkForUpdates(silent = true) {
+  _getSettings() {
+    try {
+      if (fs.existsSync(settingsPath)) {
+        return JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      }
+    } catch (error) {
+      console.error('[UpdateChecker] Error leyendo settings:', error);
+    }
+    return {};
+  }
+
+  _isVersionIgnored(version) {
+    const settings = this._getSettings();
+    return settings.ignoredUpdateVersion === version;
+  }
+
+  _ignoreVersion(version) {
+    try {
+      const settings = this._getSettings();
+      settings.ignoredUpdateVersion = version;
+      fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+      console.log(`[UpdateChecker] Versión ${version} ignorada.`);
+    } catch (error) {
+      console.error('[UpdateChecker] Error guardando versión ignorada:', error);
+    }
+  }
+
+  async checkForUpdates(silent = true, manualCheck = false) {
     try {
       const release = await this._fetchLatestRelease();
       if (!release) return null;
@@ -30,6 +60,12 @@ class UpdateChecker {
       const latestVersion = release.tag_name.replace(/^v/, '');
 
       if (this._isNewerVersion(latestVersion, currentVersion)) {
+        // Si no es una verificación manual y la versión está ignorada, no mostramos nada
+        if (!manualCheck && this._isVersionIgnored(latestVersion)) {
+          console.log(`[UpdateChecker] Hay una nueva versión (${latestVersion}) pero fue ignorada por el usuario.`);
+          return null;
+        }
+
         const updateInfo = {
           currentVersion,
           latestVersion,
@@ -115,13 +151,15 @@ class UpdateChecker {
       title: 'Actualización disponible',
       message: `¡Hay una nueva versión de AIRecorder disponible! (v${updateInfo.latestVersion})`,
       detail: `Versión actual: v${updateInfo.currentVersion}\n\nAntes de descargar, ten en cuenta esta Guía de Actualización:\n\n⚠️ La app está en desarrollo preliminar y aún no está firmada.\n\n1. Descarga la nueva versión, borra la app actual de Aplicaciones y vuelve a instalar la que acabas de descargar.\n2. Cuando te pida permisos de captura de pantalla, tienes que ELIMINAR el permiso actual de la app en Ajustes del Sistema y volver a dárselo.\n3. Para abrir la app por primera vez, es posible que tengas que lanzar este comando en la terminal:\n\n   xattr -cr /Applications/AIRecorder.app\n\nNovedades de la versión:\n${(updateInfo.releaseNotes || 'Mejoras y correcciones.').slice(0, 300)}...`,
-      buttons: ['Entendido y Descargar', 'Más tarde'],
+      buttons: ['Entendido y Descargar', 'Más tarde', 'No mostrar para esta versión'],
       defaultId: 0,
       cancelId: 1,
     });
 
     if (response === 0) {
       shell.openExternal(updateInfo.downloadUrl);
+    } else if (response === 2) {
+      this._ignoreVersion(updateInfo.latestVersion);
     }
   }
 
