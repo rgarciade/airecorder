@@ -167,6 +167,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openDownloadUrl: (url) => ipcRenderer.invoke('open-download-url', url),
   onUpdateAvailable: (callback) => ipcRenderer.on('update-available', (_event, value) => callback(value)),
   offUpdateAvailable: () => ipcRenderer.removeAllListeners('update-available'),
+  testUpdateDialog: () => ipcRenderer.invoke('test-update-dialog'),
 
   // Sentry (Telemetría)
   sentryLogInfo: (message, context) => ipcRenderer.invoke('sentry-log-info', message, context),

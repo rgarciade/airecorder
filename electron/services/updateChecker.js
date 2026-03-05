@@ -113,9 +113,9 @@ class UpdateChecker {
     const { response } = await dialog.showMessageBox(targetWindow, {
       type: 'info',
       title: 'Actualización disponible',
-      message: `¡Hay una nueva versión de AIRecorder disponible! v${updateInfo.latestVersion}`,
-      detail: `Versión actual: v${updateInfo.currentVersion}\n\n${(updateInfo.releaseNotes || 'Mejoras y correcciones.').slice(0, 300)}`,
-      buttons: ['Descargar', 'Más tarde'],
+      message: `¡Hay una nueva versión de AIRecorder disponible! (v${updateInfo.latestVersion})`,
+      detail: `Versión actual: v${updateInfo.currentVersion}\n\nAntes de descargar, ten en cuenta esta Guía de Actualización:\n\n⚠️ La app está en desarrollo preliminar y aún no está firmada.\n\n1. Descarga la nueva versión, borra la app actual de Aplicaciones y vuelve a instalar la que acabas de descargar.\n2. Cuando te pida permisos de captura de pantalla, tienes que ELIMINAR el permiso actual de la app en Ajustes del Sistema y volver a dárselo.\n3. Para abrir la app por primera vez, es posible que tengas que lanzar este comando en la terminal:\n\n   xattr -cr /Applications/AIRecorder.app\n\nNovedades de la versión:\n${(updateInfo.releaseNotes || 'Mejoras y correcciones.').slice(0, 300)}...`,
+      buttons: ['Entendido y Descargar', 'Más tarde'],
       defaultId: 0,
       cancelId: 1,
     });
