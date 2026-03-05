@@ -15,7 +15,7 @@ class SentryService {
         console.log('[SentryService] Inicializando Sentry en Backend con DSN:', dsn);
         Sentry.init({
           dsn: dsn,
-          environment: isDev ? 'development' : 'production',
+          environment: 'development',
           enableLogs: true,
         });
         this.isInitialized = true;
