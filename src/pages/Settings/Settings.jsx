@@ -1370,6 +1370,15 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                           Descargar
                         </button>
                       )}
+                      {import.meta.env.DEV && (
+                        <button
+                          className={styles.checkBtn}
+                          style={{backgroundColor: '#f59e0b', color: '#fff', border: 'none'}}
+                          onClick={() => window.electronAPI?.testUpdateDialog?.()}
+                        >
+                          Probar Update (Dev)
+                        </button>
+                      )}
                       <button
                         className={styles.checkBtn}
                         onClick={async () => {
