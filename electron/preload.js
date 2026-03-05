@@ -157,4 +157,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Importar archivo de audio externo
   importAudioFile: () => ipcRenderer.invoke('import-audio-file'),
+
+  // Actualizaciones
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  openDownloadUrl: (url) => ipcRenderer.invoke('open-download-url', url),
+  onUpdateAvailable: (callback) => ipcRenderer.on('update-available', (_event, value) => callback(value)),
+  offUpdateAvailable: () => ipcRenderer.removeAllListeners('update-available'),
 }); 

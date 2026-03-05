@@ -13,6 +13,7 @@ const dbService = require('./database/dbService');
 const migrationService = require('./database/migrationService');
 const transcriptionManager = require('./services/transcriptionManager');
 const notificationService = require('./services/notificationService');
+const updateChecker = require('./services/updateChecker');
 
 // Utilitarios
 const { getRecordingsPath, settingsPath } = require('./utils/paths');
@@ -28,6 +29,7 @@ const { registerRagHandlers } = require('./ipc-handlers/rag');
 const { registerIntegrationsHandlers } = require('./ipc-handlers/integrations');
 const { registerDashboardHandlers } = require('./ipc-handlers/dashboard');
 const { registerExportHandlers } = require('./ipc-handlers/export');
+const { registerUpdateHandlers } = require('./ipc-handlers/updates');
 
 
 // ========================================
@@ -93,6 +95,7 @@ function registerIpcHandlers() {
   registerIntegrationsHandlers();
   registerDashboardHandlers();
   registerExportHandlers();
+  registerUpdateHandlers();
 }
 
 async function checkMicrophonePermission() {
@@ -205,6 +208,11 @@ async function initApp() {
 
   // 8. Crear la interfaz gráfica
   createWindow();
+
+  // 9. Configurar verificador de actualizaciones
+  const mainWin = BrowserWindow.getAllWindows()[0];
+  updateChecker.setMainWindow(mainWin);
+  updateChecker.startPeriodicCheck();
 }
 
 
