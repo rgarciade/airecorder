@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173
+    },
+    {
+      "name": "electron:dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "electron:dev"],
+      "port": null
+    },
+    {
+      "name": "build",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "build"],
+      "port": null
+    }
+  ]
+}
