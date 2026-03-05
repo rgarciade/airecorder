@@ -1,4 +1,5 @@
 const Sentry = require('@sentry/electron/main');
+const { app } = require('electron');
 
 class SentryService {
   constructor() {
@@ -7,7 +8,7 @@ class SentryService {
 
   init() {
     const dsn = process.env.VITE_SENTRY_DSN;
-    const isDev = process.env.NODE_ENV === 'development';
+    const isDev = !app.isPackaged;
     const enableInDev = process.env.VITE_ENABLE_SENTRY_IN_DEV === 'true';
 
     if (dsn && (!isDev || enableInDev)) {
