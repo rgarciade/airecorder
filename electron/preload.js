@@ -3,10 +3,6 @@ const { contextBridge, ipcRenderer } = require('electron');
 // Para Sentry en el preload script no se llama a init(), solo se importa
 require('@sentry/electron/preload');
 
-contextBridge.exposeInMainWorld('electron', {
-  // Aquí expondremos funciones seguras para el frontend
-});
-
 contextBridge.exposeInMainWorld('electronAPI', {
   // ... existing exposed functions ...
 
