@@ -1627,16 +1627,20 @@
           <line x1="12" y1="9" x2="12" y2="13"/>
           <line x1="12" y1="17" x2="12.01" y2="17"/>
         </svg>
-        Guía de Actualización
+        Instrucciones de Instalación
       </h3>
       <div class="modal-text">
         <p>⚠️ <strong>La app está en desarrollo preliminar y aún no está firmada.</strong></p>
-        <ol>
-          <li>Descarga la nueva versión, borra la app actual de Aplicaciones y vuelve a instalar la que acabas de descargar.</li>
-          <li>Cuando te pida permisos de captura de pantalla, tienes que <strong>ELIMINAR</strong> el permiso actual de la app en Ajustes del Sistema y volver a dárselo.</li>
-          <li>Para abrir la app por primera vez, es posible que tengas que lanzar este comando en la terminal:</li>
-        </ol>
+        <p>Para abrir la app por primera vez, es posible que tengas que lanzar este comando en la terminal después de instalarla (arrastrarla) en Aplicaciones:</p>
         <code class="modal-code">xattr -cr /Applications/AIRecorder.app</code>
+
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+          <p style="margin-bottom: 0.5rem; font-size: 0.95em;"><strong>🔄 ¿Estás actualizando desde una versión anterior?</strong></p>
+          <ol style="font-size: 0.9em; opacity: 0.9;">
+            <li>Borra la app actual de la carpeta Aplicaciones antes de instalar la nueva.</li>
+            <li>Cuando te pida permisos de captura de pantalla o accesibilidad, tienes que <strong>ELIMINAR</strong> el permiso antiguo en Ajustes del Sistema de macOS y volver a añadírselo a la nueva app.</li>
+          </ol>
+        </div>
       </div>
       <div class="modal-actions">
         <button class="btn btn-secondary" onclick="closeDownloadModal(event)">Cancelar</button>
