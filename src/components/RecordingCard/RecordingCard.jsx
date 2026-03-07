@@ -35,6 +35,7 @@ export default function RecordingCard({ recording, onClick, onTranscribe }) {
     <div className={styles.card} onClick={() => onClick(recording)}>
       <div className={styles.header}>
         {recording.transcriptionModel === 'teams-import' ? (
+          // Importado desde Teams
           <div className={`${styles.icon} ${styles.iconTeams}`}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path d="M15.5 5.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>
@@ -43,7 +44,17 @@ export default function RecordingCard({ recording, onClick, onTranscribe }) {
               <circle cx="6" cy="4.5" r="2.5"/>
             </svg>
           </div>
+        ) : recording.transcriptionModel === 'audio-import' ? (
+          // Audio subido manualmente
+          <div className={`${styles.icon} ${styles.iconUpload}`}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
         ) : (
+          // Grabado con la app
           <div className={styles.icon}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
