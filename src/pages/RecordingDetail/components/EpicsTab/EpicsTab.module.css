@@ -570,6 +570,26 @@
   gap: 8px;
 }
 
+.bulkAddProjectBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  background: none;
+  color: #1D4ED8;
+  border: 1px solid #93C5FD;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.bulkAddProjectBtn:hover {
+  background-color: #EFF6FF;
+  border-color: #3B82F6;
+}
+
 .bulkDeleteBtn {
   display: flex;
   align-items: center;
@@ -669,4 +689,143 @@
   margin-top: 16px;
   padding-top: 12px;
   border-top: 1px solid #F3F4F6;
+}
+
+/* ── Status badge ── */
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: opacity 0.12s;
+}
+.statusBadge:hover { opacity: 0.75; }
+
+.status_backlog     { background: #f1f5f9; color: #64748b; border-color: #cbd5e1; }
+.status_in_progress { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
+.status_blocked     { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+.status_done        { background: #dcfce7; color: #15803d; border-color: #86efac; }
+
+/* Status mini-menu */
+.statusMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 50;
+  overflow: hidden;
+  min-width: 150px;
+}
+
+.statusMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 14px;
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+  color: #374151;
+}
+.statusMenuItem:hover { background: #f8fafc; }
+.statusMenuItem.menuItemActive { background: #f0f9ff; }
+
+/* ── Recording origin badge ── */
+.recordingOriginBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 1px 7px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.recordingOriginBadge:hover { background: #e0f2fe; color: #0284c7; border-color: #bae6fd; }
+
+/* ── Expand (ampliar) button ── */
+.expandButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  flex-shrink: 0;
+}
+.expandButton:hover { background: #e0f2fe; color: #0284c7; border-color: #bae6fd; }
+
+/* status badge container (relative for mini-menu) */
+.statusBadgeWrapper {
+  position: relative;
+}
+
+/* ── Botón agregar al proyecto ── */
+.addToProjectBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1.5px solid #93C5FD;
+  background: #EFF6FF;
+  color: #1D4ED8;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.addToProjectBtn:hover {
+  background: #DBEAFE;
+  border-color: #60A5FA;
+}
+
+/* ── Badge "en proyecto" ── */
+.inProjectBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1.5px solid #86EFAC;
+  background: #DCFCE7;
+  color: #15803D;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.inProjectBadge:hover {
+  background: #FEE2E2;
+  border-color: #FCA5A5;
+  color: #B91C1C;
 }
