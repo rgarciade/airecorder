@@ -763,7 +763,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   };
 
   const handleUpdateTask = async (updatedTask) => {
-    const saved = await recordingsService.updateTaskSuggestion(updatedTask.id, updatedTask.title, updatedTask.content, updatedTask.layer || 'general');
+    const saved = await recordingsService.updateTaskSuggestion(
+      updatedTask.id, updatedTask.title, updatedTask.content,
+      updatedTask.layer || 'general', updatedTask.status || 'backlog'
+    );
     if (saved) setTasks(prev => prev.map(t => t.id === updatedTask.id ? saved : t));
   };
 
@@ -773,7 +776,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     setImprovingTaskId(taskId);
     try {
       const improved = await recordingAiService.improveTaskSuggestion(task, userInstructions);
-      const saved = await recordingsService.updateTaskSuggestion(taskId, improved.title, improved.content, task.layer || 'general');
+      const saved = await recordingsService.updateTaskSuggestion(
+        taskId, improved.title, improved.content,
+        task.layer || 'general', task.status || 'backlog'
+      );
       if (saved) setTasks(prev => prev.map(t => t.id === taskId ? saved : t));
     } catch (error) {
       console.error('Error mejorando tarea:', error);
@@ -781,6 +787,23 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     } finally {
       setImprovingTaskId(null);
     }
+  };
+
+  const handleGetTaskComments = (taskId) => recordingsService.getTaskComments(taskId);
+  const handleAddTaskComment = (taskId, content) => recordingsService.addTaskComment(taskId, content);
+  const handleDeleteTaskComment = (commentId) => recordingsService.deleteTaskComment(commentId);
+
+  const activeProjectId = recording.project?.id ?? null;
+
+  const handleAddToProject = async (taskId) => {
+    if (!activeProjectId) return;
+    const saved = await recordingsService.addTaskToProject(taskId, activeProjectId);
+    if (saved) setTasks(prev => prev.map(t => t.id === taskId ? saved : t));
+  };
+
+  const handleRemoveFromProject = async (taskId) => {
+    await recordingsService.removeTaskFromProject(taskId);
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, project_id: null } : t));
   };
 
   const handleDeleteTask = async (taskId) => {
@@ -1162,6 +1185,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             onBulkDeleteTasks={handleBulkDeleteTasks}
             improvingTaskId={improvingTaskId}
             newTaskIds={newTaskIds}
+            getTaskComments={handleGetTaskComments}
+            onAddComment={handleAddTaskComment}
+            onDeleteComment={handleDeleteTaskComment}
+            onAddToProject={activeProjectId ? handleAddToProject : undefined}
+            onRemoveFromProject={activeProjectId ? handleRemoveFromProject : undefined}
+            activeProjectId={activeProjectId}
           />
         )}
       </div>
