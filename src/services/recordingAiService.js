@@ -6,6 +6,7 @@
 import appSessionService from './appSessionService';
 import recordingsService from './recordingsService';
 import { callProvider } from './ai/providerRouter';
+import { AI_TASK_TYPES } from './ai/aiQueueService';
 import { cleanAiResponse, parseJsonArray, parseJsonObject } from '../utils/aiResponseParser';
 import { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt, participantsPrompt, participantsPromptSuffix, taskSuggestionsPrompt, taskSuggestionsPromptSuffix, taskImprovementPrompt } from '../prompts/aiPrompts';
 
@@ -254,24 +255,30 @@ class RecordingAiService {
       // Generar resumen detallado primero (si está solicitado) - contexto para los demás
       if (options.detailedSummary) {
         console.log('📋 Generando resumen detallado...');
-        const detailedResponse = await this._callAiProvider(detailedSummaryPrompt, txt);
+        const detailedResponse = await this._callAiProvider(detailedSummaryPrompt, txt, {
+          queueMeta: { name: 'Resumen detallado', type: AI_TASK_TYPES.DETAILED_SUMMARY },
+        });
         detailedText = detailedResponse.text || '';
       }
 
       // Generar resumen corto y puntos clave en paralelo (si están solicitados)
       const generationPromises = [];
-      
+
       if (options.summaries) {
         console.log('📝 Generando resumen breve...');
         generationPromises.push(
-          this._callAiProvider(shortSummaryPrompt, detailedText || txt).then(r => ({ type: 'summary', text: r.text || '' }))
+          this._callAiProvider(shortSummaryPrompt, detailedText || txt, {
+            queueMeta: { name: 'Resumen breve', type: AI_TASK_TYPES.SUMMARY },
+          }).then(r => ({ type: 'summary', text: r.text || '' }))
         );
       }
-      
+
       if (options.keyTopics) {
         console.log('🔑 Generando key topics...');
         generationPromises.push(
-          this._callAiProvider(keyPointsPrompt, detailedText || txt).then(r => ({ type: 'keyPoints', text: r.text || '' }))
+          this._callAiProvider(keyPointsPrompt, detailedText || txt, {
+            queueMeta: { name: 'Key Topics', type: AI_TASK_TYPES.KEY_TOPICS },
+          }).then(r => ({ type: 'keyPoints', text: r.text || '' }))
         );
       }
 
@@ -393,7 +400,10 @@ class RecordingAiService {
       const combinedPrompt = `${participantsPrompt}\n${txt}\n${participantsPromptSuffix}`;
       
       // Llamar a la IA con contexto null y forzando formato JSON para Ollama
-      const participantsResponse = await this._callAiProvider(combinedPrompt, null, { format: 'json' });
+      const participantsResponse = await this._callAiProvider(combinedPrompt, null, {
+        format: 'json',
+        queueMeta: { name: 'Extracción de participantes', type: AI_TASK_TYPES.PARTICIPANTS },
+      });
       
       // Parsear respuesta JSON con utilidad centralizada
       let extractedParticipants = parseJsonArray(
@@ -498,7 +508,10 @@ class RecordingAiService {
       }
 
       const combinedPrompt = `${taskSuggestionsPrompt}\n${txt}\n${taskSuggestionsPromptSuffix}`;
-      const response = await this._callAiProvider(combinedPrompt, null, { format: 'json' });
+      const response = await this._callAiProvider(combinedPrompt, null, {
+        format: 'json',
+        queueMeta: { name: 'Sugerencias de tareas', type: AI_TASK_TYPES.TASK_SUGGESTIONS },
+      });
 
       const validLayers = ['frontend', 'backend', 'fullstack'];
 
@@ -548,7 +561,10 @@ class RecordingAiService {
       const prompt = taskImprovementPrompt(userInstructions);
       const fullPrompt = `${prompt}\n${JSON.stringify({ title: task.title, content: task.content }, null, 2)}`;
 
-      const response = await this._callAiProvider(fullPrompt, null, { format: 'json' });
+      const response = await this._callAiProvider(fullPrompt, null, {
+        format: 'json',
+        queueMeta: { name: `Mejora de tarea: ${task.title}`, type: AI_TASK_TYPES.TASK_IMPROVEMENT },
+      });
 
       const improved = parseJsonObject(response.text);
       if (!improved) {
