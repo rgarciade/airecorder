@@ -3,6 +3,9 @@
  * Serializa las llamadas para ejecutarlas de una en una y mantiene
  * un estado observable: tarea actual, cola pendiente e historial.
  * Cada tarea del historial conserva el prompt enviado y la respuesta recibida.
+ *
+ * La duración media por tipo se calcula dinámicamente desde el historial
+ * de tareas completadas, sin persistencia externa.
  */
 
 const MAX_HISTORY = 50;
@@ -30,6 +33,23 @@ class AiQueueService {
   }
 
   /**
+   * Calcula duraciones medias por tipo a partir del historial de tareas completadas.
+   * Devuelve { [type]: { count, totalMs } }
+   */
+  _computeAvgDurations() {
+    const result = {};
+    for (const task of this._history) {
+      if (task.status !== 'completed' || !task.startedAt || !task.completedAt) continue;
+      const ms = task.completedAt.getTime() - task.startedAt.getTime();
+      if (ms <= 0) continue;
+      if (!result[task.type]) result[task.type] = { count: 0, totalMs: 0 };
+      result[task.type].count++;
+      result[task.type].totalMs += ms;
+    }
+    return result;
+  }
+
+  /**
    * Suscribirse a cambios de estado de la cola.
    * El callback se invoca inmediatamente con el estado actual.
    * @param {Function} callback - (state: { current, queue, history }) => void
@@ -54,6 +74,7 @@ class AiQueueService {
       current: this._current ? { ...this._current } : null,
       queue: this._queue.map(({ _resolve, _reject, _fn, ...pub }) => ({ ...pub })),
       history: [...this._history],
+      avgDurations: this._computeAvgDurations(),
     };
   }
 
@@ -105,12 +126,13 @@ class AiQueueService {
 
       // Capturar respuesta para el historial
       const responseText = typeof result?.text === 'string' ? result.text : null;
+      const completedAt = new Date();
 
       this._addToHistory({
         ...pubTask,
         status: 'completed',
         startedAt,
-        completedAt: new Date(),
+        completedAt,
         response: responseText,
       });
       this._current = null;

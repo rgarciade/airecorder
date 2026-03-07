@@ -341,6 +341,22 @@ class RecordingsService {
   }
 
   /**
+   * Obtiene todas las sugerencias de tareas de un proyecto (a través de sus grabaciones)
+   * Cada tarea incluye recording_db_id y recording_path para identificar la grabación origen
+   */
+  async getProjectTaskSuggestions(projectId) {
+    try {
+      if (!window.electronAPI?.getProjectTaskSuggestions) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.getProjectTaskSuggestions(projectId);
+      if (!result.success) return [];
+      return result.tasks;
+    } catch (error) {
+      console.error('Error leyendo sugerencias de tareas del proyecto:', error);
+      return [];
+    }
+  }
+
+  /**
    * Obtiene las sugerencias de tareas de una grabación
    */
   async getTaskSuggestions(dbId) {
