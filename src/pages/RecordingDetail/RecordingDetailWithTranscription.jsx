@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import recordingsService from '../../services/recordingsService';
 import projectsService from '../../services/projectsService';
-import { getSettings, updateSettings, addSettingsListener, removeSettingsListener } from '../../services/settingsService';
+import { getSettings, addSettingsListener, removeSettingsListener } from '../../services/settingsService';
 import { getAvailableModels, checkModelSupportsStreaming } from '../../services/ai/ollamaProvider';
 import { generateWithContext, generateWithContextStreaming } from '../../services/aiService';
 import { callProvider, callProviderStreaming } from '../../services/ai/providerRouter';
@@ -604,29 +604,28 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
     setShowRegenerateConfirm(false);
     setIsGeneratingAi(true);
-    
-    try {
-      // Update AI settings
-      const currentSettings = await getSettings();
-      await updateSettings({
-        ...currentSettings,
-        aiProvider: aiProvider,
-        ollamaModel: aiProvider === 'ollama' ? selectedOllamaModel : currentSettings.ollamaModel
-      });
 
+    // Override temporal: se usa solo para esta regeneración sin modificar los ajustes globales
+    const providerOverrides = {
+      providerOverride: aiProvider,
+      ...(aiProvider === 'ollama' && selectedOllamaModel ? { model: selectedOllamaModel } : {}),
+    };
+
+    try {
       // Regenerate Summaries
       if (regenerateOptions.summaries || regenerateOptions.keyTopics || regenerateOptions.detailedSummary) {
         await recordingAiService.cancelGeneration(recording.id);
-        
+
         const summary = await recordingAiService.generateRecordingSummary(
           recording.id,
-          null, 
+          null,
           true, // Force regenerate
           {
             summaries: regenerateOptions.summaries,
             keyTopics: regenerateOptions.keyTopics,
             detailedSummary: regenerateOptions.detailedSummary
-          }
+          },
+          providerOverrides
         );
 
         if (summary) {
@@ -634,11 +633,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           setDetailedSummary(summary.resumen_detallado || '');
         }
       }
-      
+
       // Regenerate Participants
       if (regenerateOptions.participants) {
         // 1. Obtener nuevos participantes de IA
-        const aiParticipants = await recordingAiService.extractParticipants(recording.id);
+        const aiParticipants = await recordingAiService.extractParticipants(recording.id, providerOverrides);
         
         // 2. Filtrar participantes manuales existentes (no creados por IA)
         const manualParticipants = participants.filter(p => !p.createdByAi);

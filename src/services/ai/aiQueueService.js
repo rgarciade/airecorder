@@ -2,6 +2,7 @@
  * Servicio de cola para todas las llamadas a la IA.
  * Serializa las llamadas para ejecutarlas de una en una y mantiene
  * un estado observable: tarea actual, cola pendiente e historial.
+ * Cada tarea del historial conserva el prompt enviado y la respuesta recibida.
  */
 
 const MAX_HISTORY = 50;
@@ -59,7 +60,8 @@ class AiQueueService {
   /**
    * Encola una llamada a la IA.
    * @param {Function} taskFn - Función async que realiza la llamada real al proveedor.
-   * @param {Object} meta - Metadatos para mostrar en la UI: { name, type, engine }
+   * @param {Object} meta - Metadatos: { name, type, engine, prompt? }
+   *   - prompt: texto del prompt enviado (se guarda en el historial para inspección)
    * @returns {Promise} Se resuelve/rechaza con el resultado cuando la tarea se ejecuta.
    */
   enqueue(taskFn, meta = {}) {
@@ -69,6 +71,9 @@ class AiQueueService {
         name: meta.name || 'Tarea de IA',
         type: meta.type || AI_TASK_TYPES.GENERAL,
         engine: meta.engine || 'IA',
+        // Prompt y respuesta — disponibles en el historial tras la ejecución
+        prompt: meta.prompt || null,
+        response: null,
         status: 'pending',
         createdAt: new Date(),
         startedAt: null,
@@ -97,11 +102,16 @@ class AiQueueService {
 
     try {
       const result = await _fn();
+
+      // Capturar respuesta para el historial
+      const responseText = typeof result?.text === 'string' ? result.text : null;
+
       this._addToHistory({
         ...pubTask,
         status: 'completed',
         startedAt,
         completedAt: new Date(),
+        response: responseText,
       });
       this._current = null;
       this._notify();
@@ -114,13 +124,13 @@ class AiQueueService {
         startedAt,
         completedAt: new Date(),
         error: isCancelled ? null : (error?.message || 'Error desconocido'),
+        response: null,
       });
       this._current = null;
       this._notify();
       _reject(error);
     } finally {
       this._processing = false;
-      // Procesar siguiente en el próximo tick para no bloquear
       setTimeout(() => this._processNext(), 0);
     }
   }
@@ -142,6 +152,7 @@ class AiQueueService {
       ...pubTask,
       status: 'cancelled',
       completedAt: new Date(),
+      response: null,
     });
 
     const err = new Error('Cancelado por el usuario');

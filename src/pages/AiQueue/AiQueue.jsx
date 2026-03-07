@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
 import {
   MdClose, MdCheck, MdSchedule, MdMoreVert,
   MdMic, MdAutoAwesome, MdChecklist, MdInbox,
+  MdOpenInNew, MdContentCopy,
 } from 'react-icons/md';
 import styles from './AiQueue.module.css';
 import { aiQueueService } from '../../services/ai/aiQueueService';
@@ -71,6 +73,8 @@ const TaskTypeIcon = ({ type, size = 20 }) => {
 export default function AiQueue() {
   const [queueState, setQueueState] = useState({ current: null, queue: [], history: [] });
   const [elapsed, setElapsed] = useState('0s');
+  const [detailTask, setDetailTask] = useState(null); // tarea abierta en el modal
+  const [copiedField, setCopiedField] = useState(null); // 'prompt' | 'response'
 
   // Suscribirse al servicio de cola
   useEffect(() => {
@@ -96,6 +100,13 @@ export default function AiQueue() {
 
   const handleClearHistory = useCallback(() => {
     aiQueueService.clearHistory();
+  }, []);
+
+  const handleCopy = useCallback((text, field) => {
+    navigator.clipboard.writeText(text || '').then(() => {
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 1500);
+    });
   }, []);
 
   const { current, queue, history } = queueState;
@@ -202,6 +213,7 @@ export default function AiQueue() {
                   <th>DURATION</th>
                   <th>STATUS</th>
                   <th>TIME</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -247,6 +259,17 @@ export default function AiQueue() {
                       </span>
                     </td>
                     <td className={styles.historyTime}>{formatRelativeTime(item.completedAt)}</td>
+                    <td>
+                      {(item.prompt || item.response) && (
+                        <button
+                          className={styles.viewDetailBtn}
+                          title="Ver prompt y respuesta"
+                          onClick={() => setDetailTask(item)}
+                        >
+                          <MdOpenInNew size={15} />
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -254,6 +277,75 @@ export default function AiQueue() {
           </div>
         )}
       </section>
+      {/* ── Modal de detalle (prompt + respuesta) ── */}
+      {detailTask && (
+        <div className={styles.modalOverlay} onClick={() => setDetailTask(null)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            {/* Cabecera */}
+            <div className={styles.modalHeader}>
+              <div className={styles.modalTitleRow}>
+                <span className={styles.modalIcon}>
+                  <TaskTypeIcon type={detailTask.type} size={18} />
+                </span>
+                <div>
+                  <h3 className={styles.modalTitle}>{detailTask.name}</h3>
+                  <span className={styles.modalMeta}>
+                    {detailTask.engine} &middot; {formatDuration(detailTask.startedAt, detailTask.completedAt)}
+                  </span>
+                </div>
+              </div>
+              <button className={styles.modalCloseBtn} onClick={() => setDetailTask(null)}>
+                <MdClose size={20} />
+              </button>
+            </div>
+
+            {/* Cuerpo */}
+            <div className={styles.modalBody}>
+              {/* Prompt */}
+              {detailTask.prompt && (
+                <div className={styles.modalSection}>
+                  <div className={styles.modalSectionHeader}>
+                    <span className={styles.modalSectionLabel}>Prompt</span>
+                    <button
+                      className={styles.copyBtn}
+                      onClick={() => handleCopy(detailTask.prompt, 'prompt')}
+                      title="Copiar prompt"
+                    >
+                      <MdContentCopy size={14} />
+                      {copiedField === 'prompt' ? 'Copiado' : 'Copiar'}
+                    </button>
+                  </div>
+                  <pre className={styles.promptText}>{detailTask.prompt}</pre>
+                </div>
+              )}
+
+              {/* Respuesta */}
+              {detailTask.response && (
+                <div className={styles.modalSection}>
+                  <div className={styles.modalSectionHeader}>
+                    <span className={styles.modalSectionLabel}>Respuesta</span>
+                    <button
+                      className={styles.copyBtn}
+                      onClick={() => handleCopy(detailTask.response, 'response')}
+                      title="Copiar respuesta"
+                    >
+                      <MdContentCopy size={14} />
+                      {copiedField === 'response' ? 'Copiado' : 'Copiar'}
+                    </button>
+                  </div>
+                  <div className={styles.responseText}>
+                    <ReactMarkdown>{detailTask.response}</ReactMarkdown>
+                  </div>
+                </div>
+              )}
+
+              {!detailTask.prompt && !detailTask.response && (
+                <p className={styles.emptyText}>No hay datos guardados para esta tarea.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

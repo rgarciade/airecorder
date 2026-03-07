@@ -40,7 +40,7 @@ function _resolveEngineName(settings, provider, options = {}) {
  */
 async function _runCallProvider(prompt, options) {
   const settings = await getSettings();
-  const provider = settings.aiProvider || 'ollama';
+  const provider = options.providerOverride || settings.aiProvider || 'ollama';
 
   switch (provider) {
     case 'ollama': {
@@ -92,7 +92,7 @@ async function _runCallProvider(prompt, options) {
  */
 async function _runCallProviderStreaming(prompt, onChunk, options) {
   const settings = await getSettings();
-  const provider = settings.aiProvider || 'geminifree';
+  const provider = options.providerOverride || settings.aiProvider || 'geminifree';
 
   console.log(`[callProviderStreaming] Provider: ${provider}`);
 
@@ -176,7 +176,7 @@ export async function callProvider(prompt, options = {}) {
   let engine = 'IA';
   try {
     const settings = await getSettings();
-    const provider = settings.aiProvider || 'geminifree';
+    const provider = options.providerOverride || settings.aiProvider || 'geminifree';
     engine = _resolveEngineName(settings, provider, options);
   } catch {
     // Si falla la lectura, usamos el fallback
@@ -186,6 +186,7 @@ export async function callProvider(prompt, options = {}) {
     name: options.queueMeta?.name || 'Llamada a IA',
     type: options.queueMeta?.type || AI_TASK_TYPES.GENERAL,
     engine: options.queueMeta?.engine || engine,
+    prompt,
   };
 
   return aiQueueService.enqueue(() => _runCallProvider(prompt, options), meta);
@@ -204,7 +205,7 @@ export async function callProviderStreaming(prompt, onChunk, options = {}) {
   let engine = 'IA';
   try {
     const settings = await getSettings();
-    const provider = settings.aiProvider || 'geminifree';
+    const provider = options.providerOverride || settings.aiProvider || 'geminifree';
     engine = _resolveEngineName(settings, provider, options);
   } catch {
     // fallback
@@ -214,6 +215,7 @@ export async function callProviderStreaming(prompt, onChunk, options = {}) {
     name: options.queueMeta?.name || 'Chat con IA',
     type: options.queueMeta?.type || AI_TASK_TYPES.CHAT,
     engine: options.queueMeta?.engine || engine,
+    prompt,
   };
 
   return aiQueueService.enqueue(
