@@ -4,11 +4,13 @@ import styles from './ProjectDetail.module.css';
 import projectAiService from '../../services/projectAiService';
 import projectChatService from '../../services/projectChatService';
 import projectsService from '../../services/projectsService';
+import recordingsService from '../../services/recordingsService';
 import ProjectChatPanel from '../../components/ProjectChatPanel/ProjectChatPanel';
 import ProjectTimeline from '../../components/ProjectTimeline/ProjectTimeline';
 import ParticipantsList from '../../components/ParticipantsList/ParticipantsList';
 import ProjectRecordingSummaries from '../../components/ProjectRecordingSummaries/ProjectRecordingSummaries';
 import ChatInterface from '../../components/ChatInterface/ChatInterface';
+import ProjectTasksTab from './components/ProjectTasksTab/ProjectTasksTab';
 import { MdArrowBack, MdRefresh } from 'react-icons/md';
 import ragService from '../../services/ragService';
 import ContextBar from '../../components/ContextBar/ContextBar';
@@ -31,8 +33,11 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const props = { onNavigateToRecording: navigateToRecordingProp };
   
   // --- STATE ---
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'chat'
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'chat' | 'tasks'
   const [isContextExpanded, setIsContextExpanded] = useState(false);
+
+  // Estado de tareas del proyecto
+  const [projectTasks, setProjectTasks] = useState([]);
   
   // Estados para datos del proyecto
   const [projectSummary, setProjectSummary] = useState(null);
@@ -155,16 +160,42 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   }, [activeChatId, chats]);
 
   // --- HANDLERS ---
+  const loadProjectTasks = async () => {
+    try {
+      const tasks = await recordingsService.getProjectTaskSuggestions(project.id);
+      setProjectTasks(tasks || []);
+    } catch (error) {
+      console.error('Error cargando tareas del proyecto:', error);
+    }
+  };
+
+  const handleUpdateProjectTask = async (updatedTask) => {
+    const saved = await recordingsService.updateTaskSuggestion(
+      updatedTask.id, updatedTask.title, updatedTask.content, updatedTask.layer || 'general'
+    );
+    if (saved) {
+      setProjectTasks(prev => prev.map(t => t.id === saved.id ? { ...t, ...saved } : t));
+    }
+  };
+
+  const handleDeleteProjectTask = async (taskId) => {
+    const ok = await recordingsService.deleteTaskSuggestion(taskId);
+    if (ok) {
+      setProjectTasks(prev => prev.filter(t => t.id !== taskId));
+    }
+  };
+
   const loadProjectData = async () => {
     setIsLoading(true);
     try {
-      const [summary, members, highlights, details, recordings, duration] = await Promise.all([
+      const [summary, members, highlights, details, recordings, duration, tasks] = await Promise.all([
         projectAiService.getProjectSummary(project.id),
         projectAiService.getProjectMembers(project.id),
         projectAiService.getProjectHighlights(project.id),
         projectAiService.getProjectDetails(project.id),
         projectAiService.getProjectRecordingSummaries(project.id),
-        projectsService.getProjectTotalDuration(project.id)
+        projectsService.getProjectTotalDuration(project.id),
+        recordingsService.getProjectTaskSuggestions(project.id)
       ]);
 
       setProjectSummary(summary);
@@ -173,6 +204,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       setProjectDetails(details);
       setRecordingSummaries(recordings);
       setProjectDuration(duration);
+      setProjectTasks(tasks || []);
     } catch (error) {
       console.error('Error cargando datos del proyecto:', error);
     } finally {
@@ -452,23 +484,46 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
 
       {/* Tabs Navigation */}
       <nav className={styles.tabsNav}>
-        <button 
+        <button
           className={`${styles.tabButton} ${activeTab === 'overview' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('overview')}
         >
           Vista General
         </button>
-        <button 
+        <button
           className={`${styles.tabButton} ${activeTab === 'chat' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('chat')}
         >
           Chat con IA
         </button>
+        <button
+          className={`${styles.tabButton} ${activeTab === 'tasks' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('tasks')}
+        >
+          Tareas
+          {projectTasks.length > 0 && (
+            <span className={styles.tabBadge}>{projectTasks.length}</span>
+          )}
+        </button>
       </nav>
 
       {/* Main Content */}
       <div className={styles.mainContent}>
-        {activeTab === 'overview' ? (
+        {activeTab === 'tasks' ? (
+          <div className={styles.tasksContent}>
+            <ProjectTasksTab
+              tasks={projectTasks}
+              recordingSummaries={recordingSummaries}
+              onUpdateTask={handleUpdateProjectTask}
+              onDeleteTask={handleDeleteProjectTask}
+              onNavigateToRecording={(recordingId) => {
+                if (props.onNavigateToRecording) {
+                  props.onNavigateToRecording(recordingId);
+                }
+              }}
+            />
+          </div>
+        ) : activeTab === 'overview' ? (
           <div className={styles.overviewGrid}>
             {/* Columna Izquierda - Resumen y Grabaciones */}
             <div className={styles.leftColumn}>

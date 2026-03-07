@@ -117,8 +117,20 @@ export function parseJsonArray(text, wrapperKeys = []) {
         } catch { /* bloque no parseable, continuar */ }
         si = e + 1;
       } else {
-        // No se encontró cierre → no hay más objetos válidos
-        break;
+        // No se encontró cierre → el texto está truncado. Intentar "sanar" añadiendo cierres.
+        // Cubre el caso más común: el modelo cortó el JSON justo después del último campo.
+        const truncated = clean.substring(s);
+        const healSuffixes = ['}', '\n}', '"}', '"\n}', '"}\n', '"}}\n'];
+        for (const suffix of healSuffixes) {
+          try {
+            const obj = JSON.parse(truncated + suffix);
+            if (obj && typeof obj === 'object' && !Array.isArray(obj) && Object.keys(obj).length > 0) {
+              objects.push(obj);
+            }
+            break; // sanación exitosa, no seguir probando sufijos
+          } catch { /* probar siguiente sufijo */ }
+        }
+        break; // fin del texto útil
       }
     }
     if (objects.length > 0) return objects;

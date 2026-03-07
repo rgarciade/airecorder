@@ -22,6 +22,15 @@ const formatElapsed = (startedAt) => {
   return `${m}m ${s < 10 ? '0' : ''}${s}s`;
 };
 
+const formatMs = (ms) => {
+  if (!ms || ms <= 0) return null;
+  const totalSeconds = Math.round(ms / 1000);
+  if (totalSeconds < 60) return `${totalSeconds}s`;
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}m ${s < 10 ? '0' : ''}${s}s`;
+};
+
 const formatDuration = (startedAt, completedAt) => {
   if (!startedAt || !completedAt) return '-';
   const diff = Math.floor((completedAt.getTime() - startedAt.getTime()) / 1000);
@@ -109,7 +118,7 @@ export default function AiQueue() {
     });
   }, []);
 
-  const { current, queue, history } = queueState;
+  const { current, queue, history, avgDurations } = queueState;
 
   return (
     <div className={styles.page}>
@@ -137,6 +146,18 @@ export default function AiQueue() {
                 <MdSchedule size={13} />
                 {elapsed}
               </span>
+              {(() => {
+                const avgMs = avgDurations?.[current.type]
+                  ? Math.round(avgDurations[current.type].totalMs / avgDurations[current.type].count)
+                  : null;
+                const avgFormatted = formatMs(avgMs);
+                if (!avgFormatted) return null;
+                return (
+                  <span className={styles.avgBadge} title={`Media de ${avgDurations[current.type].count} ejecuciones`}>
+                    ~{avgFormatted} avg
+                  </span>
+                );
+              })()}
               <span className={styles.processingBadge}>
                 <span className={styles.processingDot} />
                 Processing...
