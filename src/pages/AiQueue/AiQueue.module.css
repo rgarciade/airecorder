@@ -1,0 +1,422 @@
+.page {
+  padding: 36px 40px;
+  overflow-y: auto;
+  height: 100%;
+  background: #f8f9fb;
+  box-sizing: border-box;
+}
+
+/* Header */
+.pageHeader {
+  margin-bottom: 32px;
+}
+
+.pageTitle {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.pageSubtitle {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Sections */
+.section {
+  margin-bottom: 32px;
+}
+
+.sectionLabel {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 14px 0;
+}
+
+.sectionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.sectionRow .sectionLabel {
+  margin-bottom: 0;
+}
+
+.queueMeta {
+  font-size: 0.8125rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* Current Task Card */
+.currentCard {
+  background: #ffffff;
+  border: 1px solid #e8ecf2;
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.taskIconWrap {
+  width: 44px;
+  height: 44px;
+  background: rgba(57, 148, 239, 0.1);
+  color: #3994ef;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.taskInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.taskName {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.taskEngine {
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.taskRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.elapsedBadge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 5px 11px;
+  border-radius: 9999px;
+}
+
+.processingBadge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #dc2626;
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  padding: 5px 13px;
+  border-radius: 9999px;
+}
+
+.processingDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: pulseDot 1.6s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.moreBtn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.moreBtn:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* Queue List */
+.queueList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.queueItem {
+  background: #ffffff;
+  border: 1px solid #e8ecf2;
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.queueIconWrap {
+  width: 38px;
+  height: 38px;
+  background: #f1f5f9;
+  color: #64748b;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.queueInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.queueName {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.queueEngine {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.pendingBadge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.removeBtn {
+  background: none;
+  border: none;
+  color: #cbd5e1;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.removeBtn:hover {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+/* History Table */
+.historyTableWrap {
+  background: #ffffff;
+  border: 1px solid #e8ecf2;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.historyTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.historyTable thead tr {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.historyTable thead th {
+  padding: 13px 20px;
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.historyTable tbody tr {
+  border-bottom: 1px solid #f8fafc;
+  transition: background 0.12s;
+}
+
+.historyTable tbody tr:last-child {
+  border-bottom: none;
+}
+
+.historyTable tbody tr:hover {
+  background: #f8fafc;
+}
+
+.historyTable tbody td {
+  padding: 14px 20px;
+  font-size: 0.875rem;
+  color: #334155;
+}
+
+.historyTable tbody td:first-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.historyIconSuccess {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
+.historyIconFailed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #dc2626;
+  flex-shrink: 0;
+}
+
+.failedDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  display: block;
+}
+
+.statusCompleted {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #16a34a;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 3px 10px;
+  border-radius: 9999px;
+}
+
+.statusFailed {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 3px 10px;
+  border-radius: 9999px;
+}
+
+.historyTime {
+  color: #94a3b8;
+  font-size: 0.8125rem;
+}
+
+.clearHistoryBtn {
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #3994ef;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.clearHistoryBtn:hover {
+  color: #2563eb;
+}
+
+/* Empty states */
+.emptyCurrentCard {
+  background: #ffffff;
+  border: 1px dashed #d1d9e6;
+  border-radius: 14px;
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.emptyText {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  margin: 0;
+  padding: 6px 0;
+}
+
+/* Cancelled history icon */
+.historyIconCancelled {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #f3f4f6;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+/* Cancelled status badge */
+.statusCancelled {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  padding: 3px 10px;
+  border-radius: 9999px;
+}

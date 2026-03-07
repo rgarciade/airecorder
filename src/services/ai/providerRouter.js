@@ -1,6 +1,7 @@
 /**
  * Router centralizado para selección de proveedor de IA
- * Punto único de decisión entre todos los proveedores soportados
+ * Punto único de decisión entre todos los proveedores soportados.
+ * Todas las llamadas pasan por aiQueueService para serializarse y ser observables.
  */
 
 import { getSettings } from '../settingsService';
@@ -9,100 +10,220 @@ import { sendToDeepseek, sendToDeepseekStreaming, getDeepseekAvailableModels } f
 import { sendToKimi, sendToKimiStreaming, getKimiAvailableModels } from './kimiProvider';
 import { sendToLMStudio, sendToLMStudioStreaming, getLMStudioModels } from './lmStudioProvider';
 import { generateContent as ollamaGenerate, generateContentStreaming as ollamaGenerateStreaming } from './ollamaProvider';
+import { aiQueueService, AI_TASK_TYPES } from './aiQueueService';
+
+// ---------------------------------------------------------------------------
+// Helpers internos
+// ---------------------------------------------------------------------------
 
 /**
- * Envía un prompt al proveedor de IA configurado en settings
- * @param {string} prompt - Prompt completo (ya construido con contexto si aplica)
- * @param {Object} options - Opciones adicionales (ej: { format: 'json' } para Ollama)
- * @returns {Promise<{text: string, provider: string}>}
+ * Resuelve el nombre legible del motor de IA activo para mostrarlo en la cola.
  */
-export async function callProvider(prompt, options = {}) {
+function _resolveEngineName(settings, provider, options = {}) {
+  if (provider === 'ollama') {
+    const model = options?.model || options?.ragModel || settings.ollamaModel || '';
+    return model ? `Ollama: ${model}` : 'Ollama';
+  }
+  if (provider === 'lmstudio') {
+    const model = options?.model || options?.ragModel || settings.lmStudioModel || '';
+    return model ? `LM Studio: ${model}` : 'LM Studio';
+  }
+  if (provider === 'deepseek') return 'DeepSeek';
+  if (provider === 'kimi') return 'Kimi';
+  if (provider === 'gemini') return 'Gemini Pro';
+  if (provider === 'geminifree') return 'Gemini Free';
+  return provider || 'IA';
+}
+
+/**
+ * Lógica real de callProvider (sin cola). Se ejecuta dentro de la tarea encolada.
+ */
+async function _runCallProvider(prompt, options) {
   const settings = await getSettings();
   const provider = settings.aiProvider || 'ollama';
 
   switch (provider) {
     case 'ollama': {
-      // Permitir override del modelo vía options.model > options.ragModel > settings
       const model = options.model || options.ragModel || settings.ollamaModel;
-      if (!model) {
-        throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
-      }
+      if (!model) throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
       const response = await ollamaGenerate(model, prompt, options);
-      return {
-        text: response || 'Sin respuesta',
-        provider: 'ollama',
-        model: model // Devolvemos el modelo usado para debug
-      };
+      return { text: response || 'Sin respuesta', provider: 'ollama', model };
     }
 
     case 'lmstudio': {
       const model = options.model || options.ragModel || settings.lmStudioModel;
-      if (!model) {
-        throw new Error('No se ha seleccionado un modelo en LM Studio.');
-      }
+      if (!model) throw new Error('No se ha seleccionado un modelo en LM Studio.');
       const response = await sendToLMStudio(prompt, model);
-      return {
-        text: response || 'Sin respuesta',
-        provider: 'lmstudio',
-        model: model
-      };
+      return { text: response || 'Sin respuesta', provider: 'lmstudio', model };
     }
 
     case 'deepseek': {
-      if (!settings.deepseekApiKey) {
-        throw new Error('No se ha configurado la DeepSeek API Key en los ajustes.');
-      }
+      if (!settings.deepseekApiKey) throw new Error('No se ha configurado la DeepSeek API Key en los ajustes.');
       const response = await sendToDeepseek(prompt, options.model || null);
-      return {
-        text: response || 'Sin respuesta',
-        provider: 'deepseek'
-      };
+      return { text: response || 'Sin respuesta', provider: 'deepseek' };
     }
 
     case 'kimi': {
-      if (!settings.kimiApiKey) {
-        throw new Error('No se ha configurado la Kimi API Key en los ajustes.');
-      }
+      if (!settings.kimiApiKey) throw new Error('No se ha configurado la Kimi API Key en los ajustes.');
       const response = await sendToKimi(prompt, options.model || null);
-      return {
-        text: response || 'Sin respuesta',
-        provider: 'kimi'
-      };
+      return { text: response || 'Sin respuesta', provider: 'kimi' };
     }
 
     case 'gemini': {
-      if (!settings.geminiApiKey) {
-        throw new Error('No se ha configurado la Gemini API Key en los ajustes.');
-      }
-      const result = await sendToGemini(prompt, true, false); // useFreeTier = false
+      if (!settings.geminiApiKey) throw new Error('No se ha configurado la Gemini API Key en los ajustes.');
+      const result = await sendToGemini(prompt, true, false);
       const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta';
-      return {
-        text,
-        provider: 'gemini'
-      };
+      return { text, provider: 'gemini' };
     }
 
     case 'geminifree':
     default: {
-      // Gemini Free usa la misma implementación que Gemini Pro
-      // Pero puede tener una API key diferente
       const apiKey = settings.geminiFreeApiKey || settings.geminiApiKey;
-      if (!apiKey) {
-        throw new Error('No se ha configurado la Gemini Free API Key en los ajustes.');
-      }
-      // Usar sendToGemini con useFreeTier = true
+      if (!apiKey) throw new Error('No se ha configurado la Gemini Free API Key en los ajustes.');
       const result = await sendToGemini(prompt, true, true);
       const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta';
-      return {
-        text,
-        provider: 'geminifree'
-      };
+      return { text, provider: 'geminifree' };
     }
   }
 }
 
 /**
- * Valida la configuración del proveedor de IA actual
+ * Lógica real de callProviderStreaming (sin cola). Se ejecuta dentro de la tarea encolada.
+ */
+async function _runCallProviderStreaming(prompt, onChunk, options) {
+  const settings = await getSettings();
+  const provider = settings.aiProvider || 'geminifree';
+
+  console.log(`[callProviderStreaming] Provider: ${provider}`);
+
+  switch (provider) {
+    case 'geminifree': {
+      console.log('[callProviderStreaming] Iniciando streaming con Gemini Free');
+      const fullResponse = await sendToGeminiStreaming(prompt, onChunk, true);
+      return { text: fullResponse || 'Sin respuesta', provider: 'geminifree', streaming: true };
+    }
+
+    case 'gemini': {
+      console.log('[callProviderStreaming] Iniciando streaming con Gemini Pro');
+      const fullResponse = await sendToGeminiStreaming(prompt, onChunk, false);
+      return { text: fullResponse || 'Sin respuesta', provider: 'gemini', streaming: true };
+    }
+
+    case 'deepseek': {
+      console.log('[callProviderStreaming] Iniciando streaming con DeepSeek');
+      const fullResponse = await sendToDeepseekStreaming(prompt, onChunk, options.model || null);
+      return { text: fullResponse || 'Sin respuesta', provider: 'deepseek', streaming: true };
+    }
+
+    case 'kimi': {
+      console.log('[callProviderStreaming] Iniciando streaming con Kimi');
+      const fullResponse = await sendToKimiStreaming(prompt, onChunk, options.model || null);
+      return { text: fullResponse || 'Sin respuesta', provider: 'kimi', streaming: true };
+    }
+
+    case 'lmstudio': {
+      const model = options.model || options.ragModel || settings.lmStudioModel;
+      if (!model) throw new Error('No se ha seleccionado un modelo en LM Studio.');
+      console.log(`[callProviderStreaming] Iniciando streaming con LM Studio modelo: ${model}`);
+      const fullResponse = await sendToLMStudioStreaming(prompt, onChunk, model);
+      return { text: fullResponse || 'Sin respuesta', provider: 'lmstudio', model, streaming: true };
+    }
+
+    case 'ollama': {
+      const model = options.model || options.ragModel || settings.ollamaModel;
+      if (!model) throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
+
+      const useStreaming = settings.ollamaModelSupportsStreaming && !options.ragModel;
+
+      if (useStreaming) {
+        console.log(`[callProviderStreaming] Iniciando streaming con Ollama modelo: ${model}`);
+        const fullResponse = await ollamaGenerateStreaming(model, prompt, onChunk);
+        return { text: fullResponse || 'Sin respuesta', provider: 'ollama', model, streaming: true };
+      }
+
+      // Fallback no-streaming
+      console.log(`🔄 Usando modo no-streaming para Ollama${options.ragModel ? ` (RAG model: ${model})` : ''}`);
+      const result = await _runCallProvider(prompt, options);
+      if (onChunk && result.text) onChunk(result.text);
+      return { ...result, streaming: false };
+    }
+
+    default: {
+      console.log(`🔄 Usando modo no-streaming para ${provider}`);
+      const result = await _runCallProvider(prompt, options);
+      if (onChunk && result.text) onChunk(result.text);
+      return { ...result, streaming: false };
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// API pública — pasan por la cola
+// ---------------------------------------------------------------------------
+
+/**
+ * Envía un prompt al proveedor de IA configurado.
+ * La llamada se encola y se ejecuta en orden FIFO.
+ *
+ * @param {string} prompt - Prompt completo
+ * @param {Object} options - Opciones adicionales.
+ *   options.queueMeta?: { name?: string, type?: string, engine?: string }
+ *   para personalizar cómo aparece en la cola de la UI.
+ * @returns {Promise<{text: string, provider: string}>}
+ */
+export async function callProvider(prompt, options = {}) {
+  // Leer settings para resolver nombre del motor (display inmediato en la cola)
+  let engine = 'IA';
+  try {
+    const settings = await getSettings();
+    const provider = settings.aiProvider || 'geminifree';
+    engine = _resolveEngineName(settings, provider, options);
+  } catch {
+    // Si falla la lectura, usamos el fallback
+  }
+
+  const meta = {
+    name: options.queueMeta?.name || 'Llamada a IA',
+    type: options.queueMeta?.type || AI_TASK_TYPES.GENERAL,
+    engine: options.queueMeta?.engine || engine,
+  };
+
+  return aiQueueService.enqueue(() => _runCallProvider(prompt, options), meta);
+}
+
+/**
+ * Envía un prompt al proveedor de IA configurado con soporte para streaming.
+ * La llamada se encola; onChunk se invoca en tiempo real mientras la tarea está activa.
+ *
+ * @param {string} prompt - Prompt completo
+ * @param {Function} onChunk - Callback que recibe cada chunk de la respuesta
+ * @param {Object} options - Opciones adicionales (igual que callProvider)
+ * @returns {Promise<{text: string, provider: string, streaming: boolean}>}
+ */
+export async function callProviderStreaming(prompt, onChunk, options = {}) {
+  let engine = 'IA';
+  try {
+    const settings = await getSettings();
+    const provider = settings.aiProvider || 'geminifree';
+    engine = _resolveEngineName(settings, provider, options);
+  } catch {
+    // fallback
+  }
+
+  const meta = {
+    name: options.queueMeta?.name || 'Chat con IA',
+    type: options.queueMeta?.type || AI_TASK_TYPES.CHAT,
+    engine: options.queueMeta?.engine || engine,
+  };
+
+  return aiQueueService.enqueue(
+    () => _runCallProviderStreaming(prompt, onChunk, options),
+    meta
+  );
+}
+
+/**
+ * Valida la configuración del proveedor de IA actual.
  * @returns {Promise<{valid: boolean, error: string|null}>}
  */
 export async function validateProviderConfig() {
@@ -112,34 +233,28 @@ export async function validateProviderConfig() {
 
     switch (provider) {
       case 'geminifree':
-        if (!settings.geminiFreeApiKey && !settings.geminiApiKey) {
+        if (!settings.geminiFreeApiKey && !settings.geminiApiKey)
           return { valid: false, error: 'Falta configurar la Gemini Free API Key' };
-        }
         break;
       case 'gemini':
-        if (!settings.geminiApiKey) {
+        if (!settings.geminiApiKey)
           return { valid: false, error: 'Falta configurar la Gemini API Key' };
-        }
         break;
       case 'deepseek':
-        if (!settings.deepseekApiKey) {
+        if (!settings.deepseekApiKey)
           return { valid: false, error: 'Falta configurar la DeepSeek API Key' };
-        }
         break;
       case 'kimi':
-        if (!settings.kimiApiKey) {
+        if (!settings.kimiApiKey)
           return { valid: false, error: 'Falta configurar la Kimi API Key' };
-        }
         break;
       case 'ollama':
-        if (!settings.ollamaModel) {
+        if (!settings.ollamaModel)
           return { valid: false, error: 'Falta seleccionar un modelo de Ollama' };
-        }
         break;
       case 'lmstudio':
-        if (!settings.lmStudioModel) {
+        if (!settings.lmStudioModel)
           return { valid: false, error: 'Falta seleccionar un modelo en LM Studio' };
-        }
         break;
     }
 
@@ -149,123 +264,5 @@ export async function validateProviderConfig() {
   }
 }
 
-/**
- * Envía un prompt al proveedor de IA configurado con soporte para streaming
- * Todos los proveedores soportan streaming nativamente
- * @param {string} prompt - Prompt completo (ya construido con contexto si aplica)
- * @param {Function} onChunk - Callback que recibe cada chunk de la respuesta
- * @param {Object} options - Opciones adicionales (ej: { ragModel: 'deepseek-r1' })
- * @returns {Promise<{text: string, provider: string, streaming: boolean}>}
- */
-export async function callProviderStreaming(prompt, onChunk, options = {}) {
-  const settings = await getSettings();
-  const provider = settings.aiProvider || 'geminifree';
-
-  console.log(`[callProviderStreaming] Provider: ${provider}`);
-
-  switch (provider) {
-    case 'geminifree': {
-      console.log('[callProviderStreaming] Iniciando streaming con Gemini Free');
-      const fullResponse = await sendToGeminiStreaming(prompt, onChunk, true); // useFreeTier = true
-      return {
-        text: fullResponse || 'Sin respuesta',
-        provider: 'geminifree',
-        streaming: true
-      };
-    }
-
-    case 'gemini': {
-      console.log('[callProviderStreaming] Iniciando streaming con Gemini Pro');
-      const fullResponse = await sendToGeminiStreaming(prompt, onChunk, false); // useFreeTier = false
-      return {
-        text: fullResponse || 'Sin respuesta',
-        provider: 'gemini',
-        streaming: true
-      };
-    }
-
-    case 'deepseek': {
-      console.log('[callProviderStreaming] Iniciando streaming con DeepSeek');
-      const fullResponse = await sendToDeepseekStreaming(prompt, onChunk, options.model || null);
-      return {
-        text: fullResponse || 'Sin respuesta',
-        provider: 'deepseek',
-        streaming: true
-      };
-    }
-
-    case 'kimi': {
-      console.log('[callProviderStreaming] Iniciando streaming con Kimi');
-      const fullResponse = await sendToKimiStreaming(prompt, onChunk, options.model || null);
-      return {
-        text: fullResponse || 'Sin respuesta',
-        provider: 'kimi',
-        streaming: true
-      };
-    }
-
-    case 'lmstudio': {
-      const model = options.model || options.ragModel || settings.lmStudioModel;
-      if (!model) {
-        throw new Error('No se ha seleccionado un modelo en LM Studio.');
-      }
-      console.log(`[callProviderStreaming] Iniciando streaming con LM Studio modelo: ${model}`);
-      const fullResponse = await sendToLMStudioStreaming(prompt, onChunk, model);
-      return {
-        text: fullResponse || 'Sin respuesta',
-        provider: 'lmstudio',
-        model: model,
-        streaming: true
-      };
-    }
-
-    case 'ollama': {
-      // Permitir override del modelo vía options.model > options.ragModel > settings
-      const model = options.model || options.ragModel || settings.ollamaModel;
-      if (!model) {
-        throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
-      }
-
-      // Streaming: soportado si settings lo indica Y no es modelo RAG override
-      // Con options.model (sesión) mantenemos el supportsStreaming del estado local
-      const useStreaming = settings.ollamaModelSupportsStreaming && !options.ragModel;
-
-      if (useStreaming) {
-        console.log(`[callProviderStreaming] Iniciando streaming con Ollama modelo: ${model}`);
-        const fullResponse = await ollamaGenerateStreaming(model, prompt, onChunk);
-        return {
-          text: fullResponse || 'Sin respuesta',
-          provider: 'ollama',
-          model: model,
-          streaming: true
-        };
-      }
-
-      // Fallback: modo normal sin streaming (para modelos RAG o si no soporta streaming)
-      console.log(`🔄 Usando modo no-streaming para Ollama${options.ragModel ? ` (RAG model: ${model})` : ''}`);
-      const result = await callProvider(prompt, options);
-      if (onChunk && result.text) {
-        onChunk(result.text);
-      }
-      return {
-        ...result,
-        streaming: false
-      };
-    }
-
-    default:
-      // Fallback para cualquier otro proveedor
-      console.log(`🔄 Usando modo no-streaming para ${provider}`);
-      const result = await callProvider(prompt);
-      if (onChunk && result.text) {
-        onChunk(result.text);
-      }
-      return {
-        ...result,
-        streaming: false
-      };
-  }
-}
-
-// Re-exportar funciones útiles
+// Re-exportar funciones útiles de proveedores
 export { getDeepseekAvailableModels, getKimiAvailableModels, getLMStudioModels };

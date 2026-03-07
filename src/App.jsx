@@ -6,6 +6,7 @@ import Settings from './pages/Settings/Settings'
 import Projects from './pages/Projects/Projects'
 import ProjectDetail from './pages/ProjectDetail/ProjectDetail'
 import TranscriptionQueue from './pages/TranscriptionQueue/TranscriptionQueue'
+import AiQueue from './pages/AiQueue/AiQueue'
 import RecordingOverlay from './components/RecordingOverlay/RecordingOverlay'
 import Sidebar from './components/Sidebar/Sidebar';
 import Onboarding from './pages/Onboarding/Onboarding';
@@ -248,6 +249,9 @@ export default function App() {
             queueState={queueState}
             onNavigateToRecording={handleNavigateToRecording}
           />
+        )}
+        {currentView === 'ai-queue' && (
+          <AiQueue />
         )}
       </div>
       

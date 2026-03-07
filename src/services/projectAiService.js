@@ -4,6 +4,7 @@
  */
 
 import { callProvider } from './ai/providerRouter';
+import { AI_TASK_TYPES } from './ai/aiQueueService';
 import { parseJsonObject } from '../utils/aiResponseParser';
 import { projectAnalysisPrompt } from '../prompts/aiPrompts';
 import { projectRagChatPrompt, compressChatHistory } from '../prompts/ragPrompts';
@@ -357,7 +358,10 @@ class ProjectAiService {
         console.log(`[ProjectAI] RAG: ${allChunks.length} chunks de ${recordingIds.length} grabaciones`);
         const history = compressChatHistory(chatHistory);
         const prompt = projectRagChatPrompt(question, allChunks, history);
-        const result = await callProvider(prompt, options);
+        const result = await callProvider(prompt, {
+          ...options,
+          queueMeta: { name: 'Chat del proyecto', type: AI_TASK_TYPES.CHAT },
+        });
         const estimatedTokens = Math.round(prompt.length / 4);
         return {
           text: result.text || 'No he podido generar una respuesta en este momento.',
@@ -393,7 +397,10 @@ Instrucciones:
 2. Si la información no está en el contexto, indícalo educadamente.
 3. Utiliza formato Markdown para mejorar la legibilidad.`;
 
-      const result = await callProvider(prompt, options);
+      const result = await callProvider(prompt, {
+        ...options,
+        queueMeta: { name: 'Chat del proyecto', type: AI_TASK_TYPES.CHAT },
+      });
       const estimatedTokens = Math.round(prompt.length / 4);
       return {
         text: result.text || 'No he podido generar una respuesta en este momento.',
@@ -461,7 +468,9 @@ Instrucciones:
    */
   async _generateProjectAnalysis(contextText) {
     const prompt = projectAnalysisPrompt(contextText);
-    const result = await callProvider(prompt);
+    const result = await callProvider(prompt, {
+      queueMeta: { name: 'Análisis de proyecto', type: AI_TASK_TYPES.PROJECT_ANALYSIS },
+    });
 
     if (!result.text || result.text === 'Sin respuesta') {
       throw new Error('Respuesta vacía del proveedor de IA');
