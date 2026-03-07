@@ -1,10 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './Sidebar.module.css';
 import {
   MdAutoAwesome
 } from 'react-icons/md';
+import { aiQueueService } from '../../services/ai/aiQueueService';
 
 const Sidebar = ({ currentView, onViewChange, queueCount = 0 }) => {
+  const [aiQueueCount, setAiQueueCount] = useState(0);
+
+  useEffect(() => {
+    const unsubscribe = aiQueueService.subscribe((state) => {
+      const total = (state.current ? 1 : 0) + state.queue.length;
+      setAiQueueCount(total);
+    });
+    return unsubscribe;
+  }, []);
+
   const menuItems = [
     { id: 'home', label: 'Home', icon: <HomeIcon /> },
     { id: 'projects', label: 'All Projects', icon: <FolderIcon /> },
@@ -18,6 +29,7 @@ const Sidebar = ({ currentView, onViewChange, queueCount = 0 }) => {
       id: 'ai-queue',
       label: <span className={styles.multilineLabel}>AI<br/>Queue</span>,
       icon: <MdAutoAwesome />,
+      badge: aiQueueCount > 0 ? aiQueueCount : null,
     },
     { id: 'settings', label: 'Settings', icon: <SettingsIcon /> },
   ];

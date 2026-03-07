@@ -187,13 +187,15 @@ class RecordingAiService {
 
   /**
    * Genera un nuevo resumen para la grabación
-   * @param {string} recordingId 
+   * @param {string} recordingId
    * @param {string} transcriptionTxt - Texto opcional para evitar doble lectura
    * @param {boolean} force - Forzar regeneración aunque exista
    * @param {Object} options - Opciones de qué generar: { summaries, keyTopics, detailedSummary }
+   * @param {Object} providerOverrides - Proveedor temporal para esta llamada sin modificar settings.
+   *   Ejemplo: { providerOverride: 'ollama', model: 'llama3' }
    * @returns {Promise<Object>} Resumen generado
    */
-  async generateRecordingSummary(recordingId, transcriptionTxt = null, force = false, options = { summaries: true, keyTopics: true, detailedSummary: true }) {
+  async generateRecordingSummary(recordingId, transcriptionTxt = null, force = false, options = { summaries: true, keyTopics: true, detailedSummary: true }, providerOverrides = {}) {
     // Verificar si ya se está generando (a menos que sea force)
     if (!force) {
       const isGenerating = await this.isGenerating(recordingId);
@@ -203,7 +205,7 @@ class RecordingAiService {
     }
 
     // Crear promesa de generación
-    const generationPromise = this._performGeneration(recordingId, transcriptionTxt, options);
+    const generationPromise = this._performGeneration(recordingId, transcriptionTxt, options, providerOverrides);
     this.generatingPromises.set(recordingId, generationPromise);
 
     try {
@@ -219,8 +221,9 @@ class RecordingAiService {
    * Realiza la generación del resumen (método privado)
    * @private
    * @param {Object} options - Opciones de qué generar: { summaries, keyTopics, detailedSummary }
+   * @param {Object} providerOverrides - Override temporal de proveedor/modelo { providerOverride, model }
    */
-  async _performGeneration(recordingId, transcriptionTxt, options = { summaries: true, keyTopics: true, detailedSummary: true }) {
+  async _performGeneration(recordingId, transcriptionTxt, options = { summaries: true, keyTopics: true, detailedSummary: true }, providerOverrides = {}) {
     try {
       // 1. Guardar estado de generación
       const currentSessionId = appSessionService.getSessionId();
@@ -245,8 +248,9 @@ class RecordingAiService {
       const existing = await this.getRecordingSummary(recordingId) || {};
       
       // 4. Generar resúmenes usando el proveedor de IA configurado
-      console.log(`🤖 Generando resumen para ${recordingId}...`, options);
-      
+      const recName = await this._getRecordingName(recordingId);
+      console.log(`🤖 Generando resumen para ${recordingId} (${recName})...`, options);
+
       let detailedText = existing.resumen_detallado || '';
       let shortSummaryText = existing.resumen_breve || '';
       let keyPointText = existing.key_points || '';
@@ -256,7 +260,8 @@ class RecordingAiService {
       if (options.detailedSummary) {
         console.log('📋 Generando resumen detallado...');
         const detailedResponse = await this._callAiProvider(detailedSummaryPrompt, txt, {
-          queueMeta: { name: 'Resumen detallado', type: AI_TASK_TYPES.DETAILED_SUMMARY },
+          ...providerOverrides,
+          queueMeta: { name: `Resumen detallado: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY },
         });
         detailedText = detailedResponse.text || '';
       }
@@ -268,7 +273,8 @@ class RecordingAiService {
         console.log('📝 Generando resumen breve...');
         generationPromises.push(
           this._callAiProvider(shortSummaryPrompt, detailedText || txt, {
-            queueMeta: { name: 'Resumen breve', type: AI_TASK_TYPES.SUMMARY },
+            ...providerOverrides,
+            queueMeta: { name: `Resumen breve: ${recName}`, type: AI_TASK_TYPES.SUMMARY },
           }).then(r => ({ type: 'summary', text: r.text || '' }))
         );
       }
@@ -277,7 +283,8 @@ class RecordingAiService {
         console.log('🔑 Generando key topics...');
         generationPromises.push(
           this._callAiProvider(keyPointsPrompt, detailedText || txt, {
-            queueMeta: { name: 'Key Topics', type: AI_TASK_TYPES.KEY_TOPICS },
+            ...providerOverrides,
+            queueMeta: { name: `Key Topics: ${recName}`, type: AI_TASK_TYPES.KEY_TOPICS },
           }).then(r => ({ type: 'keyPoints', text: r.text || '' }))
         );
       }
@@ -367,6 +374,29 @@ class RecordingAiService {
   }
 
   /**
+   * Devuelve un nombre legible para la grabación, usado en los metadatos de la cola.
+   * @private
+   * @param {string|number} recordingId
+   * @returns {Promise<string>}
+   */
+  async _getRecordingName(recordingId) {
+    try {
+      if (window.electronAPI?.getRecordingById) {
+        const result = await window.electronAPI.getRecordingById(recordingId);
+        if (result.success && result.recording) {
+          const raw = result.recording.relative_path || result.recording.name || '';
+          // Extraer el último segmento del path (nombre de carpeta/archivo)
+          const segment = raw.split('/').filter(Boolean).pop() || raw;
+          return segment || `Grabación ${recordingId}`;
+        }
+      }
+    } catch {
+      // fallback silencioso
+    }
+    return `Grabación ${recordingId}`;
+  }
+
+  /**
    * Llama al proveedor de IA configurado (Gemini u Ollama)
    * @private
    * @param {string} prompt
@@ -384,25 +414,28 @@ class RecordingAiService {
 
   /**
    * Extrae participantes de una transcripción usando IA
-   * @param {string} recordingId 
+   * @param {string} recordingId
+   * @param {Object} providerOverrides - Override temporal de proveedor/modelo { providerOverride, model }
    * @returns {Promise<Array>} Lista de participantes extraídos
    */
-  async extractParticipants(recordingId) {
+  async extractParticipants(recordingId, providerOverrides = {}) {
     try {
+      const recName = await this._getRecordingName(recordingId);
       // Obtener transcripción
       const txt = await recordingsService.getTranscriptionTxt(recordingId);
-      
+
       if (!txt) {
         throw new Error('No se pudo obtener el texto de la transcripción');
       }
 
       // Construir prompt sándwich
       const combinedPrompt = `${participantsPrompt}\n${txt}\n${participantsPromptSuffix}`;
-      
+
       // Llamar a la IA con contexto null y forzando formato JSON para Ollama
       const participantsResponse = await this._callAiProvider(combinedPrompt, null, {
+        ...providerOverrides,
         format: 'json',
-        queueMeta: { name: 'Extracción de participantes', type: AI_TASK_TYPES.PARTICIPANTS },
+        queueMeta: { name: `Participantes: ${recName}`, type: AI_TASK_TYPES.PARTICIPANTS },
       });
       
       // Parsear respuesta JSON con utilidad centralizada
@@ -502,6 +535,7 @@ class RecordingAiService {
    */
   async generateTaskSuggestions(recordingId) {
     try {
+      const recName = await this._getRecordingName(recordingId);
       const txt = await recordingsService.getTranscriptionTxt(recordingId);
       if (!txt) {
         throw new Error('No se pudo obtener el texto de la transcripción');
@@ -510,7 +544,7 @@ class RecordingAiService {
       const combinedPrompt = `${taskSuggestionsPrompt}\n${txt}\n${taskSuggestionsPromptSuffix}`;
       const response = await this._callAiProvider(combinedPrompt, null, {
         format: 'json',
-        queueMeta: { name: 'Sugerencias de tareas', type: AI_TASK_TYPES.TASK_SUGGESTIONS },
+        queueMeta: { name: `Tareas: ${recName}`, type: AI_TASK_TYPES.TASK_SUGGESTIONS },
       });
 
       const validLayers = ['frontend', 'backend', 'fullstack'];
