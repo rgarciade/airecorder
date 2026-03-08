@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Funciones para la configuración
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
+  getSystemLanguage: () => ipcRenderer.invoke('get-system-language'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   loadSettings: () => ipcRenderer.invoke('load-settings'),
   

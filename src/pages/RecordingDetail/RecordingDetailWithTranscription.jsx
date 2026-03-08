@@ -93,6 +93,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [isVerifyingModel, setIsVerifyingModel] = useState(false);
   const [settingsModel, setSettingsModel] = useState('');
 
+  // Idioma de la interfaz (determina el idioma de respuesta de la IA)
+  const [uiLanguage, setUiLanguage] = useState('es');
+
   // Editing Title
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState(recording?.name || '');
@@ -163,6 +166,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     getSettings().then(settings => {
       setAiProvider(settings.aiProvider || 'geminifree');
       setSelectedWhisperModel(settings.whisperModel || 'small');
+      setUiLanguage(settings.uiLanguage || 'es');
       if (settings.aiProvider === 'ollama') {
         getAvailableModels().then(models => setOllamaModels(models.map(m => m.name || m)));
         setSelectedOllamaModel(settings.ollamaModel || '');
@@ -191,6 +195,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
       setAiProvider(provider);
       setSupportsStreaming(isStreamingSupported);
+      setUiLanguage(settings.uiLanguage || 'es');
       if (settings.ollamaModel) {
         setSelectedOllamaModel(settings.ollamaModel);
       }
@@ -441,7 +446,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           context = await recordingsService.getTranscriptionTxt(recording.id);
         }
 
-        prompt = chatQuestionPrompt(questionText);
+        prompt = chatQuestionPrompt(questionText, uiLanguage);
 
         setContextInfo({
           mode: 'full',

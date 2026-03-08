@@ -84,6 +84,28 @@ Sistema de notificación de actualizaciones manuales usando GitHub Releases API 
 | `openDownloadUrl(url)` | Abrir URL de descarga en navegador |
 | `onUpdateAvailable(cb)` | Listener de evento `update-available` |
 | `offUpdateAvailable()` | Eliminar listeners de actualización |
+| `getSystemLanguage()` | Obtener el idioma del SO (ej. `'es'`, `'en'`) |
+
+## Internacionalización (i18n)
+
+### IPC Handler: `get-system-language` (`ipc-handlers/settings.js`)
+
+Devuelve el idioma principal del sistema operativo para la detección automática de idioma en el primer arranque de la app.
+
+```javascript
+ipcMain.handle('get-system-language', () => {
+  const locale = app.getLocale(); // ej. 'es-ES', 'en-US'
+  const lang = locale.split('-')[0]; // 'es', 'en'
+  return ['es', 'en'].includes(lang) ? lang : 'es'; // fallback a 'es'
+});
+```
+
+**Uso desde el frontend:**
+```js
+const lang = await window.electronAPI.getSystemLanguage(); // 'es' | 'en'
+```
+
+Este handler se utiliza en `App.jsx` → `loadAppSettings()` cuando es la primera vez que se abre la app (`isFirstRun === true`) para aplicar el idioma del SO automáticamente y guardarlo en `settings.uiLanguage`.
 
 ## 5. Protección de Código (Build de producción)
 

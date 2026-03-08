@@ -1,10 +1,13 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import styles from './RecordingCard.module.css';
 import { MdTranscribe, MdFolderOpen, MdSchedule, MdAutorenew } from 'react-icons/md';
 
 export default function RecordingCard({ recording, onClick, onTranscribe }) {
+  const { t } = useTranslation();
+
   // Format duration
-  const durationStr = recording.duration 
+  const durationStr = recording.duration
     ? `${Math.floor(recording.duration/60).toString().padStart(2,'0')}:${Math.floor(recording.duration%60).toString().padStart(2,'0')}`
     : '--:--';
 
@@ -14,19 +17,20 @@ export default function RecordingCard({ recording, onClick, onTranscribe }) {
     const q = recording.queueStatus;
     if (q) {
       if (q.status === 'processing') {
-        return { 
-          label: `Transcribing (${q.progress}%)`, 
-          icon: <MdAutorenew className="animate-spin" />, 
-          color: '#3994EF' 
+        return {
+          key: 'processing',
+          label: t('recordingCard.transcribing', { progress: q.progress }),
+          icon: <MdAutorenew className="animate-spin" />,
+          color: '#3994EF'
         };
       }
-      if (q.status === 'pending') return { label: 'Queued', icon: <MdSchedule />, color: '#9CA3AF' };
+      if (q.status === 'pending') return { key: 'pending', label: t('recordingCard.queued'), icon: <MdSchedule />, color: '#9CA3AF' };
     }
-    
-    if (recording.status === 'transcribed') return { label: 'Needs AI Analysis', icon: <MdTranscribe />, color: '#F59E0B' };
-    if (recording.status === 'analyzed') return { label: 'Analyzed', icon: null, color: '#10B981' };
-    
-    return { label: 'Recorded', icon: null, color: '#6B7280' };
+
+    if (recording.status === 'transcribed') return { key: 'transcribed', label: t('recordingCard.needsAnalysis'), icon: <MdTranscribe />, color: '#F59E0B' };
+    if (recording.status === 'analyzed') return { key: 'analyzed', label: t('recordingCard.analyzed'), icon: null, color: '#10B981' };
+
+    return { key: 'recorded', label: t('recordingCard.recorded'), icon: null, color: '#6B7280' };
   };
 
   const statusInfo = getStatusDisplay();
@@ -65,11 +69,11 @@ export default function RecordingCard({ recording, onClick, onTranscribe }) {
           </div>
         )}
         <div className={styles.headerRight}>
-          {statusInfo.label === 'Recorded' && onTranscribe && (
-            <button 
-              className={styles.transcribeBtn} 
+          {statusInfo.key === 'recorded' && onTranscribe && (
+            <button
+              className={styles.transcribeBtn}
               onClick={(e) => { e.stopPropagation(); onTranscribe(recording.dbId || recording.id); }}
-              title="Transcribe Recording"
+              title={t('recordingCard.transcribeTitle')}
             >
               <MdTranscribe size={20} />
             </button>
@@ -77,8 +81,8 @@ export default function RecordingCard({ recording, onClick, onTranscribe }) {
           <div className={styles.duration}>{durationStr}</div>
         </div>
       </div>
-      
-      <h3 className={styles.title}>{recording.name || 'Untitled Recording'}</h3>
+
+      <h3 className={styles.title}>{recording.name || t('recordingCard.untitled')}</h3>
       <div className={styles.meta}>
         <span className={styles.date}>{dateStr}</span>
         <span className={styles.statusInfo} style={{ color: statusInfo.color }}>
@@ -92,7 +96,7 @@ export default function RecordingCard({ recording, onClick, onTranscribe }) {
         <div className={styles.projectInfo}>
           <div className={styles.projectHeader}>
             <MdFolderOpen size={12} />
-            <span>PROJECT</span>
+            <span>{t('recordingCard.project')}</span>
           </div>
           <p className={styles.projectName}>
             {recording.project.name}

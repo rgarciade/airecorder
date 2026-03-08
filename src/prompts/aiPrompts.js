@@ -1,221 +1,287 @@
 // Archivo centralizado de prompts para IA
 // Todos los prompts utilizados en la aplicación
 
-const pointDefinition = `saca los puntos clave y devuelveme una lista dividida por --|-- ejemplo:
---|-- 1 --|-- texto del punto 1
---|-- 2 --|-- texto del punto 2
---|-- 3 --|-- texto del punto 3`
+/**
+ * Devuelve el nombre del idioma en mayúsculas para incluir en los prompts.
+ * @param {string} lang - Código de idioma (ej: 'es', 'en')
+ * @returns {string}
+ */
+const langName = (lang = 'es') => {
+  const map = {
+    es: 'ESPAÑOL',
+    en: 'ENGLISH',
+    fr: 'FRANÇAIS',
+    de: 'DEUTSCH',
+    pt: 'PORTUGUÊS',
+    it: 'ITALIANO',
+    zh: 'CHINESE',
+    ja: 'JAPANESE',
+  };
+  return map[lang] || 'ESPAÑOL';
+};
 
-export const shortSummaryPrompt = `Eres un asistente de IA experto en hacer resumenes cortos y claros EN ESPAÑOL. A continuación tienes un resumen detallado,
- haz un resumen corto y claro de lo que se habla
- RECUERDA RETORNAR LA RESPUESTA SIN NINGUNA APORTACION TUYA EN LA CONVERSACION
- no agregues cosas como Here is a brief and clear summary of the conversation :
+// Definición del formato de puntos clave (estructura fija, no depende del idioma)
+const pointDefinition = `extract the key points and return them as a list using EXACTLY this delimited format:
+--|-- 1 --|-- text of key point 1
+--|-- 2 --|-- text of key point 2
+--|-- 3 --|-- text of key point 3`;
 
- SOLO DEVUELVE EL Resumen
- `;
+/**
+ * Prompt para resumen corto.
+ * @param {string} lang - Código de idioma ('es', 'en', ...)
+ */
+export const shortSummaryPrompt = (lang = 'es') =>
+  `You are an AI assistant expert at writing short, clear summaries.
 
-export const keyPointsPrompt = `Eres un asistente de IA experto en analizar textos y sacar los puntos mas importantes. 
-A continuación tienes un resumen detallado,
-${pointDefinition}
+⚠️ MANDATORY LANGUAGE RULE: YOUR ENTIRE RESPONSE MUST BE WRITTEN IN ${langName(lang)}. DO NOT USE ANY OTHER LANGUAGE.
 
-IMPORTANTE: En cada punto, resalta las PALABRAS CLAVE más importantes usando formato markdown con negritas (**palabra clave**). 
-Las palabras clave son términos técnicos, conceptos importantes, nombres propios, acciones clave, o cualquier término que sea esencial para entender el punto.
+You have been given a detailed summary. Write a short, clear summary of what is discussed.
 
-Ejemplo de formato:
---|-- 1 --|-- Se discutió el **lanzamiento del producto** y las **estrategias de marketing** para el próximo trimestre
---|-- 2 --|-- Se acordó implementar un **sistema de seguimiento** para mejorar la **productividad del equipo**
-
-LIMITA LA RESPUESTA A ENTRE 3 Y 5 PUNTOS PRINCIPALES Y GENERALES.
-NO ENTRES EN DETALLES EXCESIVOS, SOLO LAS IDEAS GENERALES.
-
-NO AGREGUES NADA MAS QUE LOS PUNTOS Y EL TEXTO DEL PUNTO
-RECUERDA RETORNAR LA RESPUESTA SIN NINGUNA APORTACION TUYA EN LA CONVERSACION
-RESPONDE EN ESPAÑOL
-
+RULES:
+- Do NOT add any personal commentary, preamble or closing phrases like "Here is a brief summary:".
+- Return ONLY the summary text, nothing else.
+- The summary MUST be in ${langName(lang)}.
 `;
 
-// Prompt para resumen detallado con contexto conversacional
-export const detailedSummaryPrompt = `Eres un asistente de IA experto en generar resúmenes detallados de conversaciones para futuros usos.
+/**
+ * Prompt para puntos clave.
+ * @param {string} lang - Código de idioma ('es', 'en', ...)
+ */
+export const keyPointsPrompt = (lang = 'es') =>
+  `You are an AI assistant expert at analyzing texts and extracting the most important points.
 
-Concéntrate solo en el diálogo relevante para generar tu respuesta.
+⚠️ MANDATORY LANGUAGE RULE: YOUR ENTIRE RESPONSE MUST BE WRITTEN IN ${langName(lang)}. DO NOT USE ANY OTHER LANGUAGE.
 
-DEVUELVE UN RESUMEN DETALLADO SIN FALTA DE DETALLES Y EN español para un mejor uso en futuras llamadas a este asistente. QUE QUEDE CLARO QUIÉN DICE CADA COSA
+You have been given a detailed summary. Your task is to ${pointDefinition}
 
-Incluye:
-- Quién participa en la conversación "USUARIO es el usuario de la app osea yo"
-- Los puntos principales que cada persona menciona
-- Decisiones tomadas
-- Acciones acordadas
-- Contexto importante para futuras consultas
+IMPORTANT: In each point, highlight the most important KEY WORDS using markdown bold format (**keyword**).
+Key words are technical terms, important concepts, proper names, key actions, or any term essential for understanding the point.
 
-El resumen debe ser lo suficientemente detallado para que alguien pueda hacer preguntas específicas sobre la conversación y obtener respuestas precisas.`;
+Example format:
+--|-- 1 --|-- The **product launch** and **marketing strategies** for the next quarter were discussed
+--|-- 2 --|-- It was agreed to implement a **tracking system** to improve **team productivity**
 
-// Prompt para preguntas del chat
-export const chatQuestionPrompt = (question) => 
+RULES:
+- Limit the response to BETWEEN 3 AND 5 main, general points.
+- Do NOT go into excessive detail — only the general ideas.
+- Do NOT add anything other than the points and their text.
+- Do NOT add any personal commentary or preamble.
+- ALL point texts MUST be in ${langName(lang)}.
+`;
+
+/**
+ * Prompt para resumen detallado con contexto conversacional.
+ * @param {string} lang - Código de idioma ('es', 'en', ...)
+ */
+export const detailedSummaryPrompt = (lang = 'es') =>
+  `You are an AI assistant expert at generating detailed summaries of conversations for future reference.
+
+⚠️ MANDATORY LANGUAGE RULE: YOUR ENTIRE RESPONSE MUST BE WRITTEN IN ${langName(lang)}. DO NOT USE ANY OTHER LANGUAGE.
+
+Focus only on the relevant dialogue to generate your response.
+
+RETURN A DETAILED SUMMARY WITHOUT OMITTING ANY DETAILS, so it can be used effectively in future queries about this conversation. MAKE IT CLEAR WHO SAYS WHAT.
+
+Include:
+- Who participates in the conversation ("USUARIO" refers to the app user, i.e. the person who made the recording)
+- The main points each person mentions
+- Decisions made
+- Agreed actions
+- Important context for future queries
+
+The summary must be detailed enough that someone can ask specific questions about the conversation and get precise answers.
+The summary MUST be written in ${langName(lang)}.
+`;
+
+/**
+ * Prompt para preguntas del chat con contexto de transcripción.
+ * @param {string} question - Pregunta del usuario
+ * @param {string} lang - Código de idioma ('es', 'en', ...)
+ */
+export const chatQuestionPrompt = (question, lang = 'es') =>
   `${question}
 
-Responde de forma concisa usando formato Markdown para mejorar la legibilidad (usa negritas, listas, encabezados, etc. cuando sea apropiado).
+⚠️ MANDATORY LANGUAGE RULE: YOUR ENTIRE RESPONSE MUST BE WRITTEN IN ${langName(lang)}. DO NOT USE ANY OTHER LANGUAGE.
 
-Si la pregunta requiere información específica de la conversación, usa el contexto proporcionado para dar una respuesta precisa y detallada.`;
+Respond concisely using Markdown format to improve readability (use bold, lists, headings, etc. when appropriate).
 
-// Prompt para extraer participantes de la transcripción
-export const participantsPrompt = `TU TAREA: Extraer nombres y roles de la siguiente transcripción.
+If the question requires specific information from the conversation, use the provided context to give a precise and detailed answer.`;
 
-INSTRUCCIONES DE FORMATO JSON ESTRICTO:
-1. Responde SOLAMENTE con un bloque de código JSON válido.
-2. NO incluyas texto antes ni después.
-3. Formato: [{"name": "X", "role": "Y"}]
+/**
+ * Prompt para extraer participantes de la transcripción.
+ * @param {string} lang - Código de idioma ('es', 'en', ...)
+ */
+export const participantsPrompt = (lang = 'es') =>
+  `YOUR TASK: Extract names and roles from the following transcript.
 
-Ejemplo:
+⚠️ MANDATORY LANGUAGE RULE: The "role" values MUST be written in ${langName(lang)}.
+
+STRICT JSON FORMAT INSTRUCTIONS:
+1. Respond ONLY with a valid JSON code block.
+2. Do NOT include any text before or after.
+3. Format: [{"name": "X", "role": "Y"}]
+
+Example:
 \`\`\`json
 [{"name": "Ana", "role": "PM"}]
 \`\`\`
 
-A CONTINUACIÓN, LA TRANSCRIPCIÓN:
+BELOW IS THE TRANSCRIPT:
 `;
 
 export const participantsPromptSuffix = `
 ----------------------------------------------------------------------------------
-RECORDATORIO FINAL:
-Basado en la transcripción anterior, genera ÚNICAMENTE el array JSON con los participantes encontrados. Si no hay, devuelve [].
+FINAL REMINDER:
+Based on the transcript above, generate ONLY the JSON array with the participants found. If none, return [].
 `;
 
-// Prompts para sugerencias de tareas
-export const taskSuggestionsPrompt = `Eres un asistente técnico. Analiza la siguiente transcripción y genera una lista de tareas de desarrollo de software.
+/**
+ * Prompt para sugerencias de tareas de desarrollo.
+ * @param {string} lang - Código de idioma ('es', 'en', ...)
+ */
+export const taskSuggestionsPrompt = (lang = 'es') =>
+  `You are a technical assistant. Analyze the following transcript and generate a list of software development tasks.
 
-REGLAS OBLIGATORIAS:
-1. Genera entre 3 y 5 tareas DISTINTAS. Cada tarea debe hablar de un tema diferente. PROHIBIDO repetir el mismo tema.
-2. Agrupa cambios relacionados en UNA sola tarea en lugar de crear varias pequeñas.
-3. El campo "layer" SOLO puede tener uno de estos tres valores exactos: "frontend", "backend" o "fullstack". NO uses ningún otro valor.
-   - "backend" = lógica de servidor, base de datos, APIs, servicios
-   - "frontend" = interfaz de usuario, componentes visuales, formularios
-   - "fullstack" = requiere cambios tanto en servidor como en interfaz
-4. Si una funcionalidad necesita cambios en front Y en back, crea DOS tareas con el mismo prefijo: "NombreGrupo: tarea backend" y "NombreGrupo: tarea frontend".
-5. El campo "content" debe incluir: una frase de contexto + lista de puntos con "- ".
-6. RESPONDE SOLO con el JSON, sin texto adicional.
-7. RESPONDE EN ESPAÑOL.
+⚠️ MANDATORY LANGUAGE RULE: The "title" and "content" VALUES in your JSON response MUST be written in ${langName(lang)}. DO NOT USE ANY OTHER LANGUAGE FOR THOSE FIELDS.
 
-FORMATO EXACTO:
-[{"title": "Título accionable", "content": "Contexto.\\n\\n- Punto 1\\n- Punto 2", "layer": "backend"}]
+MANDATORY RULES:
+1. Generate between 3 and 5 DISTINCT tasks. Each task must cover a different topic. FORBIDDEN to repeat the same topic.
+2. Group related changes into ONE single task instead of creating several small ones.
+3. The "layer" field can ONLY have one of these three exact values: "frontend", "backend" or "fullstack". DO NOT use any other value.
+   - "backend" = server logic, database, APIs, services
+   - "frontend" = user interface, visual components, forms
+   - "fullstack" = requires changes in both server and interface
+4. If a feature needs changes in both front AND back, create TWO tasks with the same prefix: "GroupName: backend task" and "GroupName: frontend task".
+5. The "content" field must include: a context sentence + a list of bullet points with "- ".
+6. RESPOND ONLY with the JSON, without additional text.
 
-EJEMPLO CORRECTO:
-[
-  {"title": "Tipos de IP: Actualizar lógica del servidor", "content": "Modificar el backend para soportar los tres tipos de IP (Report IT, Population IT, EUC).\\n\\n- Añadir los nuevos tipos al modelo de datos\\n- Restringir el generador de IP solo a Report IT\\n- Actualizar validaciones y tests", "layer": "backend"},
-  {"title": "Tipos de IP: Actualizar tabla en interfaz", "content": "Adaptar la vista para mostrar y diferenciar los tres tipos de IP.\\n\\n- Mostrar los tres tipos en la tabla con columna de tipo\\n- Ocultar botón 'Generar IP' para Population IT y EUC\\n- Añadir filtro por tipo", "layer": "frontend"},
-  {"title": "Configurar entorno de staging", "content": "Preparar un entorno de pruebas aislado previo a producción.\\n\\n- Crear rama de staging en el repositorio\\n- Configurar variables de entorno específicas\\n- Conectar con pipeline de CI", "layer": "fullstack"}
-]
+EXACT FORMAT:
+[{"title": "Actionable title", "content": "Context.\\n\\n- Point 1\\n- Point 2", "layer": "backend"}]
 
-A CONTINUACIÓN, LA TRANSCRIPCIÓN:
+BELOW IS THE TRANSCRIPT:
 `;
 
 export const taskSuggestionsPromptSuffix = `
 ----------------------------------------------------------------------------------
-RECORDATORIO FINAL: Devuelve ÚNICAMENTE el array JSON. El campo "layer" SOLO puede ser "frontend", "backend" o "fullstack". Mínimo 3, máximo 5 tareas bien diferenciadas.
+FINAL REMINDER: Return ONLY the JSON array. The "layer" field can ONLY be "frontend", "backend" or "fullstack". Minimum 3, maximum 5 well-differentiated tasks. Titles and content MUST be in the language specified above.
 `;
 
-export const taskImprovementPrompt = (userInstructions) => `TU TAREA: Mejorar la siguiente tarea siguiendo las instrucciones del usuario.
+/**
+ * Prompt para mejorar una tarea individual.
+ * @param {string} userInstructions - Instrucciones del usuario
+ * @param {string} lang - Código de idioma ('es', 'en', ...)
+ */
+export const taskImprovementPrompt = (userInstructions, lang = 'es') =>
+  `YOUR TASK: Improve the following task according to the user's instructions.
 
-INSTRUCCIONES DE FORMATO JSON ESTRICTO:
-1. Responde SOLAMENTE con un bloque de código JSON válido.
-2. NO incluyas texto antes ni después.
-3. Formato: {"title": "X", "content": "Y"}
-4. El title debe ser corto, accionable y en imperativo.
-5. El content debe ser una descripción detallada, clara y accionable.
-6. RESPONDE EN ESPAÑOL.
+⚠️ MANDATORY LANGUAGE RULE: The "title" and "content" VALUES MUST be written in ${langName(lang)}. DO NOT USE ANY OTHER LANGUAGE.
 
-INSTRUCCIONES DEL USUARIO:
+STRICT JSON FORMAT INSTRUCTIONS:
+1. Respond ONLY with a valid JSON code block.
+2. Do NOT include any text before or after.
+3. Format: {"title": "X", "content": "Y"}
+4. The title must be short, actionable and in the imperative form.
+5. The content must be a detailed, clear and actionable description.
+
+USER INSTRUCTIONS:
 ${userInstructions}
 
-TAREA A MEJORAR:
+TASK TO IMPROVE:
 `;
 
-// Prompt para análisis completo de proyecto basado en grabaciones
-export const projectAnalysisPrompt = (contextText) => `Actúa como un Project Manager experto. A continuación te proporciono los resúmenes de varias reuniones/grabaciones asociadas a un proyecto.
-Están presentadas en ORDEN CRONOLÓGICO (de la más antigua a la más reciente).
-Tu tarea es analizar esta información en conjunto y generar un reporte de estado del proyecto actualizado.
+/**
+ * Prompt para análisis completo de proyecto basado en grabaciones.
+ * @param {string} contextText - Texto de contexto con resúmenes de grabaciones
+ * @param {string} lang - Código de idioma ('es', 'en', ...)
+ */
+export const projectAnalysisPrompt = (contextText, lang = 'es') =>
+  `Act as an expert Project Manager. Below I provide you with summaries of several meetings/recordings associated with a project.
+They are presented in CHRONOLOGICAL ORDER (from oldest to most recent).
+Your task is to analyze this information as a whole and generate an updated project status report.
 
-Información de las grabaciones:
+⚠️ MANDATORY LANGUAGE RULE: ALL free-text fields (resumen_breve, resumen_extenso, titulo, descripcion, nombre_proyecto, proximo_hito, presupuesto, duracion_prevista, and the "role" field in miembros) MUST be written in ${langName(lang)}. DO NOT USE ANY OTHER LANGUAGE FOR THOSE FIELDS.
+The JSON KEYS and ENUM VALUES (estado, fecha, semana, initials, "completado", "en_progreso", "pendiente", "En Progreso", "Completado", "Pausado", "En Riesgo") remain EXACTLY as defined below — do NOT translate them.
+
+Recording information:
 ${contextText}
 
-Responde EXCLUSIVAMENTE en Español.
-
-Responde EXCLUSIVAMENTE con un objeto JSON (sin markdown, sin bloques de código) con la siguiente estructura exacta:
+Respond EXCLUSIVELY with a JSON object (no markdown, no code blocks) with the following exact structure:
 {
-  "resumen_breve": "Un resumen ejecutivo de 2-3 frases sobre el estado general del proyecto.",
-  "resumen_extenso": "Un análisis detallado del progreso, logros recientes y estado actual.",
+  "resumen_breve": "A 2-3 sentence executive summary of the overall project status.",
+  "resumen_extenso": "A detailed analysis of progress, recent achievements and current status.",
   "miembros": [
     {
-      "name": "Nombre detectado",
-      "role": "Rol inferido (ej: PM, Dev, Diseño, Cliente)",
+      "name": "Detected name",
+      "role": "Inferred role in ${langName(lang)} (e.g.: PM, Dev, Design, Client)",
       "participaciones": 0,
       "initials": "XX"
     }
   ],
   "hitos": [
     {
-      "semana": "Semana X",
-      "titulo": "Título del hito",
-      "descripcion": "Descripción breve",
-      "fecha": "YYYY-MM-DD (estimada o mencionada)",
+      "semana": "Week X",
+      "titulo": "Milestone title in ${langName(lang)}",
+      "descripcion": "Brief description in ${langName(lang)}",
+      "fecha": "YYYY-MM-DD (estimated or mentioned)",
       "estado": "completado" | "en_progreso" | "pendiente",
       "icono": "emoji"
     }
   ],
   "detalles": {
-    "nombre_proyecto": "Nombre inferido o del contexto",
+    "nombre_proyecto": "Inferred name or from context, in ${langName(lang)}",
     "estado": "En Progreso" | "Completado" | "Pausado" | "En Riesgo",
     "fecha_inicio": "YYYY-MM-DD",
     "fecha_finalizacion": "YYYY-MM-DD",
-    "presupuesto": "Cifra mencionada o 'No especificado'",
-    "duracion_prevista": "Tiempo estimado",
-    "proximo_hito": "Siguiente paso importante",
+    "presupuesto": "Mentioned figure or 'Not specified' in ${langName(lang)}",
+    "duracion_prevista": "Estimated time in ${langName(lang)}",
+    "proximo_hito": "Next important step in ${langName(lang)}",
     "fecha_proximo_hito": "YYYY-MM-DD"
   }
 }
 
-Si falta información para algún campo, haz una estimación razonable basada en el contexto o usa "No especificado".`;
+If information is missing for any field, make a reasonable estimate based on context or use a 'Not specified' equivalent in ${langName(lang)}.`;
 
 // Prompts para proyectos (futuro)
 export const projectPrompts = {
-  summary: `Analiza todas las grabaciones del proyecto y genera un resumen ejecutivo que incluya:
-- Estado actual del proyecto
-- Progreso realizado
-- Próximos pasos identificados
-- Riesgos o problemas mencionados
-- Decisiones importantes tomadas`,
+  summary: `Analyze all project recordings and generate an executive summary that includes:
+- Current project status
+- Progress made
+- Identified next steps
+- Risks or problems mentioned
+- Important decisions made`,
 
-  insights: `Identifica los insights clave del proyecto basándote en todas las grabaciones:
-- Patrones en las discusiones
-- Temas recurrentes
-- Evolución del proyecto
-- Participación del equipo
-- Metas y objetivos`,
+  insights: `Identify the key insights from the project based on all recordings:
+- Patterns in the discussions
+- Recurring topics
+- Project evolution
+- Team participation
+- Goals and objectives`,
 
-  timeline: `Crea una línea de tiempo del proyecto basada en las grabaciones:
-- Hitos importantes
-- Fechas clave mencionadas
-- Evolución de decisiones
-- Cambios de dirección`,
+  timeline: `Create a project timeline based on the recordings:
+- Important milestones
+- Key dates mentioned
+- Evolution of decisions
+- Changes in direction`,
 
-  team: `Analiza la participación del equipo en el proyecto:
-- Roles y responsabilidades
-- Nivel de participación
-- Contribuciones clave
-- Dinámicas de equipo`
+  team: `Analyze team participation in the project:
+- Roles and responsibilities
+- Level of participation
+- Key contributions
+- Team dynamics`
 };
 
 // Prompt para análisis de sentimientos (futuro)
-export const sentimentPrompt = `Analiza el tono y sentimientos expresados en la conversación:
-- Nivel de satisfacción general
-- Preocupaciones o frustraciones
-- Entusiasmo o motivación
-- Tensiones o conflictos
-- Acuerdos y consensos`;
+export const sentimentPrompt = `Analyze the tone and feelings expressed in the conversation:
+- Overall satisfaction level
+- Concerns or frustrations
+- Enthusiasm or motivation
+- Tensions or conflicts
+- Agreements and consensus`;
 
 // Prompt para extracción de tareas (futuro)
-export const tasksPrompt = `Extrae todas las tareas, acciones y compromisos mencionados en la conversación:
-- Tareas asignadas a personas específicas
-- Fechas límite mencionadas
-- Acciones a seguir
-- Decisiones pendientes
-- Compromisos adquiridos`;
+export const tasksPrompt = `Extract all tasks, actions and commitments mentioned in the conversation:
+- Tasks assigned to specific people
+- Mentioned deadlines
+- Follow-up actions
+- Pending decisions
+- Acquired commitments`;

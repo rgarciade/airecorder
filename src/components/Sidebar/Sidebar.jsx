@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import styles from './Sidebar.module.css';
 import {
   MdAutoAwesome
@@ -6,6 +7,7 @@ import {
 import { aiQueueService } from '../../services/ai/aiQueueService';
 
 const Sidebar = ({ currentView, onViewChange, queueCount = 0 }) => {
+  const { t } = useTranslation();
   const [aiQueueCount, setAiQueueCount] = useState(0);
 
   useEffect(() => {
@@ -17,21 +19,21 @@ const Sidebar = ({ currentView, onViewChange, queueCount = 0 }) => {
   }, []);
 
   const menuItems = [
-    { id: 'home', label: 'Home', icon: <HomeIcon /> },
-    { id: 'projects', label: 'All Projects', icon: <FolderIcon /> },
+    { id: 'home', label: t('sidebar.home'), icon: <HomeIcon /> },
+    { id: 'projects', label: t('sidebar.projects'), icon: <FolderIcon /> },
     {
       id: 'queue',
-      label: <span className={styles.multilineLabel}>Transcription<br/>Queue</span>,
+      label: <span className={styles.multilineLabel}>{t('sidebar.transcriptionQueue').split('\n').map((line, i) => i === 0 ? line : <><br key={i}/>{line}</>)}</span>,
       icon: <QueueIcon />,
       badge: queueCount > 0 ? queueCount : null
     },
     {
       id: 'ai-queue',
-      label: <span className={styles.multilineLabel}>AI<br/>Queue</span>,
+      label: <span className={styles.multilineLabel}>{t('sidebar.aiQueue').split('\n').map((line, i) => i === 0 ? line : <><br key={i}/>{line}</>)}</span>,
       icon: <MdAutoAwesome />,
       badge: aiQueueCount > 0 ? aiQueueCount : null,
     },
-    { id: 'settings', label: 'Settings', icon: <SettingsIcon /> },
+    { id: 'settings', label: t('sidebar.settings'), icon: <SettingsIcon /> },
   ];
 
   return (
