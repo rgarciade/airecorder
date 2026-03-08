@@ -18,6 +18,13 @@
     "sending": "Enviando...",
     "saveChanges": "Guardar Cambios"
   },
+  "modelInfo": {
+    "title": "Modelos recomendados",
+    "generalModel": "Modelo General",
+    "embedding": "Embedding",
+    "bestPerformance": "Mejor rendimiento",
+    "lessResources": "Menos recursos"
+  },
   "sidebar": {
     "home": "Inicio",
     "projects": "Proyectos",
