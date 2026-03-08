@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
+import i18n from './i18n/index.js'
 import Home from './pages/Home/Home'
 import RecordingDetailWithTranscription from './pages/RecordingDetail/RecordingDetailWithTranscription';
 import Settings from './pages/Settings/Settings'
@@ -114,6 +115,20 @@ export default function App() {
           if (settings.lastVersion !== currentVersion) {
             await updateSettings({ lastVersion: currentVersion });
           }
+        }
+      }
+
+      // Aplicar idioma de interfaz
+      if (settings.uiLanguage) {
+        i18n.changeLanguage(settings.uiLanguage);
+      } else if (settings.isFirstRun && window.electronAPI?.getSystemLanguage) {
+        // Primera ejecución: detectar idioma del SO
+        try {
+          const systemLang = await window.electronAPI.getSystemLanguage();
+          i18n.changeLanguage(systemLang);
+          updateSettings({ uiLanguage: systemLang }).catch(err => console.error('Error guardando uiLanguage:', err));
+        } catch (err) {
+          console.error('Error detectando idioma del sistema:', err);
         }
       }
 

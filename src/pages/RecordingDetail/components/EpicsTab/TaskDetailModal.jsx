@@ -1,19 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import styles from './TaskDetailModal.module.css';
 import { MdClose, MdSave, MdDelete, MdFolderOpen, MdSend } from 'react-icons/md';
 
-const STATUS_OPTIONS = [
-  { value: 'backlog',     label: 'Backlog' },
-  { value: 'in_progress', label: 'En progreso' },
-  { value: 'blocked',     label: 'Bloqueado' },
-  { value: 'done',        label: 'Hecho' },
-];
+const STATUS_VALUES = ['backlog', 'in_progress', 'blocked', 'done'];
 
 const LAYER_OPTIONS = [
-  { value: 'frontend',  label: 'Front', cls: 'layerFront' },
-  { value: 'backend',   label: 'Back',  cls: 'layerBack'  },
-  { value: 'fullstack', label: 'Full',  cls: 'layerFull'  },
-  { value: 'general',   label: 'General', cls: 'layerGen' },
+  { value: 'frontend',  cls: 'layerFront' },
+  { value: 'backend',   cls: 'layerBack'  },
+  { value: 'fullstack', cls: 'layerFull'  },
+  { value: 'general',   cls: 'layerGen'   },
 ];
 
 function formatDate(dateStr) {
@@ -24,15 +20,17 @@ function formatDate(dateStr) {
 
 export default function TaskDetailModal({
   task,
-  recordingInfo,       // { id, title } | undefined
+  recordingInfo,
   onClose,
-  onUpdate,            // ({ id, title, content, layer, status }) => void
-  onDelete,            // (taskId) => void | undefined — opcional
-  onNavigateToRecording, // (recordingId) => void | undefined
-  getComments,         // (taskId) => Promise<Comment[]>
-  onAddComment,        // (taskId, content) => Promise<Comment>
-  onDeleteComment,     // (commentId) => Promise<void>
+  onUpdate,
+  onDelete,
+  onNavigateToRecording,
+  getComments,
+  onAddComment,
+  onDeleteComment,
 }) {
+  const { t } = useTranslation();
+
   const [editData, setEditData] = useState({
     title: task.title || '',
     content: task.content || '',
@@ -95,14 +93,14 @@ export default function TaskDetailModal({
 
             {/* Status pills */}
             <div className={styles.statusRow}>
-              <span className={styles.statusLabel}>Estado:</span>
-              {STATUS_OPTIONS.map(opt => (
+              <span className={styles.statusLabel}>{t('taskModal.status')}</span>
+              {STATUS_VALUES.map(value => (
                 <button
-                  key={opt.value}
-                  className={`${styles.statusPill} ${editData.status === opt.value ? styles[`active_${opt.value}`] : ''}`}
-                  onClick={() => setEditData(p => ({ ...p, status: opt.value }))}
+                  key={value}
+                  className={`${styles.statusPill} ${editData.status === value ? styles[`active_${value}`] : ''}`}
+                  onClick={() => setEditData(p => ({ ...p, status: value }))}
                 >
-                  {opt.label}
+                  {t(`taskModal.statusOptions.${value}`)}
                 </button>
               ))}
             </div>
@@ -112,7 +110,7 @@ export default function TaskDetailModal({
               <button
                 className={styles.recordingBadge}
                 onClick={() => onNavigateToRecording?.(recordingInfo.id)}
-                title={`Ir a: ${recordingInfo.title}`}
+                title={t('taskModal.goToRecording', { title: recordingInfo.title })}
               >
                 <MdFolderOpen size={12} />
                 {recordingInfo.title}
@@ -120,7 +118,7 @@ export default function TaskDetailModal({
             )}
           </div>
 
-          <button className={styles.closeBtn} onClick={onClose} title="Cerrar">
+          <button className={styles.closeBtn} onClick={onClose} title={t('taskModal.close')}>
             <MdClose size={18} />
           </button>
         </div>
@@ -130,7 +128,7 @@ export default function TaskDetailModal({
           {/* Panel edición */}
           <div className={styles.editPanel}>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Título</label>
+              <label className={styles.fieldLabel}>{t('taskModal.fields.title')}</label>
               <input
                 type="text"
                 className={styles.fieldInput}
@@ -140,7 +138,7 @@ export default function TaskDetailModal({
             </div>
 
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Descripción</label>
+              <label className={styles.fieldLabel}>{t('taskModal.fields.description')}</label>
               <textarea
                 className={styles.fieldTextarea}
                 value={editData.content}
@@ -150,7 +148,7 @@ export default function TaskDetailModal({
             </div>
 
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Capa</label>
+              <label className={styles.fieldLabel}>{t('taskModal.fields.layer')}</label>
               <div className={styles.layerSelector}>
                 {LAYER_OPTIONS.map(opt => (
                   <button
@@ -159,7 +157,7 @@ export default function TaskDetailModal({
                     className={`${styles.layerOption} ${styles[opt.cls]} ${editData.layer === opt.value ? styles.layerActive : ''}`}
                     onClick={() => setEditData(p => ({ ...p, layer: opt.value }))}
                   >
-                    {opt.label}
+                    {t(`taskModal.layerOptions.${opt.value}`)}
                   </button>
                 ))}
               </div>
@@ -170,25 +168,25 @@ export default function TaskDetailModal({
               onClick={handleSave}
               disabled={!editData.title.trim()}
             >
-              <MdSave size={16} /> Guardar cambios
+              <MdSave size={16} /> {t('taskModal.saveChanges')}
             </button>
 
             {onDelete && (
               <div className={styles.deleteRow}>
                 {confirmDelete ? (
                   <>
-                    <span className={styles.deleteConfirmText}>¿Eliminar esta tarea?</span>
+                    <span className={styles.deleteConfirmText}>{t('taskModal.confirmDelete')}</span>
                     <button
                       className={styles.deleteConfirmBtn}
                       onClick={() => { onDelete(task.id); onClose(); }}
                     >
-                      Sí, eliminar
+                      {t('taskModal.confirmYes')}
                     </button>
                     <button
                       className={styles.deleteCancelBtn}
                       onClick={() => setConfirmDelete(false)}
                     >
-                      Cancelar
+                      {t('taskModal.cancel')}
                     </button>
                   </>
                 ) : (
@@ -196,7 +194,7 @@ export default function TaskDetailModal({
                     className={styles.deleteButton}
                     onClick={() => setConfirmDelete(true)}
                   >
-                    <MdDelete size={14} /> Eliminar tarea
+                    <MdDelete size={14} /> {t('taskModal.deleteTask')}
                   </button>
                 )}
               </div>
@@ -206,12 +204,12 @@ export default function TaskDetailModal({
           {/* Panel comentarios */}
           <div className={styles.commentsPanel}>
             <div className={styles.commentsHeader}>
-              Comentarios {comments.length > 0 && `(${comments.length})`}
+              {t('taskModal.comments')} {comments.length > 0 && `(${comments.length})`}
             </div>
 
             <div className={styles.commentsList}>
               {comments.length === 0 ? (
-                <p className={styles.commentEmpty}>Sin comentarios aún</p>
+                <p className={styles.commentEmpty}>{t('taskModal.noComments')}</p>
               ) : (
                 comments.map(c => (
                   <div key={c.id} className={styles.commentItem}>
@@ -220,7 +218,7 @@ export default function TaskDetailModal({
                       <button
                         className={styles.commentDeleteBtn}
                         onClick={() => handleDeleteComment(c.id)}
-                        title="Eliminar comentario"
+                        title={t('taskModal.deleteComment')}
                       >
                         <MdDelete size={13} />
                       </button>
@@ -238,7 +236,7 @@ export default function TaskDetailModal({
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   onKeyDown={handleCommentKey}
-                  placeholder="Añadir comentario... (Ctrl+Enter para enviar)"
+                  placeholder={t('taskModal.addCommentPlaceholder')}
                   rows={3}
                 />
                 <button
@@ -247,7 +245,7 @@ export default function TaskDetailModal({
                   disabled={!newComment.trim() || addingComment}
                 >
                   <MdSend size={13} />
-                  {addingComment ? 'Enviando...' : 'Añadir'}
+                  {addingComment ? t('taskModal.sending') : t('taskModal.addCommentBtn')}
                 </button>
               </div>
             )}

@@ -8,6 +8,7 @@ import { AI_TASK_TYPES } from './ai/aiQueueService';
 import { parseJsonObject } from '../utils/aiResponseParser';
 import { projectAnalysisPrompt } from '../prompts/aiPrompts';
 import { projectRagChatPrompt, compressChatHistory } from '../prompts/ragPrompts';
+import { getSettings } from './settingsService';
 
 class ProjectAiService {
   constructor() {
@@ -467,7 +468,11 @@ Instrucciones:
    * @returns {Promise<Object>}
    */
   async _generateProjectAnalysis(contextText) {
-    const prompt = projectAnalysisPrompt(contextText);
+    // Leer idioma de ajustes del usuario
+    const settings = await getSettings();
+    const lang = settings.uiLanguage || 'es';
+
+    const prompt = projectAnalysisPrompt(contextText, lang);
     const result = await callProvider(prompt, {
       queueMeta: { name: 'Análisis de proyecto', type: AI_TASK_TYPES.PROJECT_ANALYSIS },
     });

@@ -38,6 +38,7 @@ export const getSettings = async () => {
       isFirstRun: true, // Por defecto true para nuevos usuarios
       notificationsEnabled: true,
       language: 'es',
+      uiLanguage: 'es',
       microphone: '',
       // Gemini Pro
       geminiApiKey: '',

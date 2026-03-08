@@ -1,4 +1,4 @@
-const { ipcMain, dialog } = require('electron');
+const { ipcMain, dialog, app } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -7,6 +7,13 @@ const { settingsPath, DEFAULT_BASE_RECORDER_PATH } = require('../utils/paths');
 
 module.exports.registerSettingsHandlers = () => {
   
+  // Detectar idioma del sistema operativo
+  ipcMain.handle('get-system-language', () => {
+    const locale = app.getLocale(); // e.g. 'es-ES', 'en-US'
+    const lang = locale.split('-')[0]; // 'es', 'en', etc.
+    return ['es', 'en'].includes(lang) ? lang : 'es'; // Sólo soportamos es/en, fallback 'es'
+  });
+
   // Obtener info del sistema (CPU)
   ipcMain.handle('get-system-info', () => {
     return {

@@ -1,0 +1,425 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "back": "Volver",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "loading": "Cargando...",
+    "error": "Error",
+    "confirm": "Confirmar",
+    "yes": "Sí",
+    "no": "No",
+    "search": "Buscar...",
+    "send": "Enviar",
+    "sending": "Enviando...",
+    "saveChanges": "Guardar Cambios"
+  },
+  "sidebar": {
+    "home": "Inicio",
+    "projects": "Proyectos",
+    "transcriptionQueue": "Cola de\nTranscripción",
+    "aiQueue": "Cola\nde IA",
+    "settings": "Ajustes"
+  },
+  "home": {
+    "defaultMic": "Micrófono por defecto",
+    "greeting": "¡Bienvenido!",
+    "subtitle": "¿Qué quieres grabar hoy?",
+    "searchPlaceholder": "Buscar grabaciones...",
+    "recentRecordings": "Grabaciones recientes",
+    "viewProjects": "Ver proyectos",
+    "loadingRecordings": "Cargando grabaciones...",
+    "noRecordings": "Aún no hay grabaciones. ¡Empieza una nueva sesión!",
+    "page": "Página {{current}} de {{total}}",
+    "micPermissionDenied": "Acceso al micrófono denegado. La aplicación no podrá grabar audio.",
+    "micPermissionDeniedDesc": "Ve a Ajustes del Sistema > Privacidad y Seguridad > Micrófono y habilita AIRecorder.",
+    "openSystemSettings": "Abrir Ajustes del Sistema",
+    "micPermissionDeniedConfirm": "⚠️ Acceso al micrófono denegado.\n\nPor favor, habilita el permiso en Ajustes del Sistema > Privacidad y Seguridad > Micrófono.\n\n¿Quieres abrir los Ajustes del Sistema ahora?",
+    "micPermissionDeniedSystem": "⚠️ Acceso al micrófono denegado.\n\nPor favor, habilita el permiso de micrófono para la aplicación en Ajustes del Sistema.",
+    "micNotFound": "⚠️ No se encontró ningún micrófono.\n\nPor favor, conecta un micrófono e intenta de nuevo.",
+    "errorStartingRecording": "No se pudo iniciar la grabación: {{error}}",
+    "errorTranscribing": "Error iniciando transcripción: {{error}}",
+    "errorImporting": "Error importando la transcripción: {{error}}",
+    "errorImportingAudio": "Error importando audio: {{error}}",
+    "importAudio": {
+      "title": "Importar audio",
+      "description": "El audio ha sido importado con éxito. Puedes renombrarlo antes de iniciar la transcripción.",
+      "recordingName": "Nombre de la grabación",
+      "namePlaceholder": "Nombre",
+      "cancel": "Cancelar",
+      "startTranscription": "Iniciar transcripción"
+    }
+  },
+  "recordButton": {
+    "startRecording": "Iniciar Grabación",
+    "recording": "Grabando...",
+    "errorLoadingConfig": "Error al cargar la configuración",
+    "errorNoMic": "Por favor selecciona un micrófono en configuración",
+    "errorStarting": "Error al iniciar la grabación: {{error}}"
+  },
+  "recordingOverlay": {
+    "recording": "Grabando",
+    "defaultName": "grabacion",
+    "stopRecording": "Parar grabación",
+    "expand": "Expandir",
+    "collapse": "Colapsar",
+    "save": "Guardar",
+    "discard": "Descartar",
+    "project": "Proyecto",
+    "noProject": "Sin proyecto",
+    "selectProject": "Seleccionar proyecto",
+    "rename": "Renombrar",
+    "confirmDiscard": "¿Descartar grabación?",
+    "confirmDiscardMessage": "Se perderán todos los datos de esta grabación.",
+    "confirmDiscardYes": "Sí, descartar",
+    "processing": "Procesando...",
+    "processingComplete": "¡Grabación guardada!",
+    "savingName": "Nombre de la grabación",
+    "saveButton": "Guardar Grabación",
+    "discardButton": "Descartar",
+    "stopAndSave": "Parar y Guardar",
+    "recordingDetails": "Detalles de la Grabación",
+    "change": "Cambiar",
+    "saving": "Guardando archivos...",
+    "stopping": "Deteniendo grabación...",
+    "saveAndExit": "Guardar y Salir"
+  },
+  "settings": {
+    "title": "Ajustes de AIRecorder",
+    "subtitle": "Configuración",
+    "description": "Gestiona tus preferencias de aplicación y configuraciones de IA.",
+    "tabs": {
+      "agents": "Agentes de IA",
+      "general": "General"
+    },
+    "sections": {
+      "localProviders": "Proveedores Locales",
+      "cloudProviders": "Proveedores en la Nube",
+      "storage": "Almacenamiento",
+      "transcription": "Motor de Transcripción",
+      "appearance": "Apariencia de la Interfaz",
+      "audio": "Ajustes de Audio",
+      "system": "Preferencias del Sistema",
+      "permissions": "Permisos y Privacidad",
+      "about": "Acerca de AIRecorder"
+    },
+    "fields": {
+      "language": "Idioma",
+      "uiLanguage": "Idioma de la Interfaz",
+      "fontSize": "Tamaño de Fuente",
+      "microphone": "Micrófono por Defecto",
+      "whisperModel": "Tamaño del Modelo Whisper",
+      "cpuThreads": "Hilos de CPU para Transcripción",
+      "outputDirectory": "Directorio de Salida",
+      "apiKey": "API Key",
+      "model": "Modelo",
+      "hostUrl": "URL del Host",
+      "baseUrl": "URL Base",
+      "ragModel": "Modelo de Chat para RAG (opcional)",
+      "embeddingModel": "Modelo de Embeddings ({{provider}})"
+    },
+    "helpText": {
+      "transcriptionLanguage": "Idioma utilizado para la transcripción con Whisper.",
+      "uiLanguage": "Idioma en el que se muestra la aplicación.",
+      "fontSize": "Ajusta el tamaño de letra para los chats, transcripciones y resúmenes.",
+      "microphone": "Selecciona el dispositivo de entrada para tus grabaciones.",
+      "whisperModel": "Elige el modelo por defecto para nuevas transcripciones. Los modelos pequeños son más rápidos pero menos precisos.",
+      "cpuThreads": "Más hilos aumentan la velocidad de transcripción pero consumen más recursos del ordenador.",
+      "ragModel": "Modelo específico para responder consultas RAG (ej: deepseek-r1). Dejar vacío para usar el modelo principal.",
+      "embeddingModel": "Modelo usado para indexar y buscar fragmentos (ej: nomic-embed-text)."
+    },
+    "fontSizes": {
+      "small": "Pequeño",
+      "medium": "Mediano",
+      "large": "Grande",
+      "xlarge": "Muy Grande"
+    },
+    "whisperModels": {
+      "tiny": "Tiny (Muy Rápido)",
+      "base": "Base",
+      "small": "Small (Recomendado)",
+      "medium": "Medium",
+      "large": "Large (Preciso)"
+    },
+    "providers": {
+      "ollamaActive": "Ollama Activo",
+      "lmStudioActive": "LM Studio Activo",
+      "inactive": "Inactivo",
+      "localInference": "Inferencia Local",
+      "localServer": "Servidor Local (Compatible con OpenAI)",
+      "googleFree": "Google AI - Nivel Gratuito",
+      "googlePaid": "Google AI - Nivel de Pago"
+    },
+    "buttons": {
+      "save": "Guardar Ajustes",
+      "saving": "Guardando...",
+      "test": "Probar",
+      "refresh": "Refrescar",
+      "change": "Cambiar",
+      "openDevTools": "Abrir DevTools",
+      "openSettings": "Abrir Ajustes",
+      "grantPermission": "Otorgar Permiso",
+      "checkUpdates": "Comprobar Actualizaciones",
+      "download": "Descargar",
+      "checking": "Comprobando..."
+    },
+    "messages": {
+      "saveSuccess": "Ajustes guardados con éxito",
+      "saveError": "Error al guardar ajustes",
+      "upToDate": "Estás al día",
+      "updateAvailable": "Nueva versión disponible: v{{version}}",
+      "checkUpdatesDefault": "Comprueba si hay una versión más reciente disponible",
+      "updateError": "Error al verificar",
+      "connectError": "No se pudo conectar",
+      "serviceConnected": "• Servicio conectado",
+      "serviceNotDetected": "• Servicio no detectado en {{host}}",
+      "verifyingModel": "Verificando modelo...",
+      "supportsStreaming": "✓ Soporta streaming",
+      "noStreaming": "✗ No soporta streaming",
+      "modelError": "No se pudieron cargar los modelos. Verifica tu API Key."
+    },
+    "misc": {
+      "default": "Por defecto",
+      "recommended": "(Recomendado)",
+      "maximum": "(Máximo)",
+      "loading": "Cargando...",
+      "noModels": "Sin modelos",
+      "enterApiKey": "Introduce API Key",
+      "selectModel": "Selecciona un modelo",
+      "useMainModel": "Usar modelo principal",
+      "notifications": {
+        "title": "Notificaciones de Escritorio",
+        "desc": "Mostrar notificaciones nativas al completar tareas"
+      },
+      "devTools": {
+        "title": "Herramientas de Desarrollo",
+        "desc": "Abrir consola de depuración de Chromium"
+      },
+      "micAccess": {
+        "title": "Acceso al Micrófono",
+        "desc": "Necesario para grabar tu voz durante las reuniones.",
+        "granted": "Concedido",
+        "denied": "Denegado",
+        "openSettings": "Abrir Ajustes",
+        "grantPermission": "Otorgar Permiso"
+      },
+      "updates": {
+        "title": "Actualizaciones",
+        "testDev": "Probar Update (Dev)"
+      },
+      "directoryNotSupported": "La selección de directorio no está soportada en este entorno"
+    },
+    "uiLanguages": {
+      "es": "Español",
+      "en": "English"
+    }
+  },
+  "aiQueue": {
+    "title": "Monitor de Procesos",
+    "subtitle": "Gestiona tus tareas de IA.",
+    "currentTask": "Tarea actual",
+    "noCurrentTask": "No hay ninguna tarea en proceso",
+    "processingVia": "Procesando con {{engine}}",
+    "processing": "Procesando...",
+    "queue": "Cola",
+    "pendingTask_one": "{{count}} tarea pendiente",
+    "pendingTask_other": "{{count}} tareas pendientes",
+    "emptyQueue": "La cola está vacía.",
+    "pending": "PENDIENTE",
+    "cancelTask": "Cancelar tarea",
+    "history": "Historial",
+    "clearHistory": "Limpiar historial",
+    "emptyHistory": "No hay historial de tareas.",
+    "avgOf": "Media de {{count}} ejecuciones",
+    "moreOptions": "Más opciones",
+    "viewDetail": "Ver prompt y respuesta",
+    "prompt": "Prompt",
+    "response": "Respuesta",
+    "copyPrompt": "Copiar prompt",
+    "copyResponse": "Copiar respuesta",
+    "noTaskData": "No hay datos guardados para esta tarea.",
+    "columns": {
+      "task": "TAREA",
+      "engine": "MOTOR",
+      "duration": "DURACIÓN",
+      "status": "ESTADO",
+      "time": "HORA"
+    },
+    "status": {
+      "completed": "Completado",
+      "cancelled": "Cancelado",
+      "failed": "Fallido"
+    },
+    "relativeTime": {
+      "justNow": "Ahora mismo",
+      "minutesAgo": "hace {{count}}m",
+      "hoursAgo": "hace {{count}}h",
+      "yesterday": "Ayer"
+    }
+  },
+  "taskModal": {
+    "status": "Estado:",
+    "statusOptions": {
+      "backlog": "Backlog",
+      "in_progress": "En progreso",
+      "blocked": "Bloqueado",
+      "done": "Hecho"
+    },
+    "layerOptions": {
+      "frontend": "Front",
+      "backend": "Back",
+      "fullstack": "Full",
+      "general": "General"
+    },
+    "fields": {
+      "title": "Título",
+      "description": "Descripción",
+      "layer": "Capa"
+    },
+    "saveChanges": "Guardar cambios",
+    "deleteTask": "Eliminar tarea",
+    "confirmDelete": "¿Eliminar esta tarea?",
+    "confirmYes": "Sí, eliminar",
+    "cancel": "Cancelar",
+    "comments": "Comentarios",
+    "noComments": "Sin comentarios aún",
+    "addCommentPlaceholder": "Añadir comentario... (Ctrl+Enter para enviar)",
+    "addCommentBtn": "Añadir",
+    "sending": "Enviando...",
+    "deleteComment": "Eliminar comentario",
+    "goToRecording": "Ir a: {{title}}",
+    "close": "Cerrar"
+  },
+  "projects": {
+    "title": "Biblioteca de Proyectos",
+    "newProject": "Nuevo Proyecto",
+    "searchPlaceholder": "Buscar proyectos...",
+    "loading": "Cargando...",
+    "empty": "No tienes proyectos aún",
+    "emptyDesc": "Crea tu primer proyecto para organizar tus grabaciones",
+    "name": "Nombre",
+    "namePlaceholder": "Nombre del proyecto",
+    "description": "Descripción",
+    "descriptionPlaceholder": "Descripción (opcional)",
+    "create": "Crear Proyecto",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "cancel": "Cancelar",
+    "save": "Guardar cambios",
+    "confirmDelete": "¿Estás seguro de que quieres eliminar este proyecto?",
+    "subtitle": "Gestiona y organiza tus sesiones de audio.",
+    "recentUploads": "Subidas Recientes",
+    "allRecordings": "Todas las Grabaciones",
+    "assignRecording": "Asignar grabación",
+    "removeFromProject": "Quitar del proyecto",
+    "viewAll": "Ver todas",
+    "showLess": "Mostrar menos",
+    "recordings": "grabaciones",
+    "created": "Creado",
+    "errorLoading": "Error cargando datos",
+    "editProject": "Editar Proyecto",
+    "saveChanges": "Guardar Cambios",
+    "changeProjectTitle": "¿Cambiar Proyecto?",
+    "changeProjectText1": "La grabación \"{{recordingName}}\" ya está asignada al proyecto \"{{currentProjectName}}\".",
+    "changeProjectText2": "¿Quieres moverla a \"{{newProjectName}}\"?",
+    "changeProject": "Cambiar Proyecto",
+    "deleteProjectTitle": "¿Eliminar Proyecto?",
+    "deleteProjectConfirm": "¿Seguro que quieres eliminar \"{{name}}\"? Las grabaciones no serán eliminadas.",
+    "deleteProject": "Eliminar Proyecto",
+    "unassignTitle": "¿Desasignar del Proyecto?",
+    "unassignConfirm": "¿Seguro que quieres desasignar \"{{recordingName}}\" del proyecto \"{{projectName}}\"?",
+    "unassign": "Desasignar",
+    "page": "Página {{current}} de {{total}}"
+  },
+  "newSessionCard": {
+    "title": "Nueva Sesión",
+    "description": "Empieza a grabar al instante. La IA se encargará de la transcripción, resumen y extracción de puntos clave automáticamente.",
+    "changeMic": "Cambiar Micrófono",
+    "changeLanguage": "Cambiar Idioma",
+    "aiPowered": "POTENCIADO POR IA",
+    "start": "INICIAR",
+    "teams": "Teams",
+    "audio": "Audio"
+  },
+  "statsRow": {
+    "thisWeek": "Esta Semana",
+    "transcriptions": "Transcripciones",
+    "files": "Archivos",
+    "totalRecorded": "Total Grabado"
+  },
+  "recordingCard": {
+    "transcribing": "Transcribiendo ({{progress}}%)",
+    "queued": "En cola",
+    "needsAnalysis": "Necesita Análisis IA",
+    "analyzed": "Analizado",
+    "recorded": "Grabado",
+    "transcribeTitle": "Transcribir Grabación",
+    "untitled": "Grabación sin título",
+    "project": "PROYECTO"
+  },
+  "transcriptionQueue": {
+    "title": "Cola de Procesamiento en Vivo",
+    "subtitle": "Gestionando {{count}} tareas activas",
+    "empty": "No hay tareas activas.",
+    "inQueue": "En Cola",
+    "pending": "Pendiente",
+    "waiting": "Esperando",
+    "cancelTask": "Cancelar tarea",
+    "removeFromQueue": "Eliminar de la cola",
+    "confirmCancel": "¿Seguro que quieres cancelar esta tarea?",
+    "activityLog": "Registro de Actividad",
+    "noActivity": "Sin actividad reciente.",
+    "status": {
+      "success": "Éxito",
+      "cancelled": "Cancelado",
+      "failed": "Fallido"
+    },
+    "transcriptionStatus": "Transcripción {{status}} para",
+    "steps": {
+      "queued": "En cola...",
+      "preparing": "Preparando archivos (1/2)...",
+      "transcribing": "Transcribiendo con Whisper (2/2)...",
+      "analyzing": "Analizando con IA...",
+      "saving": "Guardando resultados...",
+      "processing": "Procesando..."
+    }
+  },
+  "onboarding": {
+    "steps": {
+      "welcome": "Bienvenido a AIRecorder",
+      "ai": "Configuración de IA",
+      "permissions": "Permisos del Sistema",
+      "finish": "Todo listo"
+    },
+    "next": "Siguiente",
+    "back": "Atrás",
+    "finish": "Comenzar",
+    "skip": "Omitir",
+    "welcome": {
+      "title": "Bienvenido a AIRecorder",
+      "subtitle": "Tu asistente de grabación inteligente",
+      "description": "Graba reuniones, transcribe automáticamente y extrae información con IA."
+    },
+    "permissions": {
+      "microphone": "Micrófono",
+      "micGranted": "Acceso concedido",
+      "micDenied": "Acceso denegado",
+      "micPending": "Permiso necesario",
+      "requestMic": "Solicitar permiso",
+      "openSettings": "Abrir ajustes del sistema",
+      "notifications": "Notificaciones",
+      "notifGranted": "Habilitadas",
+      "notifDenied": "Deshabilitadas",
+      "requestNotif": "Solicitar permiso"
+    },
+    "finish": {
+      "title": "¡Todo listo!",
+      "subtitle": "Ya puedes empezar a usar AIRecorder",
+      "startBtn": "Comenzar a grabar"
+    }
+  }
+}

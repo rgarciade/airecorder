@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import {
   MdClose, MdCheck, MdSchedule, MdMoreVert,
@@ -41,13 +42,13 @@ const formatDuration = (startedAt, completedAt) => {
   return `${m}m ${s < 10 ? '0' : ''}${s}s`;
 };
 
-const formatRelativeTime = (date) => {
+const formatRelativeTime = (date, t) => {
   if (!date) return '-';
   const diff = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (diff < 60) return 'Just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return 'Yesterday';
+  if (diff < 60) return t('aiQueue.relativeTime.justNow');
+  if (diff < 3600) return t('aiQueue.relativeTime.minutesAgo', { count: Math.floor(diff / 60) });
+  if (diff < 86400) return t('aiQueue.relativeTime.hoursAgo', { count: Math.floor(diff / 3600) });
+  return t('aiQueue.relativeTime.yesterday');
 };
 
 // ---------------------------------------------------------------------------
@@ -80,6 +81,7 @@ const TaskTypeIcon = ({ type, size = 20 }) => {
 // ---------------------------------------------------------------------------
 
 export default function AiQueue() {
+  const { t } = useTranslation();
   const [queueState, setQueueState] = useState({ current: null, queue: [], history: [] });
   const [elapsed, setElapsed] = useState('0s');
   const [detailTask, setDetailTask] = useState(null); // tarea abierta en el modal
@@ -124,14 +126,14 @@ export default function AiQueue() {
     <div className={styles.page}>
       <div className={styles.pageHeader}>
         <div>
-          <h1 className={styles.pageTitle}>Process Monitor</h1>
-          <p className={styles.pageSubtitle}>Track and manage your AI tasks.</p>
+          <h1 className={styles.pageTitle}>{t('aiQueue.title')}</h1>
+          <p className={styles.pageSubtitle}>{t('aiQueue.subtitle')}</p>
         </div>
       </div>
 
       {/* ── Tarea actual ── */}
       <section className={styles.section}>
-        <h2 className={styles.sectionLabel}>Current Task</h2>
+        <h2 className={styles.sectionLabel}>{t('aiQueue.currentTask')}</h2>
         {current ? (
           <div className={styles.currentCard}>
             <div className={styles.taskIconWrap}>
@@ -139,7 +141,7 @@ export default function AiQueue() {
             </div>
             <div className={styles.taskInfo}>
               <span className={styles.taskName}>{current.name}</span>
-              <span className={styles.taskEngine}>Processing via {current.engine}</span>
+              <span className={styles.taskEngine}>{t('aiQueue.processingVia', { engine: current.engine })}</span>
             </div>
             <div className={styles.taskRight}>
               <span className={styles.elapsedBadge}>
@@ -153,16 +155,16 @@ export default function AiQueue() {
                 const avgFormatted = formatMs(avgMs);
                 if (!avgFormatted) return null;
                 return (
-                  <span className={styles.avgBadge} title={`Media de ${avgDurations[current.type].count} ejecuciones`}>
+                  <span className={styles.avgBadge} title={t('aiQueue.avgOf', { count: avgDurations[current.type].count })}>
                     ~{avgFormatted} avg
                   </span>
                 );
               })()}
               <span className={styles.processingBadge}>
                 <span className={styles.processingDot} />
-                Processing...
+                {t('aiQueue.processing')}
               </span>
-              <button className={styles.moreBtn} title="More options">
+              <button className={styles.moreBtn} title={t('aiQueue.moreOptions')}>
                 <MdMoreVert size={20} />
               </button>
             </div>
@@ -170,7 +172,7 @@ export default function AiQueue() {
         ) : (
           <div className={styles.emptyCurrentCard}>
             <MdInbox size={26} />
-            <span>No hay ninguna tarea en proceso</span>
+            <span>{t('aiQueue.noCurrentTask')}</span>
           </div>
         )}
       </section>
@@ -178,15 +180,15 @@ export default function AiQueue() {
       {/* ── Cola pendiente ── */}
       <section className={styles.section}>
         <div className={styles.sectionRow}>
-          <h2 className={styles.sectionLabel}>Queue</h2>
+          <h2 className={styles.sectionLabel}>{t('aiQueue.queue')}</h2>
           {queue.length > 0 && (
             <span className={styles.queueMeta}>
-              {queue.length} pending task{queue.length !== 1 ? 's' : ''}
+              {t('aiQueue.pendingTask', { count: queue.length })}
             </span>
           )}
         </div>
         {queue.length === 0 ? (
-          <p className={styles.emptyText}>La cola está vacía.</p>
+          <p className={styles.emptyText}>{t('aiQueue.emptyQueue')}</p>
         ) : (
           <div className={styles.queueList}>
             {queue.map((item) => (
@@ -198,10 +200,10 @@ export default function AiQueue() {
                   <span className={styles.queueName}>{item.name}</span>
                   <span className={styles.queueEngine}>{item.engine}</span>
                 </div>
-                <span className={styles.pendingBadge}>PENDING</span>
+                <span className={styles.pendingBadge}>{t('aiQueue.pending')}</span>
                 <button
                   className={styles.removeBtn}
-                  title="Cancelar tarea"
+                  title={t('aiQueue.cancelTask')}
                   onClick={() => handleCancel(item.id)}
                 >
                   <MdClose size={16} />
@@ -215,25 +217,25 @@ export default function AiQueue() {
       {/* ── Historial ── */}
       <section className={styles.section}>
         <div className={styles.sectionRow}>
-          <h2 className={styles.sectionLabel}>History</h2>
+          <h2 className={styles.sectionLabel}>{t('aiQueue.history')}</h2>
           {history.length > 0 && (
             <button className={styles.clearHistoryBtn} onClick={handleClearHistory}>
-              Clear History
+              {t('aiQueue.clearHistory')}
             </button>
           )}
         </div>
         {history.length === 0 ? (
-          <p className={styles.emptyText}>No hay historial de tareas.</p>
+          <p className={styles.emptyText}>{t('aiQueue.emptyHistory')}</p>
         ) : (
           <div className={styles.historyTableWrap}>
             <table className={styles.historyTable}>
               <thead>
                 <tr>
-                  <th>TASK</th>
-                  <th>ENGINE</th>
-                  <th>DURATION</th>
-                  <th>STATUS</th>
-                  <th>TIME</th>
+                  <th>{t('aiQueue.columns.task')}</th>
+                  <th>{t('aiQueue.columns.engine')}</th>
+                  <th>{t('aiQueue.columns.duration')}</th>
+                  <th>{t('aiQueue.columns.status')}</th>
+                  <th>{t('aiQueue.columns.time')}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -273,18 +275,18 @@ export default function AiQueue() {
                         }
                       >
                         {item.status === 'completed'
-                          ? 'Completed'
+                          ? t('aiQueue.status.completed')
                           : item.status === 'cancelled'
-                          ? 'Cancelled'
-                          : 'Failed'}
+                          ? t('aiQueue.status.cancelled')
+                          : t('aiQueue.status.failed')}
                       </span>
                     </td>
-                    <td className={styles.historyTime}>{formatRelativeTime(item.completedAt)}</td>
+                    <td className={styles.historyTime}>{formatRelativeTime(item.completedAt, t)}</td>
                     <td>
                       {(item.prompt || item.response) && (
                         <button
                           className={styles.viewDetailBtn}
-                          title="Ver prompt y respuesta"
+                          title={t('aiQueue.viewDetail')}
                           onClick={() => setDetailTask(item)}
                         >
                           <MdOpenInNew size={15} />
@@ -326,14 +328,14 @@ export default function AiQueue() {
               {detailTask.prompt && (
                 <div className={styles.modalSection}>
                   <div className={styles.modalSectionHeader}>
-                    <span className={styles.modalSectionLabel}>Prompt</span>
+                    <span className={styles.modalSectionLabel}>{t('aiQueue.prompt')}</span>
                     <button
                       className={styles.copyBtn}
                       onClick={() => handleCopy(detailTask.prompt, 'prompt')}
-                      title="Copiar prompt"
+                      title={t('aiQueue.copyPrompt')}
                     >
                       <MdContentCopy size={14} />
-                      {copiedField === 'prompt' ? 'Copiado' : 'Copiar'}
+                      {copiedField === 'prompt' ? t('common.copied') : t('common.copy')}
                     </button>
                   </div>
                   <pre className={styles.promptText}>{detailTask.prompt}</pre>
@@ -344,14 +346,14 @@ export default function AiQueue() {
               {detailTask.response && (
                 <div className={styles.modalSection}>
                   <div className={styles.modalSectionHeader}>
-                    <span className={styles.modalSectionLabel}>Respuesta</span>
+                    <span className={styles.modalSectionLabel}>{t('aiQueue.response')}</span>
                     <button
                       className={styles.copyBtn}
                       onClick={() => handleCopy(detailTask.response, 'response')}
-                      title="Copiar respuesta"
+                      title={t('aiQueue.copyResponse')}
                     >
                       <MdContentCopy size={14} />
-                      {copiedField === 'response' ? 'Copiado' : 'Copiar'}
+                      {copiedField === 'response' ? t('common.copied') : t('common.copy')}
                     </button>
                   </div>
                   <div className={styles.responseText}>
@@ -361,7 +363,7 @@ export default function AiQueue() {
               )}
 
               {!detailTask.prompt && !detailTask.response && (
-                <p className={styles.emptyText}>No hay datos guardados para esta tarea.</p>
+                <p className={styles.emptyText}>{t('aiQueue.noTaskData')}</p>
               )}
             </div>
           </div>

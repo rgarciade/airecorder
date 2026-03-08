@@ -5,6 +5,7 @@
 
 import appSessionService from './appSessionService';
 import recordingsService from './recordingsService';
+import { getSettings } from './settingsService';
 import { callProvider } from './ai/providerRouter';
 import { AI_TASK_TYPES } from './ai/aiQueueService';
 import { cleanAiResponse, parseJsonArray, parseJsonObject } from '../utils/aiResponseParser';
@@ -234,22 +235,26 @@ class RecordingAiService {
         status: 'generating'
       });
 
+      // Leer idioma de respuesta desde los ajustes del usuario
+      const settings = await getSettings();
+      const lang = settings.uiLanguage || 'es';
+
       // 2. Obtener texto de transcripción
       let txt = transcriptionTxt;
       if (!txt) {
         txt = await recordingsService.getTranscriptionTxt(recordingId);
       }
-      
+
       if (!txt) {
         throw new Error('No se pudo obtener el texto de la transcripción');
       }
 
       // 3. Cargar resumen existente para preservar datos no regenerados
       const existing = await this.getRecordingSummary(recordingId) || {};
-      
+
       // 4. Generar resúmenes usando el proveedor de IA configurado
       const recName = await this._getRecordingName(recordingId);
-      console.log(`🤖 Generando resumen para ${recordingId} (${recName})...`, options);
+      console.log(`🤖 Generando resumen para ${recordingId} (${recName}) en idioma: ${lang}...`, options);
 
       let detailedText = existing.resumen_detallado || '';
       let shortSummaryText = existing.resumen_breve || '';
@@ -259,7 +264,7 @@ class RecordingAiService {
       // Generar resumen detallado primero (si está solicitado) - contexto para los demás
       if (options.detailedSummary) {
         console.log('📋 Generando resumen detallado...');
-        const detailedResponse = await this._callAiProvider(detailedSummaryPrompt, txt, {
+        const detailedResponse = await this._callAiProvider(detailedSummaryPrompt(lang), txt, {
           ...providerOverrides,
           queueMeta: { name: `Resumen detallado: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY },
         });
@@ -272,7 +277,7 @@ class RecordingAiService {
       if (options.summaries) {
         console.log('📝 Generando resumen breve...');
         generationPromises.push(
-          this._callAiProvider(shortSummaryPrompt, detailedText || txt, {
+          this._callAiProvider(shortSummaryPrompt(lang), detailedText || txt, {
             ...providerOverrides,
             queueMeta: { name: `Resumen breve: ${recName}`, type: AI_TASK_TYPES.SUMMARY },
           }).then(r => ({ type: 'summary', text: r.text || '' }))
@@ -282,7 +287,7 @@ class RecordingAiService {
       if (options.keyTopics) {
         console.log('🔑 Generando key topics...');
         generationPromises.push(
-          this._callAiProvider(keyPointsPrompt, detailedText || txt, {
+          this._callAiProvider(keyPointsPrompt(lang), detailedText || txt, {
             ...providerOverrides,
             queueMeta: { name: `Key Topics: ${recName}`, type: AI_TASK_TYPES.KEY_TOPICS },
           }).then(r => ({ type: 'keyPoints', text: r.text || '' }))
@@ -428,8 +433,12 @@ class RecordingAiService {
         throw new Error('No se pudo obtener el texto de la transcripción');
       }
 
+      // Leer idioma de ajustes
+      const settings = await getSettings();
+      const lang = settings.uiLanguage || 'es';
+
       // Construir prompt sándwich
-      const combinedPrompt = `${participantsPrompt}\n${txt}\n${participantsPromptSuffix}`;
+      const combinedPrompt = `${participantsPrompt(lang)}\n${txt}\n${participantsPromptSuffix}`;
 
       // Llamar a la IA con contexto null y forzando formato JSON para Ollama
       const participantsResponse = await this._callAiProvider(combinedPrompt, null, {
@@ -541,7 +550,11 @@ class RecordingAiService {
         throw new Error('No se pudo obtener el texto de la transcripción');
       }
 
-      const combinedPrompt = `${taskSuggestionsPrompt}\n${txt}\n${taskSuggestionsPromptSuffix}`;
+      // Leer idioma de ajustes
+      const settings = await getSettings();
+      const lang = settings.uiLanguage || 'es';
+
+      const combinedPrompt = `${taskSuggestionsPrompt(lang)}\n${txt}\n${taskSuggestionsPromptSuffix}`;
       const response = await this._callAiProvider(combinedPrompt, null, {
         format: 'json',
         queueMeta: { name: `Tareas: ${recName}`, type: AI_TASK_TYPES.TASK_SUGGESTIONS },
@@ -592,7 +605,11 @@ class RecordingAiService {
    */
   async improveTaskSuggestion(task, userInstructions) {
     try {
-      const prompt = taskImprovementPrompt(userInstructions);
+      // Leer idioma de ajustes
+      const settings = await getSettings();
+      const lang = settings.uiLanguage || 'es';
+
+      const prompt = taskImprovementPrompt(userInstructions, lang);
       const fullPrompt = `${prompt}\n${JSON.stringify({ title: task.title, content: task.content }, null, 2)}`;
 
       const response = await this._callAiProvider(fullPrompt, null, {
