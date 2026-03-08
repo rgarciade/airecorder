@@ -186,7 +186,7 @@ async function indexRecording(recordingPath) {
       indexed: false,
       skippedRag: false,
       totalChunks: 0,
-      error: "No hay provider de embeddings disponible (Ollama/LM Studio)",
+      error: "No hay provider de embeddings disponible",
     };
   }
 

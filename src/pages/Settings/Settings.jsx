@@ -13,6 +13,7 @@ import {
   MdSystemUpdate
 } from 'react-icons/md';
 import styles from './Settings.module.css';
+import InfoTooltip from '../../components/InfoTooltip/InfoTooltip';
 
 const mockLanguages = [
   { value: 'es', label: 'Español' },
@@ -566,7 +567,28 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         <MdTerminal size={24} />
                       </div>
                       <div>
-                        <h4 className={styles.providerName}>Ollama</h4>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <h4 className={styles.providerName}>Ollama</h4>
+                          <InfoTooltip
+                            title={t('modelInfo.title')}
+                            sections={[
+                              {
+                                title: t('modelInfo.generalModel'),
+                                items: [
+                                  { icon: '⭐', label: t('modelInfo.bestPerformance'), value: 'deepseek-r1:8b' },
+                                  { icon: '🪶', label: t('modelInfo.lessResources'), value: 'gemma-7b-it' },
+                                ],
+                              },
+                              {
+                                title: t('modelInfo.embedding'),
+                                items: [
+                                  { icon: '⭐', label: t('modelInfo.bestPerformance'), value: 'mxbai-embed-large' },
+                                  { icon: '🪶', label: t('modelInfo.lessResources'), value: 'nomic-embed-text' },
+                                ],
+                              },
+                            ]}
+                          />
+                        </div>
                         <p className={styles.providerDesc}>{t('settings.providers.localInference')}</p>
                       </div>
                     </div>
@@ -686,7 +708,28 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         <MdSmartToy size={24} />
                       </div>
                       <div>
-                        <h4 className={styles.providerName}>LM Studio</h4>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <h4 className={styles.providerName}>LM Studio</h4>
+                          <InfoTooltip
+                            title={t('modelInfo.title')}
+                            sections={[
+                              {
+                                title: t('modelInfo.generalModel'),
+                                items: [
+                                  { icon: '⭐', label: t('modelInfo.bestPerformance'), value: 'deepseek-r1:8b' },
+                                  { icon: '🪶', label: t('modelInfo.lessResources'), value: 'gemma-7b-it' },
+                                ],
+                              },
+                              {
+                                title: t('modelInfo.embedding'),
+                                items: [
+                                  { icon: '⭐', label: t('modelInfo.bestPerformance'), value: 'mxbai-embed-large' },
+                                  { icon: '🪶', label: t('modelInfo.lessResources'), value: 'nomic-embed-text' },
+                                ],
+                              },
+                            ]}
+                          />
+                        </div>
                         <p className={styles.providerDesc}>{t('settings.providers.localServer')}</p>
                       </div>
                     </div>
