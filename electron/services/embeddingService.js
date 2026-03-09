@@ -3,7 +3,21 @@ const fs = require('fs');
 const path = require('path');
 
 const DEFAULT_OLLAMA_URL = 'http://localhost:11434';
-const DEFAULT_LMSTUDIO_URL = 'http://localhost:1234/v1';
+const DEFAULT_LMSTUDIO_URL = 'http://localhost:1234';
+
+// Endpoints de LM Studio (siempre con /v1 explícito)
+const LM_STUDIO_ENDPOINTS = {
+  models:     '/v1/models',
+  embeddings: '/v1/embeddings',
+};
+
+/**
+ * Normaliza la URL base de LM Studio: elimina el sufijo /v1 si está presente
+ * para que los endpoints se añadan siempre de forma explícita.
+ */
+function normalizeBaseLMUrl(url) {
+  return url.replace(/\/v1\/?$/, '').replace(/\/$/, '');
+}
 const DEFAULT_EMBEDDING_MODEL_FALLBACK = 'nomic-embed-text'; // Fallback si no hay config
 const EMBEDDING_DIMENSION = 768;
 const BATCH_SIZE = 10;
@@ -75,9 +89,9 @@ async function detectEmbeddingProvider() {
   // ── Proveedores locales ─────────────────────────────────────────────────────
   // Si el proveedor activo es lmstudio, intentar LM Studio primero
   if (activeProvider === 'lmstudio') {
-    const lmStudioUrl = settings.lmStudioHost || DEFAULT_LMSTUDIO_URL;
+    const lmStudioUrl = normalizeBaseLMUrl(settings.lmStudioHost || DEFAULT_LMSTUDIO_URL);
     try {
-      const response = await fetch(`${lmStudioUrl}/models`, { signal: AbortSignal.timeout(3000) });
+      const response = await fetch(`${lmStudioUrl}${LM_STUDIO_ENDPOINTS.models}`, { signal: AbortSignal.timeout(3000) });
       if (response.ok) {
         return { provider: 'lmstudio', baseUrl: lmStudioUrl };
       }
@@ -99,9 +113,9 @@ async function detectEmbeddingProvider() {
 
   // Intentar LM Studio como fallback
   if (activeProvider !== 'lmstudio') {
-    const lmStudioUrl = settings.lmStudioHost || DEFAULT_LMSTUDIO_URL;
+    const lmStudioUrl = normalizeBaseLMUrl(settings.lmStudioHost || DEFAULT_LMSTUDIO_URL);
     try {
-      const response = await fetch(`${lmStudioUrl}/models`, { signal: AbortSignal.timeout(3000) });
+      const response = await fetch(`${lmStudioUrl}${LM_STUDIO_ENDPOINTS.models}`, { signal: AbortSignal.timeout(3000) });
       if (response.ok) {
         return { provider: 'lmstudio', baseUrl: lmStudioUrl };
       }
@@ -287,7 +301,7 @@ async function embedBatchWithOllama(baseUrl, texts) {
  */
 async function embedWithLMStudio(baseUrl, text) {
   const model = getEmbeddingModel();
-  const response = await fetch(`${baseUrl}/embeddings`, {
+  const response = await fetch(`${baseUrl}${LM_STUDIO_ENDPOINTS.embeddings}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -302,7 +316,11 @@ async function embedWithLMStudio(baseUrl, text) {
   }
 
   const data = await response.json();
-  return data.data[0].embedding;
+  const embedding = data?.data?.[0]?.embedding;
+  if (!embedding) {
+    throw new Error(`LM Studio: respuesta de embeddings inesperada — ${JSON.stringify(data).substring(0, 200)}`);
+  }
+  return embedding;
 }
 
 // ── API pública ───────────────────────────────────────────────────────────────
@@ -390,7 +408,6 @@ async function embedBatch(texts, providerInfo) {
       let attemptText = text;
       let contextRetries = 0;
       const maxContextRetries = 3;
-
       while (!embedding && contextRetries <= maxContextRetries) {
         try {
           embedding = await embed(attemptText, providerInfo);
