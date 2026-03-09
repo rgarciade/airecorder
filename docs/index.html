@@ -1146,6 +1146,62 @@
       justify-content: flex-end;
       gap: 12px;
     }
+
+    /* ── Screenshots ── */
+    .screenshots {
+      background: var(--color-white);
+      border-top: 1px solid var(--color-card-border);
+    }
+
+    .screenshots-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+      margin-top: 56px;
+    }
+
+    .screenshot-item {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin: 0;
+    }
+
+    .screenshot-frame {
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.07);
+      border: 1px solid var(--color-card-border);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .screenshot-frame:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 28px 72px rgba(0, 0, 0, 0.16), 0 8px 20px rgba(0, 0, 0, 0.09);
+    }
+
+    .screenshot-frame img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .screenshot-caption {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 900px) {
+      .screenshots-grid {
+        grid-template-columns: 1fr;
+        max-width: 520px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+    }
   </style>
 </head>
 
@@ -1259,6 +1315,45 @@
           <div class="waveform-bar" style="height:50%;animation-delay:1.8s"></div>
           <div class="waveform-bar" style="height:30%;animation-delay:1.9s"></div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================
+       SCREENSHOTS
+  =========================================== -->
+  <section class="section screenshots">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label animate-on-scroll">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          <span data-i18n="screenshotsLabel">Vista previa</span>
+        </div>
+        <h2 class="section-title animate-on-scroll delay-1" data-i18n="screenshotsTitle">Mira cómo funciona</h2>
+        <p class="section-subtitle animate-on-scroll delay-2" data-i18n="screenshotsSubtitle">Una interfaz limpia y enfocada en tu flujo de trabajo. Sin distracciones.</p>
+      </div>
+
+      <div class="screenshots-grid">
+        <figure class="screenshot-item animate-on-scroll delay-1">
+          <div class="screenshot-frame">
+            <img src="screenshots/screen-home.png" alt="Pantalla de inicio de AIRecorder" loading="lazy" width="1280" height="800">
+          </div>
+          <figcaption class="screenshot-caption" data-i18n="screenshotHome">Inicio · Nueva sesión de grabación</figcaption>
+        </figure>
+
+        <figure class="screenshot-item animate-on-scroll delay-2">
+          <div class="screenshot-frame">
+            <img src="screenshots/screen-projects.png" alt="Biblioteca de proyectos" loading="lazy" width="1280" height="800">
+          </div>
+          <figcaption class="screenshot-caption" data-i18n="screenshotProjects">Proyectos · Biblioteca y grabaciones recientes</figcaption>
+        </figure>
+
+        <figure class="screenshot-item animate-on-scroll delay-3">
+          <div class="screenshot-frame">
+            <img src="screenshots/screen-ai-chat.png" alt="Chat con IA sobre el proyecto" loading="lazy" width="1280" height="800">
+          </div>
+          <figcaption class="screenshot-caption" data-i18n="screenshotAiChat">Chat con IA · Búsqueda semántica sobre el proyecto</figcaption>
+        </figure>
       </div>
     </div>
   </section>
@@ -1788,6 +1883,11 @@
         heroTagline: 'Graba, transcribe y analiza tus reuniones y proyectos con IA.<br>Todo en tu equipo, sin servidores externos, 100% privado.',
         heroBtnMac: 'Descargar para macOS', heroBtnGH: 'Ver en GitHub',
         heroNote: 'Windows próximamente · Código abierto en GitHub',
+        screenshotsLabel: 'Vista previa', screenshotsTitle: 'Mira cómo funciona',
+        screenshotsSubtitle: 'Una interfaz limpia y enfocada en tu flujo de trabajo. Sin distracciones.',
+        screenshotHome: 'Inicio · Nueva sesión de grabación',
+        screenshotProjects: 'Proyectos · Biblioteca y grabaciones recientes',
+        screenshotAiChat: 'Chat con IA · Búsqueda semántica sobre el proyecto',
         featLabel: 'Funciones',
         featTitle: 'Todo lo que necesitas para<br>tus reuniones y proyectos',
         featSubtitle: 'Desde la grabación hasta el análisis con IA, AIRecorder cubre todo el flujo de trabajo sin depender de servicios externos.',
@@ -1834,6 +1934,11 @@
         heroTagline: 'Record, transcribe, and analyze your meetings and projects with AI.<br>Everything on your machine, no external servers, 100% private.',
         heroBtnMac: 'Download for macOS', heroBtnGH: 'View on GitHub',
         heroNote: 'Windows coming soon · Open source on GitHub',
+        screenshotsLabel: 'Preview', screenshotsTitle: 'See it in action',
+        screenshotsSubtitle: 'A clean interface focused on your workflow. No distractions.',
+        screenshotHome: 'Home · New recording session',
+        screenshotProjects: 'Projects · Library and recent recordings',
+        screenshotAiChat: 'AI Chat · Semantic search over the project',
         featLabel: 'Features',
         featTitle: 'Everything you need for<br>your meetings and projects',
         featSubtitle: 'From recording to AI analysis, AIRecorder covers the entire workflow without depending on external services.',
