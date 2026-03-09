@@ -127,7 +127,8 @@
       "hostUrl": "URL del Host",
       "baseUrl": "URL Base",
       "ragModel": "Modelo de Chat para RAG (opcional)",
-      "embeddingModel": "Modelo de Embeddings ({{provider}})"
+      "embeddingModel": "Modelo de Embeddings ({{provider}})",
+      "databasePath": "Directorio de la Base de Datos"
     },
     "helpText": {
       "transcriptionLanguage": "Idioma utilizado para la transcripción con Whisper.",
@@ -137,7 +138,8 @@
       "whisperModel": "Elige el modelo por defecto para nuevas transcripciones. Los modelos pequeños son más rápidos pero menos precisos.",
       "cpuThreads": "Más hilos aumentan la velocidad de transcripción pero consumen más recursos del ordenador.",
       "ragModel": "Modelo específico para responder consultas RAG (ej: deepseek-r1). Dejar vacío para usar el modelo principal.",
-      "embeddingModel": "Modelo usado para indexar y buscar fragmentos (ej: nomic-embed-text)."
+      "embeddingModel": "Modelo usado para indexar y buscar fragmentos (ej: nomic-embed-text).",
+      "databasePath": "Cambia dónde se guarda la base de datos. Se recomienda usar la ruta por defecto."
     },
     "fontSizes": {
       "small": "Pequeño",
@@ -172,7 +174,8 @@
       "grantPermission": "Otorgar Permiso",
       "checkUpdates": "Comprobar Actualizaciones",
       "download": "Descargar",
-      "checking": "Comprobando..."
+      "checking": "Comprobando...",
+      "cancel": "Cancelar"
     },
     "messages": {
       "saveSuccess": "Ajustes guardados con éxito",
@@ -187,7 +190,9 @@
       "verifyingModel": "Verificando modelo...",
       "supportsStreaming": "✓ Soporta streaming",
       "noStreaming": "✗ No soporta streaming",
-      "modelError": "No se pudieron cargar los modelos. Verifica tu API Key."
+      "modelError": "No se pudieron cargar los modelos. Verifica tu API Key.",
+      "contextLength": "Ventana de contexto: {{n}} tokens",
+      "configureInOllama": "configurable en Ollama"
     },
     "misc": {
       "default": "Por defecto",
@@ -218,7 +223,12 @@
         "title": "Actualizaciones",
         "testDev": "Probar Update (Dev)"
       },
-      "directoryNotSupported": "La selección de directorio no está soportada en este entorno"
+      "directoryNotSupported": "La selección de directorio no está soportada en este entorno",
+      "changeDbTitle": "Cambiar ruta de la base de datos",
+      "changeDbNewPath": "Nueva ruta:",
+      "changeDbAskMigrate": "¿Deseas copiar la base de datos actual a la nueva ubicación?",
+      "migrateDb": "Mover y cambiar ruta",
+      "onlyChangePath": "Solo cambiar ruta"
     },
     "uiLanguages": {
       "es": "Español",
@@ -400,6 +410,7 @@
       "welcome": "Bienvenido a AIRecorder",
       "ai": "Configuración de IA",
       "permissions": "Permisos del Sistema",
+      "storage": "Almacenamiento",
       "finish": "Todo listo"
     },
     "next": "Siguiente",
@@ -407,26 +418,110 @@
     "finish": "Comenzar",
     "skip": "Omitir",
     "welcome": {
-      "title": "Bienvenido a AIRecorder",
+      "title": "Te damos la bienvenida a",
       "subtitle": "Tu asistente de grabación inteligente",
-      "description": "Graba reuniones, transcribe automáticamente y extrae información con IA."
+      "description": "Graba reuniones, transcribe automáticamente y extrae información con IA.",
+      "step": "Paso 1 de 3",
+      "beginBtn": "Comenzar configuración",
+      "terms": "Al continuar, aceptas nuestros",
+      "termsLink": "Términos de Servicio",
+      "and": "y",
+      "privacyLink": "Política de Privacidad",
+      "whatToExpect": "QUÉ ESPERAR",
+      "mic": { "title": "Configuración del Micrófono", "desc": "Probaremos tu dispositivo de entrada para una calidad de grabación óptima." },
+      "ai": { "title": "Personalización IA", "desc": "Adapta el motor de transcripción a tus preferencias." },
+      "workspace": { "title": "Organización del Espacio", "desc": "Configura dónde vivirán tus proyectos y transcripciones." }
+    },
+    "ai": {
+      "title": "Configura tu Inteligencia IA",
+      "subtitle": "Elige cómo AIRecorder procesa tu audio. Puedes cambiarlo después en ajustes.",
+      "localTab": "Modelos Locales",
+      "cloudTab": "Modelos Cloud",
+      "betaBadge": "Beta",
+      "recommended": "RECOMENDADO",
+      "stable": "✓ 100% Estable",
+      "betaWarning": "Los proveedores cloud están en fase beta. Algunas funciones pueden no funcionar correctamente.",
+      "ollama": {
+        "subtitle": "Procesamiento local",
+        "description": "Ejecuta la IA completamente en tu máquina. Ideal para total privacidad y flujos offline, pero requiere hardware potente.",
+        "private": "100% Privado & Offline",
+        "noFees": "Sin cuotas de suscripción",
+        "ram": "Requiere 16GB+ RAM y GPU",
+        "urlLabel": "URL del endpoint API",
+        "testBtn": "Probar",
+        "checking": "Comprobando...",
+        "connected": "Conectado:",
+        "connFailed": "Conexión fallida",
+        "modelLabel": "Modelo"
+      },
+      "lmstudio": {
+        "subtitle": "Procesamiento local",
+        "description": "Ejecuta modelos GGUF a través del servidor local de LM Studio. Interfaz sencilla para descargar y gestionar modelos.",
+        "private": "100% Privado & Offline",
+        "compatible": "Compatible con API OpenAI",
+        "urlLabel": "URL del servidor LM Studio",
+        "urlNote": "* URL por defecto. Puedes cambiarla en ajustes."
+      },
+      "gemini": {
+        "description": "Modelos Gemini de Google. Requiere API key de Google AI Studio.",
+        "apiKeyLabel": "Google AI API Key"
+      },
+      "kimi": {
+        "description": "Modelos Kimi de Moonshot AI. Requiere API key de Moonshot.",
+        "apiKeyLabel": "Moonshot API Key"
+      },
+      "deepseek": {
+        "description": "Modelos DeepSeek. Requiere API key de DeepSeek.",
+        "apiKeyLabel": "DeepSeek API Key"
+      },
+      "apiKeyPlaceholder": "Pega tu API key aquí...",
+      "canChange": "Puedes cambiar esto en cualquier momento",
+      "nextStep": "Siguiente paso"
     },
     "permissions": {
-      "microphone": "Micrófono",
-      "micGranted": "Acceso concedido",
-      "micDenied": "Acceso denegado",
-      "micPending": "Permiso necesario",
-      "requestMic": "Solicitar permiso",
-      "openSettings": "Abrir ajustes del sistema",
-      "notifications": "Notificaciones",
-      "notifGranted": "Habilitadas",
-      "notifDenied": "Deshabilitadas",
-      "requestNotif": "Solicitar permiso"
+      "title": "Activar Permisos",
+      "subtitle": "Para grabar y transcribir tu audio con precisión, AIRecorder necesita acceso a los dispositivos del sistema. Valoramos tu privacidad y solo grabamos cuando tú nos lo indicas.",
+      "microphone": "Acceso al Micrófono",
+      "granted": "Concedido",
+      "denied": "Denegado",
+      "micDesc": "Necesario para grabar tu voz durante las reuniones.",
+      "grant": "Conceder",
+      "systemAudio": "Audio del Sistema",
+      "automatic": "Automático",
+      "systemAudioDesc": "La captura de audio del sistema se gestiona automáticamente. No requiere permisos adicionales.",
+      "optional": "Opcional",
+      "notifDesc": "Recibe alertas cuando la transcripción esté lista.",
+      "enable": "Activar",
+      "disable": "Desactivar",
+      "finishBtn": "Finalizar configuración",
+      "grantRequired": "Por favor, concede los permisos requeridos"
     },
     "finish": {
       "title": "¡Todo listo!",
-      "subtitle": "Ya puedes empezar a usar AIRecorder",
-      "startBtn": "Comenzar a grabar"
+      "subtitle": "AIRecorder ha sido configurado correctamente. Estás listo para empezar a grabar y transcribir tus reuniones con el poder de la IA.",
+      "startBtn": "Comenzar a grabar",
+      "audioSection": "Grabación de Audio",
+      "audioSubtitle": "Micrófono y Audio del Sistema",
+      "configured": "Configurado",
+      "aiLocal": "IA Local",
+      "aiCloud": "IA Cloud",
+      "active": "Activo",
+      "launchBtn": "Iniciar AIRecorder",
+      "changeNote": "Puedes cambiar estos ajustes más tarde en el menú de preferencias."
+    },
+    "storage": {
+      "title": "Configura el almacenamiento",
+      "subtitle": "Elige dónde guardar tus grabaciones y base de datos. Puedes usar los valores por defecto.",
+      "recordingsLabel": "Directorio de Grabaciones",
+      "recordingsDefault": "Por defecto (~/Desktop/recorder)",
+      "dbLabel": "Directorio de la Base de Datos",
+      "dbDefault": "Por defecto (datos de la app)",
+      "changeBtn": "Cambiar",
+      "nextBtn": "Siguiente paso",
+      "optional": "Opcional"
+    },
+    "footer": {
+      "back": "Atrás"
     }
   }
 }

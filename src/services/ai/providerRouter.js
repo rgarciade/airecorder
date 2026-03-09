@@ -183,6 +183,7 @@ export async function callProvider(prompt, options = {}) {
   }
 
   const meta = {
+    ...(options.queueMeta || {}),
     name: options.queueMeta?.name || 'Llamada a IA',
     type: options.queueMeta?.type || AI_TASK_TYPES.GENERAL,
     engine: options.queueMeta?.engine || engine,
@@ -212,6 +213,7 @@ export async function callProviderStreaming(prompt, onChunk, options = {}) {
   }
 
   const meta = {
+    ...(options.queueMeta || {}),
     name: options.queueMeta?.name || 'Chat con IA',
     type: options.queueMeta?.type || AI_TASK_TYPES.CHAT,
     engine: options.queueMeta?.engine || engine,

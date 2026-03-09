@@ -94,6 +94,14 @@
   text-overflow: ellipsis;
 }
 
+.taskSubstep {
+  font-size: 0.8rem;
+  color: #3994ef;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .taskEngine {
   font-size: 0.8125rem;
   color: #64748b;
@@ -301,6 +309,50 @@
   background: #f8fafc;
 }
 
+.historyGroupRow td {
+  font-weight: 500;
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+:global(.dark) .historyGroupRow td {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.historySubtaskRow td {
+  background-color: #fafafa;
+  font-size: 0.8125rem;
+  color: #64748b;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.historySubtaskRow:hover td {
+  background-color: #f1f5f9;
+}
+
+.subtaskName {
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.expandGroupBtn {
+  background: none;
+  border: none;
+  padding: 2px;
+  margin: 0;
+  margin-right: 4px;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.expandGroupBtn:hover {
+  background-color: #f1f5f9;
+  color: #334155;
+}
+
 .historyTable tbody td {
   padding: 14px 20px;
   font-size: 0.875rem;
@@ -353,6 +405,29 @@
   color: #16a34a;
   background: #f0fdf4;
   border: 1px solid #bbf7d0;
+  padding: 3px 10px;
+  border-radius: 9999px;
+}
+
+.historyIconProcessing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #eff6ff;
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.statusProcessing {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
   padding: 3px 10px;
   border-radius: 9999px;
 }

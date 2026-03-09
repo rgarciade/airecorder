@@ -575,7 +575,7 @@
 
 /* Steps Progress (Top) - Redesigned to match image */
 .stepProgressContainer {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.9rem;
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
@@ -593,7 +593,7 @@
 .stepColumn {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.45rem;
 }
 
 /* The horizontal bar */
@@ -633,7 +633,7 @@
 /* Label text below bar */
 .stepLabel {
   text-align: center;
-  font-size: 0.85rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: #94a3b8; /* Inactive color */
 }

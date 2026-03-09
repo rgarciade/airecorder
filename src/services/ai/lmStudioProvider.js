@@ -63,8 +63,11 @@ export async function sendToLMStudio(textContent, modelOverride = null) {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(`LM Studio Error: ${response.status} ${error.error?.message || ''}`);
+    const errBody = await response.json().catch(() => ({}));
+    const errMsg = typeof errBody.error === 'string'
+      ? errBody.error
+      : (errBody.error?.message || errBody.message || '');
+    throw new Error(`LM Studio Error: ${response.status}${errMsg ? ' — ' + errMsg : ''}`);
   }
 
   const data = await response.json();
@@ -92,32 +95,40 @@ export async function sendToLMStudioStreaming(textContent, onChunk, modelOverrid
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(`LM Studio Error: ${response.status} ${error.error?.message || ''}`);
+    const errBody = await response.json().catch(() => ({}));
+    const errMsg = typeof errBody.error === 'string'
+      ? errBody.error
+      : (errBody.error?.message || errBody.message || '');
+    throw new Error(`LM Studio Error: ${response.status}${errMsg ? ' — ' + errMsg : ''}`);
   }
 
   const reader = response.body.getReader();
-  const decoder = new TextDecoder();
+  const decoder = new TextDecoder('utf-8');
   let fullText = '';
+  let buffer = '';
 
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
 
-    const chunk = decoder.decode(value);
-    const lines = chunk.split('\n');
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    
+    // Guardar el último elemento incompleto en el buffer
+    buffer = lines.pop() || '';
 
     for (const line of lines) {
-      if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+      const trimmedLine = line.trim();
+      if (trimmedLine.startsWith('data: ') && trimmedLine !== 'data: [DONE]') {
         try {
-          const data = JSON.parse(line.slice(6));
-          const content = data.choices[0].delta.content;
+          const data = JSON.parse(trimmedLine.slice(6));
+          const content = data.choices[0]?.delta?.content;
           if (content) {
             fullText += content;
             if (onChunk) onChunk(content);
           }
         } catch (e) {
-          // Ignorar chunks mal formateados
+          // Ignorar chunks mal formateados, ya que el buffer evita que se corten a la mitad
         }
       }
     }

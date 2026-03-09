@@ -96,7 +96,10 @@ class AiQueueService {
         prompt: meta.prompt || null,
         response: null,
         status: 'pending',
-        createdAt: new Date(),
+        hidden: meta.hidden || false,
+        groupId: meta.groupId || null,
+        groupName: meta.groupName || null,
+        overrideStartedAt: meta.overrideStartedAt || null,
         startedAt: null,
         completedAt: null,
         error: null,
@@ -117,7 +120,7 @@ class AiQueueService {
     const task = this._queue.shift();
     const { _resolve, _reject, _fn, ...pubTask } = task;
 
-    const startedAt = new Date();
+    const startedAt = pubTask.overrideStartedAt || new Date();
     this._current = { ...pubTask, status: 'processing', startedAt };
     this._notify();
 

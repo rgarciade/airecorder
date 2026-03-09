@@ -99,6 +99,40 @@ export async function checkModelSupportsStreaming(model, baseUrl = null) {
 }
 
 /**
+ * Obtiene información de un modelo de Ollama (context length, etc.)
+ * @param {string} modelName - Nombre del modelo
+ * @param {string} [baseUrl] - URL base opcional
+ * @returns {Promise<{numCtx: number|null}|null>} Info del modelo o null si hay error
+ */
+export async function getOllamaModelInfo(modelName, baseUrl = null) {
+  const url = await getBaseUrl(baseUrl);
+  try {
+    const response = await fetch(`${url}/api/show`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: modelName })
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    // num_ctx puede estar en distintos campos según la versión de Ollama
+    const numCtx = data.model_info?.['llama.context_length']
+      || data.model_info?.['context_length']
+      || data.details?.num_ctx
+      || extractNumCtxFromParams(data.parameters)
+      || null;
+    return { numCtx };
+  } catch {
+    return null;
+  }
+}
+
+function extractNumCtxFromParams(params) {
+  if (!params) return null;
+  const match = params.match(/num_ctx\s+(\d+)/);
+  return match ? parseInt(match[1]) : null;
+}
+
+/**
  * Genera contenido usando un modelo de Ollama
  * Incluye reintentos automáticos para errores de red y errores 5xx
  * @param {string} model - Nombre del modelo a usar

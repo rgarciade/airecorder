@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSystemMicrophones } from '../../services/audioService';
 import { getSettings, updateSettings } from '../../services/settingsService';
-import { getAvailableModels, checkOllamaAvailability, checkModelSupportsStreaming } from '../../services/ai/ollamaProvider';
+import { getAvailableModels, checkOllamaAvailability, checkModelSupportsStreaming, getOllamaModelInfo } from '../../services/ai/ollamaProvider';
 import { getGeminiAvailableModels } from '../../services/ai/geminiProvider';
 import { getDeepseekAvailableModels, getKimiAvailableModels, getLMStudioModels } from '../../services/ai/providerRouter';
 import { checkLMStudioAvailability } from '../../services/ai/lmStudioProvider';
@@ -54,6 +54,9 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
   
   // Storage
   const [outputDirectory, setOutputDirectory] = useState('');
+  const [databasePath, setDatabasePath] = useState('');
+  const [dbMigrateModal, setDbMigrateModal] = useState(null); // { newPath } | null
+  const [dbChangeError, setDbChangeError] = useState('');
 
   // Gemini Free
   const [geminiFreeApiKey, setGeminiFreeApiKey] = useState('');
@@ -83,7 +86,6 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
 
   // Ollama
   const [ollamaModel, setOllamaModel] = useState('');
-  const [ollamaRagModel, setOllamaRagModel] = useState('');
   const [ollamaEmbeddingModel, setOllamaEmbeddingModel] = useState('');
   const [ollamaModels, setOllamaModels] = useState([]);
   const [ollamaEmbeddingModels, setOllamaEmbeddingModels] = useState([]);
@@ -94,13 +96,15 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
 
   // LM Studio
   const [lmStudioModel, setLmStudioModel] = useState('');
-  const [lmStudioRagModel, setLmStudioRagModel] = useState('');
   const [lmStudioEmbeddingModel, setLmStudioEmbeddingModel] = useState('');
   const [lmStudioModels, setLmStudioModels] = useState([]);
   const [lmStudioChatModels, setLmStudioChatModels] = useState([]);
   const [lmStudioEmbeddingModels, setLmStudioEmbeddingModels] = useState([]);
   const [lmStudioHost, setLmStudioHost] = useState('http://localhost:1234/v1');
   const [lmStudioAvailable, setLmStudioAvailable] = useState(false);
+
+  // Ollama context length (se obtiene de la API al cambiar de modelo)
+  const [ollamaContextLength, setOllamaContextLength] = useState(null);
 
   // UI State
   const [activeTab, setActiveTab] = useState(initialTab); // 'general' | 'agents'
@@ -192,17 +196,15 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         // LM Studio
         setLmStudioHost(savedSettings.lmStudioHost || 'http://localhost:1234/v1');
         setLmStudioModel(savedSettings.lmStudioModel || '');
-        setLmStudioRagModel(savedSettings.lmStudioRagModel || '');
         setLmStudioEmbeddingModel(savedSettings.lmStudioEmbeddingModel || '');
         
         setAiProvider(savedSettings.aiProvider || 'ollama');
         setOllamaModel(savedSettings.ollamaModel || '');
-        console.log('📥 [Settings] Cargando ollamaRagModel:', savedSettings.ollamaRagModel);
-        setOllamaRagModel(savedSettings.ollamaRagModel || '');
         setOllamaEmbeddingModel(savedSettings.ollamaEmbeddingModel || 'nomic-embed-text');
         setOllamaModelSupportsStreaming(savedSettings.ollamaModelSupportsStreaming || false);
         if (savedSettings.ollamaHost) setOllamaHost(savedSettings.ollamaHost);
         if (savedSettings.outputDirectory) setOutputDirectory(savedSettings.outputDirectory);
+        if (savedSettings.databasePath) setDatabasePath(savedSettings.databasePath);
       }
       
       // Check Ollama with loaded/default host
@@ -388,11 +390,16 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
 
     if (newModel && ollamaAvailable) {
       setIsCheckingModel(true);
+      setOllamaContextLength(null);
       try {
         console.log(`🔍 Verificando modelo ${newModel}...`);
-        const supportsStreaming = await checkModelSupportsStreaming(newModel, ollamaHost);
+        const [supportsStreaming, modelInfo] = await Promise.all([
+          checkModelSupportsStreaming(newModel, ollamaHost),
+          getOllamaModelInfo(newModel, ollamaHost)
+        ]);
         setOllamaModelSupportsStreaming(supportsStreaming);
-        console.log(`📝 Modelo ${newModel} - Streaming: ${supportsStreaming ? 'SÍ' : 'NO'}`);
+        if (modelInfo?.numCtx) setOllamaContextLength(modelInfo.numCtx);
+        console.log(`📝 Modelo ${newModel} - Streaming: ${supportsStreaming ? 'SÍ' : 'NO'} | numCtx: ${modelInfo?.numCtx}`);
       } catch (error) {
         console.error(`❌ Error verificando modelo ${newModel}:`, error);
         setOllamaModelSupportsStreaming(false);
@@ -401,6 +408,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
       }
     } else {
       setOllamaModelSupportsStreaming(false);
+      setOllamaContextLength(null);
       setIsCheckingModel(false);
     }
   };
@@ -432,7 +440,6 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
     setSaveMessage('');
     
     try {
-      console.log('💾 [Settings] Guardando ollamaRagModel:', ollamaRagModel);
       await updateSettings({
         language: selectedLanguage,
         uiLanguage: selectedUiLanguage,
@@ -456,16 +463,15 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         // LM Studio
         lmStudioHost: lmStudioHost,
         lmStudioModel: lmStudioModel,
-        lmStudioRagModel: lmStudioRagModel,
         lmStudioEmbeddingModel: lmStudioEmbeddingModel,
         // Ollama
         aiProvider: aiProvider,
         ollamaModel: ollamaModel,
-        ollamaRagModel: ollamaRagModel,
         ollamaEmbeddingModel: ollamaEmbeddingModel,
         ollamaHost: ollamaHost,
         ollamaModelSupportsStreaming: ollamaModelSupportsStreaming,
-        outputDirectory: outputDirectory
+        outputDirectory: outputDirectory,
+        databasePath: databasePath || undefined
       });
       setSaveMessage(t('settings.messages.saveSuccess'));
       if (onSettingsSaved) onSettingsSaved();
@@ -490,6 +496,31 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
       }
     } else {
       alert(t('settings.misc.directoryNotSupported'));
+    }
+  };
+
+  const handleChangeDatabasePath = async () => {
+    if (window.electronAPI && window.electronAPI.selectDirectory) {
+      const dir = await window.electronAPI.selectDirectory();
+      if (!dir) return;
+      const newPath = dir + '/recordings.db';
+      if (newPath === databasePath) return;
+      setDbChangeError('');
+      setDbMigrateModal({ newPath });
+    } else {
+      alert(t('settings.misc.directoryNotSupported'));
+    }
+  };
+
+  const handleConfirmDbChange = async (migrate) => {
+    if (!dbMigrateModal) return;
+    const result = await window.electronAPI.changeDbPath(dbMigrateModal.newPath, migrate);
+    if (result.success) {
+      setDatabasePath(dbMigrateModal.newPath);
+      setDbMigrateModal(null);
+      setDbChangeError('');
+    } else {
+      setDbChangeError(`Error: ${result.error}`);
     }
   };
 
@@ -658,27 +689,12 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         {ollamaModelSupportsStreaming ? t('settings.messages.supportsStreaming') : t('settings.messages.noStreaming')}
                       </p>
                     )}
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>{t('settings.fields.ragModel')}</label>
-                    <select
-                      className={styles.input}
-                      value={ollamaRagModel}
-                      onChange={(e) => {
-                        console.log('📝 [Settings] Cambiando ollamaRagModel a:', e.target.value);
-                        setOllamaRagModel(e.target.value);
-                      }}
-                      disabled={aiProvider !== 'ollama' || !ollamaAvailable}
-                    >
-                      <option value="">{t('settings.misc.useMainModel')}</option>
-                      {ollamaModels.map(model => (
-                        <option key={model.name} value={model.name}>{model.name}</option>
-                      ))}
-                    </select>
-                    <p className={styles.helpText}>
-                      {t('settings.helpText.ragModel')}
-                    </p>
+                    {ollamaModel && !isCheckingModel && ollamaContextLength && (
+                      <p className={styles.helpText} style={{ color: '#6B7280', marginTop: '4px' }}>
+                        {t('settings.messages.contextLength', { n: ollamaContextLength.toLocaleString() })}
+                        {' '}<span style={{ color: '#9CA3AF' }}>({t('settings.messages.configureInOllama')})</span>
+                      </p>
+                    )}
                   </div>
 
                   <div className={styles.formGroup}>
@@ -793,24 +809,6 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         {t('settings.messages.modelError')}
                       </p>
                     )}
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>{t('settings.fields.ragModel')}</label>
-                    <select
-                      className={styles.input}
-                      value={lmStudioRagModel}
-                      onChange={(e) => setLmStudioRagModel(e.target.value)}
-                      disabled={aiProvider !== 'lmstudio' || !lmStudioAvailable}
-                    >
-                      <option value="">{t('settings.misc.useMainModel')}</option>
-                      {(lmStudioChatModels.length > 0 ? lmStudioChatModels : lmStudioModels).map(model => (
-                        <option key={model.name} value={model.name}>{model.name}</option>
-                      ))}
-                    </select>
-                    <p className={styles.helpText}>
-                      {t('settings.helpText.ragModel')}
-                    </p>
                   </div>
 
                   <div className={styles.formGroup}>
@@ -1162,14 +1160,75 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                     <div className={`${styles.input} truncate bg-gray-50 text-gray-500`} title={outputDirectory}>
                       {outputDirectory || t('settings.misc.default')}
                     </div>
-                    <button 
+                    <button
                       className={styles.checkBtn}
                       onClick={handleChangeDirectory}
                     >
                       {t('settings.buttons.change')}
                     </button>
                   </div>
+
+                  <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #F1F5F9' }}>
+                    <label className={styles.label}>{t('settings.fields.databasePath')}</label>
+                    <div className={styles.inputRow}>
+                      <div className={`${styles.input} truncate bg-gray-50 text-gray-500`} title={databasePath}>
+                        {databasePath || t('settings.misc.default')}
+                      </div>
+                      <button
+                        className={styles.checkBtn}
+                        onClick={handleChangeDatabasePath}
+                      >
+                        {t('settings.buttons.change')}
+                      </button>
+                    </div>
+                    <p className={styles.helpText}>{t('settings.helpText.databasePath')}</p>
+                  </div>
                 </div>
+
+              {/* Modal de migración de base de datos */}
+              {dbMigrateModal && (
+                <div style={{
+                  position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+                }}>
+                  <div style={{
+                    background: 'white', borderRadius: '16px', padding: '32px',
+                    maxWidth: '480px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
+                  }}>
+                    <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>
+                      {t('settings.misc.changeDbTitle')}
+                    </h4>
+                    <p style={{ fontSize: '0.875rem', color: '#475569', marginBottom: '4px' }}>
+                      {t('settings.misc.changeDbNewPath')}
+                    </p>
+                    <code style={{
+                      display: 'block', background: '#F8FAFC', border: '1px solid #E2E8F0',
+                      borderRadius: '8px', padding: '8px 12px', fontSize: '0.8rem', color: '#334155',
+                      wordBreak: 'break-all', marginBottom: '16px'
+                    }}>
+                      {dbMigrateModal.newPath}
+                    </code>
+                    <p style={{ fontSize: '0.875rem', color: '#475569', marginBottom: '16px' }}>
+                      {t('settings.misc.changeDbAskMigrate')}
+                    </p>
+                    {dbChangeError && (
+                      <p className={styles.errorText} style={{ marginBottom: '12px' }}>{dbChangeError}</p>
+                    )}
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <button className={styles.btnPrimary} onClick={() => handleConfirmDbChange(true)}>
+                        {t('settings.misc.migrateDb')}
+                      </button>
+                      <button className={styles.checkBtn} onClick={() => handleConfirmDbChange(false)}>
+                        {t('settings.misc.onlyChangePath')}
+                      </button>
+                      <button className={styles.btnSecondary} onClick={() => { setDbMigrateModal(null); setDbChangeError(''); }}>
+                        {t('settings.buttons.cancel')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               </section>
 
               {/* --- Transcription Section --- */}

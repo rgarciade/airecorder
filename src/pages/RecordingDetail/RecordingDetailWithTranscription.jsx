@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import recordingsService from '../../services/recordingsService';
 import projectsService from '../../services/projectsService';
 import { getSettings, addSettingsListener, removeSettingsListener } from '../../services/settingsService';
-import { getAvailableModels, checkModelSupportsStreaming } from '../../services/ai/ollamaProvider';
+import { getAvailableModels, checkModelSupportsStreaming, getOllamaModelInfo } from '../../services/ai/ollamaProvider';
+import { getLMStudioModels } from '../../services/ai/lmStudioProvider';
 import { generateWithContext, generateWithContextStreaming } from '../../services/aiService';
 import { callProvider, callProviderStreaming } from '../../services/ai/providerRouter';
 import { chatQuestionPrompt } from '../../prompts/aiPrompts';
@@ -14,6 +15,7 @@ import styles from './RecordingDetail.module.css';
 import OverviewTab from './components/OverviewTab/OverviewTab';
 import TranscriptionChatTab from './components/TranscriptionChatTab/TranscriptionChatTab';
 import EpicsTab from './components/EpicsTab/EpicsTab';
+import AIErrorModal from '../../components/AIErrorModal/AIErrorModal';
 
 // Icons
 import { 
@@ -81,6 +83,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [aiProvider, setAiProvider] = useState('geminifree');
   const [ollamaModels, setOllamaModels] = useState([]);
   const [selectedOllamaModel, setSelectedOllamaModel] = useState('');
+  const [lmStudioModels, setLmStudioModels] = useState([]);
+  const [selectedLmStudioModel, setSelectedLmStudioModel] = useState('');
   const [ollamaRagModel, setOllamaRagModel] = useState(''); // Modelo específico para RAG (Ollama)
   const [lmStudioRagModel, setLmStudioRagModel] = useState(''); // Modelo específico para RAG (LM Studio)
   const [supportsStreaming, setSupportsStreaming] = useState(true);
@@ -103,6 +107,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
   // Delete Modal
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // AI Error Modal
+  const [aiError, setAiError] = useState(null); // null | { message, tokenHint }
 
   // Regenerate Modal
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
@@ -171,6 +178,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         getAvailableModels().then(models => setOllamaModels(models.map(m => m.name || m)));
         setSelectedOllamaModel(settings.ollamaModel || '');
       }
+      if (settings.aiProvider === 'lmstudio') {
+        getLMStudioModels().then(models => setLmStudioModels(models.map(m => m.name || m)));
+        setSelectedLmStudioModel(settings.lmStudioModel || '');
+      }
     });
   }, [recording]);
 
@@ -198,6 +209,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       setUiLanguage(settings.uiLanguage || 'es');
       if (settings.ollamaModel) {
         setSelectedOllamaModel(settings.ollamaModel);
+      }
+      if (settings.lmStudioModel) {
+        setSelectedLmStudioModel(settings.lmStudioModel);
       }
       // Cargar modelos RAG específicos si existen
       if (settings.ollamaRagModel) {
@@ -230,18 +244,28 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     };
   }, []);
 
-  // 2. Fetch Ollama models when provider changes to ollama
+  // 2. Fetch models when provider changes (Ollama o LM Studio)
   useEffect(() => {
     if (aiProvider === 'ollama') {
       getAvailableModels()
         .then(models => {
           setOllamaModels(models.map(m => m.name || m));
-          // If no model selected, select the first one
           if (!selectedOllamaModel && models.length > 0) {
             setSelectedOllamaModel(models[0].name || models[0]);
           }
         })
         .catch(err => console.error("Error fetching ollama models:", err));
+    }
+    if (aiProvider === 'lmstudio') {
+      getLMStudioModels()
+        .then(models => {
+          const names = models.map(m => m.name || m);
+          setLmStudioModels(names);
+          if (!selectedLmStudioModel && names.length > 0) {
+            setSelectedLmStudioModel(names[0]);
+          }
+        })
+        .catch(err => console.error("Error fetching LM Studio models:", err));
     }
   }, [aiProvider]);
 
@@ -366,6 +390,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     };
     setQaHistory(prev => [...prev, userMessage]);
 
+    // Para estimar tokens enviados (usada en el catch para el hint de context length)
+    let sentCharsEstimate = 0;
+
     try {
       // Usar estado local actualizado por el listener (más fiable y rápido)
       const provider = aiProvider;
@@ -406,6 +433,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         console.log(`🔍 [RAG] Usando ${ragChunks.length} chunks relevantes`);
         const history = compressChatHistory(qaHistory);
         prompt = ragChatPrompt(questionText, ragChunks, history);
+        sentCharsEstimate = prompt.length;
 
         setContextInfo({
           mode: 'rag',
@@ -447,10 +475,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         }
 
         prompt = chatQuestionPrompt(questionText, uiLanguage);
+        sentCharsEstimate = prompt.length + (context?.length || 0);
 
         setContextInfo({
           mode: 'full',
-          estimatedTokens: Math.ceil((prompt.length + (context?.length || 0)) / 4)
+          estimatedTokens: Math.ceil(sentCharsEstimate / 4)
         });
 
         const classicOptions = { model: sessionModel || undefined };
@@ -493,14 +522,30 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
     } catch (err) {
       console.error('Error en handleAskQuestion:', err);
-      // Lanzar alerta con el error como solicitó el usuario
-      alert(`Error de IA: ${err.message || 'Ocurrió un error inesperado'}`);
+
+      // Calcular hint de context length (solo Ollama, ya que LM Studio no expone el valor por API)
+      let tokenHint = null;
+      try {
+        const sentTokensEstimate = sentCharsEstimate ? Math.ceil(sentCharsEstimate / 4) : null;
+
+        if (aiProvider === 'ollama' && selectedOllamaModel && sentTokensEstimate) {
+          const currentSettings = await getSettings();
+          const modelInfo = await getOllamaModelInfo(selectedOllamaModel, currentSettings.ollamaHost || 'http://localhost:11434');
+          const modelCtx = modelInfo?.numCtx || null;
+          if (modelCtx && sentTokensEstimate > modelCtx) {
+            tokenHint = `El prompt enviado (~${sentTokensEstimate.toLocaleString()} tokens estimados) supera el contexto máximo del modelo (${modelCtx.toLocaleString()} tokens). Prueba a reducir el contexto o aumentar el Context Length en Ollama.`;
+          }
+        }
+      } catch (_) { /* Ignorar errores al obtener info del modelo en el catch */ }
+
+      // Mostrar modal custom con el error real
+      setAiError({ message: err.message || 'Ocurrió un error inesperado.', tokenHint });
 
       // Añadir mensaje de error al historial
       const errorMessage = {
         id: `error_${tempId}`,
         tipo: 'asistente',
-        contenido: 'Lo siento, ha ocurrido un error al procesar tu pregunta.',
+        contenido: `⚠️ ${err.message || 'Error al procesar la pregunta.'}`,
         fecha: new Date().toISOString()
       };
       setQaHistory(prev => [...prev, errorMessage]);
@@ -523,6 +568,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       } finally {
         setIsVerifyingModel(false);
       }
+    }
+    // LM Studio usa API OpenAI-compatible, siempre soporta streaming
+    if (aiProvider === 'lmstudio') {
+      setSelectedLmStudioModel(model);
+      setSupportsStreaming(true);
     }
   };
 
@@ -581,10 +631,15 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       const provider = settings.aiProvider || 'geminifree';
       setAiProvider(provider);
       setSelectedOllamaModel(settings.ollamaModel || '');
-      
+      setSelectedLmStudioModel(settings.lmStudioModel || '');
+
       if (provider === 'ollama') {
         const models = await getAvailableModels();
         setOllamaModels(models.map(m => m.name || m));
+      }
+      if (provider === 'lmstudio') {
+        const models = await getLMStudioModels();
+        setLmStudioModels(models.map(m => m.name || m));
       }
     } catch (e) {
       console.error("Error loading settings for regenerate modal:", e);
@@ -614,6 +669,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     const providerOverrides = {
       providerOverride: aiProvider,
       ...(aiProvider === 'ollama' && selectedOllamaModel ? { model: selectedOllamaModel } : {}),
+      ...(aiProvider === 'lmstudio' && selectedLmStudioModel ? { model: selectedLmStudioModel } : {}),
     };
 
     try {
@@ -1169,6 +1225,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
               currentModel: sessionModel || settingsModel,
               availableModels:
                 aiProvider === 'ollama'   ? ollamaModels.filter(m => !m.toLowerCase().includes('embed')).map(m => ({ value: m, label: m })) :
+                aiProvider === 'lmstudio' ? lmStudioModels.map(m => ({ value: m, label: m })) :
                 aiProvider === 'deepseek' ? DEEPSEEK_CHAT_MODELS :
                 aiProvider === 'kimi'     ? KIMI_CHAT_MODELS :
                 [],
@@ -1229,7 +1286,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                 {aiProvider === 'ollama' && (
                   <>
                     <label className={styles.modalLabel}>Local Model</label>
-                    <select 
+                    <select
                       className={styles.select}
                       value={selectedOllamaModel}
                       onChange={(e) => setSelectedOllamaModel(e.target.value)}
@@ -1238,6 +1295,25 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                       {ollamaModels.map(model => (
                         <option key={model} value={model}>{model}</option>
                       ))}
+                    </select>
+                  </>
+                )}
+
+                {aiProvider === 'lmstudio' && (
+                  <>
+                    <label className={styles.modalLabel}>LM Studio Model</label>
+                    <select
+                      className={styles.select}
+                      value={selectedLmStudioModel}
+                      onChange={(e) => setSelectedLmStudioModel(e.target.value)}
+                    >
+                      <option value="" disabled>Select a model...</option>
+                      {lmStudioModels.length > 0
+                        ? lmStudioModels.map(model => (
+                            <option key={model} value={model}>{model}</option>
+                          ))
+                        : <option value="" disabled>LM Studio no disponible o sin modelos</option>
+                      }
                     </select>
                   </>
                 )}
@@ -1451,6 +1527,15 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             </div>
           </div>
         </div>
+      )}
+
+      {/* AI Error Modal */}
+      {aiError && (
+        <AIErrorModal
+          message={aiError.message}
+          tokenHint={aiError.tokenHint}
+          onClose={() => setAiError(null)}
+        />
       )}
 
     </div>

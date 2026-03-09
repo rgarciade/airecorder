@@ -264,11 +264,69 @@ class RecordingAiService {
       // Generar resumen detallado primero (si está solicitado) - contexto para los demás
       if (options.detailedSummary) {
         console.log('📋 Generando resumen detallado...');
-        const detailedResponse = await this._callAiProvider(detailedSummaryPrompt(lang), txt, {
-          ...providerOverrides,
-          queueMeta: { name: `Resumen detallado: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY },
-        });
-        detailedText = detailedResponse.text || '';
+        
+        // Optimización para transcripciones muy largas (Map-Reduce básico)
+        // El modelo de LM Studio está configurado con 4096 de contexto (n_ctx).
+        // 4096 tokens son aproximadamente 12000-14000 caracteres, pero para estar completamente seguros,
+        // limitamos el chunk a unos 8000 caracteres (~2000 tokens) para dejar espacio de sobra para la respuesta (n_predict).
+        const CHUNK_SIZE = 8000; 
+        if (txt && txt.length > CHUNK_SIZE * 1.2) {
+          console.log(`⚠️ Transcripción muy larga (${txt.length} chars). Dividiendo en fragmentos para procesar...`);
+          
+          const chunks = this._chunkText(txt, CHUNK_SIZE);
+          let combinedPartialSummaries = '';
+          const globalStartTime = new Date(); // Capturar tiempo de inicio global
+          const groupId = `summary_${recordingId}_${Date.now()}`; // ID de grupo para enlazar llamadas
+          
+          // Procesar fragmentos secuencialmente para no saturar la RAM/VRAM local
+          for (let i = 0; i < chunks.length; i++) {
+            console.log(`Procesando fragmento ${i + 1}/${chunks.length}...`);
+            const partialPrompt = `Haz un resumen detallado SOLO de esta parte de la transcripción. Mantén detalles clave:\n\n${chunks[i]}`;
+            const partialResponse = await this._callAiProvider(partialPrompt, null, {
+              ...providerOverrides,
+              queueMeta: { name: `Resumen parcial ${i + 1}/${chunks.length}: ${recName}`, groupName: `Resumen detallado: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY, hidden: true, groupId, overrideStartedAt: globalStartTime },
+            });
+            combinedPartialSummaries += `\n- Resumen Parte ${i + 1}:\n` + (partialResponse.text || '');
+          }
+          
+          // Si hay MUCHOS fragmentos, combinedPartialSummaries también podría superar el contexto.
+          // Hacemos una segunda pasada de reducción si es necesario.
+          if (combinedPartialSummaries.length > CHUNK_SIZE) {
+            console.log('⚠️ Los resúmenes parciales combinados superan el límite. Reduciendo de nuevo...');
+            const superChunks = this._chunkText(combinedPartialSummaries, CHUNK_SIZE);
+            let finalCombined = '';
+            for (let j = 0; j < superChunks.length; j++) {
+              const superPrompt = `Sintetiza estos resúmenes parciales en uno solo consolidado:\n\n${superChunks[j]}`;
+              const superResponse = await this._callAiProvider(superPrompt, null, {
+                ...providerOverrides,
+                queueMeta: { name: `Consolidación intermedia ${j + 1}/${superChunks.length}: ${recName}`, groupName: `Resumen detallado: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY, hidden: true, groupId, overrideStartedAt: globalStartTime },
+              });
+              finalCombined += `\n` + (superResponse.text || '');
+            }
+            combinedPartialSummaries = finalCombined;
+          }
+          
+          console.log('🔗 Generando resumen detallado final a partir de los parciales...');
+          // Ahora pasamos los resúmenes combinados (ya reducidos a un tamaño seguro) como contexto para el final
+          const finalResponse = await this._callAiProvider(detailedSummaryPrompt(lang), combinedPartialSummaries, {
+            ...providerOverrides,
+            queueMeta: { 
+              name: `Resumen detallado final: ${recName}`, 
+              type: AI_TASK_TYPES.DETAILED_SUMMARY,
+              overrideStartedAt: globalStartTime, // Pasamos el tiempo inicial original
+              groupId
+            },
+          });
+          detailedText = finalResponse.text || '';
+          
+        } else {
+          // Flujo normal para transcripciones de tamaño manejable
+          const detailedResponse = await this._callAiProvider(detailedSummaryPrompt(lang), txt, {
+            ...providerOverrides,
+            queueMeta: { name: `Resumen detallado: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY },
+          });
+          detailedText = detailedResponse.text || '';
+        }
       }
 
       // Generar resumen corto y puntos clave en paralelo (si están solicitados)
@@ -356,7 +414,46 @@ class RecordingAiService {
   }
 
   /**
+   * Divide un texto muy largo en fragmentos más pequeños, intentando no cortar palabras
+   * @private
+   * @param {string} text 
+   * @param {number} maxLength 
+   * @returns {string[]}
+   */
+  _chunkText(text, maxLength) {
+    if (!text) return [];
+    const chunks = [];
+    let currentIndex = 0;
+
+    while (currentIndex < text.length) {
+      if (currentIndex + maxLength >= text.length) {
+        chunks.push(text.substring(currentIndex));
+        break;
+      }
+
+      // Buscar el último espacio o salto de línea antes del maxLength para no cortar palabras
+      let breakIndex = currentIndex + maxLength;
+      const window = text.substring(currentIndex, breakIndex);
+      
+      const lastNewline = window.lastIndexOf('\n');
+      const lastSpace = window.lastIndexOf(' ');
+
+      if (lastNewline > maxLength * 0.8) { // Preferir saltos de línea si están cerca del final
+        breakIndex = currentIndex + lastNewline + 1;
+      } else if (lastSpace > maxLength * 0.8) {
+        breakIndex = currentIndex + lastSpace + 1;
+      }
+
+      chunks.push(text.substring(currentIndex, breakIndex));
+      currentIndex = breakIndex;
+    }
+
+    return chunks;
+  }
+
+  /**
    * Indexa la transcripción para RAG en background
+
    * @private
    * @param {string} recordingId
    */
