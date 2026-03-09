@@ -74,6 +74,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@lancedb/lancedb": "^0.26.2",
+    "apache-arrow": "~18.1.0",
     "@reduxjs/toolkit": "^2.8.2",
     "@sentry/electron": "^7.9.0",
     "@sentry/vite-plugin": "^5.1.1",
