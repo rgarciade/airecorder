@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Funciones para la configuración
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
+  getSystemLanguage: () => ipcRenderer.invoke('get-system-language'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   loadSettings: () => ipcRenderer.invoke('load-settings'),
   
@@ -79,9 +80,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveParticipants: (recordingId, participants) => ipcRenderer.invoke('save-participants', recordingId, participants),
   getParticipants: (recordingId) => ipcRenderer.invoke('get-participants', recordingId),
   getTaskSuggestions: (recordingId) => ipcRenderer.invoke('get-task-suggestions', recordingId),
+  getProjectTaskSuggestions: (projectId) => ipcRenderer.invoke('get-project-task-suggestions', projectId),
   addTaskSuggestion: (recordingId, title, content, layer, createdByAi) => ipcRenderer.invoke('add-task-suggestion', recordingId, title, content, layer, createdByAi),
-  updateTaskSuggestion: (id, title, content, layer) => ipcRenderer.invoke('update-task-suggestion', id, title, content, layer),
+  updateTaskSuggestion: (id, title, content, layer, status) => ipcRenderer.invoke('update-task-suggestion', id, title, content, layer, status),
   deleteTaskSuggestion: (id) => ipcRenderer.invoke('delete-task-suggestion', id),
+  getTaskComments: (taskId) => ipcRenderer.invoke('get-task-comments', taskId),
+  addTaskComment: (taskId, content) => ipcRenderer.invoke('add-task-comment', taskId, content),
+  deleteTaskComment: (id) => ipcRenderer.invoke('delete-task-comment', id),
+  createProjectTask: (projectId, title, content, layer, status) => ipcRenderer.invoke('create-project-task', projectId, title, content, layer, status),
+  addTaskToProject: (taskId, projectId) => ipcRenderer.invoke('add-task-to-project', taskId, projectId),
+  removeTaskFromProject: (taskId) => ipcRenderer.invoke('remove-task-from-project', taskId),
+  updateTasksSortOrder: (updates) => ipcRenderer.invoke('update-tasks-sort-order', updates),
 
   // Exportar documento
   exportDocument: (data, format) => ipcRenderer.invoke('export-document', { data, format }),
@@ -168,4 +177,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Sentry (Telemetría)
   sentryLogInfo: (message, context) => ipcRenderer.invoke('sentry-log-info', message, context),
   sentryLogError: (errorInfo, context) => ipcRenderer.invoke('sentry-log-error', errorInfo, context),
+
+  // Base de datos — ruta configurable
+  changeDbPath: (newPath, migrate) => ipcRenderer.invoke('change-db-path', { newPath, migrate }),
+  getDbStatus: () => ipcRenderer.invoke('get-db-status'),
 }); 

@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
+import i18n from './i18n/index.js'
+import WhatsNewModal from './components/WhatsNewModal/WhatsNewModal'
 import Home from './pages/Home/Home'
 import RecordingDetailWithTranscription from './pages/RecordingDetail/RecordingDetailWithTranscription';
 import Settings from './pages/Settings/Settings'
 import Projects from './pages/Projects/Projects'
 import ProjectDetail from './pages/ProjectDetail/ProjectDetail'
 import TranscriptionQueue from './pages/TranscriptionQueue/TranscriptionQueue'
+import AiQueue from './pages/AiQueue/AiQueue'
 import RecordingOverlay from './components/RecordingOverlay/RecordingOverlay'
 import Sidebar from './components/Sidebar/Sidebar';
 import Onboarding from './pages/Onboarding/Onboarding';
@@ -24,11 +27,14 @@ export default function App() {
   const [queueCount, setQueueCount] = useState(0)
   const [queueState, setQueueState] = useState({ active: [], history: [] })
   const [settingsInitialTab, setSettingsInitialTab] = useState('agents')
+  const [dbFallbackBanner, setDbFallbackBanner] = useState(false)
+  const [showWhatsNew, setShowWhatsNew] = useState(false)
   const { isRecording } = useSelector((state) => state.recording)
 
   useEffect(() => {
     loadAppSettings();
     loadQueueData();
+    checkDbStatus();
 
     if (window.electronAPI?.onQueueUpdate) {
       window.electronAPI.onQueueUpdate((data) => {
@@ -60,6 +66,19 @@ export default function App() {
       document.documentElement.setAttribute('data-font-size', 'medium');
     }
   }, [appSettings?.fontSize]);
+
+  const checkDbStatus = async () => {
+    try {
+      if (window.electronAPI?.getDbStatus) {
+        const status = await window.electronAPI.getDbStatus();
+        if (status?.usingFallback) {
+          setDbFallbackBanner(true);
+        }
+      }
+    } catch (err) {
+      console.error('Error consultando estado de BD:', err);
+    }
+  };
 
   const loadQueueData = async () => {
     try {
@@ -103,7 +122,9 @@ export default function App() {
         const r = await window.electronAPI.getAppVersion();
         if (r?.success) {
           const currentVersion = r.version;
-          if (settings.lastVersion && settings.lastVersion !== currentVersion) {
+          const isVersionChange = settings.lastVersion && settings.lastVersion !== currentVersion;
+
+          if (isVersionChange) {
             if (import.meta.env.VITE_SENTRY_DSN) {
               if (window.electronAPI && window.electronAPI.sentryLogInfo) {
                 window.electronAPI.sentryLogInfo(`App actualizada: de v${settings.lastVersion} a v${currentVersion}`);
@@ -113,6 +134,27 @@ export default function App() {
           if (settings.lastVersion !== currentVersion) {
             await updateSettings({ lastVersion: currentVersion });
           }
+
+          // Mostrar "Novedades" en dev siempre, o en producción cuando hay cambio de versión
+          if (!settings.isFirstRun) {
+            if (import.meta.env.DEV || isVersionChange) {
+              setShowWhatsNew(true);
+            }
+          }
+        }
+      }
+
+      // Aplicar idioma de interfaz
+      if (settings.uiLanguage) {
+        i18n.changeLanguage(settings.uiLanguage);
+      } else if (settings.isFirstRun && window.electronAPI?.getSystemLanguage) {
+        // Primera ejecución: detectar idioma del SO
+        try {
+          const systemLang = await window.electronAPI.getSystemLanguage();
+          i18n.changeLanguage(systemLang);
+          updateSettings({ uiLanguage: systemLang }).catch(err => console.error('Error guardando uiLanguage:', err));
+        } catch (err) {
+          console.error('Error detectando idioma del sistema:', err);
         }
       }
 
@@ -183,6 +225,37 @@ export default function App() {
 
   return (
     <div className={styles.appContainer} data-font-size={appSettings?.fontSize || 'medium'}>
+      {/* Banner de aviso: base de datos en modo fallback */}
+      {dbFallbackBanner && currentView !== 'onboarding' && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
+          background: '#FEF3C7', borderBottom: '1px solid #F59E0B',
+          padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '10px',
+          fontSize: '0.85rem', color: '#92400E'
+        }}>
+          <span style={{ fontSize: '1rem' }}>⚠️</span>
+          <span style={{ flex: 1 }}>
+            <strong>Base de datos temporal.</strong> El disco con la BD configurada no está accesible.
+            Los cambios de esta sesión no se guardarán en ella. Conecta el disco y reinicia la app.
+          </span>
+          <button
+            onClick={() => setDbFallbackBanner(false)}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: '1.1rem', color: '#92400E', padding: '0 4px'
+            }}
+            aria-label="Cerrar aviso"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Modal de novedades (dev: siempre; prod: cuando la versión cambia) */}
+      {showWhatsNew && currentView !== 'onboarding' && (
+        <WhatsNewModal onClose={() => setShowWhatsNew(false)} />
+      )}
+
       {currentView !== 'onboarding' && (
         <Sidebar currentView={currentView} onViewChange={setCurrentView} queueCount={queueCount} />
       )}
@@ -248,6 +321,9 @@ export default function App() {
             queueState={queueState}
             onNavigateToRecording={handleNavigateToRecording}
           />
+        )}
+        {currentView === 'ai-queue' && (
+          <AiQueue />
         )}
       </div>
       

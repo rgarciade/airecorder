@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import styles from './TranscriptionQueue.module.css';
-import { 
-  MdGraphicEq, MdAdd, MdSchedule, MdClose, 
-  MdMic, MdVideoCameraFront, MdAudiotrack, MdCheck, MdUpload 
+import {
+  MdGraphicEq, MdAdd, MdSchedule, MdClose,
+  MdMic, MdVideoCameraFront, MdAudiotrack, MdCheck, MdUpload
 } from 'react-icons/md';
 
 export default function TranscriptionQueue({ onBack, queueState, onNavigateToRecording }) {
+  const { t } = useTranslation();
   const [activeTask, setActiveTask] = useState(null);
   const [queue, setQueue] = useState([]);
   const [history, setHistory] = useState([]);
@@ -30,7 +32,7 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
       if (data && data.active) {
         const active = data.active.find(t => t.status === 'processing');
         const pending = data.active.filter(t => t.status === 'pending');
-        
+
         setActiveTask(active || null);
         setQueue(pending);
         setHistory(data.history || []);
@@ -63,12 +65,12 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
 
   const getStepLabel = (step) => {
     switch (step) {
-      case 'queued': return 'En cola...';
-      case 'preparing': return 'Preparando archivos (1/2)...';
-      case 'transcribing': return 'Transcribiendo audio con Whisper (2/2)...';
-      case 'analyzing': return 'Analizando transcripción con IA...';
-      case 'saving': return 'Guardando resultados...';
-      default: return 'Procesando...';
+      case 'queued': return t('transcriptionQueue.steps.queued');
+      case 'preparing': return t('transcriptionQueue.steps.preparing');
+      case 'transcribing': return t('transcriptionQueue.steps.transcribing');
+      case 'analyzing': return t('transcriptionQueue.steps.analyzing');
+      case 'saving': return t('transcriptionQueue.steps.saving');
+      default: return t('transcriptionQueue.steps.processing');
     }
   };
 
@@ -79,7 +81,7 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
     const start = new Date(timeStr).getTime();
     const now = new Date().getTime();
     const diff = Math.floor((now - start) / 1000);
-    
+
     if (diff < 0) return '0s'; // Clock skew protection
     if (diff < 60) return `${diff}s`;
     const mins = Math.floor(diff / 60);
@@ -92,7 +94,7 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
     const startTime = new Date(start.endsWith('Z') ? start : start + 'Z').getTime();
     const endTime = new Date(end.endsWith('Z') ? end : end + 'Z').getTime();
     const diff = Math.floor((endTime - startTime) / 1000);
-    
+
     if (diff < 0) return '0s';
     if (diff < 60) return `${diff}s`;
     const mins = Math.floor(diff / 60);
@@ -114,7 +116,7 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
   }, [activeTask?.started_at]);
 
   const handleCancelTask = async (id) => {
-    if (!window.confirm("Are you sure you want to cancel this task?")) return;
+    if (!window.confirm(t('transcriptionQueue.confirmCancel'))) return;
     try {
       await window.electronAPI.cancelTranscriptionTask(id);
       loadQueueData();
@@ -142,9 +144,9 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
           <div className={styles.maxContainer}>
               <div className={styles.sectionHeader}>
                 <div>
-                  <h2 className={styles.sectionTitle}>Live Processing Queue</h2>
+                  <h2 className={styles.sectionTitle}>{t('transcriptionQueue.title')}</h2>
                   <p className={styles.sectionSubtitle}>
-                    Managing {activeTask ? 1 + queue.length : queue.length} active tasks
+                    {t('transcriptionQueue.subtitle', { count: activeTask ? 1 + queue.length : queue.length })}
                   </p>
                 </div>
               </div>
@@ -157,10 +159,10 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
                   <div className={styles.progressContainer}>
                     <svg className={styles.progressSvg} viewBox="0 0 100 100">
                       <circle className={styles.progressBg} cx="50" cy="50" r="42" fill="transparent" strokeWidth="8"></circle>
-                      <circle 
-                        className={styles.progressFill} 
-                        cx="50" cy="50" r="42" 
-                        fill="transparent" 
+                      <circle
+                        className={styles.progressFill}
+                        cx="50" cy="50" r="42"
+                        fill="transparent"
                         strokeWidth="8"
                         strokeDasharray="264"
                         strokeDashoffset={264 - (264 * activeTask.progress) / 100}
@@ -168,7 +170,7 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
                     </svg>
                     <div className={styles.progressText}>
                       <span className={styles.percent}>{activeTask.progress}%</span>
-                      <span className={styles.statusLabel}>Processing</span>
+                      <span className={styles.statusLabel}>{t('transcriptionQueue.steps.processing')}</span>
                     </div>
                   </div>
 
@@ -187,12 +189,12 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
                     <p className={styles.taskStatus}>
                       {getStepLabel(activeTask.step)}
                     </p>
-                    
+
                     {/* Visual Waveform */}
                     <div className={styles.waveform}>
                       {[...Array(15)].map((_, i) => (
-                        <div 
-                          key={i} 
+                        <div
+                          key={i}
                           className={styles.waveBar}
                           style={{ animationDelay: `${i * 0.1}s` }}
                         ></div>
@@ -202,9 +204,9 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
 
                   {/* Quick Actions */}
                   <div className={styles.activeActions}>
-                    <button 
-                      className={styles.actionIconBtnDestructive} 
-                      title="Cancel Task"
+                    <button
+                      className={styles.actionIconBtnDestructive}
+                      title={t('transcriptionQueue.cancelTask')}
                       onClick={() => handleCancelTask(activeTask.id)}
                     >
                       <MdClose size={20} />
@@ -214,14 +216,14 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
               </div>
             ) : (
               <div className={styles.emptyQueue}>
-                <p>No active processing tasks.</p>
+                <p>{t('transcriptionQueue.empty')}</p>
               </div>
             )}
 
             {/* Queue List Section */}
             <div className={styles.queueListSection}>
               <h3 className={styles.listTitle}>
-                In Queue
+                {t('transcriptionQueue.inQueue')}
                 <span className={styles.countBadge}>{queue.length}</span>
               </h3>
               <div className={styles.queueList}>
@@ -233,18 +235,18 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
                     <div className={styles.itemMain}>
                       <h4 className={styles.itemName}>{item.recording_name}</h4>
                       <div className={styles.itemMeta}>
-                        <span className={styles.metaLabel}><MdSchedule size={12} /> Pending</span>
+                        <span className={styles.metaLabel}><MdSchedule size={12} /> {t('transcriptionQueue.pending')}</span>
                         <span className={styles.metaLabel}>
                           Added {new Date(item.created_at.endsWith('Z') ? item.created_at : item.created_at + 'Z').toLocaleTimeString()}
                         </span>
                       </div>
                     </div>
                     <div className={styles.itemStatus}>
-                      <span className={styles.waitingBadge}>Waiting</span>
-                      <button 
+                      <span className={styles.waitingBadge}>{t('transcriptionQueue.waiting')}</span>
+                      <button
                         className={styles.miniCancelBtn}
                         onClick={(e) => { e.stopPropagation(); handleCancelTask(item.id); }}
-                        title="Remove from queue"
+                        title={t('transcriptionQueue.removeFromQueue')}
                       >
                         <MdClose size={16} />
                       </button>
@@ -259,14 +261,14 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
         {/* Right Column: Activity Log Sidebar */}
         <div className={styles.logColumn}>
           <div className={styles.logHeader}>
-            <h3 className={styles.logTitle}>Activity Log</h3>
+            <h3 className={styles.logTitle}>{t('transcriptionQueue.activityLog')}</h3>
           </div>
           <div className={styles.logContent}>
             <div className={styles.timeline}>
               {history.slice(0, 10).map((item) => (
                 <div key={item.id} className={styles.logItem}>
                   <div className={`${styles.logDot} ${item.status === 'completed' ? styles.dotSuccess : (item.error === 'Cancelled by user' ? styles.dotCancelled : styles.dotFailed)}`}>
-                    {item.status === 'completed' ? <MdCheck size={10} /> : (item.error === 'Cancelled by user' ? <MdClose size={10} /> : <MdClose size={10} />)}
+                    {item.status === 'completed' ? <MdCheck size={10} /> : <MdClose size={10} />}
                   </div>
                   <div className={styles.logDetails}>
                     <span className={styles.logTime}>
@@ -278,7 +280,7 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
                       )}
                     </span>
                     <p className={styles.logText}>
-                      Transcription {item.status} for <span
+                      {t('transcriptionQueue.transcriptionStatus', { status: item.status })} <span
                         className={styles.highlightText}
                         onClick={() => onNavigateToRecording && onNavigateToRecording(item.recording_id)}
                         style={{ cursor: onNavigateToRecording ? 'pointer' : 'default' }}
@@ -286,14 +288,12 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
                     </p>
                     <div className={styles.logBadgeRow}>
                       {item.status === 'completed' ? (
-                        <span className={styles.successBadge}>Success</span>
+                        <span className={styles.successBadge}>{t('transcriptionQueue.status.success')}</span>
                       ) : item.error === 'Cancelled by user' || item.status === 'cancelled' ? (
-                        <span className={styles.cancelledBadge}>Cancelled</span>
+                        <span className={styles.cancelledBadge}>{t('transcriptionQueue.status.cancelled')}</span>
                       ) : (
-                        <span className={styles.failedBadge}>Failed</span>
+                        <span className={styles.failedBadge}>{t('transcriptionQueue.status.failed')}</span>
                       )}
-                      
-
 
                       <span className={styles.historyModelBadge}>
                         {item.model || 'default'}
@@ -302,11 +302,11 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
                   </div>
                 </div>
               ))}
-              
+
               {/* Sample log items if history is empty */}
               {history.length === 0 && (
                 <div className={styles.emptyLog}>
-                  <p>No recent activity.</p>
+                  <p>{t('transcriptionQueue.noActivity')}</p>
                 </div>
               )}
             </div>

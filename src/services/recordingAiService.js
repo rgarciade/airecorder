@@ -5,9 +5,11 @@
 
 import appSessionService from './appSessionService';
 import recordingsService from './recordingsService';
-import { callProvider } from './ai/providerRouter';
+import { getSettings } from './settingsService';
+import { callProvider, getActiveProviderContextWindow } from './ai/providerRouter';
+import { AI_TASK_TYPES } from './ai/aiQueueService';
 import { cleanAiResponse, parseJsonArray, parseJsonObject } from '../utils/aiResponseParser';
-import { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt, participantsPrompt, participantsPromptSuffix, taskSuggestionsPrompt, taskSuggestionsPromptSuffix, taskImprovementPrompt } from '../prompts/aiPrompts';
+import { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt, participantsPrompt, participantsPromptSuffix, taskSuggestionsPrompt, taskSuggestionsPromptSuffix, taskImprovementPrompt, consolidateSummaryPrompt } from '../prompts/aiPrompts';
 
 class RecordingAiService {
   constructor() {
@@ -186,13 +188,15 @@ class RecordingAiService {
 
   /**
    * Genera un nuevo resumen para la grabación
-   * @param {string} recordingId 
+   * @param {string} recordingId
    * @param {string} transcriptionTxt - Texto opcional para evitar doble lectura
    * @param {boolean} force - Forzar regeneración aunque exista
    * @param {Object} options - Opciones de qué generar: { summaries, keyTopics, detailedSummary }
+   * @param {Object} providerOverrides - Proveedor temporal para esta llamada sin modificar settings.
+   *   Ejemplo: { providerOverride: 'ollama', model: 'llama3' }
    * @returns {Promise<Object>} Resumen generado
    */
-  async generateRecordingSummary(recordingId, transcriptionTxt = null, force = false, options = { summaries: true, keyTopics: true, detailedSummary: true }) {
+  async generateRecordingSummary(recordingId, transcriptionTxt = null, force = false, options = { summaries: true, keyTopics: true, detailedSummary: true }, providerOverrides = {}) {
     // Verificar si ya se está generando (a menos que sea force)
     if (!force) {
       const isGenerating = await this.isGenerating(recordingId);
@@ -202,7 +206,7 @@ class RecordingAiService {
     }
 
     // Crear promesa de generación
-    const generationPromise = this._performGeneration(recordingId, transcriptionTxt, options);
+    const generationPromise = this._performGeneration(recordingId, transcriptionTxt, options, providerOverrides);
     this.generatingPromises.set(recordingId, generationPromise);
 
     try {
@@ -215,11 +219,32 @@ class RecordingAiService {
   }
 
   /**
+   * Calcula el límite de caracteres según la ventana de contexto del proveedor
+   * @param {Object} settings - Configuración actual
+   * @param {number} promptOverheadTokens - Margen de seguridad para el prompt (por defecto 800)
+   * @returns {Promise<number>} Número máximo de caracteres permitidos
+   */
+  async _calculateMaxContextChars(settings, promptOverheadTokens = 800) {
+    const isCloudProvider = ['gemini', 'geminifree', 'deepseek', 'kimi'].includes(settings.aiProvider);
+    if (isCloudProvider) {
+      return Number.MAX_SAFE_INTEGER; // Los proveedores cloud no necesitan chunking/truncado
+    }
+    
+    const detectedCtx = await getActiveProviderContextWindow(settings);
+    const numCtx = detectedCtx || 4096; // Fallback: mínimo habitual en modelos locales
+    const responseReserve = Math.max(512, Math.floor(numCtx * 0.25)); // Espacio para la respuesta del modelo
+    const maxChars = Math.max(4000, (numCtx - promptOverheadTokens - responseReserve) * 4);
+    
+    return maxChars;
+  }
+
+  /**
    * Realiza la generación del resumen (método privado)
    * @private
    * @param {Object} options - Opciones de qué generar: { summaries, keyTopics, detailedSummary }
+   * @param {Object} providerOverrides - Override temporal de proveedor/modelo { providerOverride, model }
    */
-  async _performGeneration(recordingId, transcriptionTxt, options = { summaries: true, keyTopics: true, detailedSummary: true }) {
+  async _performGeneration(recordingId, transcriptionTxt, options = { summaries: true, keyTopics: true, detailedSummary: true }, providerOverrides = {}) {
     try {
       // 1. Guardar estado de generación
       const currentSessionId = appSessionService.getSessionId();
@@ -230,22 +255,27 @@ class RecordingAiService {
         status: 'generating'
       });
 
+      // Leer idioma de respuesta desde los ajustes del usuario
+      const settings = await getSettings();
+      const lang = settings.uiLanguage || 'es';
+
       // 2. Obtener texto de transcripción
       let txt = transcriptionTxt;
       if (!txt) {
         txt = await recordingsService.getTranscriptionTxt(recordingId);
       }
-      
+
       if (!txt) {
         throw new Error('No se pudo obtener el texto de la transcripción');
       }
 
       // 3. Cargar resumen existente para preservar datos no regenerados
       const existing = await this.getRecordingSummary(recordingId) || {};
-      
+
       // 4. Generar resúmenes usando el proveedor de IA configurado
-      console.log(`🤖 Generando resumen para ${recordingId}...`, options);
-      
+      const recName = await this._getRecordingName(recordingId);
+      console.log(`🤖 Generando resumen para ${recordingId} (${recName}) en idioma: ${lang}...`, options);
+
       let detailedText = existing.resumen_detallado || '';
       let shortSummaryText = existing.resumen_breve || '';
       let keyPointText = existing.key_points || '';
@@ -254,24 +284,97 @@ class RecordingAiService {
       // Generar resumen detallado primero (si está solicitado) - contexto para los demás
       if (options.detailedSummary) {
         console.log('📋 Generando resumen detallado...');
-        const detailedResponse = await this._callAiProvider(detailedSummaryPrompt, txt);
-        detailedText = detailedResponse.text || '';
+
+        // Optimización para transcripciones muy largas (Map-Reduce básico).
+        const CHUNK_SIZE = await this._calculateMaxContextChars(settings, 800);
+        console.log(`📐 Límite de contexto calculado: \${CHUNK_SIZE} caracteres`);
+
+        if (txt && txt.length > CHUNK_SIZE) {
+          console.log(`⚠️ Transcripción muy larga (${txt.length} chars). Dividiendo en fragmentos para procesar...`);
+          
+          const chunks = this._chunkText(txt, CHUNK_SIZE);
+          let combinedPartialSummaries = '';
+          const globalStartTime = new Date(); // Capturar tiempo de inicio global
+          const groupId = `summary_${recordingId}_${Date.now()}`; // ID de grupo para enlazar llamadas
+          
+          // Procesar fragmentos secuencialmente para no saturar la RAM/VRAM local
+          for (let i = 0; i < chunks.length; i++) {
+            console.log(`Procesando fragmento ${i + 1}/${chunks.length}...`);
+            const partialPrompt = `Haz un resumen detallado SOLO de esta parte de la transcripción. Mantén detalles clave:\n\n${chunks[i]}`;
+            const partialResponse = await this._callAiProvider(partialPrompt, null, {
+              ...providerOverrides,
+              queueMeta: { name: `Resumen parcial ${i + 1}/${chunks.length}: ${recName}`, groupName: `Resumen detallado: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY, hidden: true, groupId, overrideStartedAt: globalStartTime },
+            });
+            combinedPartialSummaries += `\n- Resumen Parte ${i + 1}:\n` + (partialResponse.text || '');
+          }
+          
+          // Si hay MUCHOS fragmentos, combinedPartialSummaries también podría superar el contexto.
+          // Hacemos una segunda pasada de reducción si es necesario.
+          if (combinedPartialSummaries.length > CHUNK_SIZE) {
+            console.log('⚠️ Los resúmenes parciales combinados superan el límite. Reduciendo de nuevo...');
+            const superChunks = this._chunkText(combinedPartialSummaries, CHUNK_SIZE);
+            let finalCombined = '';
+            for (let j = 0; j < superChunks.length; j++) {
+              const superPrompt = `Sintetiza estos resúmenes parciales en uno solo consolidado. NO menciones que es un resumen de otros resúmenes. Devuelve SOLO el texto consolidado:\n\n${superChunks[j]}`;
+              const superResponse = await this._callAiProvider(superPrompt, null, {
+                ...providerOverrides,
+                queueMeta: { name: `Consolidación intermedia ${j + 1}/${superChunks.length}: ${recName}`, groupName: `Resumen detallado: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY, hidden: true, groupId, overrideStartedAt: globalStartTime },
+              });
+              finalCombined += `\n` + (superResponse.text || '');
+            }
+            combinedPartialSummaries = finalCombined;
+          }
+          
+          console.log('🔗 Generando resumen detallado final a partir de los parciales...');
+          // Ahora pasamos los resúmenes combinados (ya reducidos a un tamaño seguro) como contexto para el final
+          const finalResponse = await this._callAiProvider(consolidateSummaryPrompt(lang), combinedPartialSummaries, {
+            ...providerOverrides,
+            queueMeta: { 
+              name: `Resumen detallado final: ${recName}`, 
+              type: AI_TASK_TYPES.DETAILED_SUMMARY,
+              overrideStartedAt: globalStartTime, // Pasamos el tiempo inicial original
+              groupId
+            },
+          });
+          detailedText = finalResponse.text || '';
+          
+        } else {
+          // Flujo normal para transcripciones de tamaño manejable
+          const detailedResponse = await this._callAiProvider(detailedSummaryPrompt(lang), txt, {
+            ...providerOverrides,
+            queueMeta: { name: `Resumen detallado: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY },
+          });
+          detailedText = detailedResponse.text || '';
+        }
       }
 
       // Generar resumen corto y puntos clave en paralelo (si están solicitados)
       const generationPromises = [];
-      
+
+      let contextForShort = detailedText || txt;
+      const maxCharsForShort = await this._calculateMaxContextChars(settings, 500);
+      if (contextForShort.length > maxCharsForShort) {
+        console.warn(`⚠️ Texto demasiado largo para resumen breve/puntos clave (\${contextForShort.length} > \${maxCharsForShort}). Truncando...`);
+        contextForShort = contextForShort.substring(0, maxCharsForShort);
+      }
+
       if (options.summaries) {
         console.log('📝 Generando resumen breve...');
         generationPromises.push(
-          this._callAiProvider(shortSummaryPrompt, detailedText || txt).then(r => ({ type: 'summary', text: r.text || '' }))
+          this._callAiProvider(shortSummaryPrompt(lang), contextForShort, {
+            ...providerOverrides,
+            queueMeta: { name: `Resumen breve: ${recName}`, type: AI_TASK_TYPES.SUMMARY },
+          }).then(r => ({ type: 'summary', text: r.text || '' }))
         );
       }
-      
+
       if (options.keyTopics) {
         console.log('🔑 Generando key topics...');
         generationPromises.push(
-          this._callAiProvider(keyPointsPrompt, detailedText || txt).then(r => ({ type: 'keyPoints', text: r.text || '' }))
+          this._callAiProvider(keyPointsPrompt(lang), contextForShort, {
+            ...providerOverrides,
+            queueMeta: { name: `Key Topics: ${recName}`, type: AI_TASK_TYPES.KEY_TOPICS },
+          }).then(r => ({ type: 'keyPoints', text: r.text || '' }))
         );
       }
 
@@ -337,7 +440,46 @@ class RecordingAiService {
   }
 
   /**
+   * Divide un texto muy largo en fragmentos más pequeños, intentando no cortar palabras
+   * @private
+   * @param {string} text 
+   * @param {number} maxLength 
+   * @returns {string[]}
+   */
+  _chunkText(text, maxLength) {
+    if (!text) return [];
+    const chunks = [];
+    let currentIndex = 0;
+
+    while (currentIndex < text.length) {
+      if (currentIndex + maxLength >= text.length) {
+        chunks.push(text.substring(currentIndex));
+        break;
+      }
+
+      // Buscar el último espacio o salto de línea antes del maxLength para no cortar palabras
+      let breakIndex = currentIndex + maxLength;
+      const window = text.substring(currentIndex, breakIndex);
+      
+      const lastNewline = window.lastIndexOf('\n');
+      const lastSpace = window.lastIndexOf(' ');
+
+      if (lastNewline > maxLength * 0.8) { // Preferir saltos de línea si están cerca del final
+        breakIndex = currentIndex + lastNewline + 1;
+      } else if (lastSpace > maxLength * 0.8) {
+        breakIndex = currentIndex + lastSpace + 1;
+      }
+
+      chunks.push(text.substring(currentIndex, breakIndex));
+      currentIndex = breakIndex;
+    }
+
+    return chunks;
+  }
+
+  /**
    * Indexa la transcripción para RAG en background
+
    * @private
    * @param {string} recordingId
    */
@@ -360,6 +502,29 @@ class RecordingAiService {
   }
 
   /**
+   * Devuelve un nombre legible para la grabación, usado en los metadatos de la cola.
+   * @private
+   * @param {string|number} recordingId
+   * @returns {Promise<string>}
+   */
+  async _getRecordingName(recordingId) {
+    try {
+      if (window.electronAPI?.getRecordingById) {
+        const result = await window.electronAPI.getRecordingById(recordingId);
+        if (result.success && result.recording) {
+          const raw = result.recording.relative_path || result.recording.name || '';
+          // Extraer el último segmento del path (nombre de carpeta/archivo)
+          const segment = raw.split('/').filter(Boolean).pop() || raw;
+          return segment || `Grabación ${recordingId}`;
+        }
+      }
+    } catch {
+      // fallback silencioso
+    }
+    return `Grabación ${recordingId}`;
+  }
+
+  /**
    * Llama al proveedor de IA configurado (Gemini u Ollama)
    * @private
    * @param {string} prompt
@@ -377,23 +542,52 @@ class RecordingAiService {
 
   /**
    * Extrae participantes de una transcripción usando IA
-   * @param {string} recordingId 
+   * @param {string} recordingId
+   * @param {Object} providerOverrides - Override temporal de proveedor/modelo { providerOverride, model }
    * @returns {Promise<Array>} Lista de participantes extraídos
    */
-  async extractParticipants(recordingId) {
+  async extractParticipants(recordingId, providerOverrides = {}) {
     try {
+      const recName = await this._getRecordingName(recordingId);
       // Obtener transcripción
       const txt = await recordingsService.getTranscriptionTxt(recordingId);
-      
+
       if (!txt) {
         throw new Error('No se pudo obtener el texto de la transcripción');
       }
 
+      // Intentar obtener el resumen detallado para usarlo como contexto (es más corto y preciso)
+      let contextText = txt;
+      try {
+        const existingSummary = await this.getRecordingSummary(recordingId);
+        if (existingSummary && existingSummary.resumen_detallado && existingSummary.resumen_detallado.length > 50) {
+          console.log(`👥 Usando resumen detallado como contexto para extraer participantes en vez de transcripción completa.`);
+          contextText = existingSummary.resumen_detallado;
+        }
+      } catch (e) {
+        console.warn('No se pudo cargar el resumen para los participantes, usando transcripción original.');
+      }
+
+      // Leer idioma de ajustes
+      const settings = await getSettings();
+      const lang = settings.uiLanguage || 'es';
+
+      // Asegurar que el contexto no exceda la ventana máxima del modelo
+      const maxChars = await this._calculateMaxContextChars(settings, 500);
+      if (contextText.length > maxChars) {
+        console.warn(`⚠️ Texto demasiado largo para extraer participantes (\${contextText.length} > \${maxChars}). Truncando...`);
+        contextText = contextText.substring(0, maxChars);
+      }
+
       // Construir prompt sándwich
-      const combinedPrompt = `${participantsPrompt}\n${txt}\n${participantsPromptSuffix}`;
-      
+      const combinedPrompt = `${participantsPrompt(lang)}\n${contextText}\n${participantsPromptSuffix}`;
+
       // Llamar a la IA con contexto null y forzando formato JSON para Ollama
-      const participantsResponse = await this._callAiProvider(combinedPrompt, null, { format: 'json' });
+      const participantsResponse = await this._callAiProvider(combinedPrompt, null, {
+        ...providerOverrides,
+        format: 'json',
+        queueMeta: { name: `Participantes: ${recName}`, type: AI_TASK_TYPES.PARTICIPANTS },
+      });
       
       // Parsear respuesta JSON con utilidad centralizada
       let extractedParticipants = parseJsonArray(
@@ -492,13 +686,40 @@ class RecordingAiService {
    */
   async generateTaskSuggestions(recordingId) {
     try {
+      const recName = await this._getRecordingName(recordingId);
       const txt = await recordingsService.getTranscriptionTxt(recordingId);
       if (!txt) {
         throw new Error('No se pudo obtener el texto de la transcripción');
       }
 
-      const combinedPrompt = `${taskSuggestionsPrompt}\n${txt}\n${taskSuggestionsPromptSuffix}`;
-      const response = await this._callAiProvider(combinedPrompt, null, { format: 'json' });
+      // Intentar obtener el resumen detallado para usarlo como contexto (es más corto y preciso para sugerir tareas)
+      let contextText = txt;
+      try {
+        const existingSummary = await this.getRecordingSummary(recordingId);
+        if (existingSummary && existingSummary.resumen_detallado && existingSummary.resumen_detallado.length > 50) {
+          console.log(`📋 Usando resumen detallado como contexto para generar tareas en vez de transcripción completa.`);
+          contextText = existingSummary.resumen_detallado;
+        }
+      } catch (e) {
+        console.warn('No se pudo cargar el resumen para las tareas, usando transcripción original.');
+      }
+
+      // Leer idioma de ajustes
+      const settings = await getSettings();
+      const lang = settings.uiLanguage || 'es';
+
+      // Asegurar que el contexto no exceda la ventana máxima del modelo
+      const maxChars = await this._calculateMaxContextChars(settings, 800);
+      if (contextText.length > maxChars) {
+        console.warn(`⚠️ Texto demasiado largo para sugerir tareas (\${contextText.length} > \${maxChars}). Truncando...`);
+        contextText = contextText.substring(0, maxChars);
+      }
+
+      const combinedPrompt = `${taskSuggestionsPrompt(lang)}\n${contextText}\n${taskSuggestionsPromptSuffix}`;
+      const response = await this._callAiProvider(combinedPrompt, null, {
+        format: 'json',
+        queueMeta: { name: `Tareas: ${recName}`, type: AI_TASK_TYPES.TASK_SUGGESTIONS },
+      });
 
       const validLayers = ['frontend', 'backend', 'fullstack'];
 
@@ -545,10 +766,17 @@ class RecordingAiService {
    */
   async improveTaskSuggestion(task, userInstructions) {
     try {
-      const prompt = taskImprovementPrompt(userInstructions);
+      // Leer idioma de ajustes
+      const settings = await getSettings();
+      const lang = settings.uiLanguage || 'es';
+
+      const prompt = taskImprovementPrompt(userInstructions, lang);
       const fullPrompt = `${prompt}\n${JSON.stringify({ title: task.title, content: task.content }, null, 2)}`;
 
-      const response = await this._callAiProvider(fullPrompt, null, { format: 'json' });
+      const response = await this._callAiProvider(fullPrompt, null, {
+        format: 'json',
+        queueMeta: { name: `Mejora de tarea: ${task.title}`, type: AI_TASK_TYPES.TASK_IMPROVEMENT },
+      });
 
       const improved = parseJsonObject(response.text);
       if (!improved) {

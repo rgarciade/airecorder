@@ -3,11 +3,31 @@ const fs = require('fs');
 const path = require('path');
 
 const DEFAULT_OLLAMA_URL = 'http://localhost:11434';
-const DEFAULT_LMSTUDIO_URL = 'http://localhost:1234/v1';
+const DEFAULT_LMSTUDIO_URL = 'http://localhost:1234';
+
+// Endpoints de LM Studio (siempre con /v1 explícito)
+const LM_STUDIO_ENDPOINTS = {
+  models:     '/v1/models',
+  embeddings: '/v1/embeddings',
+};
+
+/**
+ * Normaliza la URL base de LM Studio: elimina el sufijo /v1 si está presente
+ * para que los endpoints se añadan siempre de forma explícita.
+ */
+function normalizeBaseLMUrl(url) {
+  return url.replace(/\/v1\/?$/, '').replace(/\/$/, '');
+}
 const DEFAULT_EMBEDDING_MODEL_FALLBACK = 'nomic-embed-text'; // Fallback si no hay config
 const EMBEDDING_DIMENSION = 768;
 const BATCH_SIZE = 10;
-const MAX_INPUT_CHARS = 2000; // Límite de seguridad para no exceder context length del modelo
+const MAX_INPUT_CHARS = 2000; // Límite de seguridad para no exceder context length del modelo de embeddings
+
+// Cloud embedding config
+const GEMINI_EMBEDDING_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+const GEMINI_EMBEDDING_MODEL = 'text-embedding-004'; // 768 dims — compatible con nomic-embed-text
+const KIMI_EMBEDDING_BASE = 'https://api.moonshot.ai/v1';
+const KIMI_EMBEDDING_MODEL = 'moonshot-embedding-v1';
 
 // Ruta del archivo de configuración
 const { app } = require('electron');
@@ -33,26 +53,45 @@ function loadSettings() {
  */
 function getEmbeddingModel() {
   const settings = loadSettings();
-  if (settings.aiProvider === 'lmstudio' && settings.lmStudioEmbeddingModel) {
+  const provider = settings.aiProvider;
+
+  if (provider === 'gemini' || provider === 'geminiFree') return GEMINI_EMBEDDING_MODEL;
+  if (provider === 'kimi') return KIMI_EMBEDDING_MODEL;
+  if (provider === 'lmstudio' && settings.lmStudioEmbeddingModel) {
     return settings.lmStudioEmbeddingModel;
   }
   return settings.ollamaEmbeddingModel || DEFAULT_EMBEDDING_MODEL_FALLBACK;
 }
 
 /**
- * Detecta qué provider de embeddings está disponible
- * Prioridad: proveedor activo en settings > fallback al otro
- * @returns {{ provider: string, baseUrl: string } | null}
+ * Detecta qué provider de embeddings está disponible.
+ * Prioridad: proveedor cloud activo > local según provider activo > fallback al otro local
+ * @returns {Promise<{ provider: string, baseUrl?: string, apiKey?: string } | null>}
  */
 async function detectEmbeddingProvider() {
   const settings = loadSettings();
   const activeProvider = settings.aiProvider;
 
+  // ── Proveedores cloud: no requieren servidor local ──────────────────────────
+  if (activeProvider === 'gemini' && settings.geminiApiKey) {
+    console.log('[EmbeddingService] Usando Gemini para embeddings');
+    return { provider: 'gemini', apiKey: settings.geminiApiKey };
+  }
+  if (activeProvider === 'geminiFree' && settings.geminiFreeApiKey) {
+    console.log('[EmbeddingService] Usando Gemini Free para embeddings');
+    return { provider: 'gemini', apiKey: settings.geminiFreeApiKey };
+  }
+  if (activeProvider === 'kimi' && settings.kimiApiKey) {
+    console.log('[EmbeddingService] Usando Kimi para embeddings');
+    return { provider: 'kimi', apiKey: settings.kimiApiKey };
+  }
+
+  // ── Proveedores locales ─────────────────────────────────────────────────────
   // Si el proveedor activo es lmstudio, intentar LM Studio primero
   if (activeProvider === 'lmstudio') {
-    const lmStudioUrl = settings.lmStudioHost || DEFAULT_LMSTUDIO_URL;
+    const lmStudioUrl = normalizeBaseLMUrl(settings.lmStudioHost || DEFAULT_LMSTUDIO_URL);
     try {
-      const response = await fetch(`${lmStudioUrl}/models`, { signal: AbortSignal.timeout(3000) });
+      const response = await fetch(`${lmStudioUrl}${LM_STUDIO_ENDPOINTS.models}`, { signal: AbortSignal.timeout(3000) });
       if (response.ok) {
         return { provider: 'lmstudio', baseUrl: lmStudioUrl };
       }
@@ -74,9 +113,9 @@ async function detectEmbeddingProvider() {
 
   // Intentar LM Studio como fallback
   if (activeProvider !== 'lmstudio') {
-    const lmStudioUrl = settings.lmStudioHost || DEFAULT_LMSTUDIO_URL;
+    const lmStudioUrl = normalizeBaseLMUrl(settings.lmStudioHost || DEFAULT_LMSTUDIO_URL);
     try {
-      const response = await fetch(`${lmStudioUrl}/models`, { signal: AbortSignal.timeout(3000) });
+      const response = await fetch(`${lmStudioUrl}${LM_STUDIO_ENDPOINTS.models}`, { signal: AbortSignal.timeout(3000) });
       if (response.ok) {
         return { provider: 'lmstudio', baseUrl: lmStudioUrl };
       }
@@ -87,6 +126,94 @@ async function detectEmbeddingProvider() {
 
   return null;
 }
+
+// ── Funciones de embedding cloud ─────────────────────────────────────────────
+
+/**
+ * Genera embedding usando Gemini text-embedding-004 (768 dims)
+ * Compatible con nomic-embed-text: no requiere re-indexación al alternar entre ambos
+ * @param {string} apiKey
+ * @param {string} text
+ * @returns {Promise<number[]>}
+ */
+async function embedWithGemini(apiKey, text) {
+  const url = `${GEMINI_EMBEDDING_BASE}/${GEMINI_EMBEDDING_MODEL}:embedContent?key=${apiKey}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      content: { parts: [{ text }] },
+      taskType: 'RETRIEVAL_DOCUMENT'
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '');
+    throw new Error(`Gemini embedding error ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.embedding.values;
+}
+
+/**
+ * Genera embeddings en lote usando la API batch de Gemini (más eficiente)
+ * @param {string} apiKey
+ * @param {string[]} texts
+ * @returns {Promise<number[][]>}
+ */
+async function embedBatchWithGemini(apiKey, texts) {
+  const url = `${GEMINI_EMBEDDING_BASE}/${GEMINI_EMBEDDING_MODEL}:batchEmbedContents?key=${apiKey}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      requests: texts.map(text => ({
+        model: `models/${GEMINI_EMBEDDING_MODEL}`,
+        content: { parts: [{ text }] },
+        taskType: 'RETRIEVAL_DOCUMENT'
+      }))
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '');
+    throw new Error(`Gemini batch embedding error ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.embeddings.map(e => e.values);
+}
+
+/**
+ * Genera embedding usando Kimi (Moonshot) con API OpenAI-compatible
+ * @param {string} apiKey
+ * @param {string} text
+ * @returns {Promise<number[]>}
+ */
+async function embedWithKimi(apiKey, text) {
+  const response = await fetch(`${KIMI_EMBEDDING_BASE}/embeddings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: KIMI_EMBEDDING_MODEL,
+      input: text
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '');
+    throw new Error(`Kimi embedding error ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.data[0].embedding;
+}
+
+// ── Funciones de embedding local (Ollama / LM Studio) ────────────────────────
 
 /**
  * Genera embedding para un texto usando Ollama
@@ -174,7 +301,7 @@ async function embedBatchWithOllama(baseUrl, texts) {
  */
 async function embedWithLMStudio(baseUrl, text) {
   const model = getEmbeddingModel();
-  const response = await fetch(`${baseUrl}/embeddings`, {
+  const response = await fetch(`${baseUrl}${LM_STUDIO_ENDPOINTS.embeddings}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -189,19 +316,31 @@ async function embedWithLMStudio(baseUrl, text) {
   }
 
   const data = await response.json();
-  return data.data[0].embedding;
+  const embedding = data?.data?.[0]?.embedding;
+  if (!embedding) {
+    throw new Error(`LM Studio: respuesta de embeddings inesperada — ${JSON.stringify(data).substring(0, 200)}`);
+  }
+  return embedding;
 }
+
+// ── API pública ───────────────────────────────────────────────────────────────
 
 /**
  * Genera embedding para un solo texto
  * @param {string} text
- * @param {{ provider: string, baseUrl: string }} providerInfo
+ * @param {{ provider: string, baseUrl?: string, apiKey?: string }} providerInfo
  * @returns {Promise<number[]>}
  */
 async function embed(text, providerInfo, retryCount = 0) {
-  // Truncar texto como medida de seguridad para no exceder context length
+  // Truncar texto como medida de seguridad para no exceder context length del modelo de embeddings
   const safeText = text.length > MAX_INPUT_CHARS ? text.substring(0, MAX_INPUT_CHARS) : text;
 
+  if (providerInfo.provider === 'gemini') {
+    return embedWithGemini(providerInfo.apiKey, safeText);
+  }
+  if (providerInfo.provider === 'kimi') {
+    return embedWithKimi(providerInfo.apiKey, safeText);
+  }
   if (providerInfo.provider === 'ollama') {
     return embedWithOllama(providerInfo.baseUrl, safeText, retryCount);
   } else if (providerInfo.provider === 'lmstudio') {
@@ -213,14 +352,39 @@ async function embed(text, providerInfo, retryCount = 0) {
 /**
  * Genera embeddings para un array de textos en lotes
  * @param {string[]} texts
- * @param {{ provider: string, baseUrl: string }} providerInfo
+ * @param {{ provider: string, baseUrl?: string, apiKey?: string }} providerInfo
  * @returns {Promise<number[][]>}
  */
 async function embedBatch(texts, providerInfo) {
-  const results = [];
-
   // Truncar todos los textos antes de procesarlos
   const safeTexts = texts.map(t => t.length > MAX_INPUT_CHARS ? t.substring(0, MAX_INPUT_CHARS) : t);
+
+  // ── Gemini: batch API nativa (muy eficiente, 1 petición por lote de 10) ────
+  if (providerInfo.provider === 'gemini') {
+    const results = [];
+    for (let i = 0; i < safeTexts.length; i += BATCH_SIZE) {
+      const batch = safeTexts.slice(i, i + BATCH_SIZE);
+      const batchEmbeddings = await embedBatchWithGemini(providerInfo.apiKey, batch);
+      results.push(...batchEmbeddings);
+      if (i + BATCH_SIZE < safeTexts.length) {
+        await new Promise(resolve => setTimeout(resolve, 200)); // rate limit
+      }
+    }
+    return results;
+  }
+
+  // ── Kimi: llamadas individuales (sin batch API) ───────────────────────────
+  if (providerInfo.provider === 'kimi') {
+    const results = [];
+    for (const text of safeTexts) {
+      results.push(await embedWithKimi(providerInfo.apiKey, text));
+      await new Promise(resolve => setTimeout(resolve, 100)); // rate limit
+    }
+    return results;
+  }
+
+  // ── Proveedores locales ───────────────────────────────────────────────────
+  const results = [];
 
   for (let i = 0; i < safeTexts.length; i += BATCH_SIZE) {
     const batch = safeTexts.slice(i, i + BATCH_SIZE);
@@ -244,7 +408,6 @@ async function embedBatch(texts, providerInfo) {
       let attemptText = text;
       let contextRetries = 0;
       const maxContextRetries = 3;
-
       while (!embedding && contextRetries <= maxContextRetries) {
         try {
           embedding = await embed(attemptText, providerInfo);
@@ -273,12 +436,18 @@ async function embedBatch(texts, providerInfo) {
 
 /**
  * Verifica que el modelo de embeddings esté disponible y lo descarga si es necesario (Ollama)
- * @param {{ provider: string, baseUrl: string }} providerInfo
+ * Para proveedores cloud, retorna true directamente (no hay setup local necesario)
+ * @param {{ provider: string, baseUrl?: string, apiKey?: string }} providerInfo
  * @returns {Promise<boolean>}
  */
 async function ensureModel(providerInfo) {
+  // Cloud providers: no hay modelo local que verificar
+  if (providerInfo.provider === 'gemini' || providerInfo.provider === 'kimi') {
+    return true;
+  }
+
   const model = getEmbeddingModel();
-  
+
   if (providerInfo.provider === 'ollama') {
     try {
       // Verificar si el modelo existe

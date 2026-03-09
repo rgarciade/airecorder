@@ -38,6 +38,7 @@ export const getSettings = async () => {
       isFirstRun: true, // Por defecto true para nuevos usuarios
       notificationsEnabled: true,
       language: 'es',
+      uiLanguage: 'es',
       microphone: '',
       // Gemini Pro
       geminiApiKey: '',
@@ -56,11 +57,13 @@ export const getSettings = async () => {
       ollamaEmbeddingModel: 'nomic-embed-text', // Modelo de EMBEDDINGS para RAG
       ollamaHost: 'http://localhost:11434',
       ollamaModelSupportsStreaming: false,
+      ollamaContextLength: null, // Ventana de contexto en tokens (null = detectar en cada generación)
       // LM Studio
       lmStudioModel: '',
       lmStudioRagModel: '', // Modelo de CHAT específico para RAG
       lmStudioEmbeddingModel: '', // Modelo de EMBEDDINGS para RAG
       lmStudioHost: 'http://localhost:1234/v1',
+      lmStudioContextLength: null, // Ventana de contexto en tokens (null = detectar en cada generación)
       aiProvider: 'ollama' // Cambiado a ollama por defecto según petición
     };
   } catch (error) {

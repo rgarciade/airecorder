@@ -42,6 +42,11 @@
   color: #5C59C0;
 }
 
+.iconUpload {
+  background-color: #ECFDF5;
+  color: #059669;
+}
+
 .headerRight {
   display: flex;
   align-items: center;

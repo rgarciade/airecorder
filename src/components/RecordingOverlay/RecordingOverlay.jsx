@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { saveAndExit } from '../../store/recordingSlice';
 import styles from './RecordingOverlay.module.css';
 import ProjectSelector from '../ProjectSelector/ProjectSelector';
@@ -9,6 +10,7 @@ import { MdStop, MdExpandMore, MdDeleteOutline } from 'react-icons/md';
 
 const RecordingOverlay = ({ recorder, onFinish }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const [time, setTime] = useState(0);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [fileName, setFileName] = useState('');
@@ -22,7 +24,7 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
   const [dbId, setDbId] = useState(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [newName, setNewName] = useState('');
-  
+
   // Expanded State
   const [isExpanded, setIsExpanded] = useState(false);
   const interactionTimerRef = useRef(null);
@@ -184,7 +186,7 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
 
   return (
     <>
-      <div 
+      <div
         className={`${styles.overlay} ${isExpanded ? styles.overlayExpanded : styles.overlayMinimized}`}
         onClick={() => !isExpanded && setIsExpanded(true)}
       >
@@ -195,11 +197,11 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
               <div className={styles.cardHeader}>
                 <div className={styles.headerInfo}>
                   <div className={styles.dot}></div>
-                  <span className={styles.recordingTitle}>New Recording</span>
+                  <span className={styles.recordingTitle}>{t('recordingOverlay.recording')}</span>
                 </div>
                 <div className={styles.headerRight}>
                   <span className={styles.timerBadge}>{formatTime(time)}</span>
-                  <button 
+                  <button
                     className={styles.collapseBtn}
                     onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }}
                   >
@@ -207,19 +209,19 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
                   </button>
                 </div>
               </div>
-              
-              <div className={styles.statusLabel}>RECORDING</div>
-              
+
+              <div className={styles.statusLabel}>{t('recordingOverlay.recording').toUpperCase()}</div>
+
               <div className={styles.visualizerLarge}>
                 {generateBars(30)}
               </div>
 
               <div className={styles.cardActions}>
                 <button className={styles.btnCancel} onClick={handleDiscard}>
-                  <MdDeleteOutline size={18} /> Cancel
+                  <MdDeleteOutline size={18} /> {t('common.cancel')}
                 </button>
                 <button className={styles.btnStopSave} onClick={handleFinish}>
-                  <MdStop size={20} /> Stop & Save
+                  <MdStop size={20} /> {t('recordingOverlay.stopAndSave')}
                 </button>
               </div>
             </div>
@@ -228,14 +230,14 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
             <div className={styles.minimizedContent}>
               <div className={styles.dot}></div>
               <div className={styles.capsuleInfo}>
-                <span className={styles.capsuleLabel}>RECORDING</span>
+                <span className={styles.capsuleLabel}>{t('recordingOverlay.recording').toUpperCase()}</span>
                 <span className={styles.capsuleTime}>{formatTime(time)}</span>
               </div>
               <div className={styles.visualizerSmall}>
                 {generateBars(8)}
               </div>
-              <button 
-                className={styles.btnStopRound} 
+              <button
+                className={styles.btnStopRound}
                 onClick={handleFinish}
               >
                 <MdStop size={24} />
@@ -249,41 +251,41 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
       {showDetailsDialog && (
         <div className={styles.modalOverlay}>
             <div className={styles.modal}>
-            
+
             {!showProjectSelector ? (
               // VISTA A: Formulario normal
               <>
-                <h3>Detalles de la Grabación</h3>
+                <h3>{t('recordingOverlay.recordingDetails')}</h3>
 
                 <div className={styles.inputContainer}>
-                  <label className={styles.inputLabel}>Nombre</label>
+                  <label className={styles.inputLabel}>{t('recordingOverlay.savingName')}</label>
                   <input
                     type="text"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    placeholder="Nombre de la grabación"
+                    placeholder={t('recordingOverlay.savingName')}
                     className={styles.input}
                   />
                 </div>
 
                 <div className={styles.projectContainer}>
-                  <label className={styles.inputLabel}>Proyecto</label>
+                  <label className={styles.inputLabel}>{t('recordingOverlay.project')}</label>
                   <div className={styles.projectSelector}>
                     <div className={styles.projectNameDisplay}>
-                      {selectedProject ? selectedProject.name : 'Sin proyecto asignado'}
+                      {selectedProject ? selectedProject.name : t('recordingOverlay.noProject')}
                     </div>
                     <button
                       onClick={() => setShowProjectSelector(true)}
                       className={styles.projectChangeButton}
                     >
-                      {selectedProject ? 'Cambiar' : 'Seleccionar'}
+                      {selectedProject ? t('recordingOverlay.change') : t('recordingOverlay.selectProject')}
                     </button>
                   </div>
                 </div>
 
                 <div className={styles.modalButtons}>
                   <button onClick={handleSaveDetails} className={styles.saveButton}>
-                    Guardar y Salir
+                    {t('recordingOverlay.saveAndExit')}
                   </button>
                 </div>
               </>
@@ -296,7 +298,7 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
                 onCancel={() => setShowProjectSelector(false)}
               />
             )}
-            
+
           </div>
         </div>
       )}
@@ -305,14 +307,14 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
       {showDiscardDialog && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
-            <h3>¿Detener sin guardar?</h3>
-            <p>Se perderá la grabación actual.</p>
+            <h3>{t('recordingOverlay.confirmDiscard')}</h3>
+            <p>{t('recordingOverlay.confirmDiscardMessage')}</p>
             <div className={styles.modalButtons}>
               <button onClick={() => setShowDiscardDialog(false)} className={styles.cancelButton}>
-                Cancelar
+                {t('common.cancel')}
               </button>
               <button onClick={confirmDiscard} className={styles.discardModalButton}>
-                Sí, detener
+                {t('recordingOverlay.confirmDiscardYes')}
               </button>
             </div>
           </div>
@@ -326,12 +328,12 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
             {processingComplete ? (
               <>
                 <div className={styles.checkIcon}>✓</div>
-                <p>Archivos guardados correctamente</p>
+                <p>{t('recordingOverlay.processingComplete')}</p>
               </>
             ) : (
               <>
                 <div className={styles.spinner}></div>
-                <p>{isDiscarding ? 'Deteniendo grabación...' : 'Guardando archivos...'}</p>
+                <p>{isDiscarding ? t('recordingOverlay.stopping') : t('recordingOverlay.saving')}</p>
               </>
             )}
           </div>

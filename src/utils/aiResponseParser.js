@@ -17,40 +17,126 @@ export function cleanAiResponse(text) {
 }
 
 /**
- * Extrae y parsea un array JSON de una respuesta de IA
- * Soporta respuestas envueltas en objetos con claves comunes (tasks, participants, items, etc.)
+ * Extrae y parsea un array JSON de una respuesta de IA.
+ * Usa tracking de profundidad de corchetes para encontrar el primer array JSON
+ * válido y no-vacío, ignorando corchetes que formen parte del texto (ej: timestamps
+ * [00:01:30] o referencias [1] que podrían confundir al parser anterior).
+ *
  * @param {string} text - Respuesta cruda de la IA
  * @param {string[]} wrapperKeys - Claves posibles si el array viene envuelto en un objeto
  * @returns {Array} Array parseado, o [] si falla
  */
 export function parseJsonArray(text, wrapperKeys = []) {
-  try {
-    const clean = cleanAiResponse(text);
+  if (!text) return [];
 
-    const firstBracket = clean.indexOf('[');
-    const lastBracket = clean.lastIndexOf(']');
+  const clean = cleanAiResponse(text);
+  if (!clean) return [];
 
-    let parsed;
-    if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
-      parsed = JSON.parse(clean.substring(firstBracket, lastBracket + 1));
-    } else {
-      parsed = JSON.parse(clean);
+  // Recorre el texto buscando cada `[` como posible inicio de un array JSON.
+  // Para cada candidato, hace matching real de corchetes respetando strings,
+  // y luego intenta parsear. Devuelve el primer array no-vacío encontrado.
+  let searchFrom = 0;
+  while (searchFrom < clean.length) {
+    const start = clean.indexOf('[', searchFrom);
+    if (start === -1) break;
+
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    let end = -1;
+
+    for (let i = start; i < clean.length; i++) {
+      const ch = clean[i];
+      if (escaped) { escaped = false; continue; }
+      if (ch === '\\' && inString) { escaped = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === '[') depth++;
+      else if (ch === ']') {
+        depth--;
+        if (depth === 0) { end = i; break; }
+      }
     }
 
-    // Si ya es un array, retornarlo
+    if (end !== -1) {
+      try {
+        const candidate = clean.substring(start, end + 1);
+        const parsed = JSON.parse(candidate);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        // Array vacío [] → seguir buscando
+      } catch {
+        // No era JSON válido → seguir buscando desde el siguiente `[`
+      }
+    }
+
+    searchFrom = start + 1;
+  }
+
+  // Fallback 1: intentar parsear el texto completo como JSON
+  try {
+    const parsed = JSON.parse(clean);
     if (Array.isArray(parsed)) return parsed;
 
-    // Si es un objeto, buscar el array en las claves conocidas
+    // Si es un objeto envolvente, buscar en las claves conocidas
     if (parsed && typeof parsed === 'object') {
       for (const key of wrapperKeys) {
         if (Array.isArray(parsed[key])) return parsed[key];
       }
     }
-
-    return [];
   } catch {
-    return [];
+    // Sin resultado
   }
+
+  // Fallback 2: recopilar objetos JSON individuales del texto.
+  // Algunos modelos (Ollama en modo JSON, modelos pequeños) devuelven uno o varios
+  // objetos sueltos  { ... }{ ... }  en lugar de un array [ {...}, {...} ].
+  {
+    const objects = [];
+    let si = 0;
+    while (si < clean.length) {
+      const s = clean.indexOf('{', si);
+      if (s === -1) break;
+
+      let d = 0, inStr = false, esc = false, e = -1;
+      for (let i = s; i < clean.length; i++) {
+        const c = clean[i];
+        if (esc) { esc = false; continue; }
+        if (c === '\\' && inStr) { esc = true; continue; }
+        if (c === '"') { inStr = !inStr; continue; }
+        if (inStr) continue;
+        if (c === '{') d++;
+        else if (c === '}') { d--; if (d === 0) { e = i; break; } }
+      }
+
+      if (e !== -1) {
+        try {
+          const obj = JSON.parse(clean.substring(s, e + 1));
+          if (obj && typeof obj === 'object' && !Array.isArray(obj) && Object.keys(obj).length > 0) {
+            objects.push(obj);
+          }
+        } catch { /* bloque no parseable, continuar */ }
+        si = e + 1;
+      } else {
+        // No se encontró cierre → el texto está truncado. Intentar "sanar" añadiendo cierres.
+        // Cubre el caso más común: el modelo cortó el JSON justo después del último campo.
+        const truncated = clean.substring(s);
+        const healSuffixes = ['}', '\n}', '"}', '"\n}', '"}\n', '"}}\n'];
+        for (const suffix of healSuffixes) {
+          try {
+            const obj = JSON.parse(truncated + suffix);
+            if (obj && typeof obj === 'object' && !Array.isArray(obj) && Object.keys(obj).length > 0) {
+              objects.push(obj);
+            }
+            break; // sanación exitosa, no seguir probando sufijos
+          } catch { /* probar siguiente sufijo */ }
+        }
+        break; // fin del texto útil
+      }
+    }
+    if (objects.length > 0) return objects;
+  }
+
+  return [];
 }
 
 /**

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSelector, useDispatch } from 'react-redux';
 import { startRecording } from '../../store/recordingSlice';
 import { MixedAudioRecorder, getSystemMicrophones } from '../../services/audioService';
@@ -12,6 +13,7 @@ import StatsRow from './components/StatsRow';
 import RecordingCard from '../../components/RecordingCard/RecordingCard';
 
 export default function Home({ onSettings, onProjects, onRecordingStart, onRecordingSelect, onNavigateToProject, refreshTrigger }) {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { isRecording } = useSelector((state) => state.recording);
   
@@ -26,8 +28,8 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
   const itemsPerPage = 20;
   
   // Settings display
-  const [currentMicLabel, setCurrentMicLabel] = useState('Default Mic');
-  const [currentLangLabel, setCurrentLangLabel] = useState('English (US)');
+  const [currentMicLabel, setCurrentMicLabel] = useState('');
+  const [currentLangLabel, setCurrentLangLabel] = useState('');
 
   // Stats
   const [totalTimeStr, setTotalTimeStr] = useState("0h 0m");
@@ -81,18 +83,15 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
         if (mic) setCurrentMicLabel(mic.label);
       } else if (devices.length > 0) {
         setCurrentMicLabel(devices[0].label);
+      } else {
+        setCurrentMicLabel(t('home.defaultMic'));
       }
 
-      // Update Language Label
+      // Update Language Label (transcription language)
       if (settings?.language) {
-        const langMap = {
-          'en': 'English',
-          'es': 'Español',
-          'fr': 'Français',
-        };
+        const langMap = { 'en': 'English', 'es': 'Español', 'fr': 'Français' };
         setCurrentLangLabel(langMap[settings.language] || settings.language);
       } else {
-        // Default if no language set
         setCurrentLangLabel('English');
       }
     } catch (error) {
@@ -142,7 +141,7 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
       if (result.success) {
         loadRecordings(); 
       } else {
-        alert('Error iniciando transcripción: ' + result.error);
+        alert(t('home.errorTranscribing', { error: result.error }));
       }
     } catch (err) {
       console.error('Error transcribing:', err);
@@ -171,7 +170,7 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
           }
         }
       } else {
-        alert('Error importando la transcripción: ' + (result?.error || 'Error desconocido'));
+        alert(t('home.errorImporting', { error: result?.error || 'Error desconocido' }));
       }
     } catch (err) {
       console.error('Error importando transcripción de Teams:', err);
@@ -193,7 +192,7 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
         setImportName(suggestedName);
         setImportModal({ recordingId, recordingPath });
       } else {
-        alert('Error importando audio: ' + (result?.error || 'Error desconocido'));
+        alert(t('home.errorImportingAudio', { error: result?.error || 'Error desconocido' }));
       }
     } catch (err) {
       console.error('Error importando archivo de audio:', err);
@@ -243,7 +242,7 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
     if (isRecording) return;
 
     if (permissionDenied) {
-      if (window.confirm('⚠️ Acceso al micrófono denegado.\n\nPor favor, habilita el permiso en Ajustes del Sistema > Privacidad y Seguridad > Micrófono.\n\n¿Quieres abrir los Ajustes del Sistema ahora?')) {
+      if (window.confirm(t('home.micPermissionDeniedConfirm'))) {
         if (window.electronAPI?.openMicrophonePreferences) {
           window.electronAPI.openMicrophonePreferences();
         }
@@ -281,21 +280,20 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
     } catch (err) {
       console.error('Error starting recording:', err);
       
-      let errorMessage = 'No se pudo iniciar la grabación: ' + err.message;
-      
+      let errorMessage = t('home.errorStartingRecording', { error: err.message });
+
       if (err.name === 'NotAllowedError' || err.message.toLowerCase().includes('permission denied')) {
-        setPermissionDenied(true); 
-        errorMessage = '⚠️ Acceso al micrófono denegado.\n\nPor favor, habilita el permiso de micrófono para la aplicación en Ajustes del Sistema.';
-        if (window.confirm(errorMessage + '\n\n¿Quieres abrir los Ajustes del Sistema ahora?')) {
+        setPermissionDenied(true);
+        if (window.confirm(t('home.micPermissionDeniedSystem') + '\n\n' + t('home.micPermissionDeniedConfirm').split('\n\n')[2])) {
           if (window.electronAPI?.openMicrophonePreferences) {
             window.electronAPI.openMicrophonePreferences();
           }
         }
         return;
       } else if (err.name === 'NotFoundError') {
-        errorMessage = '⚠️ No se encontró ningún micrófono.\n\nPor favor, conecta un micrófono e intenta de nuevo.';
+        errorMessage = t('home.micNotFound');
       }
-      
+
       alert(errorMessage);
     }
   };
@@ -314,13 +312,13 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
     <div className={styles.container}>
       <header className={styles.header}>
         <div>
-          <h1 className={styles.greeting}>Welcome!</h1>
-          <p className={styles.subtitle}>What would you like to record today?</p>
+          <h1 className={styles.greeting}>{t('home.greeting')}</h1>
+          <p className={styles.subtitle}>{t('home.subtitle')}</p>
         </div>
         <div className={styles.headerActions}>
           <input 
             type="text" 
-            placeholder="Search recordings..." 
+            placeholder={t('home.searchPlaceholder')}
             className={styles.searchInput} 
             value={searchTerm}
             onChange={(e) => {
@@ -342,9 +340,9 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
           </svg>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <span>
-              Acceso al micrófono denegado. La aplicación no podrá grabar audio.
+              {t('home.micPermissionDenied')}
               <br />
-              <span style={{ fontSize: '0.85rem', fontWeight: 400 }}>Ve a Ajustes del Sistema &gt; Privacidad y Seguridad &gt; Micrófono y habilita AIRecorder.</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 400 }}>{t('home.micPermissionDeniedDesc')}</span>
             </span>
             <button 
               onClick={() => window.electronAPI?.openMicrophonePreferences?.()}
@@ -359,7 +357,7 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
                 color: 'inherit'
               }}
             >
-              Abrir Ajustes del Sistema
+              {t('home.openSystemSettings')}
             </button>
           </div>
         </div>
@@ -381,11 +379,11 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
       />
       
       <div className={styles.sectionHeader}>
-        <h2>Recent Recordings</h2>
-        <button onClick={onProjects}>View Projects</button>
+        <h2>{t('home.recentRecordings')}</h2>
+        <button onClick={onProjects}>{t('home.viewProjects')}</button>
       </div>
       
-      {loading && <p>Loading recordings...</p>}
+      {loading && <p>{t('home.loadingRecordings')}</p>}
       
       <div className={styles.grid}>
         {paginatedRecordings.map(rec => (
@@ -397,7 +395,7 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
             />
           ))}
         {!loading && recordings.length === 0 && (
-          <p className={styles.noRecordingsMessage}>No recordings yet. Start a new session!</p>
+          <p className={styles.noRecordingsMessage}>{t('home.noRecordings')}</p>
         )}
       </div>
 
@@ -411,7 +409,7 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
             <MdChevronLeft size={20} />
           </button>
           <span className={styles.pageInfo}>
-            Page {currentPage} of {totalPages}
+            {t('home.page', { current: currentPage, total: totalPages })}
           </span>
           <button 
             className={styles.pageBtn} 
@@ -427,18 +425,18 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
       {importModal && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h3 className={styles.modalTitle}>Import Audio</h3>
+            <h3 className={styles.modalTitle}>{t('home.importAudio.title')}</h3>
             <p className={styles.modalText}>
-              The audio has been imported successfully. You can rename it before starting the transcription.
+              {t('home.importAudio.description')}
             </p>
             <div className={styles.formGroup}>
-              <label className={styles.label}>Recording Name</label>
-              <input 
-                type="text" 
-                className={styles.input} 
-                value={importName} 
-                onChange={(e) => setImportName(e.target.value)} 
-                placeholder="Name"
+              <label className={styles.label}>{t('home.importAudio.recordingName')}</label>
+              <input
+                type="text"
+                className={styles.input}
+                value={importName}
+                onChange={(e) => setImportName(e.target.value)}
+                placeholder={t('home.importAudio.namePlaceholder')}
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleConfirmImport();
@@ -446,17 +444,17 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
               />
             </div>
             <div className={styles.buttonGroup}>
-              <button 
-                className={styles.cancelBtn} 
+              <button
+                className={styles.cancelBtn}
                 onClick={() => setImportModal(null)}
               >
-                Cancel
+                {t('home.importAudio.cancel')}
               </button>
-              <button 
-                className={styles.confirmBtn} 
+              <button
+                className={styles.confirmBtn}
                 onClick={handleConfirmImport}
               >
-                Start Transcription
+                {t('home.importAudio.startTranscription')}
               </button>
             </div>
           </div>

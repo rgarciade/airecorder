@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getSystemMicrophones } from '../../services/audioService';
 import { getSettings, updateSettings } from '../../services/settingsService';
-import { getAvailableModels, checkOllamaAvailability, checkModelSupportsStreaming } from '../../services/ai/ollamaProvider';
+import { getAvailableModels, checkOllamaAvailability, checkModelSupportsStreaming, getOllamaModelInfo } from '../../services/ai/ollamaProvider';
 import { getGeminiAvailableModels } from '../../services/ai/geminiProvider';
 import { getDeepseekAvailableModels, getKimiAvailableModels, getLMStudioModels } from '../../services/ai/providerRouter';
-import { checkLMStudioAvailability } from '../../services/ai/lmStudioProvider';
+import { checkLMStudioAvailability, getLMStudioModelInfo } from '../../services/ai/lmStudioProvider';
 import { 
   MdMic, MdClose, MdCloud, MdAutoAwesome, MdComputer, MdTerminal,
   MdFolder, MdVisibility, MdVisibilityOff, MdRefresh, MdInfo, MdCheck,
@@ -12,6 +13,7 @@ import {
   MdSystemUpdate
 } from 'react-icons/md';
 import styles from './Settings.module.css';
+import InfoTooltip from '../../components/InfoTooltip/InfoTooltip';
 
 const mockLanguages = [
   { value: 'es', label: 'Español' },
@@ -35,8 +37,11 @@ const whisperModels = [
 ];
 
 export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents' }) {
+  const { t } = useTranslation();
+
   // State
   const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [selectedUiLanguage, setSelectedUiLanguage] = useState('es');
   const [selectedMicrophone, setSelectedMicrophone] = useState('');
   const [fontSize, setFontSize] = useState('medium');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -49,6 +54,9 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
   
   // Storage
   const [outputDirectory, setOutputDirectory] = useState('');
+  const [databasePath, setDatabasePath] = useState('');
+  const [dbMigrateModal, setDbMigrateModal] = useState(null); // { newPath } | null
+  const [dbChangeError, setDbChangeError] = useState('');
 
   // Gemini Free
   const [geminiFreeApiKey, setGeminiFreeApiKey] = useState('');
@@ -78,7 +86,6 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
 
   // Ollama
   const [ollamaModel, setOllamaModel] = useState('');
-  const [ollamaRagModel, setOllamaRagModel] = useState('');
   const [ollamaEmbeddingModel, setOllamaEmbeddingModel] = useState('');
   const [ollamaModels, setOllamaModels] = useState([]);
   const [ollamaEmbeddingModels, setOllamaEmbeddingModels] = useState([]);
@@ -89,13 +96,20 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
 
   // LM Studio
   const [lmStudioModel, setLmStudioModel] = useState('');
-  const [lmStudioRagModel, setLmStudioRagModel] = useState('');
   const [lmStudioEmbeddingModel, setLmStudioEmbeddingModel] = useState('');
   const [lmStudioModels, setLmStudioModels] = useState([]);
   const [lmStudioChatModels, setLmStudioChatModels] = useState([]);
   const [lmStudioEmbeddingModels, setLmStudioEmbeddingModels] = useState([]);
   const [lmStudioHost, setLmStudioHost] = useState('http://localhost:1234/v1');
   const [lmStudioAvailable, setLmStudioAvailable] = useState(false);
+
+  // Context length guardado en settings (persiste, se usa para evitar llamadas a API)
+  const [ollamaContextLengthSaved, setOllamaContextLengthSaved] = useState('');
+  const [lmStudioContextLengthSaved, setLmStudioContextLengthSaved] = useState('');
+  // Estado de detección automática del context length
+  const [ollamaCtxStatus, setOllamaCtxStatus] = useState(null); // null | 'success' | 'error'
+  const [lmStudioCtxStatus, setLmStudioCtxStatus] = useState(null); // null | 'success' | 'error'
+  const [isDetectingLmCtx, setIsDetectingLmCtx] = useState(false);
 
   // UI State
   const [activeTab, setActiveTab] = useState(initialTab); // 'general' | 'agents'
@@ -152,6 +166,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
       
       if (savedSettings) {
         setSelectedLanguage(savedSettings.language || 'en');
+        setSelectedUiLanguage(savedSettings.uiLanguage || 'es');
         setSelectedMicrophone(savedSettings.microphone || (systemMicrophones.length > 0 ? systemMicrophones[0].value : ''));
         setFontSize(savedSettings.fontSize || 'medium');
         setNotificationsEnabled(savedSettings.notificationsEnabled !== false); // Default true
@@ -186,17 +201,19 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         // LM Studio
         setLmStudioHost(savedSettings.lmStudioHost || 'http://localhost:1234/v1');
         setLmStudioModel(savedSettings.lmStudioModel || '');
-        setLmStudioRagModel(savedSettings.lmStudioRagModel || '');
         setLmStudioEmbeddingModel(savedSettings.lmStudioEmbeddingModel || '');
+        setLmStudioContextLengthSaved(savedSettings.lmStudioContextLength ? String(savedSettings.lmStudioContextLength) : '');
+
+        // Ollama context length guardado
+        setOllamaContextLengthSaved(savedSettings.ollamaContextLength ? String(savedSettings.ollamaContextLength) : '');
         
         setAiProvider(savedSettings.aiProvider || 'ollama');
         setOllamaModel(savedSettings.ollamaModel || '');
-        console.log('📥 [Settings] Cargando ollamaRagModel:', savedSettings.ollamaRagModel);
-        setOllamaRagModel(savedSettings.ollamaRagModel || '');
         setOllamaEmbeddingModel(savedSettings.ollamaEmbeddingModel || 'nomic-embed-text');
         setOllamaModelSupportsStreaming(savedSettings.ollamaModelSupportsStreaming || false);
         if (savedSettings.ollamaHost) setOllamaHost(savedSettings.ollamaHost);
         if (savedSettings.outputDirectory) setOutputDirectory(savedSettings.outputDirectory);
+        if (savedSettings.databasePath) setDatabasePath(savedSettings.databasePath);
       }
       
       // Check Ollama with loaded/default host
@@ -379,14 +396,22 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
 
   const handleOllamaModelChange = async (newModel) => {
     setOllamaModel(newModel);
+    setOllamaCtxStatus(null); // Resetear estado de detección al cambiar modelo
 
     if (newModel && ollamaAvailable) {
       setIsCheckingModel(true);
       try {
         console.log(`🔍 Verificando modelo ${newModel}...`);
-        const supportsStreaming = await checkModelSupportsStreaming(newModel, ollamaHost);
+        const [supportsStreaming, modelInfo] = await Promise.all([
+          checkModelSupportsStreaming(newModel, ollamaHost),
+          getOllamaModelInfo(newModel, ollamaHost)
+        ]);
         setOllamaModelSupportsStreaming(supportsStreaming);
-        console.log(`📝 Modelo ${newModel} - Streaming: ${supportsStreaming ? 'SÍ' : 'NO'}`);
+        // Auto-actualizar el campo de context length si se detecta (silencioso, sin mostrar status)
+        if (modelInfo?.numCtx) {
+          setOllamaContextLengthSaved(String(modelInfo.numCtx));
+        }
+        console.log(`📝 Modelo ${newModel} - Streaming: ${supportsStreaming ? 'SÍ' : 'NO'} | numCtx: ${modelInfo?.numCtx}`);
       } catch (error) {
         console.error(`❌ Error verificando modelo ${newModel}:`, error);
         setOllamaModelSupportsStreaming(false);
@@ -396,6 +421,63 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
     } else {
       setOllamaModelSupportsStreaming(false);
       setIsCheckingModel(false);
+    }
+  };
+
+  /** Detecta el context length de Ollama explícitamente (con feedback de estado) */
+  const handleDetectOllamaContextLength = async () => {
+    if (!ollamaModel || !ollamaAvailable) return;
+    setIsCheckingModel(true);
+    setOllamaCtxStatus(null);
+    try {
+      const info = await getOllamaModelInfo(ollamaModel, ollamaHost);
+      if (info?.numCtx) {
+        setOllamaContextLengthSaved(String(info.numCtx));
+        setOllamaCtxStatus('success');
+      } else {
+        setOllamaCtxStatus('error');
+      }
+    } catch {
+      setOllamaCtxStatus('error');
+    } finally {
+      setIsCheckingModel(false);
+    }
+  };
+
+  /** Maneja el cambio de modelo en LM Studio con detección silenciosa de context length */
+  const handleLmStudioModelChange = async (newModel) => {
+    setLmStudioModel(newModel);
+    setLmStudioCtxStatus(null); // Resetear estado de detección al cambiar modelo
+    // Auto-detectar context length de forma silenciosa
+    if (newModel && lmStudioAvailable) {
+      try {
+        const info = await getLMStudioModelInfo(newModel, lmStudioHost);
+        if (info?.numCtx) {
+          setLmStudioContextLengthSaved(String(info.numCtx));
+        }
+      } catch {
+        // Fallo silencioso — el usuario puede usar el botón "Detectar"
+      }
+    }
+  };
+
+  /** Detecta el context length de LM Studio explícitamente (con feedback de estado) */
+  const handleDetectLmStudioContextLength = async () => {
+    if (!lmStudioModel || !lmStudioAvailable) return;
+    setIsDetectingLmCtx(true);
+    setLmStudioCtxStatus(null);
+    try {
+      const info = await getLMStudioModelInfo(lmStudioModel, lmStudioHost);
+      if (info?.numCtx) {
+        setLmStudioContextLengthSaved(String(info.numCtx));
+        setLmStudioCtxStatus('success');
+      } else {
+        setLmStudioCtxStatus('error');
+      }
+    } catch {
+      setLmStudioCtxStatus('error');
+    } finally {
+      setIsDetectingLmCtx(false);
     }
   };
 
@@ -426,9 +508,9 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
     setSaveMessage('');
     
     try {
-      console.log('💾 [Settings] Guardando ollamaRagModel:', ollamaRagModel);
       await updateSettings({
         language: selectedLanguage,
+        uiLanguage: selectedUiLanguage,
         microphone: selectedMicrophone,
         notificationsEnabled: notificationsEnabled,
         fontSize: fontSize,
@@ -449,26 +531,32 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         // LM Studio
         lmStudioHost: lmStudioHost,
         lmStudioModel: lmStudioModel,
-        lmStudioRagModel: lmStudioRagModel,
         lmStudioEmbeddingModel: lmStudioEmbeddingModel,
         // Ollama
         aiProvider: aiProvider,
         ollamaModel: ollamaModel,
-        ollamaRagModel: ollamaRagModel,
         ollamaEmbeddingModel: ollamaEmbeddingModel,
         ollamaHost: ollamaHost,
         ollamaModelSupportsStreaming: ollamaModelSupportsStreaming,
-        outputDirectory: outputDirectory
+        ollamaContextLength: ollamaContextLengthSaved ? parseInt(ollamaContextLengthSaved) : null,
+        // LM Studio (context length)
+        lmStudioContextLength: lmStudioContextLengthSaved ? parseInt(lmStudioContextLengthSaved) : null,
+        outputDirectory: outputDirectory,
+        databasePath: databasePath || undefined
       });
-      setSaveMessage('Ajustes guardados con éxito');
+      setSaveMessage(t('settings.messages.saveSuccess'));
       if (onSettingsSaved) onSettingsSaved();
       setTimeout(() => setSaveMessage(''), 3000);
     } catch (error) {
       console.error('Error guardando ajustes:', error);
-      setSaveMessage('Error al guardar ajustes');
+      setSaveMessage(t('settings.messages.saveError'));
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleUiLanguageChange = (lang) => {
+    setSelectedUiLanguage(lang);
   };
 
   const handleChangeDirectory = async () => {
@@ -478,7 +566,32 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         setOutputDirectory(path);
       }
     } else {
-      alert('La selección de directorio no está soportada en este entorno');
+      alert(t('settings.misc.directoryNotSupported'));
+    }
+  };
+
+  const handleChangeDatabasePath = async () => {
+    if (window.electronAPI && window.electronAPI.selectDirectory) {
+      const dir = await window.electronAPI.selectDirectory();
+      if (!dir) return;
+      const newPath = dir + '/recordings.db';
+      if (newPath === databasePath) return;
+      setDbChangeError('');
+      setDbMigrateModal({ newPath });
+    } else {
+      alert(t('settings.misc.directoryNotSupported'));
+    }
+  };
+
+  const handleConfirmDbChange = async (migrate) => {
+    if (!dbMigrateModal) return;
+    const result = await window.electronAPI.changeDbPath(dbMigrateModal.newPath, migrate);
+    if (result.success) {
+      setDatabasePath(dbMigrateModal.newPath);
+      setDbMigrateModal(null);
+      setDbChangeError('');
+    } else {
+      setDbChangeError(`Error: ${result.error}`);
     }
   };
 
@@ -500,7 +613,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
           <div className={styles.headerIcon}>
             <MdMic size={20} />
           </div>
-          <h1 className={styles.headerTitle}>Ajustes de AIRecorder</h1>
+          <h1 className={styles.headerTitle}>{t('settings.title')}</h1>
         </div>
         <button onClick={onBack} className={styles.closeButton}>
           <MdClose size={20} />
@@ -511,8 +624,8 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         <div className={styles.maxWidthContainer}>
           
           <div className={styles.pageHeader}>
-            <h2 className={styles.pageTitle}>Configuración</h2>
-            <p className={styles.pageDescription}>Gestiona tus preferencias de aplicación y configuraciones de IA.</p>
+            <h2 className={styles.pageTitle}>{t('settings.subtitle')}</h2>
+            <p className={styles.pageDescription}>{t('settings.description')}</p>
           </div>
 
           <div className={styles.tabsContainer}>
@@ -521,14 +634,14 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
               onClick={() => setActiveTab('agents')}
             >
               <MdSmartToy className={styles.tabIcon} />
-              Agentes de IA
+              {t('settings.tabs.agents')}
             </button>
-            <button 
+            <button
               className={`${styles.tab} ${activeTab === 'general' ? styles.tabActive : ''}`}
               onClick={() => setActiveTab('general')}
             >
               <MdSettings className={styles.tabIcon} />
-              General
+              {t('settings.tabs.general')}
             </button>
           </div>
 
@@ -540,11 +653,11 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                 <div className={styles.sectionHeader}>
                   <div className={styles.sectionTitleGroup}>
                     <MdComputer className={styles.sectionIcon} size={20} />
-                    <h3 className={styles.sectionTitle}>Proveedores Locales</h3>
+                    <h3 className={styles.sectionTitle}>{t('settings.sections.localProviders')}</h3>
                   </div>
                   <span className={`${styles.badge} ${['ollama', 'lmstudio'].includes(aiProvider) ? styles.badgeActive : styles.badgeInactive}`}>
-                    {aiProvider === 'ollama' ? 'Ollama Activo' : 
-                     aiProvider === 'lmstudio' ? 'LM Studio Activo' : 'Inactivo'}
+                    {aiProvider === 'ollama' ? t('settings.providers.ollamaActive') :
+                     aiProvider === 'lmstudio' ? t('settings.providers.lmStudioActive') : t('settings.providers.inactive')}
                   </span>
                 </div>
 
@@ -556,8 +669,29 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         <MdTerminal size={24} />
                       </div>
                       <div>
-                        <h4 className={styles.providerName}>Ollama</h4>
-                        <p className={styles.providerDesc}>Inferencia Local</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <h4 className={styles.providerName}>Ollama</h4>
+                          <InfoTooltip
+                            title={t('modelInfo.title')}
+                            sections={[
+                              {
+                                title: t('modelInfo.generalModel'),
+                                items: [
+                                  { icon: '⭐', label: t('modelInfo.bestPerformance'), value: 'deepseek-r1:8b' },
+                                  { icon: '🪶', label: t('modelInfo.lessResources'), value: 'gemma-7b-it' },
+                                ],
+                              },
+                              {
+                                title: t('modelInfo.embedding'),
+                                items: [
+                                  { icon: '⭐', label: t('modelInfo.bestPerformance'), value: 'mxbai-embed-large' },
+                                  { icon: '🪶', label: t('modelInfo.lessResources'), value: 'nomic-embed-text' },
+                                ],
+                              },
+                            ]}
+                          />
+                        </div>
+                        <p className={styles.providerDesc}>{t('settings.providers.localInference')}</p>
                       </div>
                     </div>
                     <label className={styles.toggleWrapper}>
@@ -572,45 +706,45 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>URL del Host</label>
+                    <label className={styles.label}>{t('settings.fields.hostUrl')}</label>
                     <div className={styles.inputRow}>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         className={styles.input}
                         value={ollamaHost}
                         onChange={(e) => setOllamaHost(e.target.value)}
                         placeholder="http://localhost:11434"
                         disabled={aiProvider !== 'ollama'}
                       />
-                      <button 
+                      <button
                         className={styles.checkBtn}
                         onClick={() => checkOllamaConnection(ollamaHost)}
                         disabled={aiProvider !== 'ollama'}
                       >
                         <MdRefresh size={18} />
-                        Probar
+                        {t('settings.buttons.test')}
                       </button>
                     </div>
                     {!ollamaAvailable ? (
                       <p className={styles.errorText}>
-                        • Servicio no detectado en {ollamaHost}
+                        {t('settings.messages.serviceNotDetected', { host: ollamaHost })}
                       </p>
                     ) : (
                       <p className={styles.helpText} style={{ color: '#059669' }}>
-                        • Servicio conectado
+                        {t('settings.messages.serviceConnected')}
                       </p>
                     )}
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Modelo</label>
+                    <label className={styles.label}>{t('settings.fields.model')}</label>
                     <select
                       className={styles.input}
                       value={ollamaModel}
                       onChange={(e) => handleOllamaModelChange(e.target.value)}
                       disabled={aiProvider !== 'ollama' || !ollamaAvailable || isCheckingModel}
                     >
-                      <option value="" disabled>Selecciona un modelo</option>
+                      <option value="" disabled>{t('settings.misc.selectModel')}</option>
                       {ollamaModels.map(model => (
                         <option key={model.name} value={model.name}>{model.name}</option>
                       ))}
@@ -618,53 +752,70 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                     {isCheckingModel && (
                       <p className={styles.helpText} style={{ color: '#0ea5e9', display: 'flex', alignItems: 'center' }}>
                         <MdRefresh className={styles.spinner} style={{ marginRight: '4px' }} />
-                        Verificando modelo...
+                        {t('settings.messages.verifyingModel')}
                       </p>
                     )}
                     {ollamaModel && !isCheckingModel && (
                       <p className={styles.helpText} style={{ color: ollamaModelSupportsStreaming ? '#059669' : '#dc2626' }}>
-                        {ollamaModelSupportsStreaming ? '✓ Soporta streaming' : '✗ No soporta streaming'}
+                        {ollamaModelSupportsStreaming ? t('settings.messages.supportsStreaming') : t('settings.messages.noStreaming')}
                       </p>
                     )}
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Modelo de Chat para RAG (opcional)</label>
-                    <select
-                      className={styles.input}
-                      value={ollamaRagModel}
-                      onChange={(e) => {
-                        console.log('📝 [Settings] Cambiando ollamaRagModel a:', e.target.value);
-                        setOllamaRagModel(e.target.value);
-                      }}
-                      disabled={aiProvider !== 'ollama' || !ollamaAvailable}
-                    >
-                      <option value="">Usar modelo principal</option>
-                      {ollamaModels.map(model => (
-                        <option key={model.name} value={model.name}>{model.name}</option>
-                      ))}
-                    </select>
-                    <p className={styles.helpText}>
-                      Modelo específico para responder consultas RAG (ej: deepseek-r1). Dejar vacío para usar el modelo principal.
-                    </p>
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Modelo de Embeddings (Ollama)</label>
+                    <label className={styles.label}>{t('settings.fields.embeddingModel', { provider: 'Ollama' })}</label>
                     <select
                       className={styles.input}
                       value={ollamaEmbeddingModel}
                       onChange={(e) => setOllamaEmbeddingModel(e.target.value)}
                       disabled={aiProvider !== 'ollama' || !ollamaAvailable}
                     >
-                      {ollamaEmbeddingModels.length === 0 && <option value="">Cargando...</option>}
+                      {ollamaEmbeddingModels.length === 0 && <option value="">{t('settings.misc.loading')}</option>}
                       {ollamaEmbeddingModels.map(model => (
                         <option key={model.name} value={model.name}>{model.name}</option>
                       ))}
                     </select>
                     <p className={styles.helpText}>
-                      Modelo usado para indexar y buscar fragmentos (ej: nomic-embed-text).
+                      {t('settings.helpText.embeddingModel')}
                     </p>
+                  </div>
+
+                  {/* Ventana de Contexto — Ollama */}
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>{t('settings.fields.contextLength')}</label>
+                    <div className={styles.inputRow}>
+                      <input
+                        type="number"
+                        className={styles.input}
+                        value={ollamaContextLengthSaved}
+                        onChange={(e) => { setOllamaContextLengthSaved(e.target.value); setOllamaCtxStatus(null); }}
+                        placeholder="4096"
+                        disabled={aiProvider !== 'ollama'}
+                        min="512"
+                      />
+                      <button
+                        className={styles.checkBtn}
+                        onClick={handleDetectOllamaContextLength}
+                        disabled={aiProvider !== 'ollama' || !ollamaAvailable || !ollamaModel || isCheckingModel}
+                      >
+                        <MdRefresh size={18} className={isCheckingModel ? styles.spinner : undefined} />
+                        {t('settings.buttons.detect')}
+                      </button>
+                    </div>
+                    {ollamaCtxStatus === 'success' && (
+                      <p className={styles.helpText} style={{ color: '#059669' }}>
+                        {t('settings.messages.contextLengthDetected', { n: parseInt(ollamaContextLengthSaved).toLocaleString() })}
+                      </p>
+                    )}
+                    {ollamaCtxStatus === 'error' && (
+                      <p className={styles.helpText} style={{ color: '#dc2626' }}>
+                        {t('settings.messages.contextLengthNotFound')}
+                        {' '}<span style={{ color: '#6B7280' }}>{t('settings.helpText.contextLengthOllama')}</span>
+                      </p>
+                    )}
+                    {!ollamaCtxStatus && (
+                      <p className={styles.helpText}>{t('settings.helpText.contextLengthInput')}</p>
+                    )}
                   </div>
                 </div>
 
@@ -676,8 +827,29 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         <MdSmartToy size={24} />
                       </div>
                       <div>
-                        <h4 className={styles.providerName}>LM Studio</h4>
-                        <p className={styles.providerDesc}>Servidor Local (Compatible con OpenAI)</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <h4 className={styles.providerName}>LM Studio</h4>
+                          <InfoTooltip
+                            title={t('modelInfo.title')}
+                            sections={[
+                              {
+                                title: t('modelInfo.generalModel'),
+                                items: [
+                                  { icon: '⭐', label: t('modelInfo.bestPerformance'), value: 'deepseek-r1:8b' },
+                                  { icon: '🪶', label: t('modelInfo.lessResources'), value: 'gemma-7b-it' },
+                                ],
+                              },
+                              {
+                                title: t('modelInfo.embedding'),
+                                items: [
+                                  { icon: '⭐', label: t('modelInfo.bestPerformance'), value: 'mxbai-embed-large' },
+                                  { icon: '🪶', label: t('modelInfo.lessResources'), value: 'nomic-embed-text' },
+                                ],
+                              },
+                            ]}
+                          />
+                        </div>
+                        <p className={styles.providerDesc}>{t('settings.providers.localServer')}</p>
                       </div>
                     </div>
                     <label className={styles.toggleWrapper}>
@@ -692,90 +864,110 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>URL Base</label>
+                    <label className={styles.label}>{t('settings.fields.baseUrl')}</label>
                     <div className={styles.inputRow}>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         className={styles.input}
                         value={lmStudioHost}
                         onChange={(e) => setLmStudioHost(e.target.value)}
                         placeholder="http://localhost:1234/v1"
                         disabled={aiProvider !== 'lmstudio'}
                       />
-                      <button 
+                      <button
                         className={styles.checkBtn}
                         onClick={() => checkLMStudioConnection(lmStudioHost)}
                         disabled={aiProvider !== 'lmstudio'}
                       >
                         <MdRefresh size={18} />
-                        Probar
+                        {t('settings.buttons.test')}
                       </button>
                     </div>
                     {!lmStudioAvailable ? (
                       <p className={styles.errorText}>
-                        • Servicio no detectado en {lmStudioHost}
+                        {t('settings.messages.serviceNotDetected', { host: lmStudioHost })}
                       </p>
                     ) : (
                       <p className={styles.helpText} style={{ color: '#059669' }}>
-                        • Servicio conectado
+                        {t('settings.messages.serviceConnected')}
                       </p>
                     )}
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Modelo</label>
+                    <label className={styles.label}>{t('settings.fields.model')}</label>
                     <select
                       className={styles.input}
                       value={lmStudioModel}
-                      onChange={(e) => setLmStudioModel(e.target.value)}
+                      onChange={(e) => handleLmStudioModelChange(e.target.value)}
                       disabled={aiProvider !== 'lmstudio' || !lmStudioAvailable}
                     >
-                      <option value="" disabled>Selecciona un modelo</option>
+                      <option value="" disabled>{t('settings.misc.selectModel')}</option>
                       {(lmStudioChatModels.length > 0 ? lmStudioChatModels : lmStudioModels).map(model => (
                         <option key={model.name} value={model.name}>{model.name}</option>
                       ))}
                     </select>
                     {lmStudioAvailable && lmStudioModels.length === 0 && (
                       <p className={styles.helpText} style={{ color: '#dc2626' }}>
-                        • No se encontraron modelos. Asegúrate de tener uno cargado en LM Studio.
+                        {t('settings.messages.modelError')}
                       </p>
                     )}
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Modelo de Chat para RAG (opcional)</label>
-                    <select
-                      className={styles.input}
-                      value={lmStudioRagModel}
-                      onChange={(e) => setLmStudioRagModel(e.target.value)}
-                      disabled={aiProvider !== 'lmstudio' || !lmStudioAvailable}
-                    >
-                      <option value="">Usar modelo principal</option>
-                      {(lmStudioChatModels.length > 0 ? lmStudioChatModels : lmStudioModels).map(model => (
-                        <option key={model.name} value={model.name}>{model.name}</option>
-                      ))}
-                    </select>
-                    <p className={styles.helpText}>
-                      Modelo específico para responder consultas RAG. Dejar vacío para usar el modelo principal.
-                    </p>
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Modelo de Embeddings (LM Studio)</label>
+                    <label className={styles.label}>{t('settings.fields.embeddingModel', { provider: 'LM Studio' })}</label>
                     <select
                       className={styles.input}
                       value={lmStudioEmbeddingModel}
                       onChange={(e) => setLmStudioEmbeddingModel(e.target.value)}
                       disabled={aiProvider !== 'lmstudio' || !lmStudioAvailable}
                     >
-                      {lmStudioEmbeddingModels.length === 0 && <option value="">Sin modelos disponibles</option>}
+                      {lmStudioEmbeddingModels.length === 0 && <option value="">{t('settings.misc.noModels')}</option>}
                       {lmStudioEmbeddingModels.map(model => (
                         <option key={model.name} value={model.name}>{model.name}</option>
                       ))}
                     </select>
                     <p className={styles.helpText}>
-                      Modelo usado para indexar y buscar fragmentos. Debe ser un modelo de embeddings cargado en LM Studio.
+                      {t('settings.helpText.embeddingModel')}
                     </p>
+                  </div>
+
+                  {/* Ventana de Contexto — LM Studio */}
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>{t('settings.fields.contextLength')}</label>
+                    <div className={styles.inputRow}>
+                      <input
+                        type="number"
+                        className={styles.input}
+                        value={lmStudioContextLengthSaved}
+                        onChange={(e) => { setLmStudioContextLengthSaved(e.target.value); setLmStudioCtxStatus(null); }}
+                        placeholder="4096"
+                        disabled={aiProvider !== 'lmstudio'}
+                        min="512"
+                      />
+                      <button
+                        className={styles.checkBtn}
+                        onClick={handleDetectLmStudioContextLength}
+                        disabled={aiProvider !== 'lmstudio' || !lmStudioAvailable || !lmStudioModel || isDetectingLmCtx}
+                      >
+                        <MdRefresh size={18} className={isDetectingLmCtx ? styles.spinner : undefined} />
+                        {t('settings.buttons.detect')}
+                      </button>
+                    </div>
+                    {lmStudioCtxStatus === 'success' && (
+                      <p className={styles.helpText} style={{ color: '#059669' }}>
+                        {t('settings.messages.contextLengthDetected', { n: parseInt(lmStudioContextLengthSaved).toLocaleString() })}
+                      </p>
+                    )}
+                    {lmStudioCtxStatus === 'error' && (
+                      <p className={styles.helpText} style={{ color: '#dc2626' }}>
+                        {t('settings.messages.contextLengthNotFound')}
+                        {' '}<span style={{ color: '#6B7280' }}>{t('settings.helpText.contextLengthLmStudio')}</span>
+                      </p>
+                    )}
+                    {!lmStudioCtxStatus && (
+                      <p className={styles.helpText}>{t('settings.helpText.contextLengthInput')}</p>
+                    )}
                   </div>
                 </div>
               </section>
@@ -785,13 +977,13 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                 <div className={styles.sectionHeader}>
                   <div className={styles.sectionTitleGroup}>
                     <MdCloud className={styles.sectionIcon} size={20} />
-                    <h3 className={styles.sectionTitle}>Proveedores en la Nube</h3>
+                    <h3 className={styles.sectionTitle}>{t('settings.sections.cloudProviders')}</h3>
                   </div>
                   <span className={`${styles.badge} ${['geminifree', 'gemini', 'deepseek', 'kimi'].includes(aiProvider) ? styles.badgeActive : styles.badgeInactive}`}>
-                    {aiProvider === 'geminifree' ? 'Gemini Free' : 
+                    {aiProvider === 'geminifree' ? 'Gemini Free' :
                      aiProvider === 'gemini' ? 'Gemini Pro' :
                      aiProvider === 'deepseek' ? 'DeepSeek' :
-                     aiProvider === 'kimi' ? 'Kimi' : 'Inactivo'}
+                     aiProvider === 'kimi' ? 'Kimi' : t('settings.providers.inactive')}
                   </span>
                 </div>
 
@@ -804,7 +996,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       </div>
                       <div>
                         <h4 className={styles.providerName}>Gemini Free</h4>
-                        <p className={styles.providerDesc}>Google AI - Nivel Gratuito</p>
+                        <p className={styles.providerDesc}>{t('settings.providers.googleFree')}</p>
                       </div>
                     </div>
                     <label className={styles.toggleWrapper}>
@@ -819,12 +1011,12 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>API Key</label>
+                    <label className={styles.label}>{t('settings.fields.apiKey')}</label>
                     <div className={styles.inputWrapper}>
                       <input 
                         type={showApiKey ? "text" : "password"} 
                         className={styles.input}
-                        placeholder="Pega tu Gemini Free API key"
+                        placeholder={t('settings.misc.enterApiKey')}
                         value={geminiFreeApiKey}
                         onChange={(e) => {
                           const newKey = e.target.value;
@@ -848,7 +1040,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Modelo</label>
+                    <label className={styles.label}>{t('settings.fields.model')}</label>
                     <div className={styles.inputRow}>
                       <select
                         className={styles.input}
@@ -858,7 +1050,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       >
                         {geminiFreeModels.length === 0 ? (
                           <option value="" disabled>
-                            {geminiFreeApiKey ? (geminiFreeModelsLoading ? 'Cargando...' : 'Sin modelos') : 'Introduce API Key'}
+                            {geminiFreeApiKey ? (geminiFreeModelsLoading ? t('settings.misc.loading') : t('settings.misc.noModels')) : t('settings.misc.enterApiKey')}
                           </option>
                         ) : (
                           geminiFreeModels.map(model => (
@@ -868,13 +1060,13 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                           ))
                         )}
                       </select>
-                      <button 
+                      <button
                         className={styles.checkBtn}
                         onClick={() => loadGeminiModels(geminiFreeApiKey, true)}
                         disabled={aiProvider !== 'geminifree' || !geminiFreeApiKey || geminiFreeModelsLoading}
                       >
                         <MdRefresh size={18} className={geminiFreeModelsLoading ? styles.spinner : ''} />
-                        Refrescar
+                        {t('settings.buttons.refresh')}
                       </button>
                     </div>
                   </div>
@@ -889,7 +1081,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       </div>
                       <div>
                         <h4 className={styles.providerName}>Gemini Pro</h4>
-                        <p className={styles.providerDesc}>Google AI - Nivel de Pago</p>
+                        <p className={styles.providerDesc}>{t('settings.providers.googlePaid')}</p>
                       </div>
                     </div>
                     <label className={styles.toggleWrapper}>
@@ -904,12 +1096,12 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>API Key</label>
+                    <label className={styles.label}>{t('settings.fields.apiKey')}</label>
                     <div className={styles.inputWrapper}>
                       <input 
                         type={showApiKey ? "text" : "password"} 
                         className={styles.input}
-                        placeholder="Pega tu Gemini Pro API key"
+                        placeholder={t('settings.misc.enterApiKey')}
                         value={geminiApiKey}
                         onChange={(e) => {
                           const newKey = e.target.value;
@@ -933,7 +1125,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Modelo</label>
+                    <label className={styles.label}>{t('settings.fields.model')}</label>
                     <div className={styles.inputRow}>
                       <select
                         className={styles.input}
@@ -943,7 +1135,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       >
                         {geminiModels.length === 0 ? (
                           <option value="" disabled>
-                            {geminiApiKey ? (geminiModelsLoading ? 'Cargando...' : 'Sin modelos') : 'Introduce API Key'}
+                            {geminiApiKey ? (geminiModelsLoading ? t('settings.misc.loading') : t('settings.misc.noModels')) : t('settings.misc.enterApiKey')}
                           </option>
                         ) : (
                           geminiModels.map(model => (
@@ -953,13 +1145,13 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                           ))
                         )}
                       </select>
-                      <button 
+                      <button
                         className={styles.checkBtn}
                         onClick={() => loadGeminiModels(geminiApiKey, false)}
                         disabled={aiProvider !== 'gemini' || !geminiApiKey || geminiModelsLoading}
                       >
                         <MdRefresh size={18} className={geminiModelsLoading ? styles.spinner : ''} />
-                        Refrescar
+                        {t('settings.buttons.refresh')}
                       </button>
                     </div>
                   </div>
@@ -989,12 +1181,12 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>API Key</label>
+                    <label className={styles.label}>{t('settings.fields.apiKey')}</label>
                     <div className={styles.inputWrapper}>
                       <input 
                         type={showApiKey ? "text" : "password"} 
                         className={styles.input}
-                        placeholder="Pega tu DeepSeek API key"
+                        placeholder={t('settings.misc.enterApiKey')}
                         value={deepseekApiKey}
                         onChange={(e) => setDeepseekApiKey(e.target.value)}
                         disabled={aiProvider !== 'deepseek'}
@@ -1009,7 +1201,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Modelo</label>
+                    <label className={styles.label}>{t('settings.fields.model')}</label>
                     <select
                       className={styles.input}
                       value={deepseekModel}
@@ -1052,12 +1244,12 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>API Key</label>
+                    <label className={styles.label}>{t('settings.fields.apiKey')}</label>
                     <div className={styles.inputWrapper}>
                       <input 
                         type={showApiKey ? "text" : "password"} 
                         className={styles.input}
-                        placeholder="Pega tu Kimi API key"
+                        placeholder={t('settings.misc.enterApiKey')}
                         value={kimiApiKey}
                         onChange={(e) => setKimiApiKey(e.target.value)}
                         disabled={aiProvider !== 'kimi'}
@@ -1072,7 +1264,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Modelo</label>
+                    <label className={styles.label}>{t('settings.fields.model')}</label>
                     <select
                       className={styles.input}
                       value={kimiModel}
@@ -1100,23 +1292,84 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                 <div className={styles.sectionHeader}>
                   <div className={styles.sectionTitleGroup}>
                     <MdFolder className={styles.sectionIcon} size={20} />
-                    <h3 className={styles.sectionTitle}>Almacenamiento</h3>
+                    <h3 className={styles.sectionTitle}>{t('settings.sections.storage')}</h3>
                   </div>
                 </div>
                 <div className={styles.card}>
-                  <label className={styles.label}>Directorio de Salida</label>
+                  <label className={styles.label}>{t('settings.fields.outputDirectory')}</label>
                   <div className={styles.inputRow}>
                     <div className={`${styles.input} truncate bg-gray-50 text-gray-500`} title={outputDirectory}>
-                      {outputDirectory || "Por defecto"}
+                      {outputDirectory || t('settings.misc.default')}
                     </div>
-                    <button 
+                    <button
                       className={styles.checkBtn}
                       onClick={handleChangeDirectory}
                     >
-                      Cambiar
+                      {t('settings.buttons.change')}
                     </button>
                   </div>
+
+                  <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #F1F5F9' }}>
+                    <label className={styles.label}>{t('settings.fields.databasePath')}</label>
+                    <div className={styles.inputRow}>
+                      <div className={`${styles.input} truncate bg-gray-50 text-gray-500`} title={databasePath}>
+                        {databasePath || t('settings.misc.default')}
+                      </div>
+                      <button
+                        className={styles.checkBtn}
+                        onClick={handleChangeDatabasePath}
+                      >
+                        {t('settings.buttons.change')}
+                      </button>
+                    </div>
+                    <p className={styles.helpText}>{t('settings.helpText.databasePath')}</p>
+                  </div>
                 </div>
+
+              {/* Modal de migración de base de datos */}
+              {dbMigrateModal && (
+                <div style={{
+                  position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+                }}>
+                  <div style={{
+                    background: 'white', borderRadius: '16px', padding: '32px',
+                    maxWidth: '480px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
+                  }}>
+                    <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>
+                      {t('settings.misc.changeDbTitle')}
+                    </h4>
+                    <p style={{ fontSize: '0.875rem', color: '#475569', marginBottom: '4px' }}>
+                      {t('settings.misc.changeDbNewPath')}
+                    </p>
+                    <code style={{
+                      display: 'block', background: '#F8FAFC', border: '1px solid #E2E8F0',
+                      borderRadius: '8px', padding: '8px 12px', fontSize: '0.8rem', color: '#334155',
+                      wordBreak: 'break-all', marginBottom: '16px'
+                    }}>
+                      {dbMigrateModal.newPath}
+                    </code>
+                    <p style={{ fontSize: '0.875rem', color: '#475569', marginBottom: '16px' }}>
+                      {t('settings.misc.changeDbAskMigrate')}
+                    </p>
+                    {dbChangeError && (
+                      <p className={styles.errorText} style={{ marginBottom: '12px' }}>{dbChangeError}</p>
+                    )}
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <button className={styles.btnPrimary} onClick={() => handleConfirmDbChange(true)}>
+                        {t('settings.misc.migrateDb')}
+                      </button>
+                      <button className={styles.checkBtn} onClick={() => handleConfirmDbChange(false)}>
+                        {t('settings.misc.onlyChangePath')}
+                      </button>
+                      <button className={styles.btnSecondary} onClick={() => { setDbMigrateModal(null); setDbChangeError(''); }}>
+                        {t('settings.buttons.cancel')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               </section>
 
               {/* --- Transcription Section --- */}
@@ -1124,13 +1377,13 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                 <div className={styles.sectionHeader}>
                   <div className={styles.sectionTitleGroup}>
                     <MdTranslate className={styles.sectionIcon} size={20} />
-                    <h3 className={styles.sectionTitle}>Motor de Transcripción</h3>
+                    <h3 className={styles.sectionTitle}>{t('settings.sections.transcription')}</h3>
                   </div>
                 </div>
                 <div className={styles.card}>
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Idioma</label>
-                    <select 
+                    <label className={styles.label}>{t('settings.fields.language')}</label>
+                    <select
                       className={styles.input}
                       value={selectedLanguage}
                       onChange={(e) => setSelectedLanguage(e.target.value)}
@@ -1140,41 +1393,41 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       ))}
                     </select>
                     <p className={styles.helpText}>
-                      Idioma utilizado para la transcripción con Whisper.
+                      {t('settings.helpText.transcriptionLanguage')}
                     </p>
                   </div>
 
                   <div className={styles.formGroup} style={{ marginBottom: '1rem' }}>
-                    <label className={styles.label}>Tamaño del Modelo Whisper</label>
-                    <select 
+                    <label className={styles.label}>{t('settings.fields.whisperModel')}</label>
+                    <select
                       className={styles.input}
                       value={whisperModel}
                       onChange={(e) => setWhisperModel(e.target.value)}
                     >
                       {whisperModels.map(model => (
-                        <option key={model.value} value={model.value}>{model.label}</option>
+                        <option key={model.value} value={model.value}>{t(`settings.whisperModels.${model.value}`)}</option>
                       ))}
                     </select>
                     <p className={styles.helpText}>
-                      Elige el modelo por defecto para nuevas transcripciones. Los modelos pequeños son más rápidos pero menos precisos.
+                      {t('settings.helpText.whisperModel')}
                     </p>
                   </div>
 
                   <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-                    <label className={styles.label}>Hilos de CPU para Transcripción</label>
-                    <select 
+                    <label className={styles.label}>{t('settings.fields.cpuThreads')}</label>
+                    <select
                       className={styles.input}
                       value={cpuThreads}
                       onChange={(e) => setCpuThreads(parseInt(e.target.value))}
                     >
                       {Array.from({ length: maxCpuThreads }, (_, i) => i + 1).map(num => (
                         <option key={num} value={num}>
-                          {num} {num === Math.floor(maxCpuThreads / 2) ? '(Recomendado)' : ''} {num === maxCpuThreads ? '(Máximo)' : ''}
+                          {num} {num === Math.floor(maxCpuThreads / 2) ? t('settings.misc.recommended') : ''} {num === maxCpuThreads ? t('settings.misc.maximum') : ''}
                         </option>
                       ))}
                     </select>
                     <p className={styles.helpText}>
-                      Más hilos aumentan la velocidad de transcripción pero consumen más recursos del ordenador.
+                      {t('settings.helpText.cpuThreads')}
                     </p>
                   </div>
                 </div>
@@ -1185,23 +1438,37 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                 <div className={styles.sectionHeader}>
                   <div className={styles.sectionTitleGroup}>
                     <MdTextFormat className={styles.sectionIcon} size={20} />
-                    <h3 className={styles.sectionTitle}>Apariencia de la Interfaz</h3>
+                    <h3 className={styles.sectionTitle}>{t('settings.sections.appearance')}</h3>
                   </div>
                 </div>
                 <div className={styles.card}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>{t('settings.fields.uiLanguage')}</label>
+                    <select
+                      className={styles.input}
+                      value={selectedUiLanguage}
+                      onChange={(e) => handleUiLanguageChange(e.target.value)}
+                    >
+                      <option value="es">{t('settings.uiLanguages.es')}</option>
+                      <option value="en">{t('settings.uiLanguages.en')}</option>
+                    </select>
+                    <p className={styles.helpText}>
+                      {t('settings.helpText.uiLanguage')}
+                    </p>
+                  </div>
                   <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-                    <label className={styles.label}>Tamaño de Fuente</label>
-                    <select 
+                    <label className={styles.label}>{t('settings.fields.fontSize')}</label>
+                    <select
                       className={styles.input}
                       value={fontSize}
                       onChange={(e) => setFontSize(e.target.value)}
                     >
                       {fontSizes.map(size => (
-                        <option key={size.value} value={size.value}>{size.label}</option>
+                        <option key={size.value} value={size.value}>{t(`settings.fontSizes.${size.value}`)}</option>
                       ))}
                     </select>
                     <p className={styles.helpText}>
-                      Ajusta el tamaño de letra para los chats, transcripciones y resúmenes.
+                      {t('settings.helpText.fontSize')}
                     </p>
                   </div>
                 </div>
@@ -1212,13 +1479,13 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                 <div className={styles.sectionHeader}>
                   <div className={styles.sectionTitleGroup}>
                     <MdMic className={styles.sectionIcon} size={20} />
-                    <h3 className={styles.sectionTitle}>Ajustes de Audio</h3>
+                    <h3 className={styles.sectionTitle}>{t('settings.sections.audio')}</h3>
                   </div>
                 </div>
                 <div className={styles.card}>
                   <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-                    <label className={styles.label}>Micrófono por Defecto</label>
-                    <select 
+                    <label className={styles.label}>{t('settings.fields.microphone')}</label>
+                    <select
                       className={styles.input}
                       value={selectedMicrophone}
                       onChange={(e) => setSelectedMicrophone(e.target.value)}
@@ -1228,7 +1495,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       ))}
                     </select>
                     <p className={styles.helpText}>
-                      Selecciona el dispositivo de entrada para tus grabaciones.
+                      {t('settings.helpText.microphone')}
                     </p>
                   </div>
                 </div>
@@ -1239,7 +1506,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                 <div className={styles.sectionHeader}>
                   <div className={styles.sectionTitleGroup}>
                     <MdNotifications className={styles.sectionIcon} size={20} />
-                    <h3 className={styles.sectionTitle}>Preferencias del Sistema</h3>
+                    <h3 className={styles.sectionTitle}>{t('settings.sections.system')}</h3>
                   </div>
                 </div>
                 <div className={styles.card}>
@@ -1249,8 +1516,8 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         <MdNotifications size={24} />
                       </div>
                       <div>
-                        <h4 className={styles.providerName}>Notificaciones de Escritorio</h4>
-                        <p className={styles.providerDesc}>Mostrar notificaciones nativas al completar tareas</p>
+                        <h4 className={styles.providerName}>{t('settings.misc.notifications.title')}</h4>
+                        <p className={styles.providerDesc}>{t('settings.misc.notifications.desc')}</p>
                       </div>
                     </div>
                     <label className={styles.toggleWrapper}>
@@ -1273,8 +1540,8 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         <MdTerminal size={24} />
                       </div>
                       <div>
-                        <h4 className={styles.providerName}>Herramientas de Desarrollo</h4>
-                        <p className={styles.providerDesc}>Abrir consola de depuración de Chromium</p>
+                        <h4 className={styles.providerName}>{t('settings.misc.devTools.title')}</h4>
+                        <p className={styles.providerDesc}>{t('settings.misc.devTools.desc')}</p>
                       </div>
                     </div>
                     <button
@@ -1282,7 +1549,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       onClick={() => window.electronAPI?.toggleDevTools?.()}
                     >
                       <MdTerminal size={18} />
-                      Abrir DevTools
+                      {t('settings.buttons.openDevTools')}
                     </button>
                   </div>
                 </div>
@@ -1293,7 +1560,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                 <div className={styles.sectionHeader}>
                   <div className={styles.sectionTitleGroup}>
                     <MdSecurity className={styles.sectionIcon} size={20} />
-                    <h3 className={styles.sectionTitle}>Permisos y Privacidad</h3>
+                    <h3 className={styles.sectionTitle}>{t('settings.sections.permissions')}</h3>
                   </div>
                 </div>
                 <div className={styles.card}>
@@ -1304,15 +1571,15 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       </div>
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className={styles.providerName} style={{margin: 0}}>Acceso al Micrófono</h4>
+                          <h4 className={styles.providerName} style={{margin: 0}}>{t('settings.misc.micAccess.title')}</h4>
                           {micStatus === 'granted' && (
-                            <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded-full">Concedido</span>
+                            <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded-full">{t('settings.misc.micAccess.granted')}</span>
                           )}
                           {micStatus === 'denied' && (
-                            <span className="bg-red-100 text-red-800 text-xs font-bold px-2 py-0.5 rounded-full">Denegado</span>
+                            <span className="bg-red-100 text-red-800 text-xs font-bold px-2 py-0.5 rounded-full">{t('settings.misc.micAccess.denied')}</span>
                           )}
                         </div>
-                        <p className={styles.providerDesc}>Necesario para grabar tu voz durante las reuniones.</p>
+                        <p className={styles.providerDesc}>{t('settings.misc.micAccess.desc')}</p>
                       </div>
                     </div>
                     {micStatus !== 'granted' && (
@@ -1325,7 +1592,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                           border: micStatus === 'denied' ? '1px solid #cbd5e1' : 'none'
                         }}
                       >
-                        {micStatus === 'denied' ? 'Abrir Ajustes' : 'Otorgar Permiso'}
+                        {micStatus === 'denied' ? t('settings.misc.micAccess.openSettings') : t('settings.buttons.grantPermission')}
                       </button>
                     )}
                   </div>
@@ -1337,7 +1604,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                 <div className={styles.sectionHeader}>
                   <div className={styles.sectionTitleGroup}>
                     <MdSystemUpdate className={styles.sectionIcon} size={20} />
-                    <h3 className={styles.sectionTitle}>Acerca de AIRecorder</h3>
+                    <h3 className={styles.sectionTitle}>{t('settings.sections.about')}</h3>
                   </div>
                   {appVersion && (
                     <span className={styles.badge} style={{backgroundColor: '#e0e7ff', color: '#4338ca'}}>
@@ -1352,11 +1619,11 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         <MdSystemUpdate size={24} />
                       </div>
                       <div>
-                        <h4 className={styles.providerName}>Actualizaciones</h4>
+                        <h4 className={styles.providerName}>{t('settings.misc.updates.title')}</h4>
                         <p className={styles.providerDesc}>
                           {updateInfo
-                            ? `Nueva versión disponible: v${updateInfo.latestVersion}`
-                            : updateMessage || 'Comprueba si hay una versión más reciente disponible'}
+                            ? t('settings.messages.updateAvailable', { version: updateInfo.latestVersion })
+                            : updateMessage || t('settings.messages.checkUpdatesDefault')}
                         </p>
                       </div>
                     </div>
@@ -1367,7 +1634,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                           style={{backgroundColor: '#10b981', color: '#fff', border: 'none'}}
                           onClick={() => window.electronAPI?.openDownloadUrl?.(updateInfo.downloadUrl)}
                         >
-                          Descargar
+                          {t('settings.buttons.download')}
                         </button>
                       )}
                       {import.meta.env.DEV && (
@@ -1376,7 +1643,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                           style={{backgroundColor: '#f59e0b', color: '#fff', border: 'none'}}
                           onClick={() => window.electronAPI?.testUpdateDialog?.()}
                         >
-                          Probar Update (Dev)
+                          {t('settings.misc.updates.testDev')}
                         </button>
                       )}
                       <button
@@ -1390,12 +1657,12 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                             if (result?.success && result.updateAvailable) {
                               setUpdateInfo(result);
                             } else if (result?.success) {
-                              setUpdateMessage('Estás al día');
+                              setUpdateMessage(t('settings.messages.upToDate'));
                             } else {
-                              setUpdateMessage(result?.error || 'Error al verificar');
+                              setUpdateMessage(result?.error || t('settings.messages.updateError'));
                             }
                           } catch {
-                            setUpdateMessage('No se pudo conectar');
+                            setUpdateMessage(t('settings.messages.connectError'));
                           } finally {
                             setCheckingUpdate(false);
                           }
@@ -1403,7 +1670,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         disabled={checkingUpdate}
                       >
                         <MdRefresh size={18} className={checkingUpdate ? styles.spinner : ''} />
-                        {checkingUpdate ? 'Verificando...' : 'Buscar actualizaciones'}
+                        {checkingUpdate ? t('settings.buttons.checking') : t('settings.buttons.checkUpdates')}
                       </button>
                     </div>
                   </div>
@@ -1423,15 +1690,12 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
               {saveMessage}
             </div>
           )}
-          <button className={styles.btnSecondary} onClick={() => {}}>
-            Restaurar valores
-          </button>
           <button
             className={styles.btnPrimary}
             onClick={handleSaveSettings}
             disabled={isSaving || isCheckingModel}
           >
-            {isCheckingModel ? 'Verificando...' : (isSaving ? 'Guardando...' : 'Guardar Cambios')}
+            {isCheckingModel ? t('settings.messages.verifyingModel') : (isSaving ? t('settings.buttons.saving') : t('settings.buttons.save'))}
           </button>
         </div>
       </footer>

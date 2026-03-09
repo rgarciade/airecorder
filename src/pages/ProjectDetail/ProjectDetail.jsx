@@ -4,12 +4,15 @@ import styles from './ProjectDetail.module.css';
 import projectAiService from '../../services/projectAiService';
 import projectChatService from '../../services/projectChatService';
 import projectsService from '../../services/projectsService';
+import recordingsService from '../../services/recordingsService';
 import ProjectChatPanel from '../../components/ProjectChatPanel/ProjectChatPanel';
 import ProjectTimeline from '../../components/ProjectTimeline/ProjectTimeline';
 import ParticipantsList from '../../components/ParticipantsList/ParticipantsList';
 import ProjectRecordingSummaries from '../../components/ProjectRecordingSummaries/ProjectRecordingSummaries';
 import ChatInterface from '../../components/ChatInterface/ChatInterface';
-import { MdArrowBack, MdRefresh } from 'react-icons/md';
+import EpicsTab from '../RecordingDetail/components/EpicsTab/EpicsTab';
+import ProjectKanbanBoard from './components/ProjectKanbanBoard/ProjectKanbanBoard';
+import { MdArrowBack, MdRefresh, MdFormatListBulleted, MdGridView } from 'react-icons/md';
 import ragService from '../../services/ragService';
 import ContextBar from '../../components/ContextBar/ContextBar';
 import { getSettings } from '../../services/settingsService';
@@ -31,8 +34,12 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const props = { onNavigateToRecording: navigateToRecordingProp };
   
   // --- STATE ---
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'chat'
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'chat' | 'tasks'
   const [isContextExpanded, setIsContextExpanded] = useState(false);
+
+  // Estado de tareas del proyecto
+  const [projectTasks, setProjectTasks] = useState([]);
+  const [tasksView, setTasksView] = useState('kanban'); // 'list' | 'kanban'
   
   // Estados para datos del proyecto
   const [projectSummary, setProjectSummary] = useState(null);
@@ -155,16 +162,69 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   }, [activeChatId, chats]);
 
   // --- HANDLERS ---
+  const loadProjectTasks = async () => {
+    try {
+      const tasks = await recordingsService.getProjectTaskSuggestions(project.id);
+      setProjectTasks(tasks || []);
+    } catch (error) {
+      console.error('Error cargando tareas del proyecto:', error);
+    }
+  };
+
+  const handleUpdateProjectTask = async (updatedTask) => {
+    const saved = await recordingsService.updateTaskSuggestion(
+      updatedTask.id, updatedTask.title, updatedTask.content,
+      updatedTask.layer || 'general', updatedTask.status || 'backlog'
+    );
+    if (saved) {
+      setProjectTasks(prev => prev.map(t => t.id === saved.id ? { ...t, ...saved } : t));
+    }
+  };
+
+  const handleDeleteProjectTask = async (taskId) => {
+    const ok = await recordingsService.deleteTaskSuggestion(taskId);
+    if (ok) {
+      setProjectTasks(prev => prev.filter(t => t.id !== taskId));
+    }
+  };
+
+  const handleBulkDeleteProjectTasks = async (ids) => {
+    await Promise.all(ids.map(id => recordingsService.deleteTaskSuggestion(id)));
+    setProjectTasks(prev => prev.filter(t => !ids.includes(t.id)));
+  };
+
+  const handleGetProjectTaskComments = (taskId) => recordingsService.getTaskComments(taskId);
+  const handleAddProjectTaskComment = (taskId, content) => recordingsService.addTaskComment(taskId, content);
+  const handleDeleteProjectTaskComment = (commentId) => recordingsService.deleteTaskComment(commentId);
+
+  const handleCreateProjectTask = async ({ title, content, layer, status = 'backlog' }) => {
+    const saved = await recordingsService.createProjectTask(project.id, title, content, layer, status);
+    if (saved) setProjectTasks(prev => [...prev, saved]);
+  };
+
+  // Reordenar tareas dentro de una columna del Kanban
+  // updates: [{ id, sort_order }]
+  const handleUpdateProjectTasksOrder = async (updates) => {
+    await recordingsService.updateTasksSortOrder(updates);
+    const updatesMap = Object.fromEntries(updates.map(u => [u.id, u.sort_order]));
+    setProjectTasks(prev =>
+      prev
+        .map(t => updatesMap[t.id] !== undefined ? { ...t, sort_order: updatesMap[t.id] } : t)
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    );
+  };
+
   const loadProjectData = async () => {
     setIsLoading(true);
     try {
-      const [summary, members, highlights, details, recordings, duration] = await Promise.all([
+      const [summary, members, highlights, details, recordings, duration, tasks] = await Promise.all([
         projectAiService.getProjectSummary(project.id),
         projectAiService.getProjectMembers(project.id),
         projectAiService.getProjectHighlights(project.id),
         projectAiService.getProjectDetails(project.id),
         projectAiService.getProjectRecordingSummaries(project.id),
-        projectsService.getProjectTotalDuration(project.id)
+        projectsService.getProjectTotalDuration(project.id),
+        recordingsService.getProjectTaskSuggestions(project.id)
       ]);
 
       setProjectSummary(summary);
@@ -173,6 +233,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       setProjectDetails(details);
       setRecordingSummaries(recordings);
       setProjectDuration(duration);
+      setProjectTasks(tasks || []);
     } catch (error) {
       console.error('Error cargando datos del proyecto:', error);
     } finally {
@@ -452,23 +513,88 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
 
       {/* Tabs Navigation */}
       <nav className={styles.tabsNav}>
-        <button 
+        <button
           className={`${styles.tabButton} ${activeTab === 'overview' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('overview')}
         >
           Vista General
         </button>
-        <button 
+        <button
           className={`${styles.tabButton} ${activeTab === 'chat' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('chat')}
         >
           Chat con IA
         </button>
+        <button
+          className={`${styles.tabButton} ${activeTab === 'tasks' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('tasks')}
+        >
+          Tareas
+          {projectTasks.length > 0 && (
+            <span className={styles.tabBadge}>{projectTasks.length}</span>
+          )}
+        </button>
       </nav>
 
       {/* Main Content */}
       <div className={styles.mainContent}>
-        {activeTab === 'overview' ? (
+        {activeTab === 'tasks' ? (
+          <div className={styles.tasksContent}>
+            {/* Toggle lista / kanban */}
+            <div className={styles.tasksViewToggle}>
+              <button
+                className={`${styles.viewToggleBtn} ${tasksView === 'list' ? styles.viewToggleActive : ''}`}
+                onClick={() => setTasksView('list')}
+                title="Vista lista"
+              >
+                <MdFormatListBulleted size={16} />
+              </button>
+              <button
+                className={`${styles.viewToggleBtn} ${tasksView === 'kanban' ? styles.viewToggleActive : ''}`}
+                onClick={() => setTasksView('kanban')}
+                title="Vista tablero"
+              >
+                <MdGridView size={16} />
+              </button>
+            </div>
+
+            {tasksView === 'list' ? (
+              <EpicsTab
+                tasks={projectTasks}
+                isGenerating={false}
+                hasTranscription={false}
+                onGenerateMore={null}
+                onCreateTask={handleCreateProjectTask}
+                onUpdateTask={handleUpdateProjectTask}
+                onImproveTask={null}
+                onDeleteTask={handleDeleteProjectTask}
+                onBulkDeleteTasks={handleBulkDeleteProjectTasks}
+                improvingTaskId={null}
+                newTaskIds={null}
+                recordingMap={Object.fromEntries((recordingSummaries || []).map(r => [r.id, { id: r.id, title: r.title }]))}
+                onNavigateToRecording={(recordingId) => props.onNavigateToRecording?.(recordingId)}
+                getTaskComments={handleGetProjectTaskComments}
+                onAddComment={handleAddProjectTaskComment}
+                onDeleteComment={handleDeleteProjectTaskComment}
+                projectEmptyHint="Abre una transcripción del proyecto, genera tareas con IA y pulsa «Agregar» para incorporarlas aquí, o crea tareas manualmente desde este mismo proyecto."
+              />
+            ) : (
+              <ProjectKanbanBoard
+                tasks={projectTasks}
+                recordingMap={Object.fromEntries((recordingSummaries || []).map(r => [r.id, { id: r.id, title: r.title }]))}
+                onUpdateTask={handleUpdateProjectTask}
+                onDeleteTask={handleDeleteProjectTask}
+                onNavigateToRecording={(recordingId) => props.onNavigateToRecording?.(recordingId)}
+                getTaskComments={handleGetProjectTaskComments}
+                onAddComment={handleAddProjectTaskComment}
+                onDeleteComment={handleDeleteProjectTaskComment}
+                onCreateTask={handleCreateProjectTask}
+                onUpdateTasksOrder={handleUpdateProjectTasksOrder}
+                projectEmptyHint="Abre una transcripción del proyecto, genera tareas con IA y pulsa «Agregar» para incorporarlas aquí, o crea tareas manualmente desde este mismo proyecto."
+              />
+            )}
+          </div>
+        ) : activeTab === 'overview' ? (
           <div className={styles.overviewGrid}>
             {/* Columna Izquierda - Resumen y Grabaciones */}
             <div className={styles.leftColumn}>
