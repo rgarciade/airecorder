@@ -3,6 +3,13 @@ import { getSettings } from '../settingsService';
 
 const DEFAULT_OLLAMA_URL = 'http://localhost:11434';
 
+// Endpoints de la API de Ollama
+const OLLAMA_ENDPOINTS = {
+  models:   '/api/tags',
+  show:     '/api/show',
+  generate: '/api/generate',
+};
+
 async function getBaseUrl(overrideUrl = null) {
   if (overrideUrl) return overrideUrl;
   try {
@@ -21,12 +28,12 @@ async function getBaseUrl(overrideUrl = null) {
 export async function getAvailableModels(baseUrl = null) {
   const url = await getBaseUrl(baseUrl);
   try {
-    const response = await fetch(`${url}/api/tags`);
-    
+    const response = await fetch(`${url}${OLLAMA_ENDPOINTS.models}`);
+
     if (!response.ok) {
       throw new Error(`Error al obtener modelos de Ollama: ${response.status}`);
     }
-    
+
     const data = await response.json();
     return data.models || [];
   } catch (error) {
@@ -46,7 +53,7 @@ export async function getAvailableModels(baseUrl = null) {
 export async function checkOllamaAvailability(baseUrl = null) {
   const url = await getBaseUrl(baseUrl);
   try {
-    const response = await fetch(`${url}/api/tags`);
+    const response = await fetch(`${url}${OLLAMA_ENDPOINTS.models}`);
     return response.ok;
   } catch (error) {
     return false;
@@ -64,17 +71,11 @@ export async function checkModelSupportsStreaming(model, baseUrl = null) {
   const url = await getBaseUrl(baseUrl);
   try {
     console.log(`🔍 Verificando soporte de streaming para modelo: ${model}`);
-    
-    const response = await fetch(`${url}/api/generate`, {
+
+    const response = await fetch(`${url}${OLLAMA_ENDPOINTS.generate}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: model,
-        prompt: 'Hi',
-        stream: true,
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, prompt: 'Hi', stream: true }),
     });
 
     if (!response.ok) {
@@ -82,9 +83,7 @@ export async function checkModelSupportsStreaming(model, baseUrl = null) {
       return false;
     }
 
-    // Verificar si la respuesta es un stream (tiene body readable)
     if (response.body && response.body.getReader) {
-      // Cancelar la respuesta inmediatamente, solo queríamos verificar
       response.body.getReader().cancel();
       console.log(`✅ Modelo ${model} SÍ soporta streaming`);
       return true;
@@ -100,6 +99,7 @@ export async function checkModelSupportsStreaming(model, baseUrl = null) {
 
 /**
  * Obtiene información de un modelo de Ollama (context length, etc.)
+ * Prioridad: num_ctx del Modelfile (configurado por usuario) > máximo nativo del modelo
  * @param {string} modelName - Nombre del modelo
  * @param {string} [baseUrl] - URL base opcional
  * @returns {Promise<{numCtx: number|null}|null>} Info del modelo o null si hay error
@@ -107,18 +107,18 @@ export async function checkModelSupportsStreaming(model, baseUrl = null) {
 export async function getOllamaModelInfo(modelName, baseUrl = null) {
   const url = await getBaseUrl(baseUrl);
   try {
-    const response = await fetch(`${url}/api/show`, {
+    const response = await fetch(`${url}${OLLAMA_ENDPOINTS.show}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: modelName })
     });
     if (!response.ok) return null;
     const data = await response.json();
-    // num_ctx puede estar en distintos campos según la versión de Ollama
-    const numCtx = data.model_info?.['llama.context_length']
-      || data.model_info?.['context_length']
+    // Prioridad: valor configurado en Modelfile > máximo nativo del modelo
+    const numCtx = extractNumCtxFromParams(data.parameters)
       || data.details?.num_ctx
-      || extractNumCtxFromParams(data.parameters)
+      || data.model_info?.['llama.context_length']
+      || data.model_info?.['context_length']
       || null;
     return { numCtx };
   } catch {
@@ -147,14 +147,12 @@ export async function generateContent(model, prompt, options = {}) {
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      const response = await fetch(`${url}/api/generate`, {
+      const response = await fetch(`${url}${OLLAMA_ENDPOINTS.generate}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: model,
-          prompt: prompt,
+          model,
+          prompt,
           stream: false,
           ...(options.format ? { format: options.format } : {})
         }),
@@ -196,16 +194,10 @@ export async function generateContent(model, prompt, options = {}) {
 export async function generateContentStreaming(model, prompt, onChunk) {
   const url = await getBaseUrl();
   try {
-    const response = await fetch(`${url}/api/generate`, {
+    const response = await fetch(`${url}${OLLAMA_ENDPOINTS.generate}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: model,
-        prompt: prompt,
-        stream: true,
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, prompt, stream: true }),
     });
 
     if (!response.ok) {
