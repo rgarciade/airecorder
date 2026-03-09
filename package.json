@@ -61,7 +61,9 @@
       "entitlementsInherit": "build/entitlements.mac.plist",
       "extendInfo": {
         "NSMicrophoneUsageDescription": "AIRecorder necesita acceso al micrófono para grabar audio.",
-        "NSAudioCaptureUsageDescription": "AIRecorder necesita acceso a la captura de audio para grabar el audio del sistema."
+        "NSAudioCaptureUsageDescription": "AIRecorder necesita acceso a la captura de audio para grabar el audio del sistema.",
+        "NSNetworkVolumesUsageDescription": "AIRecorder necesita acceso a volúmenes de red para guardar y leer bases de datos y grabaciones.",
+        "NSRemovableVolumesUsageDescription": "AIRecorder necesita acceso a volúmenes extraíbles para guardar y leer bases de datos y grabaciones."
       }
     }
   },

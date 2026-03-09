@@ -177,4 +177,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Sentry (Telemetría)
   sentryLogInfo: (message, context) => ipcRenderer.invoke('sentry-log-info', message, context),
   sentryLogError: (errorInfo, context) => ipcRenderer.invoke('sentry-log-error', errorInfo, context),
+
+  // Base de datos — ruta configurable
+  changeDbPath: (newPath, migrate) => ipcRenderer.invoke('change-db-path', { newPath, migrate }),
+  getDbStatus: () => ipcRenderer.invoke('get-db-status'),
 }); 

@@ -127,7 +127,8 @@
       "hostUrl": "Host URL",
       "baseUrl": "Base URL",
       "ragModel": "RAG Chat Model (optional)",
-      "embeddingModel": "Embedding Model ({{provider}})"
+      "embeddingModel": "Embedding Model ({{provider}})",
+      "databasePath": "Database Directory"
     },
     "helpText": {
       "transcriptionLanguage": "Language used for Whisper transcription.",
@@ -137,7 +138,8 @@
       "whisperModel": "Choose the default model for new transcriptions. Smaller models are faster but less accurate.",
       "cpuThreads": "More threads increase transcription speed but use more computer resources.",
       "ragModel": "Specific model for answering RAG queries (e.g.: deepseek-r1). Leave empty to use the main model.",
-      "embeddingModel": "Model used for indexing and searching fragments (e.g.: nomic-embed-text)."
+      "embeddingModel": "Model used for indexing and searching fragments (e.g.: nomic-embed-text).",
+      "databasePath": "Change where the database is stored. Default location is recommended."
     },
     "fontSizes": {
       "small": "Small",
@@ -172,7 +174,8 @@
       "grantPermission": "Grant Permission",
       "checkUpdates": "Check for Updates",
       "download": "Download",
-      "checking": "Checking..."
+      "checking": "Checking...",
+      "cancel": "Cancel"
     },
     "messages": {
       "saveSuccess": "Settings saved successfully",
@@ -187,7 +190,9 @@
       "verifyingModel": "Verifying model...",
       "supportsStreaming": "✓ Supports streaming",
       "noStreaming": "✗ Does not support streaming",
-      "modelError": "Could not load models. Check your API Key."
+      "modelError": "Could not load models. Check your API Key.",
+      "contextLength": "Context window: {{n}} tokens",
+      "configureInOllama": "configurable in Ollama"
     },
     "misc": {
       "default": "Default",
@@ -218,7 +223,12 @@
         "title": "Updates",
         "testDev": "Test Update (Dev)"
       },
-      "directoryNotSupported": "Directory selection is not supported in this environment"
+      "directoryNotSupported": "Directory selection is not supported in this environment",
+      "changeDbTitle": "Change database path",
+      "changeDbNewPath": "New path:",
+      "changeDbAskMigrate": "Do you want to copy the current database to the new location?",
+      "migrateDb": "Move and change path",
+      "onlyChangePath": "Only change path"
     },
     "uiLanguages": {
       "es": "Español",
@@ -400,6 +410,7 @@
       "welcome": "Welcome to AIRecorder",
       "ai": "AI Configuration",
       "permissions": "System Permissions",
+      "storage": "Storage",
       "finish": "All set"
     },
     "next": "Next",
@@ -407,26 +418,110 @@
     "finish": "Get Started",
     "skip": "Skip",
     "welcome": {
-      "title": "Welcome to AIRecorder",
+      "title": "Welcome to",
       "subtitle": "Your intelligent recording assistant",
-      "description": "Record meetings, automatically transcribe and extract insights with AI."
+      "description": "Record meetings, automatically transcribe and extract insights with AI.",
+      "step": "Step 1 of 3",
+      "beginBtn": "Begin Setup",
+      "terms": "By continuing, you agree to our",
+      "termsLink": "Terms of Service",
+      "and": "&",
+      "privacyLink": "Privacy Policy",
+      "whatToExpect": "WHAT TO EXPECT",
+      "mic": { "title": "Microphone Setup", "desc": "We'll test your input device for optimal recording quality." },
+      "ai": { "title": "AI Customization", "desc": "Tailor the transcription engine to recognize your voice patterns." },
+      "workspace": { "title": "Workspace Organization", "desc": "Setup where your projects and transcripts will live." }
+    },
+    "ai": {
+      "title": "Configure your AI Intelligence",
+      "subtitle": "Choose how AIRecorder processes your audio. You can change this later in settings.",
+      "localTab": "Local Models",
+      "cloudTab": "Cloud Models",
+      "betaBadge": "Beta",
+      "recommended": "RECOMMENDED",
+      "stable": "✓ 100% Stable",
+      "betaWarning": "Cloud providers are currently in beta testing. Some features may not work as expected.",
+      "ollama": {
+        "subtitle": "Self-hosted processing",
+        "description": "Run AI entirely on your machine. Ideal for total privacy and offline workflows, but requires powerful hardware.",
+        "private": "100% Private & Offline",
+        "noFees": "No subscription fees",
+        "ram": "Requires 16GB+ RAM & GPU",
+        "urlLabel": "API Endpoint URL",
+        "testBtn": "Test",
+        "checking": "Checking...",
+        "connected": "Connected:",
+        "connFailed": "Connection failed",
+        "modelLabel": "Model"
+      },
+      "lmstudio": {
+        "subtitle": "Self-hosted processing",
+        "description": "Run GGUF models via LM Studio's local server. Provides a simple GUI for downloading and managing models.",
+        "private": "100% Private & Offline",
+        "compatible": "OpenAI API compatible",
+        "urlLabel": "LM Studio Server URL",
+        "urlNote": "* Default URL. You can change this in the app settings later."
+      },
+      "gemini": {
+        "description": "Google's Gemini models. Requires a Google AI Studio API key.",
+        "apiKeyLabel": "Google AI API Key"
+      },
+      "kimi": {
+        "description": "Kimi models by Moonshot AI. Requires a Moonshot API key.",
+        "apiKeyLabel": "Moonshot API Key"
+      },
+      "deepseek": {
+        "description": "DeepSeek models. Requires a DeepSeek API key.",
+        "apiKeyLabel": "DeepSeek API Key"
+      },
+      "apiKeyPlaceholder": "Paste your API key here...",
+      "canChange": "You can change this anytime",
+      "nextStep": "Next Step"
     },
     "permissions": {
-      "microphone": "Microphone",
-      "micGranted": "Access granted",
-      "micDenied": "Access denied",
-      "micPending": "Permission needed",
-      "requestMic": "Request permission",
-      "openSettings": "Open system settings",
-      "notifications": "Notifications",
-      "notifGranted": "Enabled",
-      "notifDenied": "Disabled",
-      "requestNotif": "Request permission"
+      "title": "Enable Permissions",
+      "subtitle": "To record and transcribe your audio accurately, AIRecorder needs access to your system devices. We value your privacy and only record when you tell us to.",
+      "microphone": "Microphone Access",
+      "granted": "Granted",
+      "denied": "Denied",
+      "micDesc": "Required to record your voice during meetings.",
+      "grant": "Grant",
+      "systemAudio": "System Audio",
+      "automatic": "Automatic",
+      "systemAudioDesc": "System audio capture is handled automatically. No additional permissions required.",
+      "optional": "Optional",
+      "notifDesc": "Get alerts when transcription is ready.",
+      "enable": "Enable",
+      "disable": "Disable",
+      "finishBtn": "Finish Setup",
+      "grantRequired": "Please grant required permissions"
     },
     "finish": {
-      "title": "All set!",
-      "subtitle": "You can now start using AIRecorder",
-      "startBtn": "Start recording"
+      "title": "You're All Set!",
+      "subtitle": "AIRecorder has been successfully configured. You are ready to start recording and transcribing your meetings with the power of AI.",
+      "startBtn": "Start recording",
+      "audioSection": "Audio Recording",
+      "audioSubtitle": "Microphone & System Audio",
+      "configured": "Configured",
+      "aiLocal": "Local AI",
+      "aiCloud": "Cloud AI",
+      "active": "Active",
+      "launchBtn": "Launch AIRecorder",
+      "changeNote": "You can change these settings later in the preferences menu."
+    },
+    "storage": {
+      "title": "Configure Storage",
+      "subtitle": "Choose where to save your recordings and database. You can use the default values.",
+      "recordingsLabel": "Recordings Directory",
+      "recordingsDefault": "Default (~/Desktop/recorder)",
+      "dbLabel": "Database Directory",
+      "dbDefault": "Default (app data)",
+      "changeBtn": "Change",
+      "nextBtn": "Next step",
+      "optional": "Optional"
+    },
+    "footer": {
+      "back": "Back"
     }
   }
 }

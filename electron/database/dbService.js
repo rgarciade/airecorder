@@ -59,12 +59,38 @@ const {
 class DbService {
   constructor() {
     this.db = null;
+    this.dbPath = null;
+  }
+
+  close() {
+    if (this.db) {
+      try {
+        this.db.close();
+      } catch (e) {
+        console.error('[DB] Error cerrando la base de datos:', e);
+      }
+      this.db = null;
+    }
+  }
+
+  getCurrentPath() {
+    return this.dbPath;
   }
 
   init(dbPath) {
+    this.dbPath = dbPath;
     try {
       this.db = new Database(dbPath);
-      this.db.pragma('journal_mode = WAL');
+      
+      // Desactivar WAL en volúmenes de red o externos para evitar corrupción (ej. NAS en /Volumes/)
+      // SQLite en modo WAL usa memoria compartida, lo que falla o corrompe DBs en SMB/NFS
+      if (dbPath.startsWith('/Volumes/')) {
+        console.log('[DB] Ruta de red/externa detectada. Usando journal_mode = DELETE (seguro para NAS).');
+        this.db.pragma('journal_mode = DELETE');
+      } else {
+        this.db.pragma('journal_mode = WAL');
+      }
+      
       this.db.pragma('foreign_keys = ON');
       
       // Inicializar todas las tablas
