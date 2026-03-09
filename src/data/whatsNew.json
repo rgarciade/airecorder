@@ -1,0 +1,144 @@
+{
+  "version": "0.2.0",
+  "releaseDate": "2026-03-09",
+  "i18n": {
+    "es": {
+      "modalTitle": "Novedades de esta versión",
+      "modalSubtitle": "Todo lo nuevo en AIRecorder",
+      "changelogLinkText": "Ver changelog completo →",
+      "closeButton": "¡Entendido!",
+      "devBadge": "DEV",
+      "pageHeading": "Novedades",
+      "pageSubheading": "Todos los cambios y mejoras de cada versión",
+      "pageVersionLabel": "Versión",
+      "pageReleaseDateLabel": "Fecha de lanzamiento",
+      "releaseTitle": "Cola de IA, Multiidioma y Mejoras en Proveedores Locales",
+      "releaseDateFormatted": "Marzo 2026",
+      "catNew": "Nuevas funciones"
+    },
+    "en": {
+      "modalTitle": "What's New",
+      "modalSubtitle": "Everything new in AIRecorder",
+      "changelogLinkText": "View full changelog →",
+      "closeButton": "Got it!",
+      "devBadge": "DEV",
+      "pageHeading": "What's New",
+      "pageSubheading": "All changes and improvements for each version",
+      "pageVersionLabel": "Version",
+      "pageReleaseDateLabel": "Release date",
+      "releaseTitle": "AI Queue, Multilingual Support & Local Provider Improvements",
+      "releaseDateFormatted": "March 2026",
+      "catNew": "New features"
+    }
+  },
+  "changes": [
+    {
+      "id": "ai-queue",
+      "icon": "🔄",
+      "es": {
+        "title": "Cola de procesamiento de IA",
+        "desc": "Genera resúmenes, actas y preguntas en segundo plano sin bloquear la app. Historial completo de tareas completadas con sus resultados."
+      },
+      "en": {
+        "title": "AI Processing Queue",
+        "desc": "Generate summaries, meeting notes, and questions in the background without blocking the app. Full history of completed tasks and their results."
+      }
+    },
+    {
+      "id": "projects-kanban",
+      "icon": "📁",
+      "es": {
+        "title": "Proyectos con tablero Kanban",
+        "desc": "Agrupa grabaciones en proyectos. Cada proyecto tiene su propio tablero Kanban (Pendiente · En progreso · Completado) con todas las tareas generadas por la IA, accesible desde la vista de detalle del proyecto."
+      },
+      "en": {
+        "title": "Projects with Kanban Board",
+        "desc": "Group recordings into projects. Each project has its own Kanban board (Pending · In Progress · Done) with all AI-generated tasks, accessible from the project detail view."
+      }
+    },
+    {
+      "id": "tasks-from-transcription",
+      "icon": "➕",
+      "es": {
+        "title": "Añadir tareas al proyecto desde la transcripción",
+        "desc": "Selecciona cualquier fragmento de texto en la transcripción y envíalo como tarea directamente al Kanban del proyecto vinculado a esa grabación, con un solo clic."
+      },
+      "en": {
+        "title": "Add Tasks to the Project from Transcription",
+        "desc": "Select any text fragment from the transcription and send it as a task directly to the linked project's Kanban board with a single click."
+      }
+    },
+    {
+      "id": "bilingual-ui",
+      "icon": "🌐",
+      "es": {
+        "title": "Idioma de la interfaz e idioma de las respuestas de IA",
+        "desc": "Dos ajustes independientes: elige en qué idioma se muestra la interfaz (ES/EN) y en qué idioma la IA genera sus respuestas (resúmenes, actas, tareas). Cada uno se configura por separado en Ajustes."
+      },
+      "en": {
+        "title": "UI Language & AI Response Language",
+        "desc": "Two independent settings: choose the language of the interface (ES/EN) and the language in which the AI generates its responses (summaries, notes, tasks). Each is configured separately in Settings."
+      }
+    },
+    {
+      "id": "rag-search",
+      "icon": "🔍",
+      "es": {
+        "title": "Búsqueda semántica (RAG)",
+        "desc": "Haz preguntas sobre tus grabaciones con búsqueda vectorial para obtener respuestas precisas y contextuales. Compatible con Ollama y LM Studio como backend de embeddings."
+      },
+      "en": {
+        "title": "Semantic Search (RAG)",
+        "desc": "Ask questions about your recordings using vector search for accurate, context-aware answers. Compatible with Ollama and LM Studio as embedding backends."
+      }
+    },
+    {
+      "id": "import-audio-transcripts",
+      "icon": "🎤",
+      "es": {
+        "title": "Importar transcripciones y audio",
+        "desc": "Importa transcripciones de Microsoft Teams en formato .docx o archivos de audio externos para transcribirlos localmente con Whisper."
+      },
+      "en": {
+        "title": "Import Transcriptions & Audio",
+        "desc": "Import Microsoft Teams transcripts in .docx format or external audio files to transcribe them locally with Whisper."
+      }
+    },
+    {
+      "id": "storage-paths",
+      "icon": "📂",
+      "es": {
+        "title": "Rutas de almacenamiento configurables",
+        "desc": "Elige dónde guardar la base de datos y las grabaciones. Opción de migrar la BD existente al cambiar de ruta sin perder datos."
+      },
+      "en": {
+        "title": "Configurable Storage Paths",
+        "desc": "Choose where to store your database and recordings. Option to migrate the existing database when changing location without losing data."
+      }
+    },
+    {
+      "id": "dynamic-context",
+      "icon": "🧠",
+      "es": {
+        "title": "Ventana de contexto dinámica",
+        "desc": "El procesamiento se adapta automáticamente al contexto real del modelo cargado. Menos fragmentos innecesarios con modelos de 32 k tokens o más."
+      },
+      "en": {
+        "title": "Dynamic Context Window",
+        "desc": "Processing automatically adapts to the real context window of the loaded model. Fewer unnecessary chunks with models of 32k tokens or more."
+      }
+    },
+    {
+      "id": "ai-error-modal",
+      "icon": "⚠️",
+      "es": {
+        "title": "Errores de IA con detalle",
+        "desc": "Los errores del proveedor de IA se muestran en un modal con el mensaje real y sugerencias de solución cuando se supera el límite de contexto."
+      },
+      "en": {
+        "title": "Detailed AI Error Modal",
+        "desc": "AI provider errors are shown in a modal with the real error message and fix suggestions when the context limit is exceeded."
+      }
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import i18n from './i18n/index.js'
+import WhatsNewModal from './components/WhatsNewModal/WhatsNewModal'
 import Home from './pages/Home/Home'
 import RecordingDetailWithTranscription from './pages/RecordingDetail/RecordingDetailWithTranscription';
 import Settings from './pages/Settings/Settings'
@@ -27,6 +28,7 @@ export default function App() {
   const [queueState, setQueueState] = useState({ active: [], history: [] })
   const [settingsInitialTab, setSettingsInitialTab] = useState('agents')
   const [dbFallbackBanner, setDbFallbackBanner] = useState(false)
+  const [showWhatsNew, setShowWhatsNew] = useState(false)
   const { isRecording } = useSelector((state) => state.recording)
 
   useEffect(() => {
@@ -120,7 +122,9 @@ export default function App() {
         const r = await window.electronAPI.getAppVersion();
         if (r?.success) {
           const currentVersion = r.version;
-          if (settings.lastVersion && settings.lastVersion !== currentVersion) {
+          const isVersionChange = settings.lastVersion && settings.lastVersion !== currentVersion;
+
+          if (isVersionChange) {
             if (import.meta.env.VITE_SENTRY_DSN) {
               if (window.electronAPI && window.electronAPI.sentryLogInfo) {
                 window.electronAPI.sentryLogInfo(`App actualizada: de v${settings.lastVersion} a v${currentVersion}`);
@@ -129,6 +133,13 @@ export default function App() {
           }
           if (settings.lastVersion !== currentVersion) {
             await updateSettings({ lastVersion: currentVersion });
+          }
+
+          // Mostrar "Novedades" en dev siempre, o en producción cuando hay cambio de versión
+          if (!settings.isFirstRun) {
+            if (import.meta.env.DEV || isVersionChange) {
+              setShowWhatsNew(true);
+            }
           }
         }
       }
@@ -238,6 +249,11 @@ export default function App() {
             ✕
           </button>
         </div>
+      )}
+
+      {/* Modal de novedades (dev: siempre; prod: cuando la versión cambia) */}
+      {showWhatsNew && currentView !== 'onboarding' && (
+        <WhatsNewModal onClose={() => setShowWhatsNew(false)} />
       )}
 
       {currentView !== 'onboarding' && (
