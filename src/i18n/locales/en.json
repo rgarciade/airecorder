@@ -128,7 +128,8 @@
       "baseUrl": "Base URL",
       "ragModel": "RAG Chat Model (optional)",
       "embeddingModel": "Embedding Model ({{provider}})",
-      "databasePath": "Database Directory"
+      "databasePath": "Database Directory",
+      "contextLength": "Context Window (tokens)"
     },
     "helpText": {
       "transcriptionLanguage": "Language used for Whisper transcription.",
@@ -139,7 +140,10 @@
       "cpuThreads": "More threads increase transcription speed but use more computer resources.",
       "ragModel": "Specific model for answering RAG queries (e.g.: deepseek-r1). Leave empty to use the main model.",
       "embeddingModel": "Model used for indexing and searching fragments (e.g.: nomic-embed-text).",
-      "databasePath": "Change where the database is stored. Default location is recommended."
+      "databasePath": "Change where the database is stored. Default location is recommended.",
+      "contextLengthInput": "Leave empty to detect automatically on each generation, or enter the value manually.",
+      "contextLengthOllama": "Find it by running: ollama show <model> --verbose (num_ctx field)",
+      "contextLengthLmStudio": "Find it in LM Studio, under \"My Models\" → advanced options of the loaded model."
     },
     "fontSizes": {
       "small": "Small",
@@ -175,7 +179,8 @@
       "checkUpdates": "Check for Updates",
       "download": "Download",
       "checking": "Checking...",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "detect": "Detect"
     },
     "messages": {
       "saveSuccess": "Settings saved successfully",
@@ -192,7 +197,9 @@
       "noStreaming": "✗ Does not support streaming",
       "modelError": "Could not load models. Check your API Key.",
       "contextLength": "Context window: {{n}} tokens",
-      "configureInOllama": "configurable in Ollama"
+      "configureInOllama": "configurable in Ollama",
+      "contextLengthDetected": "✓ {{n}} tokens detected automatically",
+      "contextLengthNotFound": "Could not detect automatically."
     },
     "misc": {
       "default": "Default",
