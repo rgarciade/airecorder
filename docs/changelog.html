@@ -288,7 +288,7 @@
 
     async function loadWhatsNew() {
       try {
-        const res = await fetch('https://github.com/rgarciade/airecorder/blob/main/src/data/whatsNew.json?raw=true');
+        const res = await fetch('https://raw.githubusercontent.com/rgarciade/airecorder/main/src/data/whatsNew.json');
         if (!res.ok) throw new Error(res.status);
         whatsNewData = await res.json();
         renderChanges(currentLang);
