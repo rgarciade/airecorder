@@ -13,27 +13,23 @@ class SentryService {
 
     if (dsn && (!isDev || enableInDev)) {
       try {
-          debugger
+          
         console.log('[SentryService] Inicializando Sentry en Backend con DSN:', dsn);
         Sentry.init({
           dsn: dsn,
           environment: isDev ? 'development' : 'production',
         });
         this.isInitialized = true;
-      } catch (error) {
-          debugger
+      } catch (error) {   
         console.error('[SentryService] Error inicializando Sentry:', error);
       }
-    } else {
-        debugger
+    } else {  
       console.log('[SentryService] Sentry desactivado en entorno actual.');
     }
   }
 
   logInfo(message, context = {}) {
-    debugger
-    if (!this.isInitialized) return;
-      debugger
+    if (!this.isInitialized) return;   
     try {
       Sentry.captureMessage(message, {contexts: context,level: "info" });
       console.log('[SentryService] Log de info enviado a Sentry:', message, context);
@@ -43,7 +39,6 @@ class SentryService {
   }
   logWarning(message, context = {}) {
     if (!this.isInitialized) return;
-    
     try {
       Sentry.captureMessage(message, {contexts: context,level: "warning" });
       console.log('[SentryService] Log de advertencia enviado a Sentry:', message, context);

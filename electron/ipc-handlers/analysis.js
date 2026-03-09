@@ -191,6 +191,19 @@ module.exports.registerAnalysisHandlers = () => {
     }
   });
 
+  // Obtener sugerencias de tareas de un proyecto completo (todas sus grabaciones)
+  ipcMain.handle('get-project-task-suggestions', async (event, projectId) => {
+    try {
+      const numericId = parseInt(projectId, 10);
+      if (isNaN(numericId)) return { success: false, error: 'ID inválido' };
+      const tasks = dbService.getTaskSuggestionsByProject(numericId);
+      return { success: true, tasks };
+    } catch (error) {
+      console.error('Error obteniendo sugerencias de tareas del proyecto:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // Obtener sugerencias de tareas
   ipcMain.handle('get-task-suggestions', async (event, recordingId) => {
     try {
@@ -218,12 +231,89 @@ module.exports.registerAnalysisHandlers = () => {
   });
 
   // Actualizar sugerencia de tarea
-  ipcMain.handle('update-task-suggestion', async (event, id, title, content, layer) => {
+  ipcMain.handle('update-task-suggestion', async (event, id, title, content, layer, status) => {
     try {
-      const task = dbService.updateTaskSuggestion(id, title, content, layer || 'general');
+      const task = dbService.updateTaskSuggestion(id, title, content, layer || 'general', status || 'backlog');
       return { success: true, task };
     } catch (error) {
       console.error('Error actualizando sugerencia de tarea:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Obtener comentarios de una tarea
+  ipcMain.handle('get-task-comments', async (event, taskId) => {
+    try {
+      const comments = dbService.getTaskComments(parseInt(taskId, 10));
+      return { success: true, comments };
+    } catch (error) {
+      console.error('Error obteniendo comentarios de tarea:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Añadir comentario a una tarea
+  ipcMain.handle('add-task-comment', async (event, taskId, content) => {
+    try {
+      const comment = dbService.addTaskComment(parseInt(taskId, 10), content);
+      return { success: true, comment };
+    } catch (error) {
+      console.error('Error añadiendo comentario de tarea:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Eliminar comentario de una tarea
+  ipcMain.handle('delete-task-comment', async (event, id) => {
+    try {
+      dbService.deleteTaskComment(id);
+      return { success: true };
+    } catch (error) {
+      console.error('Error eliminando comentario de tarea:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Crear tarea directamente en un proyecto (sin grabación)
+  ipcMain.handle('create-project-task', async (event, projectId, title, content, layer, status) => {
+    try {
+      const task = dbService.createProjectTask(projectId, title, content, layer, status);
+      return { success: true, task };
+    } catch (error) {
+      console.error('Error creando tarea de proyecto:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Añadir tarea existente a un proyecto
+  ipcMain.handle('add-task-to-project', async (event, taskId, projectId) => {
+    try {
+      const task = dbService.addTaskToProject(taskId, projectId);
+      return { success: true, task };
+    } catch (error) {
+      console.error('Error añadiendo tarea al proyecto:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Quitar tarea de un proyecto
+  ipcMain.handle('remove-task-from-project', async (event, taskId) => {
+    try {
+      dbService.removeTaskFromProject(taskId);
+      return { success: true };
+    } catch (error) {
+      console.error('Error quitando tarea del proyecto:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Actualizar sort_order de múltiples tareas (para reordenar en el Kanban)
+  ipcMain.handle('update-tasks-sort-order', async (event, updates) => {
+    try {
+      dbService.updateTasksSortOrder(updates);
+      return { success: true };
+    } catch (error) {
+      console.error('Error actualizando orden de tareas:', error);
       return { success: false, error: error.message };
     }
   });

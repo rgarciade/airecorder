@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import projectsService from '../../services/projectsService';
 import recordingsService from '../../services/recordingsService';
 import styles from './Projects.module.css';
@@ -8,11 +9,12 @@ import ProjectCard from './components/ProjectCard';
 import RecentUploadsTable from './components/RecentUploadsTable';
 
 export default function Projects({ onBack, onRecordingSelect, onProjectDetail, initialProjectId = null }) {
+  const { t } = useTranslation();
   const [projects, setProjects] = useState([]);
   const [recordings, setRecordings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Modals state
   const [showNewProjectForm, setShowNewProjectForm] = useState(false);
   const [showEditProjectForm, setShowEditProjectForm] = useState(false);
@@ -54,13 +56,13 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
 
   const handleCreateProject = async () => {
     if (!newProjectName.trim()) return;
-    
+
     try {
       const project = await projectsService.createProject({
         name: newProjectName.trim(),
         description: newProjectDescription.trim()
       });
-      
+
       setProjects([...projects, project]);
       setNewProjectName('');
       setNewProjectDescription('');
@@ -72,13 +74,13 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
 
   const handleUpdateProject = async () => {
     if (!editingProject || !editingProject.name.trim()) return;
-    
+
     try {
       const updatedProject = await projectsService.updateProject(editingProject.id, {
         name: editingProject.name,
         description: editingProject.description
       });
-      
+
       setProjects(projects.map(p => p.id === updatedProject.id ? updatedProject : p));
       setEditingProject(null);
       setShowEditProjectForm(false);
@@ -94,9 +96,9 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
 
   const handleDeleteProject = (project) => {
     setConfirmationModal({
-      title: 'Delete Project?',
-      message: `Are you sure you want to delete "${project.name}"? Recordings will not be deleted.`,
-      actionText: 'Delete Project',
+      title: t('projects.deleteProjectTitle'),
+      message: t('projects.deleteProjectConfirm', { name: project.name }),
+      actionText: t('projects.deleteProject'),
       isDestructive: true,
       onConfirm: async () => {
         try {
@@ -133,11 +135,14 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
 
   const handleRemoveFromProject = (recording) => {
     if (!recording.project) return;
-    
+
     setConfirmationModal({
-      title: 'Unassign from Project?',
-      message: `Are you sure you want to unassign "${recording.name}" from project "${recording.project.name}"?`,
-      actionText: 'Unassign',
+      title: t('projects.unassignTitle'),
+      message: t('projects.unassignConfirm', {
+        recordingName: recording.name,
+        projectName: recording.project.name
+      }),
+      actionText: t('projects.unassign'),
       isDestructive: true,
       onConfirm: async () => {
         try {
@@ -168,12 +173,12 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
   };
 
   // Filtrado de proyectos
-  const filteredProjects = projects.filter(p => 
+  const filteredProjects = projects.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Grabaciones ordenadas por fecha
-  const sortedRecordings = [...recordings].sort((a, b) => 
+  const sortedRecordings = [...recordings].sort((a, b) =>
     new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date)
   );
 
@@ -199,31 +204,31 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.titleGroup}>
-          <h1>Projects Library</h1>
-          <p>Manage and organize your audio sessions.</p>
+          <h1>{t('projects.title')}</h1>
+          <p>{t('projects.subtitle')}</p>
         </div>
-        
+
         <div className={styles.controls}>
           <div className={styles.searchWrapper}>
             <svg className={styles.searchIcon} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <input 
-              type="text" 
-              className={styles.searchInput} 
-              placeholder="Search projects..." 
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder={t('projects.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          
+
           <button className={styles.createBtn} onClick={() => setShowNewProjectForm(true)}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            Create Project
+            {t('projects.create')}
           </button>
         </div>
       </header>
@@ -233,31 +238,31 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
         <>
           <div className={styles.projectsGrid}>
             {paginatedProjects.map((project) => (
-              <ProjectCard 
+              <ProjectCard
                 key={project.id}
                 project={project}
                 onClick={onProjectDetail}
                 onEdit={() => handleEditClick(project)}
                 onDelete={() => handleDeleteProject(project)}
-                recordingCount={recordings.filter(r => r.project?.id === project.id).length} 
+                recordingCount={recordings.filter(r => r.project?.id === project.id).length}
               />
             ))}
           </div>
 
           {totalProjectPages > 1 && (
             <div className={styles.pagination}>
-              <button 
-                className={styles.pageBtn} 
+              <button
+                className={styles.pageBtn}
                 disabled={currentProjectPage === 1}
                 onClick={() => setCurrentProjectPage(prev => prev - 1)}
               >
                 <MdChevronLeft size={20} />
               </button>
               <span className={styles.pageInfo}>
-                Page {currentProjectPage} of {totalProjectPages}
+                {t('projects.page', { current: currentProjectPage, total: totalProjectPages })}
               </span>
-              <button 
-                className={styles.pageBtn} 
+              <button
+                className={styles.pageBtn}
                 disabled={currentProjectPage === totalProjectPages}
                 onClick={() => setCurrentProjectPage(prev => prev + 1)}
               >
@@ -272,32 +277,32 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
       <div className={styles.recentSection}>
         <div className={styles.recentHeader}>
           <h2 className={styles.sectionTitle}>
-            {showAllRecordings ? 'All Recordings' : 'Recent Uploads'}
+            {showAllRecordings ? t('projects.allRecordings') : t('projects.recentUploads')}
           </h2>
           {showAllRecordings ? (
-            <button 
-              className={styles.closeViewAll} 
+            <button
+              className={styles.closeViewAll}
               onClick={() => setShowAllRecordings(false)}
             >
-              <MdClose size={20} /> Close
+              <MdClose size={20} /> {t('common.close')}
             </button>
           ) : (
-            <a 
-              href="#" 
-              className={styles.viewAllLink} 
+            <a
+              href="#"
+              className={styles.viewAllLink}
               onClick={(e) => {
                 e.preventDefault();
                 setShowAllRecordings(true);
                 setCurrentPage(1);
               }}
             >
-              View All
+              {t('projects.viewAll')}
             </a>
           )}
         </div>
-        
-        <RecentUploadsTable 
-          recordings={showAllRecordings ? paginatedRecordings : recentRecordings} 
+
+        <RecentUploadsTable
+          recordings={showAllRecordings ? paginatedRecordings : recentRecordings}
           projects={projects}
           onAddToProject={handleAddToProject}
           onRemoveFromProject={handleRemoveFromProject}
@@ -305,18 +310,18 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
 
         {showAllRecordings && totalPages > 1 && (
           <div className={styles.pagination}>
-            <button 
-              className={styles.pageBtn} 
+            <button
+              className={styles.pageBtn}
               disabled={currentPage === 1}
               onClick={() => setCurrentPage(prev => prev - 1)}
             >
               <MdChevronLeft size={20} />
             </button>
             <span className={styles.pageInfo}>
-              Page {currentPage} of {totalPages}
+              {t('projects.page', { current: currentPage, total: totalPages })}
             </span>
-            <button 
-              className={styles.pageBtn} 
+            <button
+              className={styles.pageBtn}
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage(prev => prev + 1)}
             >
@@ -330,38 +335,38 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
       {showNewProjectForm && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h3 className={styles.modalTitle}>New Project</h3>
+            <h3 className={styles.modalTitle}>{t('projects.newProject')}</h3>
             <div className={styles.formGroup}>
-              <label className={styles.label}>Name</label>
-              <input 
-                type="text" 
-                className={styles.input} 
-                value={newProjectName} 
-                onChange={(e) => setNewProjectName(e.target.value)} 
-                placeholder="Project name"
+              <label className={styles.label}>{t('projects.name')}</label>
+              <input
+                type="text"
+                className={styles.input}
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                placeholder={t('projects.namePlaceholder')}
                 autoFocus
               />
             </div>
             <div className={styles.formGroup}>
-              <label className={styles.label}>Description</label>
-              <textarea 
-                className={styles.textarea} 
-                rows={3} 
-                value={newProjectDescription} 
+              <label className={styles.label}>{t('projects.description')}</label>
+              <textarea
+                className={styles.textarea}
+                rows={3}
+                value={newProjectDescription}
                 onChange={(e) => setNewProjectDescription(e.target.value)}
-                placeholder="Brief description of the project"
+                placeholder={t('projects.descriptionPlaceholder')}
               />
             </div>
             <div className={styles.buttonGroup}>
               <button className={styles.cancelBtn} onClick={() => setShowNewProjectForm(false)}>
-                Cancel
+                {t('common.cancel')}
               </button>
-              <button 
-                className={styles.confirmBtn} 
+              <button
+                className={styles.confirmBtn}
                 onClick={handleCreateProject}
                 disabled={!newProjectName.trim()}
               >
-                Create Project
+                {t('projects.create')}
               </button>
             </div>
           </div>
@@ -372,35 +377,35 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
       {showEditProjectForm && editingProject && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h3 className={styles.modalTitle}>Edit Project</h3>
+            <h3 className={styles.modalTitle}>{t('projects.editProject')}</h3>
             <div className={styles.formGroup}>
-              <label className={styles.label}>Name</label>
-              <input 
-                type="text" 
-                className={styles.input} 
-                value={editingProject.name} 
-                onChange={(e) => setEditingProject({ ...editingProject, name: e.target.value })} 
+              <label className={styles.label}>{t('projects.name')}</label>
+              <input
+                type="text"
+                className={styles.input}
+                value={editingProject.name}
+                onChange={(e) => setEditingProject({ ...editingProject, name: e.target.value })}
               />
             </div>
             <div className={styles.formGroup}>
-              <label className={styles.label}>Description</label>
-              <textarea 
-                className={styles.textarea} 
-                rows={3} 
-                value={editingProject.description} 
+              <label className={styles.label}>{t('projects.description')}</label>
+              <textarea
+                className={styles.textarea}
+                rows={3}
+                value={editingProject.description}
                 onChange={(e) => setEditingProject({ ...editingProject, description: e.target.value })}
               />
             </div>
             <div className={styles.buttonGroup}>
               <button className={styles.cancelBtn} onClick={() => setShowEditProjectForm(false)}>
-                Cancel
+                {t('common.cancel')}
               </button>
-              <button 
-                className={styles.confirmBtn} 
+              <button
+                className={styles.confirmBtn}
                 onClick={handleUpdateProject}
                 disabled={!editingProject.name.trim()}
               >
-                Save Changes
+                {t('projects.saveChanges')}
               </button>
             </div>
           </div>
@@ -411,28 +416,33 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
       {pendingAssignment && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h3 className={styles.modalTitle}>Change Project?</h3>
+            <h3 className={styles.modalTitle}>{t('projects.changeProjectTitle')}</h3>
             <p className={styles.modalText}>
-              The recording <strong>"{pendingAssignment.recording.name}"</strong> is already assigned to the project 
-              <strong> "{pendingAssignment.recording.project.name}"</strong>.
+              {t('projects.changeProjectText1', {
+                recordingName: pendingAssignment.recording.name,
+                currentProjectName: pendingAssignment.recording.project.name
+              })}
             </p>
             <p className={styles.modalText}>
-              Do you want to move it to <strong>"{pendingAssignment.newProject.name}"</strong>?
+              {t('projects.changeProjectText2', {
+                newProjectName: pendingAssignment.newProject.name
+              })}
             </p>
             <div className={styles.buttonGroup}>
               <button className={styles.cancelBtn} onClick={handleCancelAssignment}>
-                Cancel
+                {t('common.cancel')}
               </button>
-              <button 
-                className={styles.confirmBtn} 
+              <button
+                className={styles.confirmBtn}
                 onClick={handleConfirmAssignment}
               >
-                Change Project
+                {t('projects.changeProject')}
               </button>
             </div>
           </div>
         </div>
       )}
+
       {/* Modal Confirmación Genérico */}
       {confirmationModal && (
         <div className={styles.modalOverlay}>
@@ -440,17 +450,17 @@ export default function Projects({ onBack, onRecordingSelect, onProjectDetail, i
             <h3 className={styles.modalTitle}>{confirmationModal.title}</h3>
             <p className={styles.modalText}>{confirmationModal.message}</p>
             <div className={styles.buttonGroup}>
-              <button 
-                className={styles.cancelBtn} 
+              <button
+                className={styles.cancelBtn}
                 onClick={() => setConfirmationModal(null)}
               >
-                Cancel
+                {t('common.cancel')}
               </button>
-              <button 
-                className={confirmationModal.isDestructive ? styles.destructiveBtn : styles.confirmBtn} 
+              <button
+                className={confirmationModal.isDestructive ? styles.destructiveBtn : styles.confirmBtn}
                 onClick={confirmationModal.onConfirm}
               >
-                {confirmationModal.actionText || 'Confirm'}
+                {confirmationModal.actionText || t('common.confirm')}
               </button>
             </div>
           </div>

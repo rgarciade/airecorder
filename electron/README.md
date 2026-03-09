@@ -6,7 +6,7 @@ Este directorio contiene el "Proceso Principal" (Main Process) de la aplicación
 
 El archivo `main.js` es el corazón de la aplicación y actúa como orquestador. Para mantener el código limpio y evitar un archivo monolítico, la lógica de comunicación está dividida:
 
-*   **Inicialización (`main.js`):** Arranca la base de datos (`dbService.init()`), sincroniza archivos vs base de datos (`migrationService.syncRecordings()`), arranca el `transcriptionManager` y crea la ventana.
+*   **Inicialización (`main.js`):** Lee `settings.json` para determinar la ruta de BD (por defecto `{userData}/recordings.db`, o la ruta personalizada `databasePath`). Si el disco no está disponible, muestra un `dialog.showMessageBox` nativo y usa el fallback, estableciendo `global.usingFallbackDb = true`. Arranca la base de datos (`dbService.init()`), sincroniza archivos vs base de datos (`migrationService.syncRecordings()`), arranca el `transcriptionManager` y crea la ventana.
 *   **Manejadores IPC (`ipc-handlers/`):** Todos los eventos que escuchan peticiones desde el frontend de React (`ipcMain.handle`) han sido extraídos a archivos específicos por dominio dentro de la carpeta `ipc-handlers/` (ej. `audio.js`, `settings.js`, `projects.js`). `main.js` los importa y les inyecta explícitamente las dependencias que necesitan.
 
 ### Patrón de Retorno IPC (¡Obligatorio!)
@@ -56,6 +56,10 @@ La captura de audio del sistema usa el paquete `electron-audio-loopback` (requie
     *   Crea tablas con `CREATE TABLE IF NOT EXISTS`.
     *   Añade columnas nuevas dinámicamente usando `ALTER TABLE`.
 *   **Estados atascados:** Restablece tareas con estado `processing` en la cola a `pending` o `failed` si la app se cerró de forma inesperada.
+*   **Ruta configurable:** La BD se inicializa con la ruta que `main.js` le pasa (por defecto `{userData}/recordings.db`, o la personalizada de `settings.databasePath`). El singleton `DbService` expone:
+    *   `init(dbPath)` — abre/crea la BD en la ruta indicada y registra `this.dbPath`.
+    *   `close()` — cierra la conexión actual (necesario antes de cambiar la ruta en caliente).
+    *   `getCurrentPath()` — devuelve la ruta activa de la BD.
 
 ### Almacenamiento Dual (Dual Storage)
 El sistema guarda metadatos en la base de datos (ID, duración, estados), pero el contenido pesado (archivos WAV, archivos JSON de los resúmenes de IA, transcripciones txt) reside en el sistema de archivos (Filesystem).
@@ -84,6 +88,54 @@ Sistema de notificación de actualizaciones manuales usando GitHub Releases API 
 | `openDownloadUrl(url)` | Abrir URL de descarga en navegador |
 | `onUpdateAvailable(cb)` | Listener de evento `update-available` |
 | `offUpdateAvailable()` | Eliminar listeners de actualización |
+| `getSystemLanguage()` | Obtener el idioma del SO (ej. `'es'`, `'en'`) |
+| `changeDbPath(newPath, migrate)` | Cambiar ruta de BD en caliente. `migrate=true` copia el archivo actual a la nueva ubicación antes de reiniciar. |
+| `getDbStatus()` | Devuelve `{ usingFallback: bool, currentPath: string }` para que el renderer muestre el banner de aviso. |
+
+## Internacionalización (i18n)
+
+### IPC Handler: `get-system-language` (`ipc-handlers/settings.js`)
+
+Devuelve el idioma principal del sistema operativo para la detección automática de idioma en el primer arranque de la app.
+
+```javascript
+ipcMain.handle('get-system-language', () => {
+  const locale = app.getLocale(); // ej. 'es-ES', 'en-US'
+  const lang = locale.split('-')[0]; // 'es', 'en'
+  return ['es', 'en'].includes(lang) ? lang : 'es'; // fallback a 'es'
+});
+```
+
+**Uso desde el frontend:**
+```js
+const lang = await window.electronAPI.getSystemLanguage(); // 'es' | 'en'
+```
+
+Este handler se utiliza en `App.jsx` → `loadAppSettings()` cuando es la primera vez que se abre la app (`isFirstRun === true`) para aplicar el idioma del SO automáticamente y guardarlo en `settings.uiLanguage`.
+
+## Almacenamiento Configurable
+
+### Ruta de la Base de Datos (`databasePath`)
+Permite guardar `recordings.db` en un directorio personalizado (útil para discos externos, NAS, etc.).
+
+**Campo en `settings.json`:** `databasePath` (ej. `/Volumes/Disco/recordings.db`)
+
+**Flujo al arrancar:**
+1. `main.js` lee `settings.json` antes de `dbService.init()`.
+2. Si `databasePath` existe y su directorio padre es accesible → usa esa ruta.
+3. Si el directorio no existe (disco no montado) → `dialog.showMessageBox` de aviso, `global.usingFallbackDb = true`, usa `{userData}/recordings.db`.
+4. El renderer llama a `getDbStatus()` y si `usingFallback === true`, muestra un banner amarillo persistente en `App.jsx`.
+
+**Cambio en caliente desde Settings:**
+1. El usuario selecciona un directorio → se muestra un modal con dos opciones: "Mover y cambiar ruta" / "Solo cambiar ruta".
+2. Se llama al IPC `change-db-path` con `{ newPath, migrate }`.
+3. El handler de `ipc-handlers/settings.js`:
+   - Si `migrate=true`: copia el archivo con `fs.copyFileSync`.
+   - Llama a `dbService.close()` + `dbService.init(newPath)`.
+   - Persiste `databasePath` en `settings.json`.
+   - Resetea `global.usingFallbackDb = false`.
+
+**Importante:** `settings.json` NO se modifica si el disco no está disponible al arrancar. Cuando vuelve el disco y se reinicia la app, vuelve automáticamente a la ruta configurada.
 
 ## 5. Protección de Código (Build de producción)
 

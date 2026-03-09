@@ -275,6 +275,32 @@
       color: var(--color-white) !important;
     }
 
+    /* ── Language toggle ── */
+    .lang-toggle {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-pill);
+      padding: 3px;
+    }
+    .lang-btn {
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      font-size: 0.78rem;
+      font-weight: 700;
+      background: transparent;
+      color: var(--color-text-muted);
+      transition: var(--transition);
+      letter-spacing: 0.03em;
+    }
+    .lang-btn.active {
+      background: var(--color-white);
+      color: var(--color-text);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    }
+
     /* Hamburger */
     .nav-hamburger {
       display: none;
@@ -346,6 +372,7 @@
       background: var(--color-primary) !important;
       color: var(--color-white) !important;
     }
+    .nav-mobile .lang-toggle { margin-top: 8px; align-self: flex-start; }
 
     /* =============================================
        HERO
@@ -1134,10 +1161,17 @@
         AIRecorder
       </a>
       <ul class="nav-links" role="list">
-        <li><a href="#funciones">Funciones</a></li>
-        <li><a href="#privacidad">Privacidad</a></li>
-        <li><a href="#proveedores">Proveedores IA</a></li>
-        <li><a href="#descarga" class="nav-cta">Descargar</a></li>
+        <li><a href="#funciones" data-i18n="navFeatures">Funciones</a></li>
+        <li><a href="#privacidad" data-i18n="navPrivacy">Privacidad</a></li>
+        <li><a href="#proveedores" data-i18n="navProviders">Proveedores IA</a></li>
+        <li><a href="changelog.html" data-i18n="navChangelog">Novedades</a></li>
+        <li>
+          <div class="lang-toggle" role="group" aria-label="Idioma">
+            <button class="lang-btn active" data-lang="es" onclick="setLang('es')">ES</button>
+            <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+          </div>
+        </li>
+        <li><a href="#descarga" class="nav-cta" data-i18n="navDownload">Descargar</a></li>
       </ul>
       <button class="nav-hamburger" id="hamburger" aria-label="Menú" aria-expanded="false">
         <span></span>
@@ -1149,10 +1183,15 @@
 
   <!-- Mobile nav -->
   <div class="nav-mobile" id="nav-mobile" role="navigation">
-    <a href="#funciones">Funciones</a>
-    <a href="#privacidad">Privacidad</a>
-    <a href="#proveedores">Proveedores IA</a>
-    <a href="#descarga" class="nav-cta">Descargar</a>
+    <a href="#funciones" data-i18n="navFeatures">Funciones</a>
+    <a href="#privacidad" data-i18n="navPrivacy">Privacidad</a>
+    <a href="#proveedores" data-i18n="navProviders">Proveedores IA</a>
+    <a href="changelog.html" data-i18n="navChangelog">Novedades</a>
+    <a href="#descarga" class="nav-cta" data-i18n="navDownload">Descargar</a>
+    <div class="lang-toggle">
+      <button class="lang-btn active" data-lang="es" onclick="setLang('es')">ES</button>
+      <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+    </div>
   </div>
 
   <!-- ==========================================
@@ -1163,39 +1202,37 @@
       <div class="hero-content">
         <div class="hero-badge animate-on-scroll">
           <span class="hero-badge-dot"></span>
-          Disponible para macOS — Apple Silicon
+          <span data-i18n="heroBadge">Disponible para macOS — Apple Silicon</span>
         </div>
 
         <div class="hero-icon-wrap animate-on-scroll delay-1" role="img" aria-label="AIRecorder"></div>
 
-        <h1 class="hero-title animate-on-scroll delay-2">
+        <h1 class="hero-title animate-on-scroll delay-2" data-i18n-html="heroTitle">
           Toma el control de<br>
           <span>tus reuniones</span>
         </h1>
 
-        <p class="hero-tagline animate-on-scroll delay-3">
+        <p class="hero-tagline animate-on-scroll delay-3" data-i18n-html="heroTagline">
           Graba, transcribe y analiza tus reuniones y proyectos con IA.<br>
           Todo en tu equipo, sin servidores externos, 100% privado.
         </p>
 
         <div class="hero-actions animate-on-scroll delay-4">
           <a href="#" class="btn btn-primary" onclick="openDownloadModal(event)">
-            <!-- Apple icon -->
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
               <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
             </svg>
-            Descargar para macOS
+            <span data-i18n="heroBtnMac">Descargar para macOS</span>
           </a>
           <a href="https://github.com/rgarciade/airecorder" class="btn btn-secondary" target="_blank" rel="noopener">
-            <!-- GitHub icon -->
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
               <path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/>
             </svg>
-            Ver en GitHub
+            <span data-i18n="heroBtnGH">Ver en GitHub</span>
           </a>
         </div>
 
-        <p class="hero-note animate-on-scroll delay-5">
+        <p class="hero-note animate-on-scroll delay-5" data-i18n="heroNote">
           Windows próximamente · Código abierto en GitHub
         </p>
 
@@ -1234,10 +1271,10 @@
       <div class="section-header">
         <div class="section-label animate-on-scroll">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          Funciones
+          <span data-i18n="featLabel">Funciones</span>
         </div>
-        <h2 class="section-title animate-on-scroll delay-1">Todo lo que necesitas para<br>tus reuniones y proyectos</h2>
-        <p class="section-subtitle animate-on-scroll delay-2">
+        <h2 class="section-title animate-on-scroll delay-1" data-i18n-html="featTitle">Todo lo que necesitas para<br>tus reuniones y proyectos</h2>
+        <p class="section-subtitle animate-on-scroll delay-2" data-i18n="featSubtitle">
           Desde la grabación hasta el análisis con IA, AIRecorder cubre todo el flujo de trabajo sin depender de servicios externos.
         </p>
       </div>
@@ -1254,8 +1291,8 @@
               <line x1="8" y1="23" x2="16" y2="23"/>
             </svg>
           </div>
-          <h3 class="feature-title">Grabación dual de audio</h3>
-          <p class="feature-desc">Captura simultáneamente el micrófono y el audio del sistema. Sin perder una sola palabra, tuya ni de los demás.</p>
+          <h3 class="feature-title" data-i18n="feat1Title">Grabación dual de audio</h3>
+          <p class="feature-desc" data-i18n="feat1Desc">Captura simultáneamente el micrófono y el audio del sistema. Sin perder una sola palabra, tuya ni de los demás.</p>
         </div>
 
         <!-- Transcripción -->
@@ -1269,8 +1306,8 @@
               <polyline points="10 9 9 9 8 9"/>
             </svg>
           </div>
-          <h3 class="feature-title">Transcripción automática</h3>
-          <p class="feature-desc">Whisper de OpenAI funciona directamente en tu equipo. Alta precisión, múltiples modelos y sin enviar audio a ningún servidor.</p>
+          <h3 class="feature-title" data-i18n="feat2Title">Transcripción automática</h3>
+          <p class="feature-desc" data-i18n="feat2Desc">Whisper de OpenAI funciona directamente en tu equipo. Alta precisión, múltiples modelos y sin enviar audio a ningún servidor.</p>
         </div>
 
         <!-- Análisis IA -->
@@ -1283,8 +1320,8 @@
               <line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
           </div>
-          <h3 class="feature-title">Análisis con IA</h3>
-          <p class="feature-desc">Genera resúmenes detallados, extrae puntos clave e identifica participantes automáticamente a partir de la transcripción.</p>
+          <h3 class="feature-title" data-i18n="feat3Title">Análisis con IA</h3>
+          <p class="feature-desc" data-i18n="feat3Desc">Genera resúmenes detallados, extrae puntos clave e identifica participantes automáticamente a partir de la transcripción.</p>
         </div>
 
         <!-- Chat interactivo -->
@@ -1294,8 +1331,8 @@
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
           </div>
-          <h3 class="feature-title">Chat interactivo</h3>
-          <p class="feature-desc">Pregunta a la IA directamente sobre el contenido de cualquier reunión. Extrae información, fechas, compromisos o cualquier detalle.</p>
+          <h3 class="feature-title" data-i18n="feat4Title">Chat interactivo</h3>
+          <p class="feature-desc" data-i18n="feat4Desc">Pregunta a la IA directamente sobre el contenido de cualquier reunión. Extrae información, fechas, compromisos o cualquier detalle.</p>
         </div>
 
         <!-- Exportación -->
@@ -1307,8 +1344,8 @@
               <line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
           </div>
-          <h3 class="feature-title">Exportación de documentos</h3>
-          <p class="feature-desc">Exporta transcripciones y resúmenes a DOCX o PDF con un clic. Comparte actas de reunión sin esfuerzo.</p>
+          <h3 class="feature-title" data-i18n="feat5Title">Exportación de documentos</h3>
+          <p class="feature-desc" data-i18n="feat5Desc">Exporta transcripciones y resúmenes a DOCX o PDF con un clic. Comparte actas de reunión sin esfuerzo.</p>
         </div>
 
         <!-- Proyectos -->
@@ -1318,8 +1355,8 @@
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
             </svg>
           </div>
-          <h3 class="feature-title">Gestión de proyectos</h3>
-          <p class="feature-desc">Organiza tus grabaciones en proyectos. Dashboard con estadísticas de horas, reuniones y estado de transcripciones.</p>
+          <h3 class="feature-title" data-i18n="feat6Title">Gestión de proyectos</h3>
+          <p class="feature-desc" data-i18n="feat6Desc">Organiza tus grabaciones en proyectos. Dashboard con estadísticas de horas, reuniones y estado de transcripciones.</p>
         </div>
 
         <!-- Múltiples proveedores -->
@@ -1331,8 +1368,8 @@
               <path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/>
             </svg>
           </div>
-          <h3 class="feature-title">Múltiples modelos de IA</h3>
-          <p class="feature-desc">Compatible con Gemini, DeepSeek, Kimi en la nube, y con Ollama y LM Studio para análisis completamente local.</p>
+          <h3 class="feature-title" data-i18n="feat7Title">Múltiples modelos de IA</h3>
+          <p class="feature-desc" data-i18n="feat7Desc">Compatible con Gemini, DeepSeek, Kimi en la nube, y con Ollama y LM Studio para análisis completamente local.</p>
         </div>
 
         <!-- Offline -->
@@ -1348,8 +1385,8 @@
               <line x1="12" y1="20" x2="12.01" y2="20"/>
             </svg>
           </div>
-          <h3 class="feature-title">Funciona sin conexión</h3>
-          <p class="feature-desc">Con Ollama o LM Studio, toda la cadena, grabación, transcripción y análisis, funciona sin internet ni suscripciones.</p>
+          <h3 class="feature-title" data-i18n="feat8Title">Funciona sin conexión</h3>
+          <p class="feature-desc" data-i18n="feat8Desc">Con Ollama o LM Studio, toda la cadena, grabación, transcripción y análisis, funciona sin internet ni suscripciones.</p>
         </div>
 
         <!-- Importación de transcripciones Teams/Zoom/Meet -->
@@ -1362,8 +1399,8 @@
               <line x1="9" y1="15" x2="15" y2="15"/>
             </svg>
           </div>
-          <h3 class="feature-title">Importa transcripciones de Teams</h3>
-          <p class="feature-desc">¿Tu reunión fue grabada en Microsoft Teams? Importa el archivo de transcripción directamente y analízalo con IA como si lo hubieras grabado tú mismo.</p>
+          <h3 class="feature-title" data-i18n="feat9Title">Importa transcripciones de Teams</h3>
+          <p class="feature-desc" data-i18n="feat9Desc">¿Tu reunión fue grabada en Microsoft Teams? Importa el archivo de transcripción directamente y analízalo con IA como si lo hubieras grabado tú mismo.</p>
         </div>
 
         <!-- Subida de audio externo -->
@@ -1375,8 +1412,8 @@
               <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
             </svg>
           </div>
-          <h3 class="feature-title">Sube audio de dispositivos externos</h3>
-          <p class="feature-desc">Grabaste con una grabadora, móvil o cualquier otro dispositivo. Sube el archivo de audio y AIRecorder lo transcribe y analiza automáticamente.</p>
+          <h3 class="feature-title" data-i18n="feat10Title">Sube audio de dispositivos externos</h3>
+          <p class="feature-desc" data-i18n="feat10Desc">Grabaste con una grabadora, móvil o cualquier otro dispositivo. Sube el archivo de audio y AIRecorder lo transcribe y analiza automáticamente.</p>
         </div>
 
       </div>
@@ -1392,10 +1429,10 @@
         <div>
           <div class="section-label animate-on-scroll">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            Privacidad
+            <span data-i18n="privLabel">Privacidad</span>
           </div>
-          <h2 class="section-title animate-on-scroll delay-1">Tu privacidad,<br>nuestra prioridad</h2>
-          <p class="section-subtitle animate-on-scroll delay-2">
+          <h2 class="section-title animate-on-scroll delay-1" data-i18n-html="privTitle">Tu privacidad,<br>nuestra prioridad</h2>
+          <p class="section-subtitle animate-on-scroll delay-2" data-i18n="privSubtitle">
             Tus reuniones contienen información sensible. AIRecorder está diseñado para que tus datos nunca salgan de tu equipo.
           </p>
           <ul class="privacy-list" role="list">
@@ -1403,31 +1440,31 @@
               <div class="privacy-check">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
-              <p class="privacy-item-text"><strong>Transcripción 100% local</strong> con Whisper ejecutándose directamente en tu Mac.</p>
+              <p class="privacy-item-text" data-i18n-html="priv1"><strong>Transcripción 100% local</strong> con Whisper ejecutándose directamente en tu Mac.</p>
             </li>
             <li class="privacy-item animate-on-scroll delay-4">
               <div class="privacy-check">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
-              <p class="privacy-item-text"><strong>Sin servidores externos</strong> para tus audios. Las grabaciones viven en tu sistema de archivos.</p>
+              <p class="privacy-item-text" data-i18n-html="priv2"><strong>Sin servidores externos</strong> para tus audios. Las grabaciones viven en tu sistema de archivos.</p>
             </li>
             <li class="privacy-item animate-on-scroll delay-5">
               <div class="privacy-check">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
-              <p class="privacy-item-text"><strong>IA completamente local</strong> con Ollama y LM Studio: análisis sin ninguna petición a internet.</p>
+              <p class="privacy-item-text" data-i18n-html="priv3"><strong>IA completamente local</strong> con Ollama y LM Studio: análisis sin ninguna petición a internet.</p>
             </li>
             <li class="privacy-item animate-on-scroll delay-6">
               <div class="privacy-check">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
-              <p class="privacy-item-text"><strong>Base de datos local</strong> en SQLite. Sin telemetría, sin analytics, sin tracking.</p>
+              <p class="privacy-item-text" data-i18n-html="priv4"><strong>Base de datos local</strong> en SQLite. Sin telemetría, sin analytics, sin tracking.</p>
             </li>
             <li class="privacy-item animate-on-scroll delay-7">
               <div class="privacy-check">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
-              <p class="privacy-item-text"><strong>Tú controlas todo.</strong> Las claves de API de proveedores cloud son opcionales y las gestionas tú.</p>
+              <p class="privacy-item-text" data-i18n-html="priv5"><strong>Tú controlas todo.</strong> Las claves de API de proveedores cloud son opcionales y las gestionas tú.</p>
             </li>
           </ul>
         </div>
@@ -1457,10 +1494,10 @@
       <div class="section-header">
         <div class="section-label animate-on-scroll">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-          Proveedores IA
+          <span data-i18n="provLabel">Proveedores IA</span>
         </div>
-        <h2 class="section-title animate-on-scroll delay-1">Compatible con los mejores<br>modelos de IA</h2>
-        <p class="section-subtitle animate-on-scroll delay-2">
+        <h2 class="section-title animate-on-scroll delay-1" data-i18n-html="provTitle">Compatible con los mejores<br>modelos de IA</h2>
+        <p class="section-subtitle animate-on-scroll delay-2" data-i18n="provSubtitle">
           Elige entre proveedores en la nube para mayor potencia, o modelos locales para privacidad total. Cambia cuando quieras.
         </p>
       </div>
@@ -1473,7 +1510,7 @@
             <img src="https://ollama.com/public/ollama.png" alt="Ollama" width="44" height="44" style="border-radius:8px;object-fit:contain;">
           </div>
           <span class="provider-name">Ollama</span>
-          <span class="provider-type verified">✓ Verificado</span>
+          <span class="provider-type verified" data-i18n="provOllamaType">✓ Verificado</span>
         </div>
 
         <!-- Gemini -->
@@ -1491,7 +1528,7 @@
             </svg>
           </div>
           <span class="provider-name">Gemini</span>
-          <span class="provider-type testing">En testeo</span>
+          <span class="provider-type testing" data-i18n="provTestingType">En testeo</span>
         </div>
 
         <!-- LM Studio -->
@@ -1505,7 +1542,7 @@
             </svg>
           </div>
           <span class="provider-name">LM Studio</span>
-          <span class="provider-type testing">En testeo</span>
+          <span class="provider-type testing" data-i18n="provTestingType">En testeo</span>
         </div>
 
         <!-- DeepSeek -->
@@ -1514,7 +1551,7 @@
             <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTqKHD28rGat3WVaqRkRDgIL-SHgOTHB6MrNg&s" alt="DeepSeek" width="44" height="44" style="border-radius:8px;object-fit:contain;">
           </div>
           <span class="provider-name">DeepSeek</span>
-          <span class="provider-type testing">En testeo</span>
+          <span class="provider-type testing" data-i18n="provTestingType">En testeo</span>
         </div>
 
         <!-- Kimi -->
@@ -1522,23 +1559,19 @@
           <div class="provider-icon">
             <svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
               <rect width="36" height="36" rx="9" fill="#0a0a0a"/>
-              <!-- Palo vertical de la K -->
               <line x1="11" y1="8"  x2="11" y2="28" stroke="white" stroke-width="3.2" stroke-linecap="round"/>
-              <!-- Brazo superior -->
               <line x1="11" y1="18" x2="24" y2="8"  stroke="white" stroke-width="3.2" stroke-linecap="round"/>
-              <!-- Brazo inferior -->
               <line x1="11" y1="18" x2="24" y2="28" stroke="white" stroke-width="3.2" stroke-linecap="round"/>
-              <!-- Punto azul -->
               <circle cx="27.5" cy="9" r="3.8" fill="#3B82F6"/>
             </svg>
           </div>
           <span class="provider-name">Kimi</span>
-          <span class="provider-type testing">En testeo</span>
+          <span class="provider-type testing" data-i18n="provTestingType">En testeo</span>
         </div>
 
       </div>
 
-      <p class="providers-note animate-on-scroll delay-4">
+      <p class="providers-note animate-on-scroll delay-4" data-i18n="provNote">
         Ollama es el único proveedor 100% verificado. Los demás están en fase de testeo. La transcripción siempre corre localmente con Whisper.
       </p>
     </div>
@@ -1550,8 +1583,8 @@
   <section class="section download" id="descarga">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title animate-on-scroll">Descarga AIRecorder</h2>
-        <p class="section-subtitle animate-on-scroll delay-1">
+        <h2 class="section-title animate-on-scroll" data-i18n="dlTitle">Descarga AIRecorder</h2>
+        <p class="section-subtitle animate-on-scroll delay-1" data-i18n="dlSubtitle">
           Empieza a grabar y analizar tus reuniones hoy mismo. Gratis, local y sin complicaciones.
         </p>
       </div>
@@ -1563,22 +1596,22 @@
             <svg viewBox="0 0 24 24" fill="currentColor">
               <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
             </svg>
-            Descargar para macOS
+            <span data-i18n="dlMacMain">Descargar para macOS</span>
           </div>
-          <span class="download-btn-sub">Apple Silicon · macOS 13+</span>
-          <span class="download-btn-tag">Disponible ahora</span>
+          <span class="download-btn-sub" data-i18n="dlMacSub">Apple Silicon · macOS 13+</span>
+          <span class="download-btn-tag" data-i18n="dlMacTag">Disponible ahora</span>
         </a>
 
         <!-- Windows (soon) -->
-        <button class="download-btn soon btn-disabled" disabled aria-label="Windows próximamente">
+        <button class="download-btn soon btn-disabled" disabled>
           <div class="download-btn-main">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
               <path d="M0 0h11.377v11.372H0zm12.623 0H24v11.372H12.623zM0 12.628h11.377V24H0zm12.623 0H24V24H12.623z"/>
             </svg>
-            Descargar para Windows
+            <span data-i18n="dlWinMain">Descargar para Windows</span>
           </div>
-          <span class="download-btn-sub">Próximamente disponible</span>
-          <span class="download-btn-tag">Próximamente</span>
+          <span class="download-btn-sub" data-i18n="dlWinSub">Próximamente disponible</span>
+          <span class="download-btn-tag" data-i18n="dlWinTag">Próximamente</span>
         </button>
       </div>
     </div>
@@ -1595,21 +1628,23 @@
           AIRecorder
         </div>
 
-        <p class="footer-tagline">
+        <p class="footer-tagline" data-i18n="footerTagline">
           Toma el control de tus reuniones y proyectos. Todo en local, todo privado.
         </p>
 
         <nav class="footer-links" aria-label="Links del footer">
-          <a href="https://github.com/rgarciade/airecorder" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://github.com/rgarciade/airecorder" target="_blank" rel="noopener" data-i18n="footerGH">GitHub</a>
           <span>·</span>
-          <a href="https://github.com/rgarciade/airecorder/releases" target="_blank" rel="noopener">Releases</a>
+          <a href="https://github.com/rgarciade/airecorder/releases" target="_blank" rel="noopener" data-i18n="footerReleases">Releases</a>
           <span>·</span>
-          <a href="https://github.com/rgarciade/airecorder/issues" target="_blank" rel="noopener">Reportar un problema</a>
+          <a href="changelog.html" data-i18n="navChangelog">Novedades</a>
+          <span>·</span>
+          <a href="https://github.com/rgarciade/airecorder/issues" target="_blank" rel="noopener" data-i18n="footerIssues">Reportar un problema</a>
         </nav>
 
         <div class="footer-divider"></div>
 
-        <p class="footer-copyright">
+        <p class="footer-copyright" data-i18n-html="footerCopyright">
           © 2024–2026 AIRecorder · Desarrollado por <a href="https://github.com/rgarciade" target="_blank" rel="noopener">Raul Garcia</a> · <a href="https://github.com/rgarciade/airecorder/blob/main/LICENSE" target="_blank" rel="noopener">MIT + Commons Clause</a>
         </p>
       </div>
@@ -1627,9 +1662,9 @@
           <line x1="12" y1="9" x2="12" y2="13"/>
           <line x1="12" y1="17" x2="12.01" y2="17"/>
         </svg>
-        Instrucciones de Instalación
+        <span data-i18n="modalTitle">Instrucciones de Instalación</span>
       </h3>
-      <div class="modal-text">
+      <div class="modal-text" data-i18n-html="modalText">
         <p>⚠️ <strong>La app está en desarrollo preliminar y aún no está firmada.</strong></p>
         <p>Para abrir la app por primera vez, es posible que tengas que lanzar este comando en la terminal después de instalarla (arrastrarla) en Aplicaciones:</p>
         <code class="modal-code">xattr -cr /Applications/AIRecorder.app</code>
@@ -1643,8 +1678,8 @@
         </div>
       </div>
       <div class="modal-actions">
-        <button class="btn btn-secondary" onclick="closeDownloadModal(event)">Cancelar</button>
-        <a href="https://github.com/rgarciade/airecorder/releases/latest" target="_blank" rel="noopener" class="btn btn-primary" onclick="closeDownloadModal(event)">
+        <button class="btn btn-secondary" onclick="closeDownloadModal(event)" data-i18n="modalCancel">Cancelar</button>
+        <a href="https://github.com/rgarciade/airecorder/releases/latest" target="_blank" rel="noopener" class="btn btn-primary" onclick="closeDownloadModal(event)" data-i18n="modalConfirm">
           Entendido y Descargar
         </a>
       </div>
@@ -1741,6 +1776,123 @@
       if (e) e.preventDefault();
       document.getElementById('downloadModal').classList.remove('active');
     }
+
+    // === Traducciones / Translations ===
+    const TRANSLATIONS = {
+      es: {
+        pageTitle: 'AIRecorder — Graba, Transcribe y Analiza Reuniones con IA',
+        navFeatures: 'Funciones', navPrivacy: 'Privacidad', navProviders: 'Proveedores IA',
+        navChangelog: 'Novedades', navDownload: 'Descargar',
+        heroBadge: 'Disponible para macOS — Apple Silicon',
+        heroTitle: 'Toma el control de<br><span>tus reuniones</span>',
+        heroTagline: 'Graba, transcribe y analiza tus reuniones y proyectos con IA.<br>Todo en tu equipo, sin servidores externos, 100% privado.',
+        heroBtnMac: 'Descargar para macOS', heroBtnGH: 'Ver en GitHub',
+        heroNote: 'Windows próximamente · Código abierto en GitHub',
+        featLabel: 'Funciones',
+        featTitle: 'Todo lo que necesitas para<br>tus reuniones y proyectos',
+        featSubtitle: 'Desde la grabación hasta el análisis con IA, AIRecorder cubre todo el flujo de trabajo sin depender de servicios externos.',
+        feat1Title: 'Grabación dual de audio', feat1Desc: 'Captura simultáneamente el micrófono y el audio del sistema. Sin perder una sola palabra, tuya ni de los demás.',
+        feat2Title: 'Transcripción automática', feat2Desc: 'Whisper de OpenAI funciona directamente en tu equipo. Alta precisión, múltiples modelos y sin enviar audio a ningún servidor.',
+        feat3Title: 'Análisis con IA', feat3Desc: 'Genera resúmenes detallados, extrae puntos clave e identifica participantes automáticamente a partir de la transcripción.',
+        feat4Title: 'Chat interactivo', feat4Desc: 'Pregunta a la IA directamente sobre el contenido de cualquier reunión. Extrae información, fechas, compromisos o cualquier detalle.',
+        feat5Title: 'Exportación de documentos', feat5Desc: 'Exporta transcripciones y resúmenes a DOCX o PDF con un clic. Comparte actas de reunión sin esfuerzo.',
+        feat6Title: 'Gestión de proyectos', feat6Desc: 'Organiza tus grabaciones en proyectos. Dashboard con estadísticas de horas, reuniones y estado de transcripciones.',
+        feat7Title: 'Múltiples modelos de IA', feat7Desc: 'Compatible con Gemini, DeepSeek, Kimi en la nube, y con Ollama y LM Studio para análisis completamente local.',
+        feat8Title: 'Funciona sin conexión', feat8Desc: 'Con Ollama o LM Studio, toda la cadena, grabación, transcripción y análisis, funciona sin internet ni suscripciones.',
+        feat9Title: 'Importa transcripciones de Teams', feat9Desc: '¿Tu reunión fue grabada en Microsoft Teams? Importa el archivo de transcripción directamente y analízalo con IA como si lo hubieras grabado tú mismo.',
+        feat10Title: 'Sube audio de dispositivos externos', feat10Desc: 'Grabaste con una grabadora, móvil o cualquier otro dispositivo. Sube el archivo de audio y AIRecorder lo transcribe y analiza automáticamente.',
+        privLabel: 'Privacidad',
+        privTitle: 'Tu privacidad,<br>nuestra prioridad',
+        privSubtitle: 'Tus reuniones contienen información sensible. AIRecorder está diseñado para que tus datos nunca salgan de tu equipo.',
+        priv1: '<strong>Transcripción 100% local</strong> con Whisper ejecutándose directamente en tu Mac.',
+        priv2: '<strong>Sin servidores externos</strong> para tus audios. Las grabaciones viven en tu sistema de archivos.',
+        priv3: '<strong>IA completamente local</strong> con Ollama y LM Studio: análisis sin ninguna petición a internet.',
+        priv4: '<strong>Base de datos local</strong> en SQLite. Sin telemetría, sin analytics, sin tracking.',
+        priv5: '<strong>Tú controlas todo.</strong> Las claves de API de proveedores cloud son opcionales y las gestionas tú.',
+        provLabel: 'Proveedores IA',
+        provTitle: 'Compatible con los mejores<br>modelos de IA',
+        provSubtitle: 'Elige entre proveedores en la nube para mayor potencia, o modelos locales para privacidad total. Cambia cuando quieras.',
+        provOllamaType: '✓ Verificado', provTestingType: 'En testeo',
+        provNote: 'Ollama es el único proveedor 100% verificado. Los demás están en fase de testeo. La transcripción siempre corre localmente con Whisper.',
+        dlTitle: 'Descarga AIRecorder',
+        dlSubtitle: 'Empieza a grabar y analizar tus reuniones hoy mismo. Gratis, local y sin complicaciones.',
+        dlMacMain: 'Descargar para macOS', dlMacSub: 'Apple Silicon · macOS 13+', dlMacTag: 'Disponible ahora',
+        dlWinMain: 'Descargar para Windows', dlWinSub: 'Próximamente disponible', dlWinTag: 'Próximamente',
+        footerTagline: 'Toma el control de tus reuniones y proyectos. Todo en local, todo privado.',
+        footerGH: 'GitHub', footerReleases: 'Releases', footerIssues: 'Reportar un problema',
+        footerCopyright: '© 2024–2026 AIRecorder · Desarrollado por <a href="https://github.com/rgarciade" target="_blank" rel="noopener">Raul Garcia</a> · <a href="https://github.com/rgarciade/airecorder/blob/main/LICENSE" target="_blank" rel="noopener">MIT + Commons Clause</a>',
+        modalTitle: 'Instrucciones de Instalación',
+        modalText: '<p>⚠️ <strong>La app está en desarrollo preliminar y aún no está firmada.</strong></p><p>Para abrir la app por primera vez, es posible que tengas que lanzar este comando en la terminal después de instalarla (arrastrarla) en Aplicaciones:</p><code class="modal-code">xattr -cr /Applications/AIRecorder.app</code><div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,0.1)"><p style="margin-bottom:.5rem;font-size:.95em"><strong>🔄 ¿Estás actualizando desde una versión anterior?</strong></p><ol style="font-size:.9em;opacity:.9"><li>Borra la app actual de la carpeta Aplicaciones antes de instalar la nueva.</li><li>Cuando te pida permisos de captura de pantalla o accesibilidad, tienes que <strong>ELIMINAR</strong> el permiso antiguo en Ajustes del Sistema de macOS y volver a añadírselo a la nueva app.</li></ol></div>',
+        modalCancel: 'Cancelar', modalConfirm: 'Entendido y Descargar',
+      },
+      en: {
+        pageTitle: 'AIRecorder — Record, Transcribe & Analyze Meetings with AI',
+        navFeatures: 'Features', navPrivacy: 'Privacy', navProviders: 'AI Providers',
+        navChangelog: "What's New", navDownload: 'Download',
+        heroBadge: 'Available for macOS — Apple Silicon',
+        heroTitle: 'Take control of<br><span>your meetings</span>',
+        heroTagline: 'Record, transcribe, and analyze your meetings and projects with AI.<br>Everything on your machine, no external servers, 100% private.',
+        heroBtnMac: 'Download for macOS', heroBtnGH: 'View on GitHub',
+        heroNote: 'Windows coming soon · Open source on GitHub',
+        featLabel: 'Features',
+        featTitle: 'Everything you need for<br>your meetings and projects',
+        featSubtitle: 'From recording to AI analysis, AIRecorder covers the entire workflow without depending on external services.',
+        feat1Title: 'Dual audio recording', feat1Desc: "Simultaneously capture your microphone and system audio. Never miss a word — yours or anyone else's.",
+        feat2Title: 'Automatic transcription', feat2Desc: "OpenAI's Whisper runs directly on your machine. High accuracy, multiple models, no audio sent to any server.",
+        feat3Title: 'AI analysis', feat3Desc: 'Generate detailed summaries, extract key points, and automatically identify participants from the transcript.',
+        feat4Title: 'Interactive chat', feat4Desc: "Ask the AI directly about any meeting's content. Extract information, dates, commitments, or any detail.",
+        feat5Title: 'Document export', feat5Desc: 'Export transcripts and summaries to DOCX or PDF with one click. Share meeting minutes effortlessly.',
+        feat6Title: 'Project management', feat6Desc: 'Organize your recordings into projects. Dashboard with statistics on hours, meetings, and transcription status.',
+        feat7Title: 'Multiple AI models', feat7Desc: 'Compatible with Gemini, DeepSeek, Kimi in the cloud, and Ollama and LM Studio for fully local analysis.',
+        feat8Title: 'Works offline', feat8Desc: 'With Ollama or LM Studio, the entire chain — recording, transcription, and analysis — works without internet or subscriptions.',
+        feat9Title: 'Import Teams transcripts', feat9Desc: 'Was your meeting recorded in Microsoft Teams? Import the transcript file directly and analyze it with AI as if you had recorded it yourself.',
+        feat10Title: 'Upload audio from external devices', feat10Desc: 'Recorded with a recorder, phone, or any other device? Upload the audio file and AIRecorder will transcribe and analyze it automatically.',
+        privLabel: 'Privacy',
+        privTitle: 'Your privacy,<br>our priority',
+        privSubtitle: 'Your meetings contain sensitive information. AIRecorder is designed so your data never leaves your machine.',
+        priv1: '<strong>100% local transcription</strong> with Whisper running directly on your Mac.',
+        priv2: '<strong>No external servers</strong> for your audio. Recordings live on your file system.',
+        priv3: '<strong>Fully local AI</strong> with Ollama and LM Studio: analysis with zero internet requests.',
+        priv4: '<strong>Local database</strong> in SQLite. No telemetry, no analytics, no tracking.',
+        priv5: '<strong>You control everything.</strong> Cloud provider API keys are optional and managed by you.',
+        provLabel: 'AI Providers',
+        provTitle: 'Compatible with the best<br>AI models',
+        provSubtitle: 'Choose cloud providers for more power, or local models for total privacy. Switch whenever you want.',
+        provOllamaType: '✓ Verified', provTestingType: 'Testing',
+        provNote: 'Ollama is the only 100% verified provider. Others are in testing. Transcription always runs locally with Whisper.',
+        dlTitle: 'Download AIRecorder',
+        dlSubtitle: 'Start recording and analyzing your meetings today. Free, local, and hassle-free.',
+        dlMacMain: 'Download for macOS', dlMacSub: 'Apple Silicon · macOS 13+', dlMacTag: 'Available now',
+        dlWinMain: 'Download for Windows', dlWinSub: 'Coming soon', dlWinTag: 'Coming soon',
+        footerTagline: 'Take control of your meetings and projects. All local, all private.',
+        footerGH: 'GitHub', footerReleases: 'Releases', footerIssues: 'Report an issue',
+        footerCopyright: '© 2024–2026 AIRecorder · Built by <a href="https://github.com/rgarciade" target="_blank" rel="noopener">Raul Garcia</a> · <a href="https://github.com/rgarciade/airecorder/blob/main/LICENSE" target="_blank" rel="noopener">MIT + Commons Clause</a>',
+        modalTitle: 'Installation Instructions',
+        modalText: '<p>⚠️ <strong>The app is in early development and is not yet signed.</strong></p><p>To open the app for the first time, you may need to run this command in the terminal after installing (dragging) it to Applications:</p><code class="modal-code">xattr -cr /Applications/AIRecorder.app</code><div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,0.1)"><p style="margin-bottom:.5rem;font-size:.95em"><strong>🔄 Updating from a previous version?</strong></p><ol style="font-size:.9em;opacity:.9"><li>Delete the current app from the Applications folder before installing the new one.</li><li>When asked for screen recording or accessibility permissions, you must <strong>REMOVE</strong> the old permission in macOS System Settings and re-add it to the new app.</li></ol></div>',
+        modalCancel: 'Cancel', modalConfirm: 'Got it, Download',
+      }
+    };
+
+    function setLang(lang) {
+      document.documentElement.lang = lang;
+      document.title = TRANSLATIONS[lang].pageTitle;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const v = TRANSLATIONS[lang][el.dataset.i18n];
+        if (v !== undefined) el.textContent = v;
+      });
+      document.querySelectorAll('[data-i18n-html]').forEach(el => {
+        const v = TRANSLATIONS[lang][el.dataset.i18nHtml];
+        if (v !== undefined) el.innerHTML = v;
+      });
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === lang);
+      });
+      try { localStorage.setItem('airecorder-lang', lang); } catch(e) {}
+    }
+
+    // Inicializar idioma
+    const _savedLang = (function() { try { return localStorage.getItem('airecorder-lang'); } catch(e) { return null; } })();
+    setLang(_savedLang || (navigator.language.startsWith('en') ? 'en' : 'es'));
   </script>
 
 </body>

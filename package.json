@@ -61,13 +61,18 @@
       "entitlementsInherit": "build/entitlements.mac.plist",
       "extendInfo": {
         "NSMicrophoneUsageDescription": "AIRecorder necesita acceso al micrófono para grabar audio.",
-        "NSAudioCaptureUsageDescription": "AIRecorder necesita acceso a la captura de audio para grabar el audio del sistema."
+        "NSAudioCaptureUsageDescription": "AIRecorder necesita acceso a la captura de audio para grabar el audio del sistema.",
+        "NSNetworkVolumesUsageDescription": "AIRecorder necesita acceso a volúmenes de red para guardar y leer bases de datos y grabaciones.",
+        "NSRemovableVolumesUsageDescription": "AIRecorder necesita acceso a volúmenes extraíbles para guardar y leer bases de datos y grabaciones."
       }
     }
   },
   "description": "AI-powered audio recorder and transcription tool",
   "author": "Raul Garcia",
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@lancedb/lancedb": "^0.26.2",
     "@reduxjs/toolkit": "^2.8.2",
     "@sentry/electron": "^7.9.0",
@@ -80,12 +85,14 @@
     "ffmpeg-static": "^5.2.0",
     "ffprobe-static": "^3.1.0",
     "howler": "^2.2.4",
+    "i18next": "^25.8.14",
     "jspdf": "^4.2.0",
     "node-audiorecorder": "^3.0.0",
     "node-microphone": "^0.1.6",
     "node-record-lpcm16": "^1.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-i18next": "^16.5.6",
     "react-icons": "^5.5.0",
     "react-markdown": "^10.1.0",
     "react-redux": "^9.2.0",

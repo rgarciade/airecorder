@@ -63,6 +63,9 @@
 }
 
 .tabButton {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   padding: 16px 4px;
   background: none;
   border: none;
@@ -72,6 +75,26 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+.tabBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  background: #e0f2fe;
+  color: #0284c7;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.activeTab .tabBadge {
+  background: rgba(57, 148, 239, 0.15);
+  color: #3994ef;
 }
 
 .tabButton:hover {
@@ -91,6 +114,43 @@
   width: 100%;
   display: flex;
   flex-direction: column;
+}
+
+.tasksContent {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Toggle vista lista / kanban */
+.tasksViewToggle {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.viewToggleBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  background: #F9FAFB;
+  color: #9CA3AF;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.viewToggleBtn:hover {
+  background: #F3F4F6;
+  color: #374151;
+}
+
+.viewToggleActive {
+  background: #EFF6FF;
+  color: #3994EF;
+  border-color: #93C5FD;
 }
 
 .overviewGrid {

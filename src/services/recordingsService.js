@@ -341,6 +341,22 @@ class RecordingsService {
   }
 
   /**
+   * Obtiene todas las sugerencias de tareas de un proyecto (a través de sus grabaciones)
+   * Cada tarea incluye recording_db_id y recording_path para identificar la grabación origen
+   */
+  async getProjectTaskSuggestions(projectId) {
+    try {
+      if (!window.electronAPI?.getProjectTaskSuggestions) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.getProjectTaskSuggestions(projectId);
+      if (!result.success) return [];
+      return result.tasks;
+    } catch (error) {
+      console.error('Error leyendo sugerencias de tareas del proyecto:', error);
+      return [];
+    }
+  }
+
+  /**
    * Obtiene las sugerencias de tareas de una grabación
    */
   async getTaskSuggestions(dbId) {
@@ -373,15 +389,94 @@ class RecordingsService {
   /**
    * Actualiza una sugerencia de tarea existente
    */
-  async updateTaskSuggestion(id, title, content, layer = 'general') {
+  async updateTaskSuggestion(id, title, content, layer = 'general', status = 'backlog') {
     try {
       if (!window.electronAPI?.updateTaskSuggestion) throw new Error('API de Electron no disponible');
-      const result = await window.electronAPI.updateTaskSuggestion(id, title, content, layer);
+      const result = await window.electronAPI.updateTaskSuggestion(id, title, content, layer, status);
       if (!result.success) return null;
       return result.task;
     } catch (error) {
       console.error('Error actualizando sugerencia de tarea:', error);
       return null;
+    }
+  }
+
+  async getTaskComments(taskId) {
+    try {
+      if (!window.electronAPI?.getTaskComments) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.getTaskComments(taskId);
+      if (!result.success) return [];
+      return result.comments;
+    } catch (error) {
+      console.error('Error leyendo comentarios de tarea:', error);
+      return [];
+    }
+  }
+
+  async addTaskComment(taskId, content) {
+    try {
+      if (!window.electronAPI?.addTaskComment) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.addTaskComment(taskId, content);
+      if (!result.success) return null;
+      return result.comment;
+    } catch (error) {
+      console.error('Error añadiendo comentario de tarea:', error);
+      return null;
+    }
+  }
+
+  async deleteTaskComment(id) {
+    try {
+      if (!window.electronAPI?.deleteTaskComment) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.deleteTaskComment(id);
+      return result.success;
+    } catch (error) {
+      console.error('Error eliminando comentario de tarea:', error);
+      return false;
+    }
+  }
+
+  async createProjectTask(projectId, title, content, layer = 'general', status = 'backlog') {
+    try {
+      if (!window.electronAPI?.createProjectTask) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.createProjectTask(projectId, title, content, layer, status);
+      if (!result.success) return null;
+      return result.task;
+    } catch (error) {
+      console.error('Error creando tarea de proyecto:', error);
+      return null;
+    }
+  }
+
+  async addTaskToProject(taskId, projectId) {
+    try {
+      if (!window.electronAPI?.addTaskToProject) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.addTaskToProject(taskId, projectId);
+      if (!result.success) return null;
+      return result.task;
+    } catch (error) {
+      console.error('Error añadiendo tarea al proyecto:', error);
+      return null;
+    }
+  }
+
+  async removeTaskFromProject(taskId) {
+    try {
+      if (!window.electronAPI?.removeTaskFromProject) throw new Error('API de Electron no disponible');
+      await window.electronAPI.removeTaskFromProject(taskId);
+    } catch (error) {
+      console.error('Error quitando tarea del proyecto:', error);
+    }
+  }
+
+  // Actualiza el sort_order de múltiples tareas (para reordenar en el Kanban)
+  // updates: [{ id, sort_order }]
+  async updateTasksSortOrder(updates) {
+    try {
+      if (!window.electronAPI?.updateTasksSortOrder) throw new Error('API de Electron no disponible');
+      await window.electronAPI.updateTasksSortOrder(updates);
+    } catch (error) {
+      console.error('Error actualizando orden de tareas:', error);
     }
   }
 

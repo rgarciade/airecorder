@@ -43,20 +43,54 @@ const {
   UPDATE_DURATION,
   CREATE_TABLE_TASK_SUGGESTIONS,
   INSERT_TASK_SUGGESTION,
+  INSERT_PROJECT_TASK,
+  ADD_TASK_TO_PROJECT,
+  REMOVE_TASK_FROM_PROJECT,
   UPDATE_TASK_SUGGESTION,
   DELETE_TASK_SUGGESTION,
-  SELECT_TASK_SUGGESTIONS
+  SELECT_TASK_SUGGESTIONS,
+  SELECT_TASK_SUGGESTIONS_BY_PROJECT,
+  CREATE_TABLE_TASK_COMMENTS,
+  INSERT_TASK_COMMENT,
+  SELECT_TASK_COMMENTS,
+  DELETE_TASK_COMMENT
 } = require('./queries');
 
 class DbService {
   constructor() {
     this.db = null;
+    this.dbPath = null;
+  }
+
+  close() {
+    if (this.db) {
+      try {
+        this.db.close();
+      } catch (e) {
+        console.error('[DB] Error cerrando la base de datos:', e);
+      }
+      this.db = null;
+    }
+  }
+
+  getCurrentPath() {
+    return this.dbPath;
   }
 
   init(dbPath) {
+    this.dbPath = dbPath;
     try {
       this.db = new Database(dbPath);
-      this.db.pragma('journal_mode = WAL');
+      
+      // Desactivar WAL en volúmenes de red o externos para evitar corrupción (ej. NAS en /Volumes/)
+      // SQLite en modo WAL usa memoria compartida, lo que falla o corrompe DBs en SMB/NFS
+      if (dbPath.startsWith('/Volumes/')) {
+        console.log('[DB] Ruta de red/externa detectada. Usando journal_mode = DELETE (seguro para NAS).');
+        this.db.pragma('journal_mode = DELETE');
+      } else {
+        this.db.pragma('journal_mode = WAL');
+      }
+      
       this.db.pragma('foreign_keys = ON');
       
       // Inicializar todas las tablas
@@ -138,16 +172,58 @@ class DbService {
       this.db.prepare(CREATE_TABLE_MESSAGES).run();
       this.db.prepare(CREATE_TABLE_TASK_SUGGESTIONS).run();
 
-      // Migración para añadir layer a task_suggestions si no existe
+      // Migración para añadir columnas faltantes a task_suggestions
       try {
         const tsInfo = this.db.prepare("PRAGMA table_info(task_suggestions)").all();
-        if (tsInfo.length > 0 && !tsInfo.some(c => c.name === 'layer')) {
-          console.log('[DB] Añadiendo columna layer a task_suggestions...');
-          this.db.prepare("ALTER TABLE task_suggestions ADD COLUMN layer TEXT DEFAULT 'general'").run();
+        if (tsInfo.length > 0) {
+          if (!tsInfo.some(c => c.name === 'layer')) {
+            console.log('[DB] Añadiendo columna layer a task_suggestions...');
+            this.db.prepare("ALTER TABLE task_suggestions ADD COLUMN layer TEXT DEFAULT 'general'").run();
+          }
+          if (!tsInfo.some(c => c.name === 'status')) {
+            console.log('[DB] Añadiendo columna status a task_suggestions...');
+            this.db.prepare("ALTER TABLE task_suggestions ADD COLUMN status TEXT DEFAULT 'backlog'").run();
+          }
+          // Migración: añadir sort_order (ALTER TABLE simple)
+          if (!tsInfo.some(c => c.name === 'sort_order')) {
+            console.log('[DB] Añadiendo columna sort_order a task_suggestions...');
+            this.db.prepare("ALTER TABLE task_suggestions ADD COLUMN sort_order INTEGER DEFAULT 0").run();
+          }
+          // Migración mayor: añadir project_id y hacer recording_id nullable (recrear tabla)
+          if (!tsInfo.some(c => c.name === 'project_id')) {
+            console.log('[DB] Migrando task_suggestions: añadiendo project_id y making recording_id nullable...');
+            this.db.exec(`
+              PRAGMA foreign_keys = OFF;
+              BEGIN;
+              CREATE TABLE task_suggestions_v2 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                recording_id INTEGER,
+                project_id INTEGER,
+                title TEXT NOT NULL,
+                content TEXT,
+                layer TEXT DEFAULT 'general',
+                status TEXT DEFAULT 'backlog',
+                created_by_ai INTEGER DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+              );
+              INSERT INTO task_suggestions_v2
+                (id, recording_id, title, content, layer, status, created_by_ai, created_at, updated_at)
+              SELECT id, recording_id, title, content, layer, status, created_by_ai, created_at, updated_at
+              FROM task_suggestions;
+              DROP TABLE task_suggestions;
+              ALTER TABLE task_suggestions_v2 RENAME TO task_suggestions;
+              COMMIT;
+              PRAGMA foreign_keys = ON;
+            `);
+            console.log('[DB] Migración task_suggestions completada.');
+          }
         }
       } catch (e) {
         console.error('[DB] Error migrando task_suggestions:', e);
       }
+
+      this.db.prepare(CREATE_TABLE_TASK_COMMENTS).run();
 
       // Migración para añadir rag_status a recordings (para RAG)
       try {
@@ -457,21 +533,73 @@ class DbService {
     return this.db.prepare(SELECT_TASK_SUGGESTIONS).all(recordingId);
   }
 
+  getTaskSuggestionsByProject(projectId) {
+    if (!this.db) return [];
+    return this.db.prepare(SELECT_TASK_SUGGESTIONS_BY_PROJECT).all(projectId);
+  }
+
   addTaskSuggestion(recordingId, title, content, layer = 'general', createdByAi = 1) {
     if (!this.db) return null;
     const info = this.db.prepare(INSERT_TASK_SUGGESTION).run(recordingId, title, content || '', layer || 'general', createdByAi ? 1 : 0);
     return this.db.prepare('SELECT * FROM task_suggestions WHERE id = ?').get(info.lastInsertRowid);
   }
 
-  updateTaskSuggestion(id, title, content, layer = 'general') {
+  updateTaskSuggestion(id, title, content, layer = 'general', status = 'backlog') {
     if (!this.db) return null;
-    this.db.prepare(UPDATE_TASK_SUGGESTION).run(title, content || '', layer || 'general', id);
+    this.db.prepare(UPDATE_TASK_SUGGESTION).run(title, content || '', layer || 'general', status || 'backlog', id);
     return this.db.prepare('SELECT * FROM task_suggestions WHERE id = ?').get(id);
   }
 
   deleteTaskSuggestion(id) {
     if (!this.db) return;
     this.db.prepare(DELETE_TASK_SUGGESTION).run(id);
+  }
+
+  createProjectTask(projectId, title, content, layer = 'general', status = 'backlog') {
+    if (!this.db) return null;
+    const info = this.db.prepare(INSERT_PROJECT_TASK).run(projectId, title, content || '', layer || 'general', status || 'backlog');
+    return this.db.prepare('SELECT * FROM task_suggestions WHERE id = ?').get(info.lastInsertRowid);
+  }
+
+  addTaskToProject(taskId, projectId) {
+    if (!this.db) return null;
+    this.db.prepare(ADD_TASK_TO_PROJECT).run(projectId, taskId);
+    return this.db.prepare('SELECT * FROM task_suggestions WHERE id = ?').get(taskId);
+  }
+
+  removeTaskFromProject(taskId) {
+    if (!this.db) return;
+    this.db.prepare(REMOVE_TASK_FROM_PROJECT).run(taskId);
+  }
+
+  // Actualiza el sort_order de varias tareas en una transacción
+  // updates: [{ id, sort_order }]
+  updateTasksSortOrder(updates) {
+    if (!this.db || !updates?.length) return;
+    const stmt = this.db.prepare(
+      'UPDATE task_suggestions SET sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+    );
+    const runAll = this.db.transaction((rows) => {
+      for (const row of rows) stmt.run(row.sort_order, row.id);
+    });
+    runAll(updates);
+  }
+
+  // COMENTARIOS DE TAREAS
+  getTaskComments(taskId) {
+    if (!this.db) return [];
+    return this.db.prepare(SELECT_TASK_COMMENTS).all(taskId);
+  }
+
+  addTaskComment(taskId, content) {
+    if (!this.db) return null;
+    const info = this.db.prepare(INSERT_TASK_COMMENT).run(taskId, content);
+    return this.db.prepare('SELECT * FROM task_comments WHERE id = ?').get(info.lastInsertRowid);
+  }
+
+  deleteTaskComment(id) {
+    if (!this.db) return;
+    this.db.prepare(DELETE_TASK_COMMENT).run(id);
   }
 
   // RAG

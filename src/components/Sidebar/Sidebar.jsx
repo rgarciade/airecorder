@@ -1,17 +1,39 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import styles from './Sidebar.module.css';
+import {
+  MdAutoAwesome
+} from 'react-icons/md';
+import { aiQueueService } from '../../services/ai/aiQueueService';
 
 const Sidebar = ({ currentView, onViewChange, queueCount = 0 }) => {
+  const { t } = useTranslation();
+  const [aiQueueCount, setAiQueueCount] = useState(0);
+
+  useEffect(() => {
+    const unsubscribe = aiQueueService.subscribe((state) => {
+      const total = (state.current ? 1 : 0) + state.queue.length;
+      setAiQueueCount(total);
+    });
+    return unsubscribe;
+  }, []);
+
   const menuItems = [
-    { id: 'home', label: 'Home', icon: <HomeIcon /> },
-    { id: 'projects', label: 'All Projects', icon: <FolderIcon /> },
-    { 
-      id: 'queue', 
-      label: <span className={styles.multilineLabel}>Transcription<br/>Queue</span>, 
+    { id: 'home', label: t('sidebar.home'), icon: <HomeIcon /> },
+    { id: 'projects', label: t('sidebar.projects'), icon: <FolderIcon /> },
+    {
+      id: 'queue',
+      label: <span className={styles.multilineLabel}>{t('sidebar.transcriptionQueue').split('\n').map((line, i) => i === 0 ? line : <><br key={i}/>{line}</>)}</span>,
       icon: <QueueIcon />,
       badge: queueCount > 0 ? queueCount : null
     },
-    { id: 'settings', label: 'Settings', icon: <SettingsIcon /> },
+    {
+      id: 'ai-queue',
+      label: <span className={styles.multilineLabel}>{t('sidebar.aiQueue').split('\n').map((line, i) => i === 0 ? line : <><br key={i}/>{line}</>)}</span>,
+      icon: <MdAutoAwesome />,
+      badge: aiQueueCount > 0 ? aiQueueCount : null,
+    },
+    { id: 'settings', label: t('sidebar.settings'), icon: <SettingsIcon /> },
   ];
 
   return (
@@ -55,6 +77,12 @@ const FolderIcon = () => (
 const QueueIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+  </svg>
+);
+
+const AiQueueIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"></path>
   </svg>
 );
 

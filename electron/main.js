@@ -6,7 +6,7 @@ require('dotenv').config();
 // ========================================
 // 1. IMPORTACIONES GLOBALES
 // ========================================
-const { app, BrowserWindow, ipcMain, systemPreferences, session, protocol } = require('electron');
+const { app, BrowserWindow, ipcMain, systemPreferences, session, protocol, dialog } = require('electron');
 const { initMain } = require('electron-audio-loopback');
 const path = require('path');
 const fs = require('fs');
@@ -179,11 +179,57 @@ async function initApp() {
 
   // 1. Inicializar Base de Datos
   const userDataPath = app.getPath('userData');
-  const dbPath = path.join(userDataPath, 'recordings.db');
+  const defaultDbPath = path.join(userDataPath, 'recordings.db');
+  let dbPath = defaultDbPath;
+  let usingFallbackDb = false;
+
+  // Leer settings para usar ruta de BD personalizada si existe
+  if (fs.existsSync(settingsPath)) {
+    try {
+      const settingsRaw = fs.readFileSync(settingsPath, 'utf8');
+      const savedSettings = JSON.parse(settingsRaw);
+
+      if (savedSettings.databasePath) {
+        const dbDir = path.dirname(savedSettings.databasePath);
+        if (fs.existsSync(dbDir)) {
+          dbPath = savedSettings.databasePath;
+          console.log(`[Main] Usando BD personalizada: ${dbPath}`);
+        } else {
+          usingFallbackDb = true;
+          console.warn(`[Main] Directorio de BD no accesible: ${dbDir}. Usando BD por defecto.`);
+          dialog.showMessageBox({
+            type: 'warning',
+            title: 'Disco no accesible',
+            message: `La base de datos configurada en:\n"${savedSettings.databasePath}"\nno está disponible.\n\nLa aplicación usará la base de datos por defecto temporalmente. Al restaurar el disco y reiniciar, se volverá a usar la original.\n\nLos cambios de esta sesión NO se guardarán en la BD original.`
+          });
+        }
+      }
+
+      // Verificar también el directorio de grabaciones
+      if (savedSettings.outputDirectory && !fs.existsSync(savedSettings.outputDirectory)) {
+        console.warn(`[Main] Directorio de grabaciones no accesible: ${savedSettings.outputDirectory}`);
+        dialog.showMessageBox({
+          type: 'warning',
+          title: 'Directorio de grabaciones no accesible',
+          message: `El directorio de grabaciones configurado:\n"${savedSettings.outputDirectory}"\nno está disponible.\n\nSe usará la ruta por defecto hasta que vuelva a ser accesible.`
+        });
+      }
+    } catch (err) {
+      console.error('[Main] Error leyendo settings para inicializar BD:', err);
+    }
+  }
+
+  global.usingFallbackDb = usingFallbackDb;
   dbService.init(dbPath);
 
   // 2. Registrar manejadores de comunicación IPC
   registerIpcHandlers();
+
+  // Handler para consultar el estado de la BD (fallback o no)
+  ipcMain.handle('get-db-status', () => ({
+    usingFallback: global.usingFallbackDb || false,
+    currentPath: dbService.getCurrentPath()
+  }));
 
   // 3. Configurar callbacks del sistema
   transcriptionManager.setUpdateCallback((queueState) => {
