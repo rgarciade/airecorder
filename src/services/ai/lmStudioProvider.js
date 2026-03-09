@@ -27,6 +27,39 @@ export async function getLMStudioModels(baseUrl = null) {
 }
 
 /**
+ * Obtiene información de un modelo de LM Studio (context_length)
+ * Usa el formato nativo de LM Studio: { models: [{ key, loaded_instances, max_context_length }] }
+ * @param {string} modelId - ID del modelo (key o loaded_instances[].id)
+ * @param {string} [baseUrl] - URL base opcional
+ * @returns {Promise<{numCtx: number}|null>}
+ */
+export async function getLMStudioModelInfo(modelId, baseUrl = null) {
+  const settings = await getSettings();
+  const url = baseUrl || settings.lmStudioHost || 'http://localhost:1234/v1';
+  try {
+    const response = await fetch(`${url}/models`);
+    if (!response.ok) return null;
+    const data = await response.json();
+    // Compatibilidad: formato nativo LM Studio { models: [...] } y OpenAI-compat { data: [...] }
+    const models = data.models || data.data || [];
+    const model = models.find(m =>
+      m.key === modelId ||
+      m.id === modelId ||
+      m.loaded_instances?.some(i => i.id === modelId)
+    );
+    if (!model) return null;
+    // Preferir context_length actualmente configurada; fallback al máximo del modelo
+    const numCtx =
+      model.loaded_instances?.[0]?.config?.context_length ||
+      model.max_context_length ||
+      null;
+    return numCtx ? { numCtx } : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Verifica si LM Studio está disponible
  * @param {string} [baseUrl] - URL base opcional
  * @returns {Promise<boolean>} true si está disponible

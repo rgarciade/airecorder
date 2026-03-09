@@ -6,10 +6,10 @@
 import appSessionService from './appSessionService';
 import recordingsService from './recordingsService';
 import { getSettings } from './settingsService';
-import { callProvider } from './ai/providerRouter';
+import { callProvider, getActiveProviderContextWindow } from './ai/providerRouter';
 import { AI_TASK_TYPES } from './ai/aiQueueService';
 import { cleanAiResponse, parseJsonArray, parseJsonObject } from '../utils/aiResponseParser';
-import { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt, participantsPrompt, participantsPromptSuffix, taskSuggestionsPrompt, taskSuggestionsPromptSuffix, taskImprovementPrompt } from '../prompts/aiPrompts';
+import { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt, participantsPrompt, participantsPromptSuffix, taskSuggestionsPrompt, taskSuggestionsPromptSuffix, taskImprovementPrompt, consolidateSummaryPrompt } from '../prompts/aiPrompts';
 
 class RecordingAiService {
   constructor() {
@@ -219,6 +219,26 @@ class RecordingAiService {
   }
 
   /**
+   * Calcula el límite de caracteres según la ventana de contexto del proveedor
+   * @param {Object} settings - Configuración actual
+   * @param {number} promptOverheadTokens - Margen de seguridad para el prompt (por defecto 800)
+   * @returns {Promise<number>} Número máximo de caracteres permitidos
+   */
+  async _calculateMaxContextChars(settings, promptOverheadTokens = 800) {
+    const isCloudProvider = ['gemini', 'geminifree', 'deepseek', 'kimi'].includes(settings.aiProvider);
+    if (isCloudProvider) {
+      return Number.MAX_SAFE_INTEGER; // Los proveedores cloud no necesitan chunking/truncado
+    }
+    
+    const detectedCtx = await getActiveProviderContextWindow(settings);
+    const numCtx = detectedCtx || 4096; // Fallback: mínimo habitual en modelos locales
+    const responseReserve = Math.max(512, Math.floor(numCtx * 0.25)); // Espacio para la respuesta del modelo
+    const maxChars = Math.max(4000, (numCtx - promptOverheadTokens - responseReserve) * 4);
+    
+    return maxChars;
+  }
+
+  /**
    * Realiza la generación del resumen (método privado)
    * @private
    * @param {Object} options - Opciones de qué generar: { summaries, keyTopics, detailedSummary }
@@ -264,13 +284,12 @@ class RecordingAiService {
       // Generar resumen detallado primero (si está solicitado) - contexto para los demás
       if (options.detailedSummary) {
         console.log('📋 Generando resumen detallado...');
-        
-        // Optimización para transcripciones muy largas (Map-Reduce básico)
-        // El modelo de LM Studio está configurado con 4096 de contexto (n_ctx).
-        // 4096 tokens son aproximadamente 12000-14000 caracteres, pero para estar completamente seguros,
-        // limitamos el chunk a unos 8000 caracteres (~2000 tokens) para dejar espacio de sobra para la respuesta (n_predict).
-        const CHUNK_SIZE = 8000; 
-        if (txt && txt.length > CHUNK_SIZE * 1.2) {
+
+        // Optimización para transcripciones muy largas (Map-Reduce básico).
+        const CHUNK_SIZE = await this._calculateMaxContextChars(settings, 800);
+        console.log(`📐 Límite de contexto calculado: \${CHUNK_SIZE} caracteres`);
+
+        if (txt && txt.length > CHUNK_SIZE) {
           console.log(`⚠️ Transcripción muy larga (${txt.length} chars). Dividiendo en fragmentos para procesar...`);
           
           const chunks = this._chunkText(txt, CHUNK_SIZE);
@@ -296,7 +315,7 @@ class RecordingAiService {
             const superChunks = this._chunkText(combinedPartialSummaries, CHUNK_SIZE);
             let finalCombined = '';
             for (let j = 0; j < superChunks.length; j++) {
-              const superPrompt = `Sintetiza estos resúmenes parciales en uno solo consolidado:\n\n${superChunks[j]}`;
+              const superPrompt = `Sintetiza estos resúmenes parciales en uno solo consolidado. NO menciones que es un resumen de otros resúmenes. Devuelve SOLO el texto consolidado:\n\n${superChunks[j]}`;
               const superResponse = await this._callAiProvider(superPrompt, null, {
                 ...providerOverrides,
                 queueMeta: { name: `Consolidación intermedia ${j + 1}/${superChunks.length}: ${recName}`, groupName: `Resumen detallado: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY, hidden: true, groupId, overrideStartedAt: globalStartTime },
@@ -308,7 +327,7 @@ class RecordingAiService {
           
           console.log('🔗 Generando resumen detallado final a partir de los parciales...');
           // Ahora pasamos los resúmenes combinados (ya reducidos a un tamaño seguro) como contexto para el final
-          const finalResponse = await this._callAiProvider(detailedSummaryPrompt(lang), combinedPartialSummaries, {
+          const finalResponse = await this._callAiProvider(consolidateSummaryPrompt(lang), combinedPartialSummaries, {
             ...providerOverrides,
             queueMeta: { 
               name: `Resumen detallado final: ${recName}`, 
@@ -332,10 +351,17 @@ class RecordingAiService {
       // Generar resumen corto y puntos clave en paralelo (si están solicitados)
       const generationPromises = [];
 
+      let contextForShort = detailedText || txt;
+      const maxCharsForShort = await this._calculateMaxContextChars(settings, 500);
+      if (contextForShort.length > maxCharsForShort) {
+        console.warn(`⚠️ Texto demasiado largo para resumen breve/puntos clave (\${contextForShort.length} > \${maxCharsForShort}). Truncando...`);
+        contextForShort = contextForShort.substring(0, maxCharsForShort);
+      }
+
       if (options.summaries) {
         console.log('📝 Generando resumen breve...');
         generationPromises.push(
-          this._callAiProvider(shortSummaryPrompt(lang), detailedText || txt, {
+          this._callAiProvider(shortSummaryPrompt(lang), contextForShort, {
             ...providerOverrides,
             queueMeta: { name: `Resumen breve: ${recName}`, type: AI_TASK_TYPES.SUMMARY },
           }).then(r => ({ type: 'summary', text: r.text || '' }))
@@ -345,7 +371,7 @@ class RecordingAiService {
       if (options.keyTopics) {
         console.log('🔑 Generando key topics...');
         generationPromises.push(
-          this._callAiProvider(keyPointsPrompt(lang), detailedText || txt, {
+          this._callAiProvider(keyPointsPrompt(lang), contextForShort, {
             ...providerOverrides,
             queueMeta: { name: `Key Topics: ${recName}`, type: AI_TASK_TYPES.KEY_TOPICS },
           }).then(r => ({ type: 'keyPoints', text: r.text || '' }))
@@ -530,12 +556,31 @@ class RecordingAiService {
         throw new Error('No se pudo obtener el texto de la transcripción');
       }
 
+      // Intentar obtener el resumen detallado para usarlo como contexto (es más corto y preciso)
+      let contextText = txt;
+      try {
+        const existingSummary = await this.getRecordingSummary(recordingId);
+        if (existingSummary && existingSummary.resumen_detallado && existingSummary.resumen_detallado.length > 50) {
+          console.log(`👥 Usando resumen detallado como contexto para extraer participantes en vez de transcripción completa.`);
+          contextText = existingSummary.resumen_detallado;
+        }
+      } catch (e) {
+        console.warn('No se pudo cargar el resumen para los participantes, usando transcripción original.');
+      }
+
       // Leer idioma de ajustes
       const settings = await getSettings();
       const lang = settings.uiLanguage || 'es';
 
+      // Asegurar que el contexto no exceda la ventana máxima del modelo
+      const maxChars = await this._calculateMaxContextChars(settings, 500);
+      if (contextText.length > maxChars) {
+        console.warn(`⚠️ Texto demasiado largo para extraer participantes (\${contextText.length} > \${maxChars}). Truncando...`);
+        contextText = contextText.substring(0, maxChars);
+      }
+
       // Construir prompt sándwich
-      const combinedPrompt = `${participantsPrompt(lang)}\n${txt}\n${participantsPromptSuffix}`;
+      const combinedPrompt = `${participantsPrompt(lang)}\n${contextText}\n${participantsPromptSuffix}`;
 
       // Llamar a la IA con contexto null y forzando formato JSON para Ollama
       const participantsResponse = await this._callAiProvider(combinedPrompt, null, {
@@ -647,11 +692,30 @@ class RecordingAiService {
         throw new Error('No se pudo obtener el texto de la transcripción');
       }
 
+      // Intentar obtener el resumen detallado para usarlo como contexto (es más corto y preciso para sugerir tareas)
+      let contextText = txt;
+      try {
+        const existingSummary = await this.getRecordingSummary(recordingId);
+        if (existingSummary && existingSummary.resumen_detallado && existingSummary.resumen_detallado.length > 50) {
+          console.log(`📋 Usando resumen detallado como contexto para generar tareas en vez de transcripción completa.`);
+          contextText = existingSummary.resumen_detallado;
+        }
+      } catch (e) {
+        console.warn('No se pudo cargar el resumen para las tareas, usando transcripción original.');
+      }
+
       // Leer idioma de ajustes
       const settings = await getSettings();
       const lang = settings.uiLanguage || 'es';
 
-      const combinedPrompt = `${taskSuggestionsPrompt(lang)}\n${txt}\n${taskSuggestionsPromptSuffix}`;
+      // Asegurar que el contexto no exceda la ventana máxima del modelo
+      const maxChars = await this._calculateMaxContextChars(settings, 800);
+      if (contextText.length > maxChars) {
+        console.warn(`⚠️ Texto demasiado largo para sugerir tareas (\${contextText.length} > \${maxChars}). Truncando...`);
+        contextText = contextText.substring(0, maxChars);
+      }
+
+      const combinedPrompt = `${taskSuggestionsPrompt(lang)}\n${contextText}\n${taskSuggestionsPromptSuffix}`;
       const response = await this._callAiProvider(combinedPrompt, null, {
         format: 'json',
         queueMeta: { name: `Tareas: ${recName}`, type: AI_TASK_TYPES.TASK_SUGGESTIONS },

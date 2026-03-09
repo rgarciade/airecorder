@@ -128,7 +128,8 @@
       "baseUrl": "URL Base",
       "ragModel": "Modelo de Chat para RAG (opcional)",
       "embeddingModel": "Modelo de Embeddings ({{provider}})",
-      "databasePath": "Directorio de la Base de Datos"
+      "databasePath": "Directorio de la Base de Datos",
+      "contextLength": "Ventana de Contexto (tokens)"
     },
     "helpText": {
       "transcriptionLanguage": "Idioma utilizado para la transcripción con Whisper.",
@@ -139,7 +140,10 @@
       "cpuThreads": "Más hilos aumentan la velocidad de transcripción pero consumen más recursos del ordenador.",
       "ragModel": "Modelo específico para responder consultas RAG (ej: deepseek-r1). Dejar vacío para usar el modelo principal.",
       "embeddingModel": "Modelo usado para indexar y buscar fragmentos (ej: nomic-embed-text).",
-      "databasePath": "Cambia dónde se guarda la base de datos. Se recomienda usar la ruta por defecto."
+      "databasePath": "Cambia dónde se guarda la base de datos. Se recomienda usar la ruta por defecto.",
+      "contextLengthInput": "Deja vacío para detectarlo automáticamente en cada generación, o introduce el valor manualmente.",
+      "contextLengthOllama": "Encuéntralo ejecutando: ollama show <modelo> --verbose (campo num_ctx)",
+      "contextLengthLmStudio": "Encuéntralo en LM Studio, en la sección \"My Models\" → opciones avanzadas del modelo cargado."
     },
     "fontSizes": {
       "small": "Pequeño",
@@ -175,7 +179,8 @@
       "checkUpdates": "Comprobar Actualizaciones",
       "download": "Descargar",
       "checking": "Comprobando...",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "detect": "Detectar"
     },
     "messages": {
       "saveSuccess": "Ajustes guardados con éxito",
@@ -192,7 +197,9 @@
       "noStreaming": "✗ No soporta streaming",
       "modelError": "No se pudieron cargar los modelos. Verifica tu API Key.",
       "contextLength": "Ventana de contexto: {{n}} tokens",
-      "configureInOllama": "configurable en Ollama"
+      "configureInOllama": "configurable en Ollama",
+      "contextLengthDetected": "✓ {{n}} tokens detectados automáticamente",
+      "contextLengthNotFound": "No se pudo detectar automáticamente."
     },
     "misc": {
       "default": "Por defecto",

@@ -5,7 +5,7 @@ import { getSettings, updateSettings } from '../../services/settingsService';
 import { getAvailableModels, checkOllamaAvailability, checkModelSupportsStreaming, getOllamaModelInfo } from '../../services/ai/ollamaProvider';
 import { getGeminiAvailableModels } from '../../services/ai/geminiProvider';
 import { getDeepseekAvailableModels, getKimiAvailableModels, getLMStudioModels } from '../../services/ai/providerRouter';
-import { checkLMStudioAvailability } from '../../services/ai/lmStudioProvider';
+import { checkLMStudioAvailability, getLMStudioModelInfo } from '../../services/ai/lmStudioProvider';
 import { 
   MdMic, MdClose, MdCloud, MdAutoAwesome, MdComputer, MdTerminal,
   MdFolder, MdVisibility, MdVisibilityOff, MdRefresh, MdInfo, MdCheck,
@@ -103,8 +103,13 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
   const [lmStudioHost, setLmStudioHost] = useState('http://localhost:1234/v1');
   const [lmStudioAvailable, setLmStudioAvailable] = useState(false);
 
-  // Ollama context length (se obtiene de la API al cambiar de modelo)
-  const [ollamaContextLength, setOllamaContextLength] = useState(null);
+  // Context length guardado en settings (persiste, se usa para evitar llamadas a API)
+  const [ollamaContextLengthSaved, setOllamaContextLengthSaved] = useState('');
+  const [lmStudioContextLengthSaved, setLmStudioContextLengthSaved] = useState('');
+  // Estado de detección automática del context length
+  const [ollamaCtxStatus, setOllamaCtxStatus] = useState(null); // null | 'success' | 'error'
+  const [lmStudioCtxStatus, setLmStudioCtxStatus] = useState(null); // null | 'success' | 'error'
+  const [isDetectingLmCtx, setIsDetectingLmCtx] = useState(false);
 
   // UI State
   const [activeTab, setActiveTab] = useState(initialTab); // 'general' | 'agents'
@@ -197,6 +202,10 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         setLmStudioHost(savedSettings.lmStudioHost || 'http://localhost:1234/v1');
         setLmStudioModel(savedSettings.lmStudioModel || '');
         setLmStudioEmbeddingModel(savedSettings.lmStudioEmbeddingModel || '');
+        setLmStudioContextLengthSaved(savedSettings.lmStudioContextLength ? String(savedSettings.lmStudioContextLength) : '');
+
+        // Ollama context length guardado
+        setOllamaContextLengthSaved(savedSettings.ollamaContextLength ? String(savedSettings.ollamaContextLength) : '');
         
         setAiProvider(savedSettings.aiProvider || 'ollama');
         setOllamaModel(savedSettings.ollamaModel || '');
@@ -387,10 +396,10 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
 
   const handleOllamaModelChange = async (newModel) => {
     setOllamaModel(newModel);
+    setOllamaCtxStatus(null); // Resetear estado de detección al cambiar modelo
 
     if (newModel && ollamaAvailable) {
       setIsCheckingModel(true);
-      setOllamaContextLength(null);
       try {
         console.log(`🔍 Verificando modelo ${newModel}...`);
         const [supportsStreaming, modelInfo] = await Promise.all([
@@ -398,7 +407,10 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
           getOllamaModelInfo(newModel, ollamaHost)
         ]);
         setOllamaModelSupportsStreaming(supportsStreaming);
-        if (modelInfo?.numCtx) setOllamaContextLength(modelInfo.numCtx);
+        // Auto-actualizar el campo de context length si se detecta (silencioso, sin mostrar status)
+        if (modelInfo?.numCtx) {
+          setOllamaContextLengthSaved(String(modelInfo.numCtx));
+        }
         console.log(`📝 Modelo ${newModel} - Streaming: ${supportsStreaming ? 'SÍ' : 'NO'} | numCtx: ${modelInfo?.numCtx}`);
       } catch (error) {
         console.error(`❌ Error verificando modelo ${newModel}:`, error);
@@ -408,8 +420,64 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
       }
     } else {
       setOllamaModelSupportsStreaming(false);
-      setOllamaContextLength(null);
       setIsCheckingModel(false);
+    }
+  };
+
+  /** Detecta el context length de Ollama explícitamente (con feedback de estado) */
+  const handleDetectOllamaContextLength = async () => {
+    if (!ollamaModel || !ollamaAvailable) return;
+    setIsCheckingModel(true);
+    setOllamaCtxStatus(null);
+    try {
+      const info = await getOllamaModelInfo(ollamaModel, ollamaHost);
+      if (info?.numCtx) {
+        setOllamaContextLengthSaved(String(info.numCtx));
+        setOllamaCtxStatus('success');
+      } else {
+        setOllamaCtxStatus('error');
+      }
+    } catch {
+      setOllamaCtxStatus('error');
+    } finally {
+      setIsCheckingModel(false);
+    }
+  };
+
+  /** Maneja el cambio de modelo en LM Studio con detección silenciosa de context length */
+  const handleLmStudioModelChange = async (newModel) => {
+    setLmStudioModel(newModel);
+    setLmStudioCtxStatus(null); // Resetear estado de detección al cambiar modelo
+    // Auto-detectar context length de forma silenciosa
+    if (newModel && lmStudioAvailable) {
+      try {
+        const info = await getLMStudioModelInfo(newModel, lmStudioHost);
+        if (info?.numCtx) {
+          setLmStudioContextLengthSaved(String(info.numCtx));
+        }
+      } catch {
+        // Fallo silencioso — el usuario puede usar el botón "Detectar"
+      }
+    }
+  };
+
+  /** Detecta el context length de LM Studio explícitamente (con feedback de estado) */
+  const handleDetectLmStudioContextLength = async () => {
+    if (!lmStudioModel || !lmStudioAvailable) return;
+    setIsDetectingLmCtx(true);
+    setLmStudioCtxStatus(null);
+    try {
+      const info = await getLMStudioModelInfo(lmStudioModel, lmStudioHost);
+      if (info?.numCtx) {
+        setLmStudioContextLengthSaved(String(info.numCtx));
+        setLmStudioCtxStatus('success');
+      } else {
+        setLmStudioCtxStatus('error');
+      }
+    } catch {
+      setLmStudioCtxStatus('error');
+    } finally {
+      setIsDetectingLmCtx(false);
     }
   };
 
@@ -470,6 +538,9 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         ollamaEmbeddingModel: ollamaEmbeddingModel,
         ollamaHost: ollamaHost,
         ollamaModelSupportsStreaming: ollamaModelSupportsStreaming,
+        ollamaContextLength: ollamaContextLengthSaved ? parseInt(ollamaContextLengthSaved) : null,
+        // LM Studio (context length)
+        lmStudioContextLength: lmStudioContextLengthSaved ? parseInt(lmStudioContextLengthSaved) : null,
         outputDirectory: outputDirectory,
         databasePath: databasePath || undefined
       });
@@ -689,12 +760,6 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         {ollamaModelSupportsStreaming ? t('settings.messages.supportsStreaming') : t('settings.messages.noStreaming')}
                       </p>
                     )}
-                    {ollamaModel && !isCheckingModel && ollamaContextLength && (
-                      <p className={styles.helpText} style={{ color: '#6B7280', marginTop: '4px' }}>
-                        {t('settings.messages.contextLength', { n: ollamaContextLength.toLocaleString() })}
-                        {' '}<span style={{ color: '#9CA3AF' }}>({t('settings.messages.configureInOllama')})</span>
-                      </p>
-                    )}
                   </div>
 
                   <div className={styles.formGroup}>
@@ -713,6 +778,44 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                     <p className={styles.helpText}>
                       {t('settings.helpText.embeddingModel')}
                     </p>
+                  </div>
+
+                  {/* Ventana de Contexto — Ollama */}
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>{t('settings.fields.contextLength')}</label>
+                    <div className={styles.inputRow}>
+                      <input
+                        type="number"
+                        className={styles.input}
+                        value={ollamaContextLengthSaved}
+                        onChange={(e) => { setOllamaContextLengthSaved(e.target.value); setOllamaCtxStatus(null); }}
+                        placeholder="4096"
+                        disabled={aiProvider !== 'ollama'}
+                        min="512"
+                      />
+                      <button
+                        className={styles.checkBtn}
+                        onClick={handleDetectOllamaContextLength}
+                        disabled={aiProvider !== 'ollama' || !ollamaAvailable || !ollamaModel || isCheckingModel}
+                      >
+                        <MdRefresh size={18} className={isCheckingModel ? styles.spinner : undefined} />
+                        {t('settings.buttons.detect')}
+                      </button>
+                    </div>
+                    {ollamaCtxStatus === 'success' && (
+                      <p className={styles.helpText} style={{ color: '#059669' }}>
+                        {t('settings.messages.contextLengthDetected', { n: parseInt(ollamaContextLengthSaved).toLocaleString() })}
+                      </p>
+                    )}
+                    {ollamaCtxStatus === 'error' && (
+                      <p className={styles.helpText} style={{ color: '#dc2626' }}>
+                        {t('settings.messages.contextLengthNotFound')}
+                        {' '}<span style={{ color: '#6B7280' }}>{t('settings.helpText.contextLengthOllama')}</span>
+                      </p>
+                    )}
+                    {!ollamaCtxStatus && (
+                      <p className={styles.helpText}>{t('settings.helpText.contextLengthInput')}</p>
+                    )}
                   </div>
                 </div>
 
@@ -796,7 +899,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                     <select
                       className={styles.input}
                       value={lmStudioModel}
-                      onChange={(e) => setLmStudioModel(e.target.value)}
+                      onChange={(e) => handleLmStudioModelChange(e.target.value)}
                       disabled={aiProvider !== 'lmstudio' || !lmStudioAvailable}
                     >
                       <option value="" disabled>{t('settings.misc.selectModel')}</option>
@@ -827,6 +930,44 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                     <p className={styles.helpText}>
                       {t('settings.helpText.embeddingModel')}
                     </p>
+                  </div>
+
+                  {/* Ventana de Contexto — LM Studio */}
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>{t('settings.fields.contextLength')}</label>
+                    <div className={styles.inputRow}>
+                      <input
+                        type="number"
+                        className={styles.input}
+                        value={lmStudioContextLengthSaved}
+                        onChange={(e) => { setLmStudioContextLengthSaved(e.target.value); setLmStudioCtxStatus(null); }}
+                        placeholder="4096"
+                        disabled={aiProvider !== 'lmstudio'}
+                        min="512"
+                      />
+                      <button
+                        className={styles.checkBtn}
+                        onClick={handleDetectLmStudioContextLength}
+                        disabled={aiProvider !== 'lmstudio' || !lmStudioAvailable || !lmStudioModel || isDetectingLmCtx}
+                      >
+                        <MdRefresh size={18} className={isDetectingLmCtx ? styles.spinner : undefined} />
+                        {t('settings.buttons.detect')}
+                      </button>
+                    </div>
+                    {lmStudioCtxStatus === 'success' && (
+                      <p className={styles.helpText} style={{ color: '#059669' }}>
+                        {t('settings.messages.contextLengthDetected', { n: parseInt(lmStudioContextLengthSaved).toLocaleString() })}
+                      </p>
+                    )}
+                    {lmStudioCtxStatus === 'error' && (
+                      <p className={styles.helpText} style={{ color: '#dc2626' }}>
+                        {t('settings.messages.contextLengthNotFound')}
+                        {' '}<span style={{ color: '#6B7280' }}>{t('settings.helpText.contextLengthLmStudio')}</span>
+                      </p>
+                    )}
+                    {!lmStudioCtxStatus && (
+                      <p className={styles.helpText}>{t('settings.helpText.contextLengthInput')}</p>
+                    )}
                   </div>
                 </div>
               </section>

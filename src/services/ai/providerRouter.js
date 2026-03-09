@@ -8,8 +8,8 @@ import { getSettings } from '../settingsService';
 import { sendToGemini, sendToGeminiStreaming } from './geminiProvider';
 import { sendToDeepseek, sendToDeepseekStreaming, getDeepseekAvailableModels } from './deepseekProvider';
 import { sendToKimi, sendToKimiStreaming, getKimiAvailableModels } from './kimiProvider';
-import { sendToLMStudio, sendToLMStudioStreaming, getLMStudioModels } from './lmStudioProvider';
-import { generateContent as ollamaGenerate, generateContentStreaming as ollamaGenerateStreaming } from './ollamaProvider';
+import { sendToLMStudio, sendToLMStudioStreaming, getLMStudioModels, getLMStudioModelInfo } from './lmStudioProvider';
+import { generateContent as ollamaGenerate, generateContentStreaming as ollamaGenerateStreaming, getOllamaModelInfo } from './ollamaProvider';
 import { aiQueueService, AI_TASK_TYPES } from './aiQueueService';
 
 // ---------------------------------------------------------------------------
@@ -266,6 +266,49 @@ export async function validateProviderConfig() {
   } catch (error) {
     return { valid: false, error: error.message };
   }
+}
+
+/**
+ * Obtiene el número de tokens de contexto del proveedor/modelo activo.
+ * Para proveedores cloud (Gemini, DeepSeek, Kimi) retorna null porque tienen
+ * contextos ≥128k y no necesitan chunking.
+ *
+ * Prioridad:
+ * 1. Valor cacheado en settings (ollamaContextLength / lmStudioContextLength) → sin llamada a API
+ * 2. Fallback: consulta a la API del proveedor (solo si no hay caché)
+ *
+ * @param {Object} settings - Objeto de settings ya leído
+ * @returns {Promise<number|null>} numCtx o null si no aplica/no disponible
+ */
+export async function getActiveProviderContextWindow(settings) {
+  const provider = settings.aiProvider || 'geminifree';
+
+  // Proveedores cloud: contexto ≥128k → sin chunking
+  if (['gemini', 'geminifree', 'deepseek', 'kimi'].includes(provider)) {
+    return null;
+  }
+
+  if (provider === 'ollama') {
+    // 1. Usar valor cacheado si está configurado
+    if (settings.ollamaContextLength) return settings.ollamaContextLength;
+    // 2. Fallback: consultar API
+    if (settings.ollamaModel) {
+      const info = await getOllamaModelInfo(settings.ollamaModel, settings.ollamaHost || 'http://localhost:11434');
+      return info?.numCtx || null;
+    }
+  }
+
+  if (provider === 'lmstudio') {
+    // 1. Usar valor cacheado si está configurado
+    if (settings.lmStudioContextLength) return settings.lmStudioContextLength;
+    // 2. Fallback: consultar API
+    if (settings.lmStudioModel) {
+      const info = await getLMStudioModelInfo(settings.lmStudioModel, settings.lmStudioHost || 'http://localhost:1234/v1');
+      return info?.numCtx || null;
+    }
+  }
+
+  return null;
 }
 
 // Re-exportar funciones útiles de proveedores

@@ -82,8 +82,10 @@ Focus only on the relevant dialogue to generate your response.
 
 RETURN A DETAILED SUMMARY WITHOUT OMITTING ANY DETAILS, so it can be used effectively in future queries about this conversation. MAKE IT CLEAR WHO SAYS WHAT.
 
+CRITICAL RULE FOR PARTICIPANTS: ABSOLUTELY DO NOT list or mention generic participants like "INTERLOCUTOR-1", "INTERLOCUTOR-2", etc. NEVER use the word "INTERLOCUTOR" or "INTERLOCUTORES" followed by numbers in your response. If there are unidentified speakers, simply ignore them as individuals. If needed, you can use "Usuarios sin definir" or "Equipo" as a single generic term to refer to all of them collectively.
+
 Include:
-- Who participates in the conversation ("USUARIO" refers to the app user, i.e. the person who made the recording)
+- Who participates in the conversation ("USUARIO" refers to the app user, i.e. the person who made the recording). ONLY list participants that have a clear, real name identified in the text. Do NOT list generic speakers; just add "Usuarios sin definir" if there are multiple unknown people.
 - The main points each person mentions
 - Decisions made
 - Agreed actions
@@ -91,6 +93,28 @@ Include:
 
 The summary must be detailed enough that someone can ask specific questions about the conversation and get precise answers.
 The summary MUST be written in ${langName(lang)}.
+`;
+
+/**
+ * Prompt para consolidar múltiples resúmenes parciales en uno solo.
+ * @param {string} lang - Código de idioma ('es', 'en', ...)
+ */
+export const consolidateSummaryPrompt = (lang = 'es') =>
+  `You are an AI assistant expert at editing and consolidating texts.
+You will be provided with several partial summaries of a single long conversation, labeled as "Resumen Parte 1", "Resumen Parte 2", etc.
+
+YOUR TASK: Consolidate all these partial summaries into a SINGLE, unified, and cohesive detailed summary.
+
+⚠️ MANDATORY LANGUAGE RULE: YOUR ENTIRE RESPONSE MUST BE WRITTEN IN ${langName(lang)}. DO NOT USE ANY OTHER LANGUAGE.
+
+CRITICAL RULES:
+1. DO NOT mention that this is a summary of summaries or that it was created from multiple parts.
+2. DO NOT include phrases like "Aquí tienes el resumen consolidado" or "En conclusión". Start directly with the summary content.
+3. Keep ALL the important details, decisions, and context from the partial summaries.
+4. Maintain a clear and logical structure (use headings, bullet points, etc. if appropriate).
+5. Ensure the final text flows naturally as a single document.
+6. ABSOLUTELY DO NOT list or mention generic participants like "INTERLOCUTOR-1", "INTERLOCUTOR-2", etc. NEVER use the word "INTERLOCUTOR" or "INTERLOCUTORES" followed by numbers in your response. If there are unidentified speakers, simply ignore them as individuals or use "Usuarios sin definir".
+7. The final output MUST be in ${langName(lang)}.
 `;
 
 /**
@@ -116,14 +140,22 @@ export const participantsPrompt = (lang = 'es') =>
 
 ⚠️ MANDATORY LANGUAGE RULE: The "role" values MUST be written in ${langName(lang)}.
 
+CRITICAL RULE: DO NOT list generic participants (like INTERLOCUTOR-1, INTERLOCUTOR-2, etc.). ONLY extract participants that have a CLEAR, REAL NAME mentioned in the text (like "Ana", "Javier", "Andrés"). If there are other unknown speakers or groups mentioned, add a single entry: {"name": "Usuarios sin definir", "role": "Participantes"}. Make sure to extract ALL distinct real names you find.
+
 STRICT JSON FORMAT INSTRUCTIONS:
-1. Respond ONLY with a valid JSON code block.
+1. Respond ONLY with a valid JSON object containing a "participants" array. DO NOT return an empty object {}.
 2. Do NOT include any text before or after.
-3. Format: [{"name": "X", "role": "Y"}]
+3. Format: {"participants": [{"name": "X", "role": "Y"}]}
 
 Example:
 \`\`\`json
-[{"name": "Ana", "role": "PM"}]
+{
+  "participants": [
+    {"name": "Ana", "role": "Project Manager"},
+    {"name": "Javier", "role": "Desarrollador"},
+    {"name": "Usuarios sin definir", "role": "Participantes"}
+  ]
+}
 \`\`\`
 
 BELOW IS THE TRANSCRIPT:
@@ -132,7 +164,7 @@ BELOW IS THE TRANSCRIPT:
 export const participantsPromptSuffix = `
 ----------------------------------------------------------------------------------
 FINAL REMINDER:
-Based on the transcript above, generate ONLY the JSON array with the participants found. If none, return [].
+Based on the transcript above, generate ONLY a valid JSON object with the "participants" array. If none, return {"participants": []}. DO NOT return an empty object {}.
 `;
 
 /**
