@@ -7,7 +7,7 @@ const { jsPDF } = require('jspdf');
 function registerExportHandlers() {
   ipcMain.handle('export-document', async (event, { data, format }) => {
     try {
-      const { title, date, participants, summary, highlights, transcription } = data;
+      const { title, date, participants, summary, detailedSummary, highlights, transcription } = data;
       
       const defaultPath = `Export_${title.replace(/[^a-z0-9]/gi, '_')}.${format}`;
       
@@ -30,6 +30,9 @@ function registerExportHandlers() {
         }
         if (summary) {
           mdContent += `## Summary\n${summary}\n\n`;
+        }
+        if (detailedSummary) {
+          mdContent += `## Detailed Summary\n${detailedSummary}\n\n`;
         }
         if (highlights && highlights.length > 0) {
           mdContent += `## Key Highlights\n${highlights.map(h => `- ${h}`).join('\n')}\n\n`;
@@ -60,6 +63,14 @@ function registerExportHandlers() {
         if (summary) {
           docChildren.push(new Paragraph({ text: "Summary", heading: HeadingLevel.HEADING_2 }));
           docChildren.push(new Paragraph({ text: summary }));
+          docChildren.push(new Paragraph({ text: "" }));
+        }
+
+        if (detailedSummary) {
+          docChildren.push(new Paragraph({ text: "Detailed Summary", heading: HeadingLevel.HEADING_2 }));
+          detailedSummary.split('\n').forEach(line => {
+             docChildren.push(new Paragraph({ text: line }));
+          });
           docChildren.push(new Paragraph({ text: "" }));
         }
 
@@ -146,6 +157,21 @@ function registerExportHandlers() {
           checkPageBreak(splitSummary.length * 6);
           doc.text(splitSummary, margin, y);
           y += splitSummary.length * 6 + 4;
+        }
+
+        if (detailedSummary) {
+          checkPageBreak(20);
+          doc.setFontSize(16);
+          doc.text("Detailed Summary", margin, y);
+          y += 8;
+          doc.setFontSize(12);
+          const splitDetailedSummary = doc.splitTextToSize(detailedSummary, maxWidth);
+          splitDetailedSummary.forEach(line => {
+            checkPageBreak(6);
+            doc.text(line, margin, y);
+            y += 6;
+          });
+          y += 4;
         }
 
         if (highlights && highlights.length > 0) {
