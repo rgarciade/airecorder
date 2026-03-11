@@ -15,6 +15,7 @@ class RecordingAiService {
   constructor() {
     this.summaryCache = new Map(); // Cache de resúmenes en memoria
     this.generatingPromises = new Map(); // Promesas de generación en curso
+    this.participantsPromises = new Map(); // Promesas de extracción de participantes
   }
 
   /**
@@ -197,6 +198,12 @@ class RecordingAiService {
    * @returns {Promise<Object>} Resumen generado
    */
   async generateRecordingSummary(recordingId, transcriptionTxt = null, force = false, options = { summaries: true, keyTopics: true, detailedSummary: true }, providerOverrides = {}) {
+    // 0. Verificación síncrona de promesa en memoria (evita condiciones de carrera)
+    if (!force && this.generatingPromises.has(recordingId)) {
+      console.log(`⏳ Ya hay una generación en curso para ${recordingId}, reutilizando promesa.`);
+      return this.generatingPromises.get(recordingId);
+    }
+
     // Verificar si ya se está generando (a menos que sea force)
     if (!force) {
       const isGenerating = await this.isGenerating(recordingId);
@@ -287,7 +294,7 @@ class RecordingAiService {
 
         // Optimización para transcripciones muy largas (Map-Reduce básico).
         const CHUNK_SIZE = await this._calculateMaxContextChars(settings, 800);
-        console.log(`📐 Límite de contexto calculado: \${CHUNK_SIZE} caracteres`);
+        console.log(`📐 Límite de contexto calculado: ${CHUNK_SIZE} caracteres`);
 
         if (txt && txt.length > CHUNK_SIZE) {
           console.log(`⚠️ Transcripción muy larga (${txt.length} chars). Dividiendo en fragmentos para procesar...`);
@@ -299,245 +306,116 @@ class RecordingAiService {
           
           // Procesar fragmentos secuencialmente para no saturar la RAM/VRAM local
           for (let i = 0; i < chunks.length; i++) {
-            console.log(`Procesando fragmento ${i + 1}/${chunks.length}...`);
-            const partialPrompt = `Haz un resumen detallado SOLO de esta parte de la transcripción. Mantén detalles clave:\n\n${chunks[i]}`;
-            const partialResponse = await this._callAiProvider(partialPrompt, null, {
+            console.log(`  🧩 Procesando fragmento ${i + 1}/${chunks.length}...`);
+            const chunkPrompt = `A continuación se presenta un fragmento de una transcripción de reunión (Parte ${i + 1}/${chunks.length}). Por favor, genera un resumen detallado y puntos clave de esta sección específica.\n\nTranscripción:\n${chunks[i]}`;
+            
+            const partialResult = await this._callAiProvider(chunkPrompt, null, {
               ...providerOverrides,
-              queueMeta: { name: `Resumen parcial ${i + 1}/${chunks.length}: ${recName}`, groupName: `Resumen detallado: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY, hidden: true, groupId, overrideStartedAt: globalStartTime },
+              queueMeta: { 
+                name: `Resumen detallado (Parte ${i + 1}/${chunks.length}): ${recName}`, 
+                type: AI_TASK_TYPES.DETAILED_SUMMARY,
+                groupId: groupId,
+                groupIndex: i,
+                groupTotal: chunks.length,
+                startTime: globalStartTime
+              }
             });
-            combinedPartialSummaries += `\n- Resumen Parte ${i + 1}:\n` + (partialResponse.text || '');
+            combinedPartialSummaries += partialResult.text + '\n\n';
           }
-          
+
           // Si hay MUCHOS fragmentos, combinedPartialSummaries también podría superar el contexto.
-          // Hacemos una segunda pasada de reducción si es necesario.
+          // En ese caso, lo truncamos o hacemos una segunda pasada de reducción.
           if (combinedPartialSummaries.length > CHUNK_SIZE) {
-            console.log('⚠️ Los resúmenes parciales combinados superan el límite. Reduciendo de nuevo...');
-            const superChunks = this._chunkText(combinedPartialSummaries, CHUNK_SIZE);
-            let finalCombined = '';
-            for (let j = 0; j < superChunks.length; j++) {
-              const superPrompt = `Sintetiza estos resúmenes parciales en uno solo consolidado. NO menciones que es un resumen de otros resúmenes. Devuelve SOLO el texto consolidado:\n\n${superChunks[j]}`;
-              const superResponse = await this._callAiProvider(superPrompt, null, {
-                ...providerOverrides,
-                queueMeta: { name: `Consolidación intermedia ${j + 1}/${superChunks.length}: ${recName}`, groupName: `Resumen detallado: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY, hidden: true, groupId, overrideStartedAt: globalStartTime },
-              });
-              finalCombined += `\n` + (superResponse.text || '');
-            }
-            combinedPartialSummaries = finalCombined;
+            console.log('🔄 Consolidando resúmenes parciales...');
+            const consolidatePrompt = consolidateSummaryPrompt(lang);
+            const finalDetailedResult = await this._callAiProvider(consolidatePrompt, combinedPartialSummaries.substring(0, CHUNK_SIZE * 1.5), {
+              ...providerOverrides,
+              queueMeta: { name: `Consolidación final: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY }
+            });
+            detailedText = finalDetailedResult.text;
+          } else {
+            detailedText = combinedPartialSummaries;
           }
-          
-          console.log('🔗 Generando resumen detallado final a partir de los parciales...');
-          // Ahora pasamos los resúmenes combinados (ya reducidos a un tamaño seguro) como contexto para el final
-          const finalResponse = await this._callAiProvider(consolidateSummaryPrompt(lang), combinedPartialSummaries, {
-            ...providerOverrides,
-            queueMeta: { 
-              name: `Resumen detallado final: ${recName}`, 
-              type: AI_TASK_TYPES.DETAILED_SUMMARY,
-              overrideStartedAt: globalStartTime, // Pasamos el tiempo inicial original
-              groupId
-            },
-          });
-          detailedText = finalResponse.text || '';
-          
         } else {
-          // Flujo normal para transcripciones de tamaño manejable
-          const detailedResponse = await this._callAiProvider(detailedSummaryPrompt(lang), txt, {
+          // Caso normal: transcripción cabe en el contexto
+          const detailedResult = await this._callAiProvider(detailedSummaryPrompt(lang), txt, {
             ...providerOverrides,
-            queueMeta: { name: `Resumen detallado: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY },
+            queueMeta: { name: `Resumen detallado: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY }
           });
-          detailedText = detailedResponse.text || '';
+          detailedText = detailedResult.text;
         }
       }
 
-      // Generar resumen corto y puntos clave en paralelo (si están solicitados)
-      const generationPromises = [];
+      // Generar resumen breve e ideas (si está solicitado)
+      if (options.summaries || options.keyTopics) {
+        console.log('📝 Generando resumen breve y puntos clave...');
+        
+        // Ahora pasamos los resúmenes combinados (ya reducidos a un tamaño seguro) como contexto para el final
+        // para que la respuesta sea más coherente y rápida.
+        const maxCharsForShort = await this._calculateMaxContextChars(settings, 1200);
+        
+        const shortTasks = [];
+        
+        if (options.summaries) {
+          let contextForShort = detailedText || txt;
+          if (contextForShort.length > maxCharsForShort) {
+            console.warn(`⚠️ Texto demasiado largo para resumen breve/puntos clave (${contextForShort.length} > ${maxCharsForShort}). Truncando...`);
+            contextForShort = contextForShort.substring(0, maxCharsForShort);
+          }
 
-      let contextForShort = detailedText || txt;
-      const maxCharsForShort = await this._calculateMaxContextChars(settings, 500);
-      if (contextForShort.length > maxCharsForShort) {
-        console.warn(`⚠️ Texto demasiado largo para resumen breve/puntos clave (\${contextForShort.length} > \${maxCharsForShort}). Truncando...`);
-        contextForShort = contextForShort.substring(0, maxCharsForShort);
-      }
-
-      if (options.summaries) {
-        console.log('📝 Generando resumen breve...');
-        generationPromises.push(
-          this._callAiProvider(shortSummaryPrompt(lang), contextForShort, {
-            ...providerOverrides,
-            queueMeta: { name: `Resumen breve: ${recName}`, type: AI_TASK_TYPES.SUMMARY },
-          }).then(r => ({ type: 'summary', text: r.text || '' }))
-        );
-      }
-
-      if (options.keyTopics) {
-        console.log('🔑 Generando key topics...');
-        generationPromises.push(
-          this._callAiProvider(keyPointsPrompt(lang), contextForShort, {
-            ...providerOverrides,
-            queueMeta: { name: `Key Topics: ${recName}`, type: AI_TASK_TYPES.KEY_TOPICS },
-          }).then(r => ({ type: 'keyPoints', text: r.text || '' }))
-        );
-      }
-
-      // Esperar todas las generaciones en paralelo
-      const results = await Promise.all(generationPromises);
-      
-      // Procesar resultados
-      results.forEach(result => {
-        if (result.type === 'summary') {
-          shortSummaryText = result.text;
-        } else if (result.type === 'keyPoints') {
-          keyPointText = result.text;
+          shortTasks.push(
+            this._callAiProvider(shortSummaryPrompt(lang), contextForShort, {
+              ...providerOverrides,
+              queueMeta: { name: `Resumen breve: ${recName}`, type: AI_TASK_TYPES.SUMMARY }
+            }).then(res => shortSummaryText = res.text)
+          );
         }
-      });
 
-      // 5. Procesar ideas solo si se generaron key topics
-      if (options.keyTopics && keyPointText) {
-        ideas = keyPointText.split('\n')
-          .map(line => line.trim())
-          .filter(line => line.length > 0)
-          .map(line => {
-            // Limpiar formato --|-- número --|-- texto
-            let cleaned = line.replace(/^--\|--\s*\d+\s*--\|--\s*/, '');
-            // Limpiar otros formatos comunes
-            cleaned = cleaned.replace(/^[•-]\s*|^\d+\.\s*/, '');
-            return cleaned;
-          })
-          .filter(line => line.length > 0); // Filtrar líneas vacías después de limpiar
+        if (options.keyTopics) {
+          let contextForShort = detailedText || txt;
+          if (contextForShort.length > maxCharsForShort) {
+            contextForShort = contextForShort.substring(0, maxCharsForShort);
+          }
+
+          shortTasks.push(
+            this._callAiProvider(keyPointsPrompt(lang), contextForShort, {
+              ...providerOverrides,
+              queueMeta: { name: `Puntos clave: ${recName}`, type: AI_TASK_TYPES.KEY_POINTS }
+            }).then(res => {
+              keyPointText = res.text;
+              ideas = parseJsonArray(res.text, ['keyPoints', 'puntos_clave', 'ideas']);
+            })
+          );
+        }
+
+        await Promise.all(shortTasks);
       }
 
-      // 6. Crear objeto de resumen (preservar datos no regenerados)
-      const dataToSave = {
+      // 5. Consolidar y guardar
+      const finalSummary = {
         resumen_breve: shortSummaryText,
-        ideas: ideas,
         resumen_detallado: detailedText,
         key_points: keyPointText,
-        resumen_corto: shortSummaryText
+        ideas: ideas,
+        lastUpdated: new Date().toISOString()
       };
 
-      // 7. Guardar en archivo
-      await recordingsService.saveAiSummary(recordingId, dataToSave);
+      // Guardar en disco
+      await recordingsService.saveAiSummary(recordingId, finalSummary);
       
-      // 8. Guardar en caché
-      this.summaryCache.set(recordingId, dataToSave);
+      // Actualizar caché
+      this.summaryCache.set(recordingId, finalSummary);
 
-      // 9. Limpiar estado de generación
+      // 6. Limpiar estado de generación
       await this._clearGeneratingState(recordingId);
 
-      // 10. Indexar para RAG en background (no bloquea)
-      this._indexForRAG(recordingId);
-
-      console.log(`✅ Resumen generado exitosamente para ${recordingId}`);
-      return dataToSave;
+      return finalSummary;
 
     } catch (error) {
-      console.error(`❌ Error generando resumen para ${recordingId}:`, error);
-      
-      // Limpiar estado de generación en caso de error
+      console.error('Error en _performGeneration:', error);
       await this._clearGeneratingState(recordingId);
-      
       throw error;
     }
-  }
-
-  /**
-   * Divide un texto muy largo en fragmentos más pequeños, intentando no cortar palabras
-   * @private
-   * @param {string} text 
-   * @param {number} maxLength 
-   * @returns {string[]}
-   */
-  _chunkText(text, maxLength) {
-    if (!text) return [];
-    const chunks = [];
-    let currentIndex = 0;
-
-    while (currentIndex < text.length) {
-      if (currentIndex + maxLength >= text.length) {
-        chunks.push(text.substring(currentIndex));
-        break;
-      }
-
-      // Buscar el último espacio o salto de línea antes del maxLength para no cortar palabras
-      let breakIndex = currentIndex + maxLength;
-      const window = text.substring(currentIndex, breakIndex);
-      
-      const lastNewline = window.lastIndexOf('\n');
-      const lastSpace = window.lastIndexOf(' ');
-
-      if (lastNewline > maxLength * 0.8) { // Preferir saltos de línea si están cerca del final
-        breakIndex = currentIndex + lastNewline + 1;
-      } else if (lastSpace > maxLength * 0.8) {
-        breakIndex = currentIndex + lastSpace + 1;
-      }
-
-      chunks.push(text.substring(currentIndex, breakIndex));
-      currentIndex = breakIndex;
-    }
-
-    return chunks;
-  }
-
-  /**
-   * Indexa la transcripción para RAG en background
-
-   * @private
-   * @param {string} recordingId
-   */
-  _indexForRAG(recordingId) {
-    if (!window.electronAPI?.indexRecording) return;
-
-    window.electronAPI.indexRecording(recordingId)
-      .then(result => {
-        if (result.success && result.indexed) {
-          console.log(`🔍 [RAG] Indexado ${recordingId}: ${result.totalChunks} chunks`);
-        } else if (result.skippedRag) {
-          console.log(`🔍 [RAG] Skip para ${recordingId}: transcripción corta`);
-        } else if (result.error) {
-          console.warn(`🔍 [RAG] No se pudo indexar ${recordingId}: ${result.error}`);
-        }
-      })
-      .catch(err => {
-        console.warn(`🔍 [RAG] Error indexando ${recordingId}:`, err.message);
-      });
-  }
-
-  /**
-   * Devuelve un nombre legible para la grabación, usado en los metadatos de la cola.
-   * @private
-   * @param {string|number} recordingId
-   * @returns {Promise<string>}
-   */
-  async _getRecordingName(recordingId) {
-    try {
-      if (window.electronAPI?.getRecordingById) {
-        const result = await window.electronAPI.getRecordingById(recordingId);
-        if (result.success && result.recording) {
-          const raw = result.recording.relative_path || result.recording.name || '';
-          // Extraer el último segmento del path (nombre de carpeta/archivo)
-          const segment = raw.split('/').filter(Boolean).pop() || raw;
-          return segment || `Grabación ${recordingId}`;
-        }
-      }
-    } catch {
-      // fallback silencioso
-    }
-    return `Grabación ${recordingId}`;
-  }
-
-  /**
-   * Llama al proveedor de IA configurado (Gemini u Ollama)
-   * @private
-   * @param {string} prompt
-   * @param {string|null} context - Contexto opcional. Si es null, se asume que prompt ya tiene todo.
-   * @param {Object} options - Opciones adicionales (ej: { format: 'json' })
-   * @returns {Promise<Object>} Respuesta de la IA {text, provider}
-   */
-  async _callAiProvider(prompt, context, options = {}) {
-    let fullPrompt = prompt;
-    if (context) {
-      fullPrompt = `${prompt}\n\nTranscripción:\n${context}`;
-    }
-    return await callProvider(fullPrompt, options);
   }
 
   /**
@@ -547,136 +425,147 @@ class RecordingAiService {
    * @returns {Promise<Array>} Lista de participantes extraídos
    */
   async extractParticipants(recordingId, providerOverrides = {}) {
-    try {
-      const recName = await this._getRecordingName(recordingId);
-      // Obtener transcripción
-      const txt = await recordingsService.getTranscriptionTxt(recordingId);
-
-      if (!txt) {
-        throw new Error('No se pudo obtener el texto de la transcripción');
-      }
-
-      // Intentar obtener el resumen detallado para usarlo como contexto (es más corto y preciso)
-      let contextText = txt;
-      try {
-        const existingSummary = await this.getRecordingSummary(recordingId);
-        if (existingSummary && existingSummary.resumen_detallado && existingSummary.resumen_detallado.length > 50) {
-          console.log(`👥 Usando resumen detallado como contexto para extraer participantes en vez de transcripción completa.`);
-          contextText = existingSummary.resumen_detallado;
-        }
-      } catch (e) {
-        console.warn('No se pudo cargar el resumen para los participantes, usando transcripción original.');
-      }
-
-      // Leer idioma de ajustes
-      const settings = await getSettings();
-      const lang = settings.uiLanguage || 'es';
-
-      // Asegurar que el contexto no exceda la ventana máxima del modelo
-      const maxChars = await this._calculateMaxContextChars(settings, 500);
-      if (contextText.length > maxChars) {
-        console.warn(`⚠️ Texto demasiado largo para extraer participantes (\${contextText.length} > \${maxChars}). Truncando...`);
-        contextText = contextText.substring(0, maxChars);
-      }
-
-      // Construir prompt sándwich
-      const combinedPrompt = `${participantsPrompt(lang)}\n${contextText}\n${participantsPromptSuffix}`;
-
-      // Llamar a la IA con contexto null y forzando formato JSON para Ollama
-      const participantsResponse = await this._callAiProvider(combinedPrompt, null, {
-        ...providerOverrides,
-        format: 'json',
-        queueMeta: { name: `Participantes: ${recName}`, type: AI_TASK_TYPES.PARTICIPANTS },
-      });
-      
-      // Parsear respuesta JSON con utilidad centralizada
-      let extractedParticipants = parseJsonArray(
-        participantsResponse.text,
-        ['participants', 'participantes']
-      );
-
-      // Fallback: si parseJsonArray retorna vacío, intentar extracción por regex
-      if (extractedParticipants.length === 0) {
-        console.warn('Parsing JSON de participantes falló, intentando fallback regex...');
-        const cleanResponseForFallback = cleanAiResponse(participantsResponse.text);
-        const lines = cleanResponseForFallback.split('\n');
-        const listRegex = /^[\*\-\+]\s+([^\(:\n]+)(?:[\(:\s]+([^\)\n]+)\)?)?/;
-
-        const fallbackParticipants = [];
-
-        for (const line of lines) {
-          const trimmedLine = line.trim();
-          if (trimmedLine.match(/^[\*\-]?\s*(Personajes|Participantes|Speakers|Nombres):/i)) continue;
-
-          const match = trimmedLine.match(listRegex);
-          if (match) {
-            const name = match[1].trim();
-            let role = match[2] ? match[2].trim() : 'Participante';
-            role = role.replace(/[\)\:]$/, '');
-
-            if (name.length > 1 && !name.toLowerCase().includes("ninguno")) {
-              fallbackParticipants.push({ name, role });
-            }
-          }
-        }
-
-        if (fallbackParticipants.length > 0) {
-          console.log('✅ Participantes extraídos vía Fallback (Regex):', fallbackParticipants);
-          extractedParticipants = fallbackParticipants;
-        } else {
-          // Último intento: búsqueda manual de pares "name":"value"
-          try {
-            const nameMatches = cleanResponseForFallback.match(/"name"\s*:\s*"([^"]+)"/g);
-            const roleMatches = cleanResponseForFallback.match(/"role"\s*:\s*"([^"]+)"/g);
-
-            if (nameMatches && roleMatches && nameMatches.length === roleMatches.length) {
-              extractedParticipants = nameMatches.map((nameMatch, idx) => {
-                const name = nameMatch.match(/"name"\s*:\s*"([^"]+)"/)[1];
-                const role = roleMatches[idx].match(/"role"\s*:\s*"([^"]+)"/)[1];
-                return { name, role };
-              });
-            }
-          } catch (manualError) { /* Ignorar error final */ }
-        }
-      }
-      
-      // Agregar IDs a los participantes y marcar como creados por IA
-      // Normalizar estructura (puede venir como string simple o objeto)
-      const participantsWithIds = extractedParticipants
-        .map((p, idx) => {
-          let name = null;
-          let role = '';
-
-          if (typeof p === 'string' && p.trim().length > 0) {
-              name = p.trim();
-          } else if (typeof p === 'object' && p !== null) {
-              if (p.name && typeof p.name === 'string' && p.name.trim().length > 0) {
-                  name = p.name.trim();
-              }
-              if (p.role && typeof p.role === 'string') {
-                  role = p.role.trim();
-              }
-          }
-
-          // Si no hay nombre válido, descartar
-          if (!name || name.toLowerCase() === 'sin nombre') {
-              return null;
-          }
-
-          return {
-            id: Date.now() + idx,
-            name: name,
-            role: role, // Dejar vacío si no hay rol, no poner "Participante" por defecto
-            createdByAi: true
-          };
-        })
-        .filter(p => p !== null);
-      
-      return participantsWithIds;
-    } catch (error) {
-      console.error('Error extrayendo participantes:', error);
-      throw error;
+    // 0. Verificación síncrona para evitar doble extracción simultánea
+    if (this.participantsPromises.has(recordingId)) {
+      console.log(`⏳ Ya hay una extracción de participantes en curso para ${recordingId}, reutilizando promesa.`);
+      return this.participantsPromises.get(recordingId);
     }
+
+    const extractionPromise = (async () => {
+      try {
+        const recName = await this._getRecordingName(recordingId);
+        // Obtener transcripción
+        const txt = await recordingsService.getTranscriptionTxt(recordingId);
+
+        if (!txt) {
+          throw new Error('No se pudo obtener el texto de la transcripción');
+        }
+
+        // Intentar obtener el resumen detallado para usarlo como contexto (es más corto y preciso)
+        let contextText = txt;
+        try {
+          const existingSummary = await this.getRecordingSummary(recordingId);
+          if (existingSummary && existingSummary.resumen_detallado && existingSummary.resumen_detallado.length > 50) {
+            console.log(`👥 Usando resumen detallado como contexto para extraer participantes en vez de transcripción completa.`);
+            contextText = existingSummary.resumen_detallado;
+          }
+        } catch (e) {
+          console.warn('No se pudo cargar el resumen para los participantes, usando transcripción original.');
+        }
+
+        // Leer idioma de ajustes
+        const settings = await getSettings();
+        const lang = settings.uiLanguage || 'es';
+
+        // Asegurar que el contexto no exceda la ventana máxima del modelo
+        const maxChars = await this._calculateMaxContextChars(settings, 500);
+        if (contextText.length > maxChars) {
+          console.warn(`⚠️ Texto demasiado largo para extraer participantes (${contextText.length} > ${maxChars}). Truncando...`);
+          contextText = contextText.substring(0, maxChars);
+        }
+
+        // Construir prompt sándwich
+        const combinedPrompt = `${participantsPrompt(lang)}\n${contextText}\n${participantsPromptSuffix}`;
+
+        // Llamar a la IA con contexto null y forzando formato JSON para Ollama
+        const participantsResponse = await this._callAiProvider(combinedPrompt, null, {
+          ...providerOverrides,
+          format: 'json',
+          queueMeta: { name: `Participantes: ${recName}`, type: AI_TASK_TYPES.PARTICIPANTS },
+        });
+        
+        // Parsear respuesta JSON con utilidad centralizada
+        let extractedParticipants = parseJsonArray(
+          participantsResponse.text,
+          ['participants', 'participantes']
+        );
+
+        // Fallback: si parseJsonArray retorna vacío, intentar extracción por regex
+        if (extractedParticipants.length === 0) {
+          console.warn('Parsing JSON de participantes falló, intentando fallback regex...');
+          const cleanResponseForFallback = cleanAiResponse(participantsResponse.text);
+          const lines = cleanResponseForFallback.split('\n');
+          const listRegex = /^[\*\-\+]\s+([^\(:\n]+)(?:[\(:\s]+([^\)\n]+)\)?)?/;
+
+          const fallbackParticipants = [];
+
+          for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (trimmedLine.match(/^[\*\-]?\s*(Personajes|Participantes|Speakers|Nombres):/i)) continue;
+
+            const match = trimmedLine.match(listRegex);
+            if (match) {
+              const name = match[1].trim();
+              let role = match[2] ? match[2].trim() : 'Participante';
+              role = role.replace(/[\)\:]$/, '');
+
+              if (name.length > 1 && !name.toLowerCase().includes("ninguno")) {
+                fallbackParticipants.push({ name, role });
+              }
+            }
+          }
+
+          if (fallbackParticipants.length > 0) {
+            console.log('✅ Participantes extraídos vía Fallback (Regex):', fallbackParticipants);
+            extractedParticipants = fallbackParticipants;
+          } else {
+            // Último intento: búsqueda manual de pares "name":"value"
+            try {
+              const nameMatches = cleanResponseForFallback.match(/"name"\s*:\s*"([^"]+)"/g);
+              const roleMatches = cleanResponseForFallback.match(/"role"\s*:\s*"([^"]+)"/g);
+
+              if (nameMatches && roleMatches && nameMatches.length === roleMatches.length) {
+                extractedParticipants = nameMatches.map((nameMatch, idx) => {
+                  const name = nameMatch.match(/"name"\s*:\s*"([^"]+)"/)[1];
+                  const role = roleMatches[idx].match(/"role"\s*:\s*"([^"]+)"/)[1];
+                  return { name, role };
+                });
+              }
+            } catch (manualError) { /* Ignorar error final */ }
+          }
+        }
+        
+        // Agregar IDs a los participantes y marcar como creados por IA
+        const participantsWithIds = extractedParticipants
+          .map((p, idx) => {
+            let name = null;
+            let role = '';
+
+            if (typeof p === 'string' && p.trim().length > 0) {
+                name = p.trim();
+            } else if (typeof p === 'object' && p !== null) {
+                if (p.name && typeof p.name === 'string' && p.name.trim().length > 0) {
+                    name = p.name.trim();
+                }
+                if (p.role && typeof p.role === 'string') {
+                    role = p.role.trim();
+                }
+            }
+
+            if (!name || name.toLowerCase() === 'sin nombre') {
+                return null;
+            }
+
+            return {
+              id: Date.now() + idx,
+              name: name,
+              role: role,
+              createdByAi: true
+            };
+          })
+          .filter(p => p !== null);
+        
+        return participantsWithIds;
+      } catch (error) {
+        console.error('Error extrayendo participantes:', error);
+        return [];
+      } finally {
+        this.participantsPromises.delete(recordingId);
+      }
+    })();
+
+    this.participantsPromises.set(recordingId, extractionPromise);
+    return extractionPromise;
   }
 
   /**
@@ -711,7 +600,7 @@ class RecordingAiService {
       // Asegurar que el contexto no exceda la ventana máxima del modelo
       const maxChars = await this._calculateMaxContextChars(settings, 800);
       if (contextText.length > maxChars) {
-        console.warn(`⚠️ Texto demasiado largo para sugerir tareas (\${contextText.length} > \${maxChars}). Truncando...`);
+        console.warn(`⚠️ Texto demasiado largo para sugerir tareas (${contextText.length} > ${maxChars}). Truncando...`);
         contextText = contextText.substring(0, maxChars);
       }
 
@@ -739,70 +628,120 @@ class RecordingAiService {
         }
       }
 
-      return rawTasks
-        .filter(t => t && typeof t === 'object' && (t.title || t.titulo || t.nombre || t.name))
-        .map(t => {
-          const title = (t.title || t.titulo || t.nombre || t.name || '').trim();
-          const desc = (t.content || t.description || t.descripcion || t.detalles || t.detail || '').trim();
-          const extra = (t.detalles && t.descripcion && t.detalles !== t.descripcion)
-            ? `\n\n${t.detalles.trim()}`
-            : '';
-          const content = desc + extra;
-          const rawLayer = (t._layerFromKey || t.layer || t.capa || t.tipo || 'general').toLowerCase().trim();
-          const layer = validLayers.includes(rawLayer) ? rawLayer : 'general';
-          return { title, content, layer, createdByAi: true };
-        });
+      if (rawTasks.length === 0) {
+        return [];
+      }
+
+      // Normalizar tareas
+      const tasksWithIds = rawTasks.map((t, idx) => {
+        const layer = t.layer || t.capa || t._layerFromKey || 'frontend';
+        return {
+          id: `ai_task_${Date.now()}_${idx}`,
+          title: t.title || t.titulo || `Tarea ${idx + 1}`,
+          content: t.content || t.contenido || t.description || t.descripcion || '',
+          layer: validLayers.includes(layer.toLowerCase()) ? layer.toLowerCase() : 'frontend',
+          status: 'pending',
+          createdByAi: true
+        };
+      }).filter(t => t.title && t.title.length > 2);
+
+      return tasksWithIds;
+
     } catch (error) {
-      console.error('Error generando sugerencias de tareas:', error);
-      throw error;
+      console.error('Error sugiriendo tareas:', error);
+      return [];
     }
   }
 
   /**
-   * Mejora una tarea individual usando IA con instrucciones del usuario
-   * @param {Object} task - Tarea a mejorar {id, title, content}
-   * @param {string} userInstructions - Instrucciones del usuario
-   * @returns {Promise<Object>} Tarea mejorada con id preservado
+   * Mejora una tarea específica usando IA
+   * @param {string} recordingId 
+   * @param {Object} task 
+   * @returns {Promise<Object>} Tarea mejorada
    */
-  async improveTaskSuggestion(task, userInstructions) {
+  async improveTask(recordingId, task) {
     try {
+      const recName = await this._getRecordingName(recordingId);
+      // Obtener contexto (preferiblemente resumen detallado)
+      let contextText = await recordingsService.getTranscriptionTxt(recordingId);
+      try {
+        const summary = await this.getRecordingSummary(recordingId);
+        if (summary && summary.resumen_detallado) {
+          contextText = summary.resumen_detallado;
+        }
+      } catch (e) { /* ignore */ }
+
       // Leer idioma de ajustes
       const settings = await getSettings();
       const lang = settings.uiLanguage || 'es';
+      
+      const maxChars = await this._calculateMaxContextChars(settings, 1000);
+      if (contextText.length > maxChars) {
+        contextText = contextText.substring(0, maxChars);
+      }
 
-      const prompt = taskImprovementPrompt(userInstructions, lang);
-      const fullPrompt = `${prompt}\n${JSON.stringify({ title: task.title, content: task.content }, null, 2)}`;
-
-      const response = await this._callAiProvider(fullPrompt, null, {
+      const prompt = taskImprovementPrompt(task.title, task.content, contextText, lang);
+      const response = await this._callAiProvider(prompt, null, {
         format: 'json',
-        queueMeta: { name: `Mejora de tarea: ${task.title}`, type: AI_TASK_TYPES.TASK_IMPROVEMENT },
+        queueMeta: { name: `Mejorar tarea: ${task.title}`, type: AI_TASK_TYPES.TASK_IMPROVEMENT },
       });
 
       const improved = parseJsonObject(response.text);
-      if (!improved) {
-        throw new Error('No se pudo parsear la respuesta de IA');
-      }
+      if (!improved) throw new Error('No se pudo parsear la mejora de la tarea');
 
       return {
         ...task,
-        title: (improved.title || task.title).trim(),
-        content: (improved.content || task.content).trim()
+        title: improved.title || improved.titulo || task.title,
+        content: improved.content || improved.contenido || improved.description || improved.descripcion || task.content,
+        layer: (improved.layer || improved.capa || task.layer).toLowerCase()
       };
     } catch (error) {
       console.error('Error mejorando tarea:', error);
-      throw error;
+      return task;
     }
   }
 
   /**
-   * Limpia la caché de resúmenes
+   * Método de utilidad para llamar al proveedor de IA configurado
+   * @private
    */
-  clearCache() {
-    this.summaryCache.clear();
+  async _callAiProvider(prompt, context, options = {}) {
+    let fullPrompt = prompt;
+    if (context) {
+      fullPrompt = `${prompt}\n\nTranscripción:\n${context}`;
+    }
+
+    return await callProvider(fullPrompt, options);
+  }
+
+  /**
+   * Obtiene el nombre de la grabación
+   * @private
+   */
+  async _getRecordingName(recordingId) {
+    try {
+      const rec = await recordingsService.getRecordingById(recordingId);
+      return rec?.name || recordingId;
+    } catch {
+      return recordingId;
+    }
+  }
+
+  /**
+   * Divide un texto en fragmentos (chunks)
+   * @private
+   */
+  _chunkText(text, size) {
+    const chunks = [];
+    let start = 0;
+    while (start < text.length) {
+      chunks.push(text.substring(start, start + size));
+      start += size;
+    }
+    return chunks;
   }
 }
 
-// Instancia singleton del servicio
+// Instancia singleton
 const recordingAiService = new RecordingAiService();
-
 export default recordingAiService;
