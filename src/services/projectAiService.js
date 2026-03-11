@@ -121,9 +121,22 @@ class ProjectAiService {
         }
 
         // Construir contexto con orden explícito
-        const contextText = recordingsWithDates.map((rec, index) => 
-          `Reunión #${index + 1} (ID: ${rec.id}):\n${JSON.stringify(rec.summary)}`
-        ).join('\n\n-------------------\n\n');
+        let contextText = recordingsWithDates.map((rec, index) => {
+          const s = rec.summary || {};
+          // Incluimos solo lo esencial para no saturar el contexto de los LLMs locales
+          const compactSummary = {
+            resumen_breve: s.resumen_breve,
+            ideas: s.ideas,
+            acuerdos: s.acuerdos
+          };
+          return `Reunión #${index + 1} (ID: ${rec.id}):\n${JSON.stringify(compactSummary)}`;
+        }).join('\n\n-------------------\n\n');
+
+        // Límite de seguridad de caracteres (aprox ~6000-8000 tokens) para evitar errores 400 en LM Studio
+        if (contextText.length > 25000) {
+          console.warn('El contexto del proyecto es demasiado largo, se truncará para evitar errores de IA.');
+          contextText = contextText.substring(0, 25000) + '\n\n[...Contexto truncado por longitud...]';
+        }
 
         // Llamar a la IA (Gemini u Ollama)
         const analysis = await this._generateProjectAnalysis(contextText);

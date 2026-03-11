@@ -129,6 +129,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [exportFormat, setExportFormat] = useState('pdf');
   const [exportOptions, setExportOptions] = useState({
     summary: true,
+    detailedSummary: true,
     highlights: true,
     transcription: true,
     participants: true
@@ -1022,6 +1023,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       if (exportOptions.summary) {
         data.summary = geminiData.resumen_breve;
       }
+      if (exportOptions.detailedSummary) {
+        data.detailedSummary = detailedSummary;
+      }
       if (exportOptions.highlights) {
         data.highlights = geminiData.ideas;
       }
@@ -1482,6 +1486,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                       onChange={(e) => setExportOptions({...exportOptions, summary: e.target.checked})}
                     />
                     Resumen
+                  </label>
+                  <label className={styles.checkboxLabel} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={exportOptions.detailedSummary}
+                      onChange={(e) => setExportOptions({...exportOptions, detailedSummary: e.target.checked})}
+                    />
+                    Resumen Detallado
                   </label>
                   <label className={styles.checkboxLabel} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                     <input 
