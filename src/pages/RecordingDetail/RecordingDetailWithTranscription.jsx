@@ -135,8 +135,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     participants: true
   });
   
-  // Ref para evitar indexación duplicada en mount
+  // Ref para evitar indexación o generación duplicada en mount
   const isIndexingRef = useRef(false);
+  const isGeneratingRef = useRef(false);
 
   // --- EFFECTS ---
 
@@ -312,8 +313,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         // NO auto-generar si la grabación está actualmente en proceso de transcripción
         const isCurrentlyTranscribing = recording.status === 'processing' || recording.status === 'pending';
 
-        if (hasTranscription && !hasSummary && !isGeneratingAi && !isCurrentlyTranscribing) {
+        if (hasTranscription && !hasSummary && !isGeneratingAi && !isCurrentlyTranscribing && !isGeneratingRef.current) {
            console.log("Auto-starting AI analysis...");
+           isGeneratingRef.current = true;
            setIsGeneratingAi(true);
            try {
              // Generate both summary and extract participants
@@ -335,6 +337,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
              console.error("Auto-generation failed:", err);
            } finally {
              setIsGeneratingAi(false);
+             isGeneratingRef.current = false;
            }
         } else if (hasTranscription && hasSummary) {
            // Si ya hay análisis pero no hay índice RAG, indexar en background
