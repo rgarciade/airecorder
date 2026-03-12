@@ -95,6 +95,36 @@ module.exports.registerAnalysisHandlers = () => {
     }
   });
 
+  // Actualizar la última entrada del histórico (reemplaza respuesta null por la real)
+  ipcMain.handle('update-last-question-history', async (event, recordingId, qa) => {
+    try {
+      const folderName = recordingId;
+      const baseOutputDir = await getRecordingsPath();
+      const filePath = path.join(baseOutputDir, folderName, 'analysis', 'questions_history.json');
+
+      if (!fs.existsSync(filePath)) {
+        return { success: false, error: 'Historial no encontrado' };
+      }
+
+      const data = await fs.promises.readFile(filePath, 'utf8');
+      const history = JSON.parse(data);
+
+      // Buscar la última entrada con la misma pregunta y respuesta null
+      for (let i = history.length - 1; i >= 0; i--) {
+        if (history[i].pregunta === qa.pregunta && history[i].respuesta === null) {
+          history[i] = { ...history[i], ...qa };
+          break;
+        }
+      }
+
+      await fs.promises.writeFile(filePath, JSON.stringify(history, null, 2), 'utf8');
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating last question history:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // Obtener histórico de preguntas
   ipcMain.handle('get-question-history', async (event, recordingId) => {
     try {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import recordingsService from '../../services/recordingsService';
 import projectsService from '../../services/projectsService';
-import { getSettings, addSettingsListener, removeSettingsListener } from '../../services/settingsService';
+import { getSettings, updateSettings, addSettingsListener, removeSettingsListener } from '../../services/settingsService';
 import { getAvailableModels, checkModelSupportsStreaming, getOllamaModelInfo } from '../../services/ai/ollamaProvider';
 import { getLMStudioModels } from '../../services/ai/lmStudioProvider';
 import { generateWithContext, generateWithContextStreaming } from '../../services/aiService';
@@ -10,6 +10,7 @@ import { chatQuestionPrompt } from '../../prompts/aiPrompts';
 import { ragChatPrompt, compressChatHistory } from '../../prompts/ragPrompts';
 import ragService from '../../services/ragService';
 import recordingAiService from '../../services/recordingAiService';
+import chatPendingService from '../../services/chatPendingService';
 
 import styles from './RecordingDetail.module.css';
 import OverviewTab from './components/OverviewTab/OverviewTab';
@@ -186,6 +187,28 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       }
     });
   }, [recording]);
+
+  // Suscripción a chatPendingService para restaurar estado de carga tras navegación
+  useEffect(() => {
+    if (!recording?.id) return;
+    const pendingKey = `recording_${recording.id}`;
+
+    const unsubscribe = chatPendingService.subscribe(pendingKey, (pending) => {
+      if (pending && pending.status === 'pending') {
+        setQuestionLoading(true);
+      } else if (pending && pending.status === 'error') {
+        setQuestionLoading(false);
+        recordingsService.getQuestionHistory(recording.id).then(setQaHistory);
+        chatPendingService.clearPending(pendingKey);
+      } else if (!pending) {
+        // Petición completada o no hay ninguna: recargar historial y quitar loading
+        setQuestionLoading(false);
+        recordingsService.getQuestionHistory(recording.id).then(setQaHistory);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [recording?.id]);
 
   // Cargar configuración de streaming y escuchar cambios
   useEffect(() => {
@@ -394,6 +417,15 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     };
     setQaHistory(prev => [...prev, userMessage]);
 
+    // Registrar petición pendiente y guardar pregunta a disco inmediatamente
+    const pendingKey = `recording_${recording.id}`;
+    chatPendingService.setPending(pendingKey, questionText);
+    await recordingsService.saveQuestionHistory(recording.id, {
+      pregunta: questionText,
+      respuesta: null,
+      fecha: new Date().toISOString()
+    });
+
     // Para estimar tokens enviados (usada en el catch para el hint de context length)
     let sentCharsEstimate = 0;
 
@@ -520,9 +552,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       // Añadir mensaje de la IA al historial
       setQaHistory(prev => [...prev, aiMessage]);
 
-      // Guardar en backend (formato compatible con el sistema actual)
+      // Actualizar la entrada en disco (reemplazar respuesta null por la real)
       const qa = { pregunta: questionText, respuesta: answer, fecha: new Date().toISOString() };
-      await recordingsService.saveQuestionHistory(recording.id, qa);
+      await recordingsService.updateLastQuestionHistory(recording.id, qa);
+
+      // Limpiar petición pendiente
+      chatPendingService.clearPending(pendingKey);
 
     } catch (err) {
       console.error('Error en handleAskQuestion:', err);
@@ -553,6 +588,15 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         fecha: new Date().toISOString()
       };
       setQaHistory(prev => [...prev, errorMessage]);
+
+      // Actualizar entrada en disco con el error como respuesta y marcar error en pending
+      const errorText = `⚠️ ${err.message || 'Error al procesar la pregunta.'}`;
+      await recordingsService.updateLastQuestionHistory(recording.id, {
+        pregunta: questionText,
+        respuesta: errorText,
+        fecha: new Date().toISOString()
+      });
+      chatPendingService.setError(pendingKey, err.message);
     } finally {
       setQuestionLoading(false);
       setStreamingMessage('');
@@ -561,12 +605,31 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
   const handleSessionModelChange = async (model) => {
     setSessionModel(model);
+    
+    // Persistir el modelo seleccionado globalmente para el proveedor actual
+    try {
+      const settingsUpdate = {};
+      if (aiProvider === 'ollama') settingsUpdate.ollamaModel = model;
+      else if (aiProvider === 'deepseek') settingsUpdate.deepseekModel = model;
+      else if (aiProvider === 'kimi') settingsUpdate.kimiModel = model;
+      else if (aiProvider === 'gemini') settingsUpdate.geminiModel = model;
+      else if (aiProvider === 'geminifree') settingsUpdate.geminiFreeModel = model;
+      else if (aiProvider === 'lmstudio') settingsUpdate.lmStudioModel = model;
+      
+      if (Object.keys(settingsUpdate).length > 0) {
+        await updateSettings(settingsUpdate);
+      }
+    } catch (err) {
+      console.error("Error saving model to settings:", err);
+    }
+
     if (aiProvider === 'ollama') {
       setIsVerifyingModel(true);
       try {
         const s = await getSettings();
         const ok = await checkModelSupportsStreaming(model, s.ollamaHost);
         setSupportsStreaming(ok);
+        await updateSettings({ ollamaModelSupportsStreaming: ok });
       } catch {
         setSupportsStreaming(false);
       } finally {
@@ -601,10 +664,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         return [item];
       }
       // Si es el formato antiguo (tiene pregunta/respuesta), convertirlo
-      return [
-        { id: `u_${i}`, tipo: 'usuario', contenido: item.pregunta, fecha: item.fecha },
-        { id: `a_${i}`, tipo: 'asistente', contenido: item.respuesta, fecha: item.fecha }
+      const msgs = [
+        { id: `u_${i}`, tipo: 'usuario', contenido: item.pregunta, fecha: item.fecha }
       ];
+      // Solo agregar respuesta si existe (no null = petición pendiente)
+      if (item.respuesta) {
+        msgs.push({ id: `a_${i}`, tipo: 'asistente', contenido: item.respuesta, fecha: item.fecha });
+      }
+      return msgs;
     });
 
     // Agregar mensaje en streaming si existe

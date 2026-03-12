@@ -15,8 +15,9 @@ import ProjectKanbanBoard from './components/ProjectKanbanBoard/ProjectKanbanBoa
 import { MdArrowBack, MdRefresh, MdFormatListBulleted, MdGridView } from 'react-icons/md';
 import ragService from '../../services/ragService';
 import ContextBar from '../../components/ContextBar/ContextBar';
-import { getSettings } from '../../services/settingsService';
+import { getSettings, updateSettings } from '../../services/settingsService';
 import { getAvailableModels, checkModelSupportsStreaming } from '../../services/ai/ollamaProvider';
+import chatPendingService from '../../services/chatPendingService';
 
 const DEEPSEEK_CHAT_MODELS = [
   { value: 'deepseek-chat', label: 'DeepSeek Chat' },
@@ -130,6 +131,28 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       loadChatHistory(activeChatId);
     }
   }, [activeChatId, project]);
+
+  // Suscripción a chatPendingService para restaurar estado de carga tras navegación
+  useEffect(() => {
+    if (!activeChatId) return;
+    const pendingKey = `chat_${activeChatId}`;
+
+    const unsubscribe = chatPendingService.subscribe(pendingKey, (pending) => {
+      if (pending && pending.status === 'pending') {
+        setIsSendingMessage(true);
+      } else if (pending && pending.status === 'error') {
+        setIsSendingMessage(false);
+        loadChatHistory(activeChatId);
+        chatPendingService.clearPending(pendingKey);
+      } else if (!pending) {
+        // Petición completada o no hay ninguna: recargar historial y quitar loading
+        setIsSendingMessage(false);
+        loadChatHistory(activeChatId);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [activeChatId]);
 
   // Auto-indexar grabaciones del chat activo cuando cambia el chat seleccionado
   useEffect(() => {
@@ -369,12 +392,31 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
 
   const handleSessionModelChange = async (model) => {
     setSessionModel(model);
+
+    // Persistir el modelo seleccionado globalmente para el proveedor actual
+    try {
+      const settingsUpdate = {};
+      if (aiProvider === 'ollama') settingsUpdate.ollamaModel = model;
+      else if (aiProvider === 'deepseek') settingsUpdate.deepseekModel = model;
+      else if (aiProvider === 'kimi') settingsUpdate.kimiModel = model;
+      else if (aiProvider === 'gemini') settingsUpdate.geminiModel = model;
+      else if (aiProvider === 'geminifree') settingsUpdate.geminiFreeModel = model;
+      else if (aiProvider === 'lmstudio') settingsUpdate.lmStudioModel = model;
+      
+      if (Object.keys(settingsUpdate).length > 0) {
+        await updateSettings(settingsUpdate);
+      }
+    } catch (err) {
+      console.error("Error saving model to settings:", err);
+    }
+
     if (aiProvider === 'ollama') {
       setIsVerifyingModel(true);
       try {
         const ok = await checkModelSupportsStreaming(model, ollamaHost);
         // En el chat de proyecto no usamos streaming directo, pero actualizamos el estado
         console.log(`[ProjectDetail] Modelo ${model} soporta streaming: ${ok}`);
+        await updateSettings({ ollamaModelSupportsStreaming: ok });
       } catch {
         // ignorar
       } finally {
@@ -435,6 +477,10 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     setChatHistory(prev => [...prev, tempUserMessage]);
     setIsSendingMessage(true);
 
+    // Registrar petición pendiente
+    const pendingKey = `chat_${activeChatId}`;
+    chatPendingService.setPending(pendingKey, trimmedMessage);
+
     try {
       // 2. Guardar mensaje del usuario en DB
       await projectChatService.saveProjectChatMessage(project.id, activeChatId, {
@@ -457,9 +503,12 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
 
       // 5. Recargar historial real para sincronizar IDs y fechas
       await loadChatHistory(activeChatId);
+
+      // Limpiar petición pendiente
+      chatPendingService.clearPending(pendingKey);
     } catch (error) {
       console.error('Error enviando mensaje:', error);
-      // Opcional: añadir mensaje de error al chat o revertir optimismo
+      chatPendingService.setError(pendingKey, error.message);
     } finally {
       setIsSendingMessage(false);
     }

@@ -5,7 +5,7 @@ import { getSettings } from '../settingsService';
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
 const getGeminiUrl = (model, streaming = false) => {
-  const endpoint = streaming ? 'streamGenerateContent' : 'generateContent';
+  const endpoint = streaming ? 'streamGenerateContent?alt=sse' : 'generateContent';
   return `${GEMINI_API_BASE}/models/${model}:${endpoint}`;
 };
 
