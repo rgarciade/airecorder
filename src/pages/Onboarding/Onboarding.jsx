@@ -206,7 +206,6 @@ export default function Onboarding({ onComplete }) {
       {/* Right Panel: Content */}
       <div className={styles.rightPanel}>
         <div className={styles.topNav}>
-          <span className={styles.stepText}>{t('onboarding.welcome.step')}</span>
           <div className={styles.progressBar}>
             <div className={`${styles.progressDot} ${styles.active}`}></div>
             <div className={styles.progressDot}></div>
