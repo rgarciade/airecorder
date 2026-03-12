@@ -433,6 +433,7 @@
   "onboarding": {
     "steps": {
       "welcome": "Bienvenido a AIRecorder",
+      "aiInfo": "Conoce la IA Local",
       "ai": "Configuración de IA",
       "permissions": "Permisos del Sistema",
       "storage": "Almacenamiento",
@@ -440,7 +441,19 @@
     },
     "next": "Siguiente",
     "back": "Atrás",
-    "finish": "Comenzar",
+    "finish": {
+      "title": "¡Todo listo!",
+      "subtitle": "AIRecorder ha sido configurado correctamente. Estás listo para empezar a grabar y transcribir tus reuniones con el poder de la IA.",
+      "startBtn": "Comenzar a grabar",
+      "audioSection": "Grabación de Audio",
+      "audioSubtitle": "Micrófono y Audio del Sistema",
+      "configured": "Configurado",
+      "aiLocal": "IA Local",
+      "aiCloud": "IA Cloud",
+      "active": "Activo",
+      "launchBtn": "Iniciar AIRecorder",
+      "changeNote": "Puedes cambiar estos ajustes más tarde en el menú de preferencias."
+    },
     "skip": "Omitir",
     "welcome": {
       "title": "Te damos la bienvenida a",
@@ -453,9 +466,18 @@
       "and": "y",
       "privacyLink": "Política de Privacidad",
       "whatToExpect": "QUÉ ESPERAR",
-      "mic": { "title": "Configuración del Micrófono", "desc": "Probaremos tu dispositivo de entrada para una calidad de grabación óptima." },
-      "ai": { "title": "Personalización IA", "desc": "Adapta el motor de transcripción a tus preferencias." },
-      "workspace": { "title": "Organización del Espacio", "desc": "Configura dónde vivirán tus proyectos y transcripciones." }
+      "mic": {
+        "title": "Configuración del Micrófono",
+        "desc": "Probaremos tu dispositivo de entrada para una calidad de grabación óptima."
+      },
+      "ai": {
+        "title": "Personalización IA",
+        "desc": "Adapta el motor de transcripción a tus preferencias."
+      },
+      "workspace": {
+        "title": "Organización del Espacio",
+        "desc": "Configura dónde vivirán tus proyectos y transcripciones."
+      }
     },
     "ai": {
       "title": "Configura tu Inteligencia IA",
@@ -521,19 +543,6 @@
       "finishBtn": "Finalizar configuración",
       "grantRequired": "Por favor, concede los permisos requeridos"
     },
-    "finish": {
-      "title": "¡Todo listo!",
-      "subtitle": "AIRecorder ha sido configurado correctamente. Estás listo para empezar a grabar y transcribir tus reuniones con el poder de la IA.",
-      "startBtn": "Comenzar a grabar",
-      "audioSection": "Grabación de Audio",
-      "audioSubtitle": "Micrófono y Audio del Sistema",
-      "configured": "Configurado",
-      "aiLocal": "IA Local",
-      "aiCloud": "IA Cloud",
-      "active": "Activo",
-      "launchBtn": "Iniciar AIRecorder",
-      "changeNote": "Puedes cambiar estos ajustes más tarde en el menú de preferencias."
-    },
     "storage": {
       "title": "Configura el almacenamiento",
       "subtitle": "Elige dónde guardar tus grabaciones y base de datos. Puedes usar los valores por defecto.",
@@ -547,6 +556,23 @@
     },
     "footer": {
       "back": "Atrás"
+    },
+    "aiInfo": {
+      "title": "El poder de la IA en tu equipo",
+      "subtitle": "AIRecorder utiliza modelos de Inteligencia Artificial locales para garantizar el 100% de privacidad en tus transcripciones y resúmenes. Ningún dato sale de tu ordenador.",
+      "whatIsLocalAi": "¿Qué es la IA Local?",
+      "whatIsLocalAiDesc": "En lugar de enviar tus audios a servidores de empresas externas (como OpenAI o Google), procesamos la información usando herramientas instaladas en tu propia máquina.",
+      "tools": "Herramientas Soportadas",
+      "ollamaDesc": "La forma más sencilla de ejecutar modelos en tu terminal. Altamente recomendado por su facilidad de uso.",
+      "lmstudioDesc": "Interfaz gráfica potente para descargar y gestionar modelos GGUF avanzados.",
+      "models": "Tipos de Modelos",
+      "normalModels": "Modelos Generativos",
+      "normalModelsDesc": "Se encargan de leer tus transcripciones, generar resúmenes, actas de reuniones y responder a tus preguntas en el chat.",
+      "embeddingModels": "Modelos de Embedding",
+      "embeddingModelsDesc": "Convierten tus textos en coordenadas matemáticas. Permiten a la IA \"buscar\" rápidamente entre todas tus grabaciones pasadas (RAG) para darte respuestas precisas.",
+      "docsBtn": "Leer guía completa de instalación",
+      "docsNote": "Se abrirá en tu navegador web",
+      "nextStep": "Continuar a la configuración"
     }
   }
 }

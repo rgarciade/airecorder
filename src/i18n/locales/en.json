@@ -416,6 +416,7 @@
   "onboarding": {
     "steps": {
       "welcome": "Welcome to AIRecorder",
+      "aiInfo": "Meet Local AI",
       "ai": "AI Configuration",
       "permissions": "System Permissions",
       "storage": "Storage",
@@ -423,7 +424,19 @@
     },
     "next": "Next",
     "back": "Back",
-    "finish": "Get Started",
+    "finish": {
+      "title": "You're All Set!",
+      "subtitle": "AIRecorder has been successfully configured. You are ready to start recording and transcribing your meetings with the power of AI.",
+      "startBtn": "Start recording",
+      "audioSection": "Audio Recording",
+      "audioSubtitle": "Microphone & System Audio",
+      "configured": "Configured",
+      "aiLocal": "Local AI",
+      "aiCloud": "Cloud AI",
+      "active": "Active",
+      "launchBtn": "Launch AIRecorder",
+      "changeNote": "You can change these settings later in the preferences menu."
+    },
     "skip": "Skip",
     "welcome": {
       "title": "Welcome to",
@@ -436,9 +449,18 @@
       "and": "&",
       "privacyLink": "Privacy Policy",
       "whatToExpect": "WHAT TO EXPECT",
-      "mic": { "title": "Microphone Setup", "desc": "We'll test your input device for optimal recording quality." },
-      "ai": { "title": "AI Customization", "desc": "Tailor the transcription engine to recognize your voice patterns." },
-      "workspace": { "title": "Workspace Organization", "desc": "Setup where your projects and transcripts will live." }
+      "mic": {
+        "title": "Microphone Setup",
+        "desc": "We'll test your input device for optimal recording quality."
+      },
+      "ai": {
+        "title": "AI Customization",
+        "desc": "Tailor the transcription engine to recognize your voice patterns."
+      },
+      "workspace": {
+        "title": "Workspace Organization",
+        "desc": "Setup where your projects and transcripts will live."
+      }
     },
     "ai": {
       "title": "Configure your AI Intelligence",
@@ -504,19 +526,6 @@
       "finishBtn": "Finish Setup",
       "grantRequired": "Please grant required permissions"
     },
-    "finish": {
-      "title": "You're All Set!",
-      "subtitle": "AIRecorder has been successfully configured. You are ready to start recording and transcribing your meetings with the power of AI.",
-      "startBtn": "Start recording",
-      "audioSection": "Audio Recording",
-      "audioSubtitle": "Microphone & System Audio",
-      "configured": "Configured",
-      "aiLocal": "Local AI",
-      "aiCloud": "Cloud AI",
-      "active": "Active",
-      "launchBtn": "Launch AIRecorder",
-      "changeNote": "You can change these settings later in the preferences menu."
-    },
     "storage": {
       "title": "Configure Storage",
       "subtitle": "Choose where to save your recordings and database. You can use the default values.",
@@ -530,6 +539,23 @@
     },
     "footer": {
       "back": "Back"
+    },
+    "aiInfo": {
+      "title": "The power of AI on your machine",
+      "subtitle": "AIRecorder uses local Artificial Intelligence models to guarantee 100% privacy for your transcripts and summaries. No data ever leaves your computer.",
+      "whatIsLocalAi": "What is Local AI?",
+      "whatIsLocalAiDesc": "Instead of sending your audio to external company servers (like OpenAI or Google), we process the information using tools installed on your own machine.",
+      "tools": "Supported Tools",
+      "ollamaDesc": "The easiest way to run models in your terminal. Highly recommended for its ease of use.",
+      "lmstudioDesc": "Powerful graphical interface for downloading and managing advanced GGUF models.",
+      "models": "Model Types",
+      "normalModels": "Generative Models",
+      "normalModelsDesc": "Responsible for reading your transcripts, generating summaries, meeting minutes, and answering your questions in the chat.",
+      "embeddingModels": "Embedding Models",
+      "embeddingModelsDesc": "They convert your texts into mathematical coordinates. This allows the AI to quickly \"search\" through all your past recordings (RAG) to give you accurate answers.",
+      "docsBtn": "Read full installation guide",
+      "docsNote": "Will open in your web browser",
+      "nextStep": "Continue to configuration"
     }
   }
 }
