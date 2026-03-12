@@ -12,8 +12,11 @@ export default function TranscriptionChatTab({
   transcriptionError,
   chatProps,
   contextInfo,
+  maxContextLength = 8000,
   ragIndexed,
   ragTotalChunks,
+  ragMode,
+  onRagModeChange,
   transcriptionModel,
   audioUrls,
   duration,
@@ -166,7 +169,14 @@ export default function TranscriptionChatTab({
         className={styles.chatColumn}
         style={{ width: `${chatWidth}px` }}
       >
-        <ContextBar contextInfo={contextInfo} ragIndexed={ragIndexed} ragTotalChunks={ragTotalChunks} />
+        <ContextBar 
+          contextInfo={contextInfo} 
+          maxContextLength={maxContextLength}
+          ragIndexed={ragIndexed} 
+          ragTotalChunks={ragTotalChunks} 
+          ragMode={ragMode}
+          onRagModeChange={onRagModeChange}
+        />
         <ChatInterface {...chatProps} />
       </div>
     </div>

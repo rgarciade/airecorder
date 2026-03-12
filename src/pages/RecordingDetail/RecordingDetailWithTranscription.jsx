@@ -92,11 +92,13 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [contextInfo, setContextInfo] = useState(null); // { mode: 'rag'|'full', chunksUsed, estimatedTokens }
   const [ragIndexed, setRagIndexed] = useState(null); // null=checking, false=indexando, true=listo, 'skipped'=transcripción corta
   const [ragTotalChunks, setRagTotalChunks] = useState(0);
+  const [maxContextLength, setMaxContextLength] = useState(8000);
 
   // Session model (override temporal, no persiste)
   const [sessionModel, setSessionModel] = useState(null);
   const [isVerifyingModel, setIsVerifyingModel] = useState(false);
   const [settingsModel, setSettingsModel] = useState('');
+  const [ragMode, setRagMode] = useState('auto'); // 'auto' | 'detallado'
 
   // Idioma de la interfaz (determina el idioma de respuesta de la IA)
   const [uiLanguage, setUiLanguage] = useState('es');
@@ -255,6 +257,21 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         lmstudio: settings.lmStudioModel,
       };
       setSettingsModel(modelByProvider[provider] || '');
+
+      // Guardar context length para el proveedor actual
+      let ctxLen = 8000; // Por defecto
+      if (provider === 'ollama' && settings.ollamaContextLength) {
+        ctxLen = settings.ollamaContextLength;
+      } else if (provider === 'lmstudio' && settings.lmStudioContextLength) {
+        ctxLen = settings.lmStudioContextLength;
+      } else if (provider === 'gemini' || provider === 'geminifree') {
+        ctxLen = 1000000; // Gemini tiene 1M+ tokens
+      } else if (provider === 'kimi') {
+        ctxLen = 32000;
+      } else if (provider === 'deepseek') {
+        ctxLen = 64000;
+      }
+      setMaxContextLength(ctxLen);
     };
 
     // Cargar config inicial
@@ -451,7 +468,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         const ragStatus = await ragService.getStatus(recording.id);
         if (ragStatus.success && ragStatus.indexed) {
           setRagIndexed(true);
-          const searchResult = await ragService.search(recording.id, questionText, 10);
+          // Usar más chunks si estamos en modo detallado (igual que en proyectos)
+          const limit = ragMode === 'detallado' ? 40 : 10;
+          const searchResult = await ragService.search(recording.id, questionText, limit);
           if (searchResult.success && searchResult.chunks && searchResult.chunks.length > 0) {
             useRag = true;
             ragChunks = searchResult.chunks;
@@ -649,6 +668,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         await recordingsService.clearQuestionHistory(recording.id);
         setQaHistory([]);
         setStreamingMessage('');
+        setContextInfo(null);
       } catch (error) {
         console.error('Error resetting chat:', error);
         alert('Error al borrar el historial');
@@ -1284,8 +1304,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             duration={localRecording.duration}
             transcriptionDuration={transcriptionDuration}
             contextInfo={contextInfo}
+            maxContextLength={maxContextLength}
             ragIndexed={ragIndexed}
             ragTotalChunks={ragTotalChunks}
+            ragMode={ragMode}
+            onRagModeChange={setRagMode}
             chatProps={{
               chatHistory: convertChatHistory(),
               onSendMessage: handleAskQuestion,
