@@ -576,7 +576,7 @@
 /* Steps Progress (Top) - Redesigned to match image */
 .stepProgressContainer {
   margin-bottom: 0.9rem;
-  max-width: 600px;
+  max-width: 720px;
   margin-left: auto;
   margin-right: auto;
   width: 100%;
