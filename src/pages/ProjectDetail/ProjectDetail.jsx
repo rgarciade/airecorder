@@ -62,6 +62,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const [ragStatuses, setRagStatuses] = useState({}); // { [recId]: null|false|true|'skipped' }
   const [ragTotalChunks, setRagTotalChunks] = useState({}); // { [recId]: number }
   const [lastContextInfo, setLastContextInfo] = useState(null);
+  const [maxContextLength, setMaxContextLength] = useState(8000);
   const [ragMode, setRagMode] = useState('auto'); // 'auto' | 'detallado'
 
   // Estados para selector de modelo de sesión
@@ -96,6 +97,22 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
           lmstudio: s.lmStudioModel,
         };
         setSettingsModel(modelByProvider[provider] || '');
+        
+        // Guardar context length
+        let ctxLen = 8000;
+        if (provider === 'ollama' && s.ollamaContextLength) {
+          ctxLen = s.ollamaContextLength;
+        } else if (provider === 'lmstudio' && s.lmStudioContextLength) {
+          ctxLen = s.lmStudioContextLength;
+        } else if (provider === 'gemini' || provider === 'geminifree') {
+          ctxLen = 1000000;
+        } else if (provider === 'kimi') {
+          ctxLen = 32000;
+        } else if (provider === 'deepseek') {
+          ctxLen = 64000;
+        }
+        setMaxContextLength(ctxLen);
+
         if (provider === 'ollama') {
           try {
             const models = await getAvailableModels(host);
@@ -769,10 +786,12 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
               {activeChatRecordingIds.length > 0 && (
                 <ContextBar
                   contextInfo={lastContextInfo}
+                  maxContextLength={maxContextLength}
                   ragIndexed={aggregateRagIndexed}
                   ragTotalChunks={totalRagChunksCount}
                   ragMode={ragMode}
                   onRagModeChange={setRagMode}
+                  isProject={true}
                 />
               )}
               <div className={styles.chatInterfaceWrapper}>

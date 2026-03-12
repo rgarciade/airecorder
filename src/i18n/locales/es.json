@@ -19,6 +19,23 @@
     "saveChanges": "Guardar Cambios",
     "reportBug": "Reportar un error"
   },
+  "contextBar": {
+    "context": "Contexto",
+    "chunks": "fragmentos",
+    "tokens": "tokens",
+    "fullMode": "Modo completo",
+    "indexing": "Preparando contexto...",
+    "skipped": "Contexto no disponible · transcripción muy corta",
+    "ready": "Contexto listo",
+    "auto": "Auto",
+    "detailed": "Detallado",
+    "tooltips": {
+      "projectAuto": "Reparte el contexto entre todas las grabaciones. Más rápido.",
+      "projectDetailed": "Busca más fragmentos por grabación. Respuestas más completas.",
+      "recordingAuto": "Extrae el contexto esencial. Respuesta más rápida.",
+      "recordingDetailed": "Analiza mucha más información para dar respuestas exhaustivas."
+    }
+  },
   "modelInfo": {
     "title": "Modelos recomendados",
     "generalModel": "Modelo General",
