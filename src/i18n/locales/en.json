@@ -16,7 +16,8 @@
     "search": "Search...",
     "send": "Send",
     "sending": "Sending...",
-    "saveChanges": "Save Changes"
+    "saveChanges": "Save Changes",
+    "reportBug": "Report a bug"
   },
   "modelInfo": {
     "title": "Recommended models",
