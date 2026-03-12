@@ -273,6 +273,20 @@ class RecordingsService {
   }
 
   /**
+   * Actualiza la última entrada del histórico que tenga respuesta null
+   */
+  async updateLastQuestionHistory(recordingId, qa) {
+    try {
+      if (!window.electronAPI?.updateLastQuestionHistory) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.updateLastQuestionHistory(recordingId, qa);
+      return result.success;
+    } catch (error) {
+      console.error('Error actualizando último histórico de preguntas:', error);
+      return false;
+    }
+  }
+
+  /**
    * Lee el histórico de preguntas y respuestas
    */
   async getQuestionHistory(recordingId) {

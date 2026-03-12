@@ -207,15 +207,18 @@ export async function generateContentStreaming(model, prompt, onChunk) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let fullResponse = '';
+    let buffer = '';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n').filter(line => line.trim());
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // Guarda la última línea incompleta en el buffer
 
       for (const line of lines) {
+        if (!line.trim()) continue;
         try {
           const data = JSON.parse(line);
           if (data.response) {
@@ -223,9 +226,21 @@ export async function generateContentStreaming(model, prompt, onChunk) {
             if (onChunk) onChunk(data.response);
           }
         } catch (e) {
-          console.error('Error parseando chunk:', e);
+          console.error('Error parseando chunk de Ollama:', e, 'Línea:', line);
         }
       }
+    }
+
+    if (buffer.trim()) {
+       try {
+          const data = JSON.parse(buffer);
+          if (data.response) {
+             fullResponse += data.response;
+             if (onChunk) onChunk(data.response);
+          }
+       } catch (e) {
+          console.error('Error parseando último chunk de Ollama:', e);
+       }
     }
 
     return fullResponse;

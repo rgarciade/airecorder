@@ -74,6 +74,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAiSummary: (recordingId) => ipcRenderer.invoke('get-ai-summary', recordingId),
   // Guardar y leer histórico de preguntas
   saveQuestionHistory: (recordingId, qa) => ipcRenderer.invoke('save-question-history', recordingId, qa),
+  updateLastQuestionHistory: (recordingId, qa) => ipcRenderer.invoke('update-last-question-history', recordingId, qa),
   getQuestionHistory: (recordingId) => ipcRenderer.invoke('get-question-history', recordingId),
   clearQuestionHistory: (recordingId) => ipcRenderer.invoke('clear-question-history', recordingId),
   // Guardar y leer participantes
