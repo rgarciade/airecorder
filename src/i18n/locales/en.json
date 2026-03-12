@@ -442,7 +442,6 @@
       "title": "Welcome to",
       "subtitle": "Your intelligent recording assistant",
       "description": "Record meetings, automatically transcribe and extract insights with AI.",
-      "step": "Step 1 of 3",
       "beginBtn": "Begin Setup",
       "terms": "By continuing, you agree to our",
       "termsLink": "Terms of Service",
@@ -460,7 +459,8 @@
       "workspace": {
         "title": "Workspace Organization",
         "desc": "Setup where your projects and transcripts will live."
-      }
+      },
+      "step": "Step 1 of 3"
     },
     "ai": {
       "title": "Configure your AI Intelligence",
@@ -555,7 +555,9 @@
       "embeddingModelsDesc": "They convert your texts into mathematical coordinates. This allows the AI to quickly \"search\" through all your past recordings (RAG) to give you accurate answers.",
       "docsBtn": "Read full installation guide",
       "docsNote": "Will open in your web browser",
-      "nextStep": "Continue to configuration"
+      "nextStep": "Continue to configuration",
+      "noInstallTitle": "Nothing installed yet?",
+      "noInstallDesc": "We recommend pausing for a moment, following our guide, and installing Ollama before continuing."
     }
   }
 }

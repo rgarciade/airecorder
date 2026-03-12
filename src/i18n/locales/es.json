@@ -459,7 +459,6 @@
       "title": "Te damos la bienvenida a",
       "subtitle": "Tu asistente de grabación inteligente",
       "description": "Graba reuniones, transcribe automáticamente y extrae información con IA.",
-      "step": "Paso 1 de 3",
       "beginBtn": "Comenzar configuración",
       "terms": "Al continuar, aceptas nuestros",
       "termsLink": "Términos de Servicio",
@@ -477,7 +476,8 @@
       "workspace": {
         "title": "Organización del Espacio",
         "desc": "Configura dónde vivirán tus proyectos y transcripciones."
-      }
+      },
+      "step": "Paso 1 de 3"
     },
     "ai": {
       "title": "Configura tu Inteligencia IA",
@@ -572,7 +572,9 @@
       "embeddingModelsDesc": "Convierten tus textos en coordenadas matemáticas. Permiten a la IA \"buscar\" rápidamente entre todas tus grabaciones pasadas (RAG) para darte respuestas precisas.",
       "docsBtn": "Leer guía completa de instalación",
       "docsNote": "Se abrirá en tu navegador web",
-      "nextStep": "Continuar a la configuración"
+      "nextStep": "Continuar a la configuración",
+      "noInstallTitle": "¿No tienes nada instalado?",
+      "noInstallDesc": "Recomendamos pausar un momento, seguir nuestra guía e instalar Ollama antes de continuar."
     }
   }
 }
