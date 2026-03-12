@@ -585,7 +585,7 @@
 /* Container for bars and labels grid */
 .stepProgressGrid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 1rem;
 }
 
@@ -636,6 +636,9 @@
   font-size: 0.72rem;
   font-weight: 600;
   color: #94a3b8; /* Inactive color */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stepLabel.active {
