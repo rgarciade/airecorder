@@ -1,0 +1,40 @@
+.bugButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: #FFFFFF;
+  color: #64748B;
+  border: 1px solid #E2E8F0;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.bugButton:hover {
+  background-color: #F8F9FB;
+  border-color: #CBD5E1;
+  color: #1E293B;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.bugButton:active {
+  transform: translateY(0);
+}
+
+.label {
+  white-space: nowrap;
+}
+
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+

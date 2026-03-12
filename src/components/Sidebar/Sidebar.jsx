@@ -5,6 +5,7 @@ import {
   MdAutoAwesome
 } from 'react-icons/md';
 import { aiQueueService } from '../../services/ai/aiQueueService';
+import BugReportButton from '../BugReportButton/BugReportButton';
 
 const Sidebar = ({ currentView, onViewChange, queueCount = 0 }) => {
   const { t } = useTranslation();
@@ -56,6 +57,10 @@ const Sidebar = ({ currentView, onViewChange, queueCount = 0 }) => {
           </button>
         ))}
       </nav>
+
+      <div className={styles.sidebarFooter}>
+        <BugReportButton />
+      </div>
     </aside>
   );
 };

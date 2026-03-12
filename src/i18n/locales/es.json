@@ -16,7 +16,8 @@
     "search": "Buscar...",
     "send": "Enviar",
     "sending": "Enviando...",
-    "saveChanges": "Guardar Cambios"
+    "saveChanges": "Guardar Cambios",
+    "reportBug": "Reportar un error"
   },
   "modelInfo": {
     "title": "Modelos recomendados",
