@@ -29,6 +29,17 @@ El código está segmentado. **NO intentes adivinar cómo funciona el sistema.**
 - 🖥️ **Para lógica de Frontend/Electron (Main, IPC, BD):** Lee `electron/README.md`
 - 🐍 **Para lógica de Python (Audio, Whisper):** Lee `README.md` en la raíz.
 
+## 4. Stack Tecnológico
+
+- **Frontend:** React + Vite (JS/JSX).
+- **Estilos:** Tailwind CSS.
+- **Estado Global:** Redux Toolkit (@reduxjs/toolkit).
+- **Desktop Core:** Electron (Main, Renderer, Preload) con comunicación IPC.
+- **Bases de Datos:** SQLite (`better-sqlite3`) para metadatos y LanceDB para almacenamiento vectorial (RAG).
+- **Backend de Audio:** Python (Procesamiento de audio y transcripción Whisper) ejecutado como proceso hijo.
+- **IA:** Integración con proveedores locales (Ollama, LM Studio) y en la nube (Google Gemini, Kimi, DeepSeek).
+- **Internacionalización:** i18next / react-i18next.
+
 ---
 
 ## ⚠️ MATRIZ DE MANTENIMIENTO OBLIGATORIO DE DOCUMENTACIÓN ⚠️
