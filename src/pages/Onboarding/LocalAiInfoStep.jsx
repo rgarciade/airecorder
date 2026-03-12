@@ -36,7 +36,7 @@ const LocalAiInfoStep = ({ t, onNext, onBack, StepProgressComponent }) => {
           <div className="flex flex-col gap-6">
             <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
               <h3 className="text-lg font-bold text-slate-900 mb-2 flex items-center gap-2">
-                <span className="text-blue-500">¿</span>{t('onboarding.aiInfo.whatIsLocalAi')}
+                {t('onboarding.aiInfo.whatIsLocalAi')}
               </h3>
               <p className="text-slate-600 text-sm leading-relaxed">
                 {t('onboarding.aiInfo.whatIsLocalAiDesc')}
@@ -48,8 +48,8 @@ const LocalAiInfoStep = ({ t, onNext, onBack, StepProgressComponent }) => {
               
               <div className="flex flex-col gap-4">
                 <div className="flex gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-500 flex items-center justify-center flex-shrink-0 text-lg">
-                    <FaRobot />
+                  <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center flex-shrink-0 text-lg">
+                    <img src="https://ollama.com/public/ollama.png" alt="Ollama" width="24" height="24" className="rounded object-contain" />
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-900 mb-1">Ollama</h4>
@@ -58,8 +58,13 @@ const LocalAiInfoStep = ({ t, onNext, onBack, StepProgressComponent }) => {
                 </div>
 
                 <div className="flex gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-500 flex items-center justify-center flex-shrink-0 text-lg">
-                    <FaServer />
+                  <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center flex-shrink-0 text-lg">
+                    <svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6">
+                      <rect width="36" height="36" rx="9" fill="#6D28D9"/>
+                      <rect x="7" y="9"  width="22" height="3.5" rx="1.75" fill="rgba(255,255,255,0.95)"/>
+                      <rect x="5" y="16" width="26" height="3.5" rx="1.75" fill="rgba(255,255,255,0.95)"/>
+                      <rect x="9" y="23" width="18" height="3.5" rx="1.75" fill="rgba(255,255,255,0.95)"/>
+                    </svg>
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-900 mb-1">LM Studio</h4>
@@ -109,13 +114,11 @@ const LocalAiInfoStep = ({ t, onNext, onBack, StepProgressComponent }) => {
 
             {/* Docs CTA */}
             <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100 relative overflow-hidden group">
-              <div className="absolute -right-6 -bottom-6 text-blue-500/10 transition-transform group-hover:scale-110">
-                <FaExternalLinkAlt size={120} />
-              </div>
+              
               <div className="relative z-10 flex flex-col items-start gap-3">
                 <div>
-                  <h4 className="font-bold text-blue-900 mb-1">¿No tienes nada instalado?</h4>
-                  <p className="text-sm text-blue-700 mb-4">Recomendamos pausar un momento, seguir nuestra guía e instalar Ollama antes de continuar.</p>
+                  <h4 className="font-bold text-blue-900 mb-1">{t('onboarding.aiInfo.noInstallTitle', '¿No tienes nada instalado?')}</h4>
+                  <p className="text-sm text-blue-700 mb-4">{t('onboarding.aiInfo.noInstallDesc', 'Recomendamos pausar un momento, seguir nuestra guía e instalar Ollama antes de continuar.')}</p>
                 </div>
                 <button
                   onClick={handleOpenDocs}
