@@ -15,26 +15,29 @@ const LocalAiInfoStep = ({ t, onNext, onBack, StepProgressComponent }) => {
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
-      <div className="flex-1 max-w-6xl mx-auto w-full px-8 py-8 flex flex-col overflow-y-auto">
+      
+      {/* Scrollable Container (Only this scrolls) */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+        <div className="max-w-6xl mx-auto w-full px-8 py-8 flex flex-col h-full">
 
-        {/* Step Progress */}
-        {StepProgressComponent && <div className="mb-3">{StepProgressComponent}</div>}
+          {/* Step Progress */}
+          {StepProgressComponent && <div className="mb-3 shrink-0">{StepProgressComponent}</div>}
 
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 text-blue-600 mb-4 shadow-sm">
-            <FaShieldAlt size={28} />
+          {/* Header */}
+          <div className="text-center mb-8 shrink-0">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 text-blue-600 mb-4 shadow-sm">
+              <FaShieldAlt size={28} />
+            </div>
+            <h1 className="text-3xl font-extrabold text-slate-900 mb-3">{t('onboarding.aiInfo.title')}</h1>
+            <p className="text-slate-500 text-lg max-w-2xl mx-auto leading-relaxed">
+              {t('onboarding.aiInfo.subtitle')}
+            </p>
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 mb-3">{t('onboarding.aiInfo.title')}</h1>
-          <p className="text-slate-500 text-lg max-w-2xl mx-auto leading-relaxed">
-            {t('onboarding.aiInfo.subtitle')}
-          </p>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
-          {/* Left Column: What and Tools */}
-          <div className="flex flex-col gap-6">
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-1 min-h-0 pb-4">
+            {/* Left Column: What and Tools (SCROLLABLE) */}
+            <div className="flex flex-col gap-6 overflow-y-auto pr-2" style={{ maxHeight: '100%' }}>
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm shrink-0">
               <h3 className="text-lg font-bold text-slate-900 mb-2 flex items-center gap-2">
                 {t('onboarding.aiInfo.whatIsLocalAi')}
               </h3>
@@ -43,7 +46,7 @@ const LocalAiInfoStep = ({ t, onNext, onBack, StepProgressComponent }) => {
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex-1">
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex-1 shrink-0">
               <h3 className="text-lg font-bold text-slate-900 mb-4">{t('onboarding.aiInfo.tools')}</h3>
               
               <div className="flex flex-col gap-4">
