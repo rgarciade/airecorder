@@ -34,9 +34,9 @@ const LocalAiInfoStep = ({ t, onNext, onBack, StepProgressComponent }) => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-1 min-h-0 pb-4">
-            {/* Left Column: What and Tools (SCROLLABLE) */}
-            <div className="flex flex-col gap-6 overflow-y-auto pr-2" style={{ maxHeight: '100%' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-1 min-h-0 pb-4 overflow-y-auto -mr-4 pr-4">
+            {/* Left Column: What and Tools */}
+            <div className="flex flex-col gap-6">
             <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm shrink-0">
               <h3 className="text-lg font-bold text-slate-900 mb-2 flex items-center gap-2">
                 {t('onboarding.aiInfo.whatIsLocalAi')}
@@ -137,8 +137,9 @@ const LocalAiInfoStep = ({ t, onNext, onBack, StepProgressComponent }) => {
         </div>
 
       </div>
+    </div>
 
-      {/* Footer */}
+    {/* Footer */}
       <OnboardingFooter onBack={onBack} t={t}>
         <div className="flex items-center gap-6">
           <button
