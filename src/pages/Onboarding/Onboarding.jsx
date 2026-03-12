@@ -9,9 +9,11 @@ import PermissionsStep from './PermissionsStep';
 import ReadyStep from './ReadyStep';
 import AiConfigStep from './AiConfigStep';
 import StorageStep from './StorageStep';
+import LocalAiInfoStep from './LocalAiInfoStep';
 
 const STEPS = [
   { id: 'welcome',     title: 'Welcome to AIRecorder' },
+  { id: 'aiInfo',      title: 'IA Local' },
   { id: 'ai',          title: 'Configuración de IA' },
   { id: 'permissions', title: 'Permisos del Sistema' },
   { id: 'storage',     title: 'Almacenamiento' },
@@ -269,6 +271,7 @@ export default function Onboarding({ onComplete }) {
           const isCompleted = index < currentStep;
           const labels = [
             t('onboarding.steps.welcome'),
+            t('onboarding.steps.aiInfo'),
             t('onboarding.steps.ai'),
             t('onboarding.steps.permissions'),
             t('onboarding.steps.storage'),
@@ -326,6 +329,18 @@ export default function Onboarding({ onComplete }) {
   if (currentStep === 1) return (
     <>
       {renderLangSelector()}
+      <LocalAiInfoStep 
+        t={t} 
+        onBack={handleBack} 
+        onNext={handleNext} 
+        StepProgressComponent={renderStepProgress()} 
+      />
+    </>
+  );
+
+  if (currentStep === 2) return (
+    <>
+      {renderLangSelector()}
       <AiConfigStep
         t={t}
         providerType={providerType}
@@ -356,7 +371,7 @@ export default function Onboarding({ onComplete }) {
     </>
   );
 
-  if (currentStep === 2) return (
+  if (currentStep === 3) return (
     <>
       {renderLangSelector()}
       <PermissionsStep
@@ -374,7 +389,7 @@ export default function Onboarding({ onComplete }) {
     </>
   );
 
-  if (currentStep === 3) return (
+  if (currentStep === 4) return (
     <>
       {renderLangSelector()}
       <StorageStep
@@ -390,7 +405,7 @@ export default function Onboarding({ onComplete }) {
     </>
   );
 
-  if (currentStep === 4) return (
+  if (currentStep === 5) return (
     <>
       {renderLangSelector()}
       <ReadyStep
