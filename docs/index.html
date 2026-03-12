@@ -1146,8 +1146,19 @@
 
     .modal-actions {
       display: flex;
-      justify-content: flex-end;
+      flex-direction: column;
       gap: 12px;
+    }
+
+    .modal-actions .btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    @media (max-width: 520px) {
+      .modal-content {
+        padding: 24px 20px;
+      }
     }
 
     /* ── Screenshots ── */
@@ -1777,10 +1788,10 @@
         </div>
       </div>
       <div class="modal-actions">
-        <button class="btn btn-secondary" onclick="closeDownloadModal(event)" data-i18n="modalCancel">Cancelar</button>
         <a href="https://github.com/rgarciade/airecorder/releases/latest" target="_blank" rel="noopener" class="btn btn-primary" onclick="closeDownloadModal(event)" data-i18n="modalConfirm">
           Entendido y Descargar
         </a>
+        <button class="btn btn-secondary" onclick="closeDownloadModal(event)" data-i18n="modalCancel">Cancelar</button>
       </div>
     </div>
   </div>
