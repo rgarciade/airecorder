@@ -57,15 +57,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 9999px;
   background-color: #EFF6FF;
   color: #3994EF;
   border: 1px solid #DBEAFE;
   cursor: pointer;
   transition: all 0.2s;
-  padding: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .transcribeBtn:hover {

@@ -58,6 +58,7 @@
   flex-direction: column;
   margin-right: auto;
   min-width: 0; /* Para truncar si es necesario */
+  padding-right: 10px;
 }
 
 .capsuleLabel {
@@ -83,6 +84,28 @@
   height: 20px;
   margin: 0 8px;
   flex-shrink: 0;
+}
+
+.btnDiscardRound {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: transparent;
+  color: #9CA3AF;
+  border: 1px solid #E5E7EB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-right: 6px;
+  transition: all 0.2s;
+}
+
+.btnDiscardRound:hover {
+  background-color: #FEF2F2;
+  color: #EF4444;
+  border-color: #FECACA;
 }
 
 .btnStopRound {

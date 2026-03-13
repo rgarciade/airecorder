@@ -233,9 +233,13 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
                 <span className={styles.capsuleLabel}>{t('recordingOverlay.recording').toUpperCase()}</span>
                 <span className={styles.capsuleTime}>{formatTime(time)}</span>
               </div>
-              <div className={styles.visualizerSmall}>
-                {generateBars(8)}
-              </div>
+              <button
+                className={styles.btnDiscardRound}
+                onClick={handleDiscard}
+                title={t('recordingOverlay.confirmDiscardYes')}
+              >
+                <MdDeleteOutline size={16} />
+              </button>
               <button
                 className={styles.btnStopRound}
                 onClick={handleFinish}
