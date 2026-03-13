@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './RecordingCard.module.css';
-import { MdTranscribe, MdFolderOpen, MdSchedule, MdAutorenew } from 'react-icons/md';
+import { MdFolderOpen, MdSchedule, MdAutorenew, MdTranscribe } from 'react-icons/md';
 
 export default function RecordingCard({ recording, onClick, onTranscribe }) {
   const { t } = useTranslation();
@@ -75,7 +75,7 @@ export default function RecordingCard({ recording, onClick, onTranscribe }) {
               onClick={(e) => { e.stopPropagation(); onTranscribe(recording.dbId || recording.id); }}
               title={t('recordingCard.transcribeTitle')}
             >
-              <MdTranscribe size={20} />
+              {t('recordingCard.transcribeLabel')}
             </button>
           )}
           <div className={styles.duration}>{durationStr}</div>

@@ -56,11 +56,8 @@ const Sidebar = ({ currentView, onViewChange, queueCount = 0 }) => {
             <span className={styles.label}>{item.label}</span>
           </button>
         ))}
-      </nav>
-
-      <div className={styles.sidebarFooter}>
         <BugReportButton />
-      </div>
+      </nav>
     </aside>
   );
 };
