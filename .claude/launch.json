@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "docs",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "docs", "-p", "3001", "--no-clipboard"],
+      "port": 3001
+    },
+    {
       "name": "dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],

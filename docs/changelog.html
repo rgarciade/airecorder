@@ -181,22 +181,245 @@
     <div class="container">
       <div class="releases-inner">
 
-        <!-- ── v0.2.0 — contenido cargado desde whatsNew.json ── -->
+        <!-- ── v0.2.2 ── -->
         <div class="release-entry animate-on-scroll">
           <div class="release-header">
-            <span class="release-version">v0.2.0</span>
-            <span class="release-date" id="v020-date"></span>
-            <span class="release-branch">feature/ai-queue</span>
+            <span class="release-version">v0.2.2</span>
+            <span class="release-date" data-i18n="v022date">Marzo 2026</span>
+            <span class="release-branch">release/0.2.2</span>
           </div>
-          <div class="release-title" id="v020-title"></div>
+          <div class="release-title" data-i18n="v022Title">Mejoras en Onboarding, Documentación y Componentes UI</div>
 
           <div class="release-category">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <span id="v020-cat"></span>
+            <span data-i18n="v022Cat">Nuevas funciones</span>
           </div>
 
-          <!-- Lista de cambios renderizada desde whatsNew.json -->
-          <div class="change-list" id="v020-changes"></div>
+          <div class="change-list">
+            <div class="change-item">
+              <div class="change-emoji">🚀</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Mejoras en el onboarding"
+                  data-en="Onboarding Updates">Mejoras en el onboarding</div>
+                <div class="change-desc"
+                  data-es="Onboarding actualizado con mejor distribución visual, iconos mejorados, scroll optimizado y mejor adaptación a pantallas pequeñas en los pasos de información de IA local."
+                  data-en="Updated onboarding with better visual layout, improved icons, optimized scroll and better adaptation to small screens in local AI info steps.">Onboarding actualizado con mejor distribución visual, iconos mejorados, scroll optimizado y mejor adaptación a pantallas pequeñas en los pasos de información de IA local.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">📚</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Página de documentación"
+                  data-en="Documentation Page">Página de documentación</div>
+                <div class="change-desc"
+                  data-es="Nueva sección de documentación con guías sobre configuración de IA local, tecnología usada y cómo reportar bugs. Links desde navbar y changelog."
+                  data-en="New documentation section with guides on local AI setup, technology stack and how to report bugs. Links from navbar and changelog.">Nueva sección de documentación con guías sobre configuración de IA local, tecnología usada y cómo reportar bugs. Links desde navbar y changelog.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">🧩</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Nuevos componentes head y footer"
+                  data-en="Head &amp; Footer Components">Nuevos componentes head y footer</div>
+                <div class="change-desc"
+                  data-es="Componentes web reutilizables para el header y footer de las páginas de documentación, manteniendo consistencia visual."
+                  data-en="Reusable web components for header and footer in documentation pages, maintaining visual consistency.">Componentes web reutilizables para el header y footer de las páginas de documentación, manteniendo consistencia visual.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">📊</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Mejoras en la barra de contexto"
+                  data-en="Context Bar Improvements">Mejoras en la barra de contexto</div>
+                <div class="change-desc"
+                  data-es="Barra de contexto mejorada para mostrar información relevante durante el procesamiento de transcripciones."
+                  data-en="Enhanced context bar to display relevant information during transcription processing.">Barra de contexto mejorada para mostrar información relevante durante el procesamiento de transcripciones.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── v0.2.1 ── -->
+        <div class="release-entry animate-on-scroll">
+          <div class="release-header">
+            <span class="release-version">v0.2.1</span>
+            <span class="release-date" data-i18n="v021date">Marzo 2026</span>
+            <span class="release-branch">main</span>
+          </div>
+          <div class="release-title" data-i18n="v021Title">Exportaciones, Fixes de UI y Optimización</div>
+
+          <div class="release-category">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span data-i18n="v021Cat">Mejoras y correcciones</span>
+          </div>
+
+          <div class="change-list">
+            <div class="change-item">
+              <div class="change-emoji">📄</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Exportación de resúmenes detallados"
+                  data-en="Detailed Summary Export">Exportación de resúmenes detallados</div>
+                <div class="change-desc"
+                  data-es="Los resúmenes exportados ahora incluyen el texto completo de la transcripción."
+                  data-en="Exported summaries now include the full transcript text.">Los resúmenes exportados ahora incluyen el texto completo de la transcripción.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">🔧</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Fix streaming Ollama y Gemini"
+                  data-en="Ollama &amp; Gemini Streaming Fix">Fix streaming Ollama y Gemini</div>
+                <div class="change-desc"
+                  data-es="Corregido el parsing de chunks en streaming para proveedores Ollama y Gemini."
+                  data-en="Fixed chunk parsing in streaming for Ollama and Gemini providers.">Corregido el parsing de chunks en streaming para proveedores Ollama y Gemini.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">📱</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Fix botones descarga móvil"
+                  data-en="Mobile Download Buttons Fix">Fix botones descarga móvil</div>
+                <div class="change-desc"
+                  data-es="Botones de descarga adaptados a pantallas móviles."
+                  data-en="Download buttons adapted for mobile screens.">Botones de descarga adaptados a pantallas móviles.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">🧠</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Optimización de contexto"
+                  data-en="Context Optimization">Optimización de contexto</div>
+                <div class="change-desc"
+                  data-es="Mejora en la gestión de contexto para modelos de 32k+ tokens."
+                  data-en="Improved context management for 32k+ token models.">Mejora en la gestión de contexto para modelos de 32k+ tokens.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── v0.2.0 ── -->
+        <div class="release-entry animate-on-scroll">
+          <div class="release-header">
+            <span class="release-version">v0.2.0</span>
+            <span class="release-date" data-i18n="v020date">Marzo 2026</span>
+            <span class="release-branch">feature/ai-queue</span>
+          </div>
+          <div class="release-title" data-i18n="v020Title">Cola de IA, Multiidioma y Mejoras en Proveedores Locales</div>
+
+          <div class="release-category">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span data-i18n="v020Cat">Nuevas funciones</span>
+          </div>
+
+          <div class="change-list">
+            <div class="change-item">
+              <div class="change-emoji">🔄</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Cola de procesamiento de IA"
+                  data-en="AI Processing Queue">Cola de procesamiento de IA</div>
+                <div class="change-desc"
+                  data-es="Genera resúmenes, actas y preguntas en segundo plano sin bloquear la app. Historial completo de tareas completadas con sus resultados."
+                  data-en="Generate summaries, minutes and questions in the background without blocking the app. Complete history of completed tasks with their results.">Genera resúmenes, actas y preguntas en segundo plano sin bloquear la app. Historial completo de tareas completadas con sus resultados.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">📁</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Proyectos con tablero Kanban"
+                  data-en="Projects with Kanban Board">Proyectos con tablero Kanban</div>
+                <div class="change-desc"
+                  data-es="Agrupa grabaciones en proyectos. Cada proyecto tiene su propio tablero Kanban (Pendiente · En progreso · Completado) con todas las tareas generadas por la IA."
+                  data-en="Group recordings into projects. Each project has its own Kanban board (Pending · In progress · Completed) with all AI-generated tasks.">Agrupa grabaciones en proyectos. Cada proyecto tiene su propio tablero Kanban (Pendiente · En progreso · Completado) con todas las tareas generadas por la IA.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">➕</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Añadir tareas al proyecto desde la transcripción"
+                  data-en="Add Tasks from Transcript">Añadir tareas al proyecto desde la transcripción</div>
+                <div class="change-desc"
+                  data-es="Selecciona cualquier fragmento de texto en la transcripción y envíalo como tarea directamente al Kanban del proyecto."
+                  data-en="Select any text fragment in the transcript and send it as a task directly to the project's Kanban board.">Selecciona cualquier fragmento de texto en la transcripción y envíalo como tarea directamente al Kanban del proyecto.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">🌐</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Idioma de la interfaz e idioma de las respuestas de IA"
+                  data-en="Interface Language &amp; AI Response Language">Idioma de la interfaz e idioma de las respuestas de IA</div>
+                <div class="change-desc"
+                  data-es="Dos ajustes independientes: elige en qué idioma se muestra la interfaz (ES/EN) y en qué idioma la IA genera sus respuestas."
+                  data-en="Two independent settings: choose the interface display language (ES/EN) and the language in which AI generates its responses.">Dos ajustes independientes: elige en qué idioma se muestra la interfaz (ES/EN) y en qué idioma la IA genera sus respuestas.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">🔍</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Búsqueda semántica (RAG)"
+                  data-en="Semantic Search (RAG)">Búsqueda semántica (RAG)</div>
+                <div class="change-desc"
+                  data-es="Haz preguntas sobre tus grabaciones con búsqueda vectorial. Compatible con Ollama y LM Studio como backend de embeddings."
+                  data-en="Ask questions about your recordings with vector search. Compatible with Ollama and LM Studio as embedding backends.">Haz preguntas sobre tus grabaciones con búsqueda vectorial. Compatible con Ollama y LM Studio como backend de embeddings.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">🎤</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Importar transcripciones y audio"
+                  data-en="Import Transcripts &amp; Audio">Importar transcripciones y audio</div>
+                <div class="change-desc"
+                  data-es="Importa transcripciones de Microsoft Teams en formato .docx o archivos de audio externos para transcribirlos localmente con Whisper."
+                  data-en="Import Microsoft Teams transcripts in .docx format or external audio files for local transcription with Whisper.">Importa transcripciones de Microsoft Teams en formato .docx o archivos de audio externos para transcribirlos localmente con Whisper.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">📂</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Rutas de almacenamiento configurables"
+                  data-en="Configurable Storage Paths">Rutas de almacenamiento configurables</div>
+                <div class="change-desc"
+                  data-es="Elige dónde guardar la base de datos y las grabaciones. Opción de migrar la BD existente al cambiar de ruta."
+                  data-en="Choose where to save the database and recordings. Option to migrate the existing DB when changing path.">Elige dónde guardar la base de datos y las grabaciones. Opción de migrar la BD existente al cambiar de ruta.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">🧠</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Ventana de contexto dinámica"
+                  data-en="Dynamic Context Window">Ventana de contexto dinámica</div>
+                <div class="change-desc"
+                  data-es="El procesamiento se adapta automáticamente al contexto real del modelo cargado. Menos fragmentos innecesarios con modelos de 32k tokens o más."
+                  data-en="Processing automatically adapts to the actual context of the loaded model. Fewer unnecessary chunks with 32k+ token models.">El procesamiento se adapta automáticamente al contexto real del modelo cargado. Menos fragmentos innecesarios con modelos de 32k tokens o más.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">⚠️</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Errores de IA con detalle"
+                  data-en="Detailed AI Errors">Errores de IA con detalle</div>
+                <div class="change-desc"
+                  data-es="Los errores del proveedor de IA se muestran en un modal con el mensaje real y sugerencias de solución."
+                  data-en="AI provider errors are shown in a modal with the actual message and suggested solutions.">Los errores del proveedor de IA se muestran en un modal con el mensaje real y sugerencias de solución.</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- ── Versiones anteriores ── -->
@@ -225,66 +448,34 @@
 
 
   <script>
-    // ── whatsNew.json — fuente de verdad para los cambios de v0.2.0 ──────────
-    let whatsNewData = null;
-    let currentLang  = 'es';
+    let currentLang = 'es';
 
-    async function loadWhatsNew() {
-      try {
-        const res = await fetch('https://raw.githubusercontent.com/rgarciade/airecorder/main/src/data/whatsNew.json');
-        if (!res.ok) throw new Error(res.status);
-        whatsNewData = await res.json();
-        renderChanges(currentLang);
-      } catch (e) {
-        console.warn('No se pudo cargar whatsNew.json:', e);
-      }
-    }
-
-    function renderChanges(lang) {
-      if (!whatsNewData) return;
-      const t = whatsNewData.i18n[lang] || whatsNewData.i18n.es;
-
-      // Cabecera de la release
-      const dateEl  = document.getElementById('v020-date');
-      const titleEl = document.getElementById('v020-title');
-      const catEl   = document.getElementById('v020-cat');
-      if (dateEl)  dateEl.textContent  = t.releaseDateFormatted;
-      if (titleEl) titleEl.textContent = t.releaseTitle;
-      if (catEl)   catEl.textContent   = t.catNew;
-
-      // Lista de cambios
-      const container = document.getElementById('v020-changes');
-      if (!container) return;
-      container.innerHTML = whatsNewData.changes.map(item => `
-        <div class="change-item">
-          <div class="change-emoji">${item.icon}</div>
-          <div class="change-content">
-            <div class="change-title">${item[lang].title}</div>
-            <div class="change-desc">${item[lang].desc}</div>
-          </div>
-        </div>
-      `).join('');
-
-      // Animación escalonada de entrada
-      container.querySelectorAll('.change-item').forEach((el, i) => {
-        el.style.opacity   = '0';
-        el.style.transform = 'translateY(14px)';
-        el.style.transition = 'opacity 0.32s ease, transform 0.32s ease';
-        setTimeout(() => { el.style.opacity = '1'; el.style.transform = 'translateY(0)'; }, i * 55);
-      });
-    }
-
-    // ── Translations (estáticas: nav, footer, hero, v0.1.x) ──────────────────
+    // ── Translations ──────────────────────────────────────────────────────────
     const TRANSLATIONS = {
       es: {
         pageTitle:        'Novedades — AIRecorder',
         navFeatures:      'Funciones',
         navPrivacy:       'Privacidad',
         navProviders:     'Proveedores IA',
-        navDocs: 'Guía IA Local', navChangelog: 'Novedades', navDownload: 'Descargar',
+        navDocs:          'Guía IA Local',
+        navChangelog:     'Novedades',
+        navDownload:      'Descargar',
         heroBadgeText:    'Historial de versiones',
         changelogTitle:   'Novedades',
         changelogSubtitle:'Mejoras y nuevas funcionalidades incorporadas en cada versión.',
+        // v0.2.2
+        v022date:  'Marzo 2026',
+        v022Title: 'Mejoras en Onboarding, Documentación y Componentes UI',
+        v022Cat:   'Nuevas funciones',
+        // v0.2.1
+        v021date:  'Marzo 2026',
+        v021Title: 'Exportaciones, Fixes de UI y Optimización',
+        v021Cat:   'Mejoras y correcciones',
+        // v0.2.0
+        v020date:  'Marzo 2026',
+        v020Title: 'Cola de IA, Multiidioma y Mejoras en Proveedores Locales',
+        v020Cat:   'Nuevas funciones',
+        // v0.1.x
         v01xdate:  '2024 – 2026',
         v01xTitle: 'Versiones anteriores',
         v01xDesc:  'Las versiones 0.1.x incluyen las funcionalidades base de la aplicación: grabación dual de audio, transcripción local con Whisper, análisis con IA (Ollama, Gemini, DeepSeek, Kimi, LM Studio), chat interactivo sobre transcripciones, exportación a DOCX/PDF, importación de transcripciones de Teams, subida de audio externo, proyectos y dashboard, sistema RAG con LanceDB, actualizaciones automáticas y soporte para Apple Silicon.',
@@ -300,10 +491,25 @@
         navFeatures:      'Features',
         navPrivacy:       'Privacy',
         navProviders:     'AI Providers',
-        navDocs: 'Local AI Guide', navChangelog: "What's New", navDownload: 'Download',
+        navDocs:          'Local AI Guide',
+        navChangelog:     "What's New",
+        navDownload:      'Download',
         heroBadgeText:    'Version history',
         changelogTitle:   "What's New",
         changelogSubtitle:'Improvements and new features added in each version.',
+        // v0.2.2
+        v022date:  'March 2026',
+        v022Title: 'Onboarding Improvements, Documentation & UI Components',
+        v022Cat:   'New features',
+        // v0.2.1
+        v021date:  'March 2026',
+        v021Title: 'Exports, UI Fixes & Optimization',
+        v021Cat:   'Improvements & fixes',
+        // v0.2.0
+        v020date:  'March 2026',
+        v020Title: 'AI Queue, Multi-Language & Local Provider Improvements',
+        v020Cat:   'New features',
+        // v0.1.x
         v01xdate:  '2024 – 2026',
         v01xTitle: 'Earlier versions',
         v01xDesc:  'Versions 0.1.x include the core app features: dual audio recording, local transcription with Whisper, AI analysis (Ollama, Gemini, DeepSeek, Kimi, LM Studio), interactive chat over transcripts, export to DOCX/PDF, Teams transcript import, external audio upload, projects and dashboard, RAG system with LanceDB, automatic updates, and Apple Silicon support.',
@@ -328,10 +534,13 @@
         const v = TRANSLATIONS[lang][el.dataset.i18nHtml];
         if (v !== undefined) el.innerHTML = v;
       });
+      // Bilingual change items via data-es / data-en attributes
+      document.querySelectorAll('[data-es]').forEach(el => {
+        el.textContent = lang === 'en' ? (el.dataset.en || el.dataset.es) : el.dataset.es;
+      });
       document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.lang === lang);
       });
-      renderChanges(lang);   // actualiza los cambios dinámicos también
       try { localStorage.setItem('airecorder-lang', lang); } catch(e) {}
     }
 
@@ -342,11 +551,10 @@
     document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
     document.querySelectorAll('.page-hero .animate-on-scroll').forEach((el, i) => setTimeout(() => el.classList.add('visible'), i * 80));
 
-    // ── Inicio: idioma y datos ──
+    // ── Inicio: idioma ──
     const savedLang = (function() { try { return localStorage.getItem('airecorder-lang'); } catch(e) { return null; } })();
     const initLang  = savedLang || (navigator.language.startsWith('en') ? 'en' : 'es');
-    setLang(initLang);   // traducciones estáticas inmediatas
-    loadWhatsNew();      // fetch JSON → rellena los cambios de v0.2.0
+    setLang(initLang);
   </script>
 
   <script src="components.js"></script>
