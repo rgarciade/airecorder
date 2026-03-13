@@ -152,18 +152,22 @@ class UpdateChecker {
       message: `¡Hay una nueva versión de AIRecorder disponible! (v${updateInfo.latestVersion})`,
       detail: `Versión actual: v${updateInfo.currentVersion}
 
-Antes de descargar, ten en cuenta esta Guía de Actualización:
+⚠️ La app está en desarrollo preliminar y aún no está firmada. Sigue estos pasos para actualizar correctamente:
 
-⚠️ La app está en desarrollo preliminar y aún no está firmada.
+1. 🗑️  Arrastra la app actual a la Papelera sin miedo — tus datos NO se borran, se guardan en una carpeta aparte y se mantienen intactos.
 
-1. Descarga la nueva versión, borra la app actual de Aplicaciones y vuelve a instalar la que acabas de descargar.
-2. Cuando te pida permisos de captura de pantalla, tienes que ELIMINAR el permiso actual de la app en Ajustes del Sistema y volver a dárselo.
-3. Para abrir la app por primera vez, es posible que tengas que lanzar este comando en la terminal:
+2. 📥  Descarga la nueva versión e instálala en Aplicaciones como siempre.
 
+3. 🔐  Es OBLIGATORIO quitar y volver a dar el permiso de Grabación de Pantalla:
+   → Ajustes del Sistema › Privacidad y Seguridad › Grabación de Pantalla
+   → Desmarca AIRecorder, cierra Ajustes, vuelve a abrirlos y vuelve a marcarlo.
+
+4. 🖥️  Si al abrir la app aparece un aviso de seguridad, ejecuta este comando en la Terminal:
    xattr -cr /Applications/AIRecorder.app
 
-Novedades de la versión:
-${(updateInfo.releaseNotes || 'Mejoras y correcciones.').slice(0, 500)}`,
+────────────────────────────
+Novedades de v${updateInfo.latestVersion}:
+${(updateInfo.releaseNotes || 'Mejoras y correcciones.').slice(0, 600)}`,
       buttons: ['Entendido y Descargar', 'Más tarde', 'No mostrar para esta versión'],
       defaultId: 0,
       cancelId: 1,
