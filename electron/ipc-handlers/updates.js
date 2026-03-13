@@ -1,5 +1,21 @@
 const { ipcMain, shell } = require('electron');
 const updateChecker = require('../services/updateChecker');
+const fs = require('fs');
+const path = require('path');
+
+const getWhatsNewContent = () => {
+  try {
+    const whatsNewPath = path.join(__dirname, '../../src/data/whatsNew.json');
+    if (fs.existsSync(whatsNewPath)) {
+      const data = JSON.parse(fs.readFileSync(whatsNewPath, 'utf8'));
+      const changes = data.changes.map(c => `- ${c.icon} ${c.es.title}: ${c.es.desc}`).join('\n');
+      return `📢 ${data.i18n.es.releaseTitle}\n\n${changes}`;
+    }
+  } catch (e) {
+    console.error('[Updates] Error leyendo whatsNew:', e.message);
+  }
+  return null;
+};
 
 module.exports.registerUpdateHandlers = () => {
 
@@ -35,10 +51,11 @@ module.exports.registerUpdateHandlers = () => {
   // Probar el dialogo de update (solo dev)
   ipcMain.handle('test-update-dialog', async () => {
     try {
+      const releaseNotes = getWhatsNewContent();
       await updateChecker._showUpdateDialog({
-        latestVersion: '9.9.9-beta',
+        latestVersion: '0.2.2',
         currentVersion: updateChecker.getCurrentVersion(),
-        releaseNotes: 'Esta es una versión simulada para probar el diálogo de actualización.\n\n- Nueva funcionalidad X\n- Corrección Y',
+        releaseNotes: releaseNotes || 'Versión de prueba sin notas',
         downloadUrl: 'https://github.com/rgarciade/airecorder/releases/latest'
       });
       return { success: true };
