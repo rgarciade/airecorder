@@ -53,7 +53,7 @@ module.exports.registerUpdateHandlers = () => {
     try {
       const releaseNotes = getWhatsNewContent();
       await updateChecker._showUpdateDialog({
-        latestVersion: '0.2.2',
+        latestVersion: require('../../package.json').version,
         currentVersion: updateChecker.getCurrentVersion(),
         releaseNotes: releaseNotes || 'Versión de prueba sin notas',
         downloadUrl: 'https://github.com/rgarciade/airecorder/releases/latest'
