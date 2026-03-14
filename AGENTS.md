@@ -53,3 +53,7 @@ Las IAs tienen la obligación estricta de mantener el contexto de la aplicación
 | `src/services/ai/providerRouter.js`, `src/services/ai/*` | `src/services/ai/README.md` (Sección Proveedores de IA) |
 | `src/prompts/aiPrompts.js` | `src/services/ai/README.md` (Sección Prompts y Formatos) |
 | `electron/transcriptionManager.js`, `python/audio_sync_analyzer.py` | `README.md` (raíz) (Sección Pipeline de Transcripción) |
+
+
+## respuesta final ##
+como estoy investigando sobre el funcionam,iento de los agentes, me gustaria que me respopndieras que ha hecho cada agente en la conversacion, resumen muy muy corto de cada uno

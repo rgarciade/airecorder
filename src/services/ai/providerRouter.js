@@ -46,7 +46,7 @@ async function _runCallProvider(prompt, options) {
     case 'ollama': {
       const model = options.model || options.ragModel || settings.ollamaModel;
       if (!model) throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
-      const response = await ollamaGenerate(model, prompt, options);
+      const response = await ollamaGenerate(model, prompt, { ...options, images: options.images || [] });
       return { text: response || 'Sin respuesta', provider: 'ollama', model };
     }
 
@@ -71,7 +71,7 @@ async function _runCallProvider(prompt, options) {
 
     case 'gemini': {
       if (!settings.geminiApiKey) throw new Error('No se ha configurado la Gemini API Key en los ajustes.');
-      const result = await sendToGemini(prompt, true, false);
+      const result = await sendToGemini(prompt, true, false, options.images || []);
       const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta';
       return { text, provider: 'gemini' };
     }
@@ -80,7 +80,7 @@ async function _runCallProvider(prompt, options) {
     default: {
       const apiKey = settings.geminiFreeApiKey || settings.geminiApiKey;
       if (!apiKey) throw new Error('No se ha configurado la Gemini Free API Key en los ajustes.');
-      const result = await sendToGemini(prompt, true, true);
+      const result = await sendToGemini(prompt, true, true, options.images || []);
       const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta';
       return { text, provider: 'geminifree' };
     }
@@ -99,13 +99,13 @@ async function _runCallProviderStreaming(prompt, onChunk, options) {
   switch (provider) {
     case 'geminifree': {
       console.log('[callProviderStreaming] Iniciando streaming con Gemini Free');
-      const fullResponse = await sendToGeminiStreaming(prompt, onChunk, true);
+      const fullResponse = await sendToGeminiStreaming(prompt, onChunk, true, options.images || []);
       return { text: fullResponse || 'Sin respuesta', provider: 'geminifree', streaming: true };
     }
 
     case 'gemini': {
       console.log('[callProviderStreaming] Iniciando streaming con Gemini Pro');
-      const fullResponse = await sendToGeminiStreaming(prompt, onChunk, false);
+      const fullResponse = await sendToGeminiStreaming(prompt, onChunk, false, options.images || []);
       return { text: fullResponse || 'Sin respuesta', provider: 'gemini', streaming: true };
     }
 
@@ -137,7 +137,7 @@ async function _runCallProviderStreaming(prompt, onChunk, options) {
 
       if (useStreaming) {
         console.log(`[callProviderStreaming] Iniciando streaming con Ollama modelo: ${model}`);
-        const fullResponse = await ollamaGenerateStreaming(model, prompt, onChunk);
+        const fullResponse = await ollamaGenerateStreaming(model, prompt, onChunk, options.images || []);
         return { text: fullResponse || 'Sin respuesta', provider: 'ollama', model, streaming: true };
       }
 

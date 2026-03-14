@@ -2,7 +2,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import styles from './ChatInterface.module.css';
-import { MdSend, MdPerson, MdSmartToy, MdDeleteOutline, MdMoreHoriz } from 'react-icons/md';
+import {
+  MdSend, MdPerson, MdSmartToy, MdDeleteOutline, MdMoreHoriz,
+  MdAdd, MdAttachFile, MdClose, MdImage, MdPictureAsPdf, MdDescription, MdInsertDriveFile, MdTableChart
+} from 'react-icons/md';
+
+function AttachmentTypeIcon({ type, size = 14 }) {
+  if (type === 'image') return <MdImage size={size} />;
+  if (type === 'pdf') return <MdPictureAsPdf size={size} />;
+  if (type === 'text') return <MdDescription size={size} />;
+  if (type === 'excel') return <MdTableChart size={size} />;
+  return <MdInsertDriveFile size={size} />;
+}
 
 export default function ChatInterface({
   chatHistory = [],
@@ -22,13 +33,24 @@ export default function ChatInterface({
   availableModels = [],
   onModelChange = null,
   isVerifyingModel = false,
+  // Adjuntos
+  recordAttachments = [],
+  onPickNewAttachment,
+  activeAttachments = [],
+  onActiveAttachmentsChange,
 }) {
   const [newMessage, setNewMessage] = useState('');
   const [showOptions, setShowOptions] = useState(false);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
+  const [showPlusMenu, setShowPlusMenu] = useState(false);
+  const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+
   const messagesEndRef = useRef(null);
   const optionsRef = useRef(null);
   const modelDropdownRef = useRef(null);
+  const plusMenuRef = useRef(null);
+  const attachmentPickerRef = useRef(null);
 
   // Cerrar menús al hacer click fuera
   useEffect(() => {
@@ -39,17 +61,20 @@ export default function ChatInterface({
       if (modelDropdownRef.current && !modelDropdownRef.current.contains(event.target)) {
         setShowModelDropdown(false);
       }
+      if (plusMenuRef.current && !plusMenuRef.current.contains(event.target)) {
+        setShowPlusMenu(false);
+      }
+      if (attachmentPickerRef.current && !attachmentPickerRef.current.contains(event.target)) {
+        setShowAttachmentPicker(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   // Auto-scroll al fondo durante el streaming
-  // Solo hacemos scroll automático cuando isLoading es true (durante streaming)
-  // Cuando termina (isLoading = false), NO hacemos scroll para evitar el "salto" final
   useEffect(() => {
     if (isLoading) {
-      // Durante streaming: scroll instantáneo para seguir el texto en tiempo real
       messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
     }
   }, [chatHistory, isLoading]);
@@ -60,11 +85,49 @@ export default function ChatInterface({
 
     const message = newMessage.trim();
     setNewMessage('');
-    await onSendMessage(message);
+    
+    // Guardamos los adjuntos actuales para esta petición
+    const currentAttachments = [...activeAttachments];
+    
+    // Limpiamos la barra de input para que no sigan seleccionados visualmente
+    if (onActiveAttachmentsChange) {
+      onActiveAttachmentsChange([]);
+    }
+    
+    await onSendMessage(message, currentAttachments);
   };
 
   const handleSuggestionClick = (text) => {
-    onSendMessage(text);
+    // Al igual que con handleSubmit, limpiamos tras enviar
+    const currentAttachments = [...activeAttachments];
+    if (onActiveAttachmentsChange) {
+      onActiveAttachmentsChange([]);
+    }
+    onSendMessage(text, currentAttachments);
+  };
+
+  // Botón + → "Subir archivo"
+  const handlePickNewFile = async () => {
+    setShowPlusMenu(false);
+    if (!onPickNewAttachment) return;
+    setUploadingAttachment(true);
+    await onPickNewAttachment();
+    setUploadingAttachment(false);
+  };
+
+  // Toggle de adjunto en el picker (activa/desactiva del contexto)
+  const handleToggleAttachment = (attachment) => {
+    const isActive = activeAttachments.some(a => a.filename === attachment.filename);
+    const updated = isActive
+      ? activeAttachments.filter(a => a.filename !== attachment.filename)
+      : [...activeAttachments, attachment];
+    onActiveAttachmentsChange?.(updated);
+  };
+
+  // Quitar adjunto del contexto activo (× en el preview)
+  const handleRemoveActiveAttachment = (filename) => {
+    const updated = activeAttachments.filter(a => a.filename !== filename);
+    onActiveAttachmentsChange?.(updated);
   };
 
   const formatMessageTime = (dateString) => {
@@ -75,22 +138,14 @@ export default function ChatInterface({
     });
   };
 
-  // Procesar mensaje para convertir citas en enlaces y limpiar bloques de código envolventes
   const processMessageContent = (content) => {
     if (!content) return '';
-    
     let processed = content;
-
-    // 1. Desempaquetar bloques de código si envuelven todo el mensaje
-    // Regex: Busca ```markdown ... ``` o ``` ... ``` al inicio y final
-    // \s* permite espacios/saltos de línea antes/después
     const codeBlockRegex = /^\s*```(?:markdown)?\s*([\s\S]*?)\s*```\s*$/i;
     const match = processed.match(codeBlockRegex);
     if (match) {
-      processed = match[1]; // Extraer el contenido interior
+      processed = match[1];
     }
-
-    // 2. Procesar citas (existente)
     return processed.replace(
       /\[Ref:\s*([^|\]]+?)\s*\|\s*"?([^|"]+?)"?\s*(?:\|\s*([^\]]+?))?\]/g,
       (match, id, title, timestamp) => {
@@ -104,7 +159,6 @@ export default function ChatInterface({
     );
   };
 
-  // Componentes personalizados para el renderizado de Markdown
   const markdownComponents = {
     p: ({ children }) => <p className={styles.messageParagraph}>{children}</p>,
     a: ({ href, children }) => {
@@ -165,7 +219,7 @@ export default function ChatInterface({
   return (
     <div className={styles.container}>
       <div className={styles.chatContainer}>
-        {/* Header Rediseñado */}
+        {/* Header */}
         <div className={styles.chatHeader}>
           <div className={styles.chatHeaderLeft}>
             <div className={styles.headerIcon}>
@@ -173,7 +227,7 @@ export default function ChatInterface({
             </div>
             <span className={styles.headerTitle}>{title}</span>
           </div>
-          
+
           <div className={styles.chatHeaderRight}>
             {currentModel && (
               <div className={styles.modelPill} ref={modelDropdownRef}>
@@ -201,16 +255,16 @@ export default function ChatInterface({
               </div>
             )}
             <div ref={optionsRef} className="relative">
-              <button 
+              <button
                 className={styles.optionsButton}
                 onClick={() => setShowOptions(!showOptions)}
                 title="Opciones del chat"
               >
                 <MdMoreHoriz size={20} />
               </button>
-              
+
               {showOptions && (
-                <div 
+                <div
                   className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-50 overflow-hidden"
                   style={{ minWidth: '150px' }}
                 >
@@ -230,7 +284,7 @@ export default function ChatInterface({
           </div>
         </div>
 
-        {/* Historial de mensajes (Arriba) */}
+        {/* Historial de mensajes */}
         <div className={styles.chatHistory}>
           {chatHistory.length === 0 ? (
             <div className={styles.emptyState}>
@@ -250,15 +304,27 @@ export default function ChatInterface({
                     <MdDeleteOutline size={14} />
                   </button>
                 )}
-                
-                {/* Avatar (solo para asistente según CSS) */}
+
                 <div className={styles.messageAvatar}>
                   {message.tipo === 'asistente' ? <MdSmartToy size={16} /> : <MdPerson size={16} />}
                 </div>
 
                 <div className={styles.messageContent}>
                   <div className={styles.messageText}>
-                    <ReactMarkdown 
+                    {/* Previews de adjuntos para mensajes del usuario */}
+                    {message.tipo === 'usuario' && message.adjuntos && message.adjuntos.length > 0 && (
+                      <div className={styles.messageAttachments}>
+                        {message.adjuntos.map((att, idx) => (
+                          <div key={idx} className={styles.messageAttachmentChip}>
+                            <AttachmentTypeIcon type={att.type} size={13} />
+                            <span className={styles.messageAttachmentName} title={att.filename}>
+                              {att.filename}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <ReactMarkdown
                       components={markdownComponents}
                       remarkPlugins={[remarkGfm]}
                     >
@@ -301,9 +367,106 @@ export default function ChatInterface({
           </div>
         )}
 
-        {/* Input (Abajo) */}
+        {/* Área de input */}
         <form onSubmit={handleSubmit} className={styles.messageForm}>
+
+          {/* Preview de adjuntos activos (persisten entre mensajes) */}
+          {activeAttachments.length > 0 && (
+            <div className={styles.activeAttachmentsBar}>
+              {activeAttachments.map(att => (
+                <div key={att.filename} className={styles.activeAttachmentChip}>
+                  <AttachmentTypeIcon type={att.type} size={13} />
+                  <span className={styles.activeAttachmentName} title={att.filename}>
+                    {att.filename}
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.removeAttachmentBtn}
+                    onClick={() => handleRemoveActiveAttachment(att.filename)}
+                    title="Quitar del contexto"
+                  >
+                    <MdClose size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className={styles.messageInputContainer}>
+
+            {/* Botón + (subir archivo nuevo) */}
+            <div className={styles.attachBtnGroup} ref={plusMenuRef}>
+              <button
+                type="button"
+                className={styles.attachBtn}
+                onClick={() => setShowPlusMenu(v => !v)}
+                disabled={isLoading || uploadingAttachment}
+                title="Añadir archivo"
+              >
+                {uploadingAttachment
+                  ? <span className={styles.attachSpinner} />
+                  : <MdAdd size={18} />
+                }
+              </button>
+              {showPlusMenu && (
+                <div className={styles.plusMenu}>
+                  <button
+                    type="button"
+                    className={styles.plusMenuItem}
+                    onClick={handlePickNewFile}
+                  >
+                    <MdAttachFile size={15} />
+                    Subir archivo
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Botón adjuntar (seleccionar de los adjuntos del record) */}
+            {recordAttachments.length > 0 && (
+              <div className={styles.attachBtnGroup} ref={attachmentPickerRef}>
+                <button
+                  type="button"
+                  className={`${styles.attachBtn} ${activeAttachments.length > 0 ? styles.attachBtnActive : ''}`}
+                  onClick={() => setShowAttachmentPicker(v => !v)}
+                  disabled={isLoading}
+                  title="Adjuntar al contexto"
+                >
+                  <MdAttachFile size={17} />
+                  {activeAttachments.length > 0 && (
+                    <span className={styles.attachBadge}>{activeAttachments.length}</span>
+                  )}
+                </button>
+
+                {showAttachmentPicker && (
+                  <div className={styles.attachmentPicker}>
+                    <div className={styles.pickerHeader}>
+                      Adjuntar al contexto del chat
+                    </div>
+                    <div className={styles.pickerList}>
+                      {recordAttachments.map(att => {
+                        const isActive = activeAttachments.some(a => a.filename === att.filename);
+                        return (
+                          <label key={att.filename} className={`${styles.pickerItem} ${isActive ? styles.pickerItemActive : ''}`}>
+                            <input
+                              type="checkbox"
+                              checked={isActive}
+                              onChange={() => handleToggleAttachment(att)}
+                              className={styles.pickerCheckbox}
+                            />
+                            <AttachmentTypeIcon type={att.type} size={15} />
+                            <span className={styles.pickerFilename} title={att.filename}>
+                              {att.filename}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <input
               type="text"
               value={newMessage}

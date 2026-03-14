@@ -16,7 +16,9 @@ import styles from './RecordingDetail.module.css';
 import OverviewTab from './components/OverviewTab/OverviewTab';
 import TranscriptionChatTab from './components/TranscriptionChatTab/TranscriptionChatTab';
 import EpicsTab from './components/EpicsTab/EpicsTab';
+import AttachmentsTab from './components/AttachmentsTab/AttachmentsTab';
 import AIErrorModal from '../../components/AIErrorModal/AIErrorModal';
+import { getAttachments, pickAndAddAttachment, readAttachmentContent, estimateAttachmentTokens } from '../../services/attachmentsService';
 
 // Icons
 import { 
@@ -100,6 +102,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [settingsModel, setSettingsModel] = useState('');
   const [ragMode, setRagMode] = useState('auto'); // 'auto' | 'detallado'
 
+  // Adjuntos del record
+  const [recordAttachments, setRecordAttachments] = useState([]);
+  const [activeAttachments, setActiveAttachments] = useState([]); // adjuntos activos en el contexto del chat
+
   // Idioma de la interfaz (determina el idioma de respuesta de la IA)
   const [uiLanguage, setUiLanguage] = useState('es');
 
@@ -173,6 +179,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
     // Load Chat History
     recordingsService.getQuestionHistory(recording.id).then(setQaHistory);
+
+    // Load Attachments
+    getAttachments(recording.id).then(setRecordAttachments);
 
     // Load AI Config
     getSettings().then(settings => {
@@ -418,7 +427,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
   // --- HANDLERS ---
 
-  const handleAskQuestion = async (questionText) => {
+  const handleAskQuestion = async (questionText, attachmentsToUse = []) => {
     setQuestionLoading(true);
     setStreamingMessage('');
 
@@ -430,6 +439,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       id: `user_${tempId}`,
       tipo: 'usuario',
       contenido: questionText,
+      adjuntos: attachmentsToUse,
       fecha: new Date().toISOString()
     };
     setQaHistory(prev => [...prev, userMessage]);
@@ -439,12 +449,48 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     chatPendingService.setPending(pendingKey, questionText);
     await recordingsService.saveQuestionHistory(recording.id, {
       pregunta: questionText,
+      adjuntos: attachmentsToUse,
       respuesta: null,
       fecha: new Date().toISOString()
     });
 
     // Para estimar tokens enviados (usada en el catch para el hint de context length)
     let sentCharsEstimate = 0;
+
+    // --- Preprocesar adjuntos activos e historial ---
+    let docContext = ''; // Texto de documentos/PDFs adjuntos
+    let attachmentImages = []; // { base64, mimeType } para imágenes
+
+    // Recolectar adjuntos únicos (los de esta petición + los del historial de chat)
+    const allAttachmentsMap = new Map();
+    
+    // 1. Adjuntos del historial
+    qaHistory.forEach(msg => {
+      if (msg.adjuntos) {
+        msg.adjuntos.forEach(att => allAttachmentsMap.set(att.filename, att));
+      }
+    });
+    
+    // 2. Adjuntos de la petición actual
+    attachmentsToUse.forEach(att => allAttachmentsMap.set(att.filename, att));
+
+    const uniqueAttachments = Array.from(allAttachmentsMap.values());
+
+    if (uniqueAttachments.length > 0) {
+      for (const att of uniqueAttachments) {
+        try {
+          const content = await readAttachmentContent(recording.id, att.filename);
+          if (!content) continue;
+          if (content.type === 'image') {
+            attachmentImages.push({ base64: content.data, mimeType: content.mimeType });
+          } else if (content.type === 'text') {
+            docContext += `\n\n--- ADJUNTO: ${att.filename} ---\n${content.data}\n--- FIN ADJUNTO ---`;
+          }
+        } catch (attErr) {
+          console.warn(`Error leyendo adjunto ${att.filename}:`, attErr);
+        }
+      }
+    }
 
     try {
       // Usar estado local actualizado por el listener (más fiable y rápido)
@@ -487,25 +533,28 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         // --- MODO RAG: prompt con chunks relevantes ---
         console.log(`🔍 [RAG] Usando ${ragChunks.length} chunks relevantes`);
         const history = compressChatHistory(qaHistory);
-        prompt = ragChatPrompt(questionText, ragChunks, history);
-        sentCharsEstimate = prompt.length;
+        prompt = ragChatPrompt(questionText, ragChunks, history, docContext);
+        sentCharsEstimate = prompt.length + docContext.length;
 
+        const attachmentTokens = attachmentImages.length * 256; // ~256 tokens fijos por imagen
         setContextInfo({
           mode: 'rag',
           chunksUsed: ragChunks.length,
-          estimatedTokens: Math.ceil(prompt.length / 4)
+          estimatedTokens: Math.ceil(sentCharsEstimate / 4) + attachmentTokens
         });
 
         // Opciones para RAG: ragModel (settings) tiene prioridad; si no hay, usar sessionModel
         const activeRagModel = aiProvider === 'lmstudio' ? lmStudioRagModel : ollamaRagModel;
-        const ragOptions = activeRagModel
-          ? { ragModel: activeRagModel }
-          : { model: sessionModel || undefined };
+        const ragOptions = {
+          ...(activeRagModel ? { ragModel: activeRagModel } : { model: sessionModel || undefined }),
+          ...(attachmentImages.length > 0 ? { images: attachmentImages } : {})
+        };
         console.log('🤖 [RAG] Configuración:', {
           activeRagModel: activeRagModel || 'no configurado',
           sessionModel: sessionModel || 'settings',
           provider: aiProvider,
-          options: ragOptions
+          options: ragOptions,
+          attachments: attachmentImages.length
         });
 
         if (shouldUseStreaming) {
@@ -529,15 +578,19 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           context = await recordingsService.getTranscriptionTxt(recording.id);
         }
 
-        prompt = chatQuestionPrompt(questionText, uiLanguage);
-        sentCharsEstimate = prompt.length + (context?.length || 0);
+        prompt = chatQuestionPrompt(questionText, uiLanguage, docContext);
+        sentCharsEstimate = prompt.length + (context?.length || 0) + docContext.length;
 
+        const attachmentTokens = attachmentImages.length * 256;
         setContextInfo({
           mode: 'full',
-          estimatedTokens: Math.ceil(sentCharsEstimate / 4)
+          estimatedTokens: Math.ceil(sentCharsEstimate / 4) + attachmentTokens
         });
 
-        const classicOptions = { model: sessionModel || undefined };
+        const classicOptions = {
+          model: sessionModel || undefined,
+          ...(attachmentImages.length > 0 ? { images: attachmentImages } : {})
+        };
 
         if (shouldUseStreaming) {
           console.log('🚀 Iniciando chat en modo STREAMING');
@@ -572,7 +625,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       setQaHistory(prev => [...prev, aiMessage]);
 
       // Actualizar la entrada en disco (reemplazar respuesta null por la real)
-      const qa = { pregunta: questionText, respuesta: answer, fecha: new Date().toISOString() };
+      const qa = { pregunta: questionText, adjuntos: attachmentsToUse, respuesta: answer, fecha: new Date().toISOString() };
       await recordingsService.updateLastQuestionHistory(recording.id, qa);
 
       // Limpiar petición pendiente
@@ -612,6 +665,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       const errorText = `⚠️ ${err.message || 'Error al procesar la pregunta.'}`;
       await recordingsService.updateLastQuestionHistory(recording.id, {
         pregunta: questionText,
+        adjuntos: attachmentsToUse,
         respuesta: errorText,
         fecha: new Date().toISOString()
       });
@@ -619,6 +673,40 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     } finally {
       setQuestionLoading(false);
       setStreamingMessage('');
+    }
+  };
+
+  // Recalcular contextInfo cuando cambian los adjuntos activos en el chat
+  const handleActiveAttachmentsChange = async (newActiveAttachments) => {
+    setActiveAttachments(newActiveAttachments);
+    if (!contextInfo) return;
+    // Leer tokens de los adjuntos nuevos
+    let attachmentTokens = 0;
+    for (const att of newActiveAttachments) {
+      try {
+        const content = await readAttachmentContent(recording.id, att.filename);
+        if (content) attachmentTokens += estimateAttachmentTokens(content);
+      } catch (_) { /* ignorar */ }
+    }
+    setContextInfo(prev => {
+      if (!prev) return prev;
+      // Recalcular: tokens base (sin adjuntos previos) + nuevos tokens de adjuntos
+      const baseTokens = prev.baseTokens ?? prev.estimatedTokens;
+      return {
+        ...prev,
+        baseTokens,
+        estimatedTokens: baseTokens + attachmentTokens
+      };
+    });
+  };
+
+  // Handler para subir archivo nuevo desde el botón + del chat
+  const handlePickNewAttachment = async () => {
+    const result = await pickAndAddAttachment(recording.id);
+    if (!result.canceled && result.attachments.length > 0) {
+      setRecordAttachments(prev => [...prev, ...result.attachments]);
+      // Seleccionar automáticamente el archivo recién subido
+      handleActiveAttachmentsChange([...activeAttachments, ...result.attachments]);
     }
   };
 
@@ -685,7 +773,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       }
       // Si es el formato antiguo (tiene pregunta/respuesta), convertirlo
       const msgs = [
-        { id: `u_${i}`, tipo: 'usuario', contenido: item.pregunta, fecha: item.fecha }
+        { id: `u_${i}`, tipo: 'usuario', contenido: item.pregunta, fecha: item.fecha, adjuntos: item.adjuntos || [] }
       ];
       // Solo agregar respuesta si existe (no null = petición pendiente)
       if (item.respuesta) {
@@ -713,7 +801,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       summaries: true,
       keyTopics: true,
       detailedSummary: true,
-      participants: false
+      participants: false,
+      attachments: []
     });
 
     // Refresh config
@@ -764,6 +853,21 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     };
 
     try {
+      // Leer contenido de adjuntos seleccionados para la regeneración
+      let regenerateDocContext = '';
+      if (regenerateOptions.attachments && regenerateOptions.attachments.length > 0) {
+        for (const filename of regenerateOptions.attachments) {
+          try {
+            const content = await readAttachmentContent(recording.id, filename);
+            if (content && content.type === 'text') {
+              regenerateDocContext += `\n\n--- ADJUNTO: ${filename} ---\n${content.data}\n--- FIN ADJUNTO ---`;
+            }
+          } catch (attErr) {
+            console.warn(`Error leyendo adjunto ${filename} para regeneración:`, attErr);
+          }
+        }
+      }
+
       // Regenerate Summaries
       if (regenerateOptions.summaries || regenerateOptions.keyTopics || regenerateOptions.detailedSummary) {
         await recordingAiService.cancelGeneration(recording.id);
@@ -775,7 +879,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           {
             summaries: regenerateOptions.summaries,
             keyTopics: regenerateOptions.keyTopics,
-            detailedSummary: regenerateOptions.detailedSummary
+            detailedSummary: regenerateOptions.detailedSummary,
+            docContext: regenerateDocContext
           },
           providerOverrides
         );
@@ -1277,6 +1382,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         >
           Tareas{tasks.length > 0 ? ` (${tasks.length})` : ''}
         </button>
+        <button
+          className={`${styles.tabButton} ${activeTab === 'attachments' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('attachments')}
+        >
+          Adjuntos{recordAttachments.length > 0 ? ` (${recordAttachments.length})` : ''}
+        </button>
       </nav>
 
       {/* Main Content */}
@@ -1328,7 +1439,19 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                 [],
               onModelChange: handleSessionModelChange,
               isVerifyingModel,
+              // Adjuntos
+              recordAttachments,
+              onPickNewAttachment: handlePickNewAttachment,
+              activeAttachments,
+              onActiveAttachmentsChange: handleActiveAttachmentsChange,
             }}
+          />
+        )}
+        {activeTab === 'attachments' && (
+          <AttachmentsTab
+            recordingId={recording.id}
+            attachments={recordAttachments}
+            onAttachmentsChange={setRecordAttachments}
           />
         )}
         {activeTab === 'tasks' && (
@@ -1444,19 +1567,49 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                     />
                     Key Highlights
                   </label>
-                  <label className={styles.checkboxLabel}>
-                    <input 
-                      type="checkbox" 
-                      checked={regenerateOptions.participants}
-                      onChange={() => handleToggleRegenerateOption('participants')}
-                    />
-                    Extract Participants
-                  </label>
-                </div>
-              </div>
-            </div>
+                   <label className={styles.checkboxLabel}>
+                     <input 
+                       type="checkbox" 
+                       checked={regenerateOptions.participants}
+                       onChange={() => handleToggleRegenerateOption('participants')}
+                     />
+                     Extract Participants
+                   </label>
+                 </div>
+               </div>
 
-            <div className={styles.modalButtons}>
+               {/* Sección de adjuntos (solo si hay adjuntos) */}
+               {recordAttachments.length > 0 && (
+                 <div className={styles.modalSection}>
+                   <label className={styles.modalLabel}>Incluir adjuntos en la regeneración</label>
+                   <div className={styles.checkboxGroup}>
+                     {recordAttachments.map(att => (
+                       <label key={att.filename} className={styles.checkboxLabel}>
+                         <input
+                           type="checkbox"
+                           checked={regenerateOptions.attachments?.includes(att.filename) || false}
+                           onChange={() => {
+                             setRegenerateOptions(prev => {
+                               const current = prev.attachments || [];
+                               const updated = current.includes(att.filename)
+                                 ? current.filter(f => f !== att.filename)
+                                 : [...current, att.filename];
+                               return { ...prev, attachments: updated };
+                             });
+                           }}
+                         />
+                         {att.filename}
+                         <span style={{ color: '#9CA3AF', fontSize: '0.75rem', marginLeft: 4 }}>
+                           ({att.type})
+                         </span>
+                       </label>
+                     ))}
+                   </div>
+                 </div>
+               )}
+             </div>
+
+             <div className={styles.modalButtons}>
               <button 
                 className={styles.cancelModalBtn} 
                 onClick={() => setShowRegenerateConfirm(false)}

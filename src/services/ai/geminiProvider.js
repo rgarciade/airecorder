@@ -125,9 +125,10 @@ const defaultPrompt = `A continuación tienes una transcripción. Quiero que me 
  * @param {string} textContent - El contenido a enviar (prompt + contexto o solo contexto)
  * @param {boolean} isRaw - Si es true, envía textContent tal cual. Si es false, le añade el defaultPrompt.
  * @param {boolean} useFreeTier - Si es true, usa geminiFreeApiKey en lugar de geminiApiKey
+ * @param {Array<{base64: string, mimeType: string}>} [images] - Imágenes adjuntas (multimodal)
  * @returns {Promise<Object>} - Respuesta de Gemini
  */
-export async function sendToGemini(textContent, isRaw = false, useFreeTier = false) {
+export async function sendToGemini(textContent, isRaw = false, useFreeTier = false, images = []) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000; // 2 segundos
 
@@ -150,13 +151,16 @@ export async function sendToGemini(textContent, isRaw = false, useFreeTier = fal
   // Construir el cuerpo de la petición
   const finalPrompt = isRaw ? textContent : `${defaultPrompt}\n\nTranscripción:\n${textContent}`;
   
+  // Construir parts: primero el texto, luego las imágenes (multimodal)
+  const parts = [{ text: finalPrompt }];
+  if (images && images.length > 0) {
+    images.forEach(img => {
+      parts.push({ inline_data: { mime_type: img.mimeType, data: img.base64 } });
+    });
+  }
+
   const body = {
-    contents: [
-      { parts: [
-          { text: finalPrompt }
-        ]
-      }
-    ]
+    contents: [{ parts }]
   };
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -206,9 +210,10 @@ export async function sendToGemini(textContent, isRaw = false, useFreeTier = fal
  * @param {string} textContent - El contenido a enviar (prompt + contexto)
  * @param {Function} onChunk - Callback que recibe cada chunk de texto
  * @param {boolean} useFreeTier - Si es true, usa geminiFreeApiKey en lugar de geminiApiKey
+ * @param {Array<{base64: string, mimeType: string}>} [images] - Imágenes adjuntas (multimodal)
  * @returns {Promise<string>} - Texto completo de la respuesta
  */
-export async function sendToGeminiStreaming(textContent, onChunk, useFreeTier = false) {
+export async function sendToGeminiStreaming(textContent, onChunk, useFreeTier = false, images = []) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
@@ -228,10 +233,16 @@ export async function sendToGeminiStreaming(textContent, onChunk, useFreeTier = 
     throw new Error(`No se ha configurado la ${keyType} API Key en los ajustes.`);
   }
 
+  // Construir parts con soporte multimodal
+  const parts = [{ text: textContent }];
+  if (images && images.length > 0) {
+    images.forEach(img => {
+      parts.push({ inline_data: { mime_type: img.mimeType, data: img.base64 } });
+    });
+  }
+
   const body = {
-    contents: [
-      { parts: [{ text: textContent }] }
-    ]
+    contents: [{ parts }]
   };
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {

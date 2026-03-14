@@ -38,6 +38,7 @@ const { registerDashboardHandlers } = require('./ipc-handlers/dashboard');
 const { registerExportHandlers } = require('./ipc-handlers/export');
 const { registerUpdateHandlers } = require('./ipc-handlers/updates');
 const { registerSystemHandlers } = require('./ipc-handlers/system');
+const { registerAttachmentsHandlers } = require('./ipc-handlers/attachments');
 
 // ========================================
 // 1.5 REDIRIGIR LOGS DEL MAIN AL RENDERER (DevTools)
@@ -108,6 +109,7 @@ function registerIpcHandlers() {
   registerDashboardHandlers();
   registerExportHandlers();
   registerUpdateHandlers();
+  registerAttachmentsHandlers();
 }
 
 async function checkMicrophonePermission() {

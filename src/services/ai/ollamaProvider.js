@@ -137,13 +137,18 @@ function extractNumCtxFromParams(params) {
  * Incluye reintentos automáticos para errores de red y errores 5xx
  * @param {string} model - Nombre del modelo a usar
  * @param {string} prompt - Prompt para el modelo
- * @param {Object} options - Opciones adicionales (ej: { format: 'json' })
+ * @param {Object} options - Opciones adicionales (ej: { format: 'json', images: [{base64, mimeType}] })
  * @returns {Promise<string>} Respuesta generada
  */
 export async function generateContent(model, prompt, options = {}) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 1000;
   const url = await getBaseUrl();
+
+  // Extraer imágenes base64 si las hay (para modelos de visión como LLaVA)
+  const imagesBase64 = options.images && options.images.length > 0
+    ? options.images.map(img => img.base64)
+    : undefined;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
@@ -154,7 +159,8 @@ export async function generateContent(model, prompt, options = {}) {
           model,
           prompt,
           stream: false,
-          ...(options.format ? { format: options.format } : {})
+          ...(options.format ? { format: options.format } : {}),
+          ...(imagesBase64 ? { images: imagesBase64 } : {})
         }),
       });
 
@@ -190,14 +196,27 @@ export async function generateContent(model, prompt, options = {}) {
 
 /**
  * Genera contenido usando un modelo de Ollama (versión con streaming)
+ * @param {string} model - Nombre del modelo
+ * @param {string} prompt - Prompt
+ * @param {Function} onChunk - Callback por chunk
+ * @param {Array<{base64: string, mimeType: string}>} [images] - Imágenes (modelos de visión)
  */
-export async function generateContentStreaming(model, prompt, onChunk) {
+export async function generateContentStreaming(model, prompt, onChunk, images = []) {
   const url = await getBaseUrl();
+  // Extraer imágenes base64 si las hay
+  const imagesBase64 = images && images.length > 0
+    ? images.map(img => img.base64)
+    : undefined;
   try {
     const response = await fetch(`${url}${OLLAMA_ENDPOINTS.generate}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, prompt, stream: true }),
+      body: JSON.stringify({
+        model,
+        prompt,
+        stream: true,
+        ...(imagesBase64 ? { images: imagesBase64 } : {})
+      }),
     });
 
     if (!response.ok) {

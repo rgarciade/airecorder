@@ -182,4 +182,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Base de datos — ruta configurable
   changeDbPath: (newPath, migrate) => ipcRenderer.invoke('change-db-path', { newPath, migrate }),
   getDbStatus: () => ipcRenderer.invoke('get-db-status'),
+
+  // Adjuntos de grabaciones
+  getAttachments: (recordingId) => ipcRenderer.invoke('get-attachments', recordingId),
+  pickAndAddAttachment: (recordingId) => ipcRenderer.invoke('pick-and-add-attachment', recordingId),
+  deleteAttachment: (recordingId, filename) => ipcRenderer.invoke('delete-attachment', recordingId, filename),
+  readAttachmentContent: (recordingId, filename) => ipcRenderer.invoke('read-attachment-content', recordingId, filename),
+  getAttachmentThumbnail: (recordingId, filename) => ipcRenderer.invoke('get-attachment-thumbnail', recordingId, filename),
 }); 
