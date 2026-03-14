@@ -121,15 +121,27 @@ CRITICAL RULES:
  * Prompt para preguntas del chat con contexto de transcripción.
  * @param {string} question - Pregunta del usuario
  * @param {string} lang - Código de idioma ('es', 'en', ...)
+ * @param {string} [docContext] - Texto de documentos adjuntos (PDFs, .txt, .md)
  */
-export const chatQuestionPrompt = (question, lang = 'es') =>
-  `${question}
+export const chatQuestionPrompt = (question, lang = 'es', docContext = '') => {
+  let prompt = question;
+
+  if (docContext) {
+    prompt += `\n\n--- DOCUMENTOS ADJUNTOS ---${docContext}\n--- FIN DOCUMENTOS ADJUNTOS ---`;
+  }
+
+  prompt += `
 
 ⚠️ MANDATORY LANGUAGE RULE: YOUR ENTIRE RESPONSE MUST BE WRITTEN IN ${langName(lang)}. DO NOT USE ANY OTHER LANGUAGE.
 
-Respond concisely using Markdown format to improve readability (use bold, lists, headings, etc. when appropriate).
+Respond concisely using Markdown format to improve readability (use bold, lists, headings, tables, etc. when appropriate).
+
+CRITICAL RULE: If "DOCUMENTOS ADJUNTOS" are provided and the question refers to files, documents, or data, you MUST give absolute priority to the content inside "DOCUMENTOS ADJUNTOS". Use the transcription context only as supplementary information or if the documents don't have the answer.
 
 If the question requires specific information from the conversation, use the provided context to give a precise and detailed answer.`;
+
+  return prompt;
+};
 
 /**
  * Prompt para extraer participantes de la transcripción.

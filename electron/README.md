@@ -147,5 +147,39 @@ El build de producción aplica 3 capas de protección:
 
 **Nota**: La ofuscación solo se ejecuta en la cadena de build (`npm run electron:build`). En desarrollo (`npm run dev`), se usa el código original sin modificar.
 
-## 6. `projectsDatabase.README.md`
+## 6. Adjuntos de Grabaciones (`ipc-handlers/attachments.js`)
+
+Gestiona archivos adjuntos (imágenes y documentos) asociados a cada grabación. Los archivos se almacenan en `<grabacion>/attachments/` en disco. No requiere tabla en SQLite.
+
+### Tipos soportados
+| Extensión | Tipo | Procesamiento |
+|-----------|------|---------------|
+| `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp` | `image` | Base64 para envío multimodal al LLM |
+| `.pdf` | `pdf` | Extracción de texto con `pdf-parse` |
+| `.txt`, `.md` | `text` | Lectura directa como texto |
+
+### Handlers IPC
+| Canal IPC | Descripción |
+|-----------|-------------|
+| `get-attachments(recordingId)` | Lista los adjuntos de una grabación (`{filename, type, size, mimeType, createdAt}[]`) |
+| `pick-and-add-attachment(recordingId)` | Abre el file picker del SO y copia el archivo a `attachments/` |
+| `delete-attachment(recordingId, filename)` | Elimina un adjunto del disco |
+| `read-attachment-content(recordingId, filename)` | Lee el contenido: `{type: 'image'|'text', data, mimeType}` |
+| `get-attachment-thumbnail(recordingId, filename)` | Retorna `data:image/...;base64,...` para preview de imágenes |
+
+### Métodos expuestos en `preload.js`
+| Método | Descripción |
+|--------|-------------|
+| `getAttachments(recordingId)` | Ver lista de adjuntos |
+| `pickAndAddAttachment(recordingId)` | Subir archivo via file picker |
+| `deleteAttachment(recordingId, filename)` | Eliminar adjunto |
+| `readAttachmentContent(recordingId, filename)` | Leer contenido (base64 o texto) |
+| `getAttachmentThumbnail(recordingId, filename)` | Data URL para thumbnail de imagen |
+
+### Integración con IA
+- **Imágenes:** Se convierten a base64 y se pasan como `options.images` en `callProvider`/`callProviderStreaming`. Gemini y Ollama (modelos de visión como LLaVA) los procesan como partes multimodales.
+- **Documentos (PDF/texto):** El texto extraído se inyecta en los prompts como sección `--- DOCUMENTOS ADJUNTOS ---`.
+- El contexto se recalcula en tiempo real cuando el usuario activa/desactiva adjuntos en el chat (`ContextBar` se actualiza).
+
+## 7. `projectsDatabase.README.md`
 Existe un archivo adicional en esta carpeta (`projectsDatabase.README.md`) que detalla un motor de base de datos específico en JSON que sirve de legado o apoyo para ciertos datos de proyecto. Revísalo si vas a tocar `projectsDatabase.js`.

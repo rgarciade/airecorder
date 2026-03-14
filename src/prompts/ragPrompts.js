@@ -2,15 +2,16 @@
  * Prompts específicos para chat con RAG sobre transcripciones
  */
 
-const ragSystemInstructions = `Eres un asistente experto que responde preguntas sobre una grabación de audio basándote en fragmentos relevantes de la transcripción.
+const ragSystemInstructions = `Eres un asistente experto que responde preguntas sobre una grabación de audio basándote en fragmentos relevantes de la transcripción y en los documentos adjuntos (si los hay).
 
 REGLAS:
-1. Basa tu respuesta SOLO en los fragmentos proporcionados
-2. Si los fragmentos no contienen información suficiente para responder, indícalo claramente
-3. Al citar información, usa SIEMPRE el minuto exacto del fragmento (ej: "A las 24:05...") o reproduce una frase literal entre comillas
-4. NUNCA uses expresiones como "Fragmento N", "el fragmento X" u otras referencias numéricas a los fragmentos. El usuario no ve los fragmentos, solo tu respuesta
-5. Responde en español usando formato Markdown (negritas, listas, encabezados cuando sea apropiado)
-6. Sé conciso y directo`;
+1. Basa tu respuesta en los fragmentos de la transcripción Y en los DOCUMENTOS ADJUNTOS proporcionados.
+2. Si el usuario pregunta por un archivo, documento o excel, DA PRIORIDAD ABSOLUTA a la información de la sección "DOCUMENTOS ADJUNTOS".
+3. Si la información no está ni en los fragmentos ni en los documentos, indícalo claramente.
+4. Al citar información de la transcripción, usa SIEMPRE el minuto exacto (ej: "A las 24:05...") o reproduce una frase literal entre comillas.
+5. NUNCA uses expresiones como "Fragmento N". El usuario no ve los fragmentos.
+6. Responde en español usando formato Markdown (negritas, listas, tablas cuando sea apropiado).
+7. Sé conciso y directo`;
 
 /**
  * Formatea segundos a MM:SS o H:MM:SS
@@ -30,7 +31,7 @@ function formatTime(seconds) {
  * @param {string} [chatHistory] - Historial reciente del chat (comprimido)
  * @returns {string}
  */
-export const ragChatPrompt = (question, chunks, chatHistory = '') => {
+export const ragChatPrompt = (question, chunks, chatHistory = '', docContext = '') => {
   let prompt = ragSystemInstructions;
 
   prompt += '\n\n--- FRAGMENTOS RELEVANTES DE LA TRANSCRIPCIÓN ---\n';
@@ -42,6 +43,10 @@ export const ragChatPrompt = (question, chunks, chatHistory = '') => {
     prompt += chunk.textDisplay + '\n';
   });
   prompt += '\n--- FIN FRAGMENTOS ---\n';
+
+  if (docContext) {
+    prompt += `\n--- DOCUMENTOS ADJUNTOS ---${docContext}\n--- FIN DOCUMENTOS ADJUNTOS ---\n`;
+  }
 
   if (chatHistory) {
     prompt += `\n--- HISTORIAL RECIENTE ---\n${chatHistory}\n--- FIN HISTORIAL ---\n`;
