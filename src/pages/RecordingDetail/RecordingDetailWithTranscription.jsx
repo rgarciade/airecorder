@@ -12,6 +12,7 @@ import { ragSystemPrompt, mapHistoryToMessages } from '../../prompts/ragPrompts'
 import ragService from '../../services/ragService';
 import recordingAiService from '../../services/recordingAiService';
 import chatPendingService from '../../services/chatPendingService';
+import { checkModelVisionSupport } from '../../services/ai/huggingFaceService';
 
 import styles from './RecordingDetail.module.css';
 import OverviewTab from './components/OverviewTab/OverviewTab';
@@ -102,6 +103,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [isVerifyingModel, setIsVerifyingModel] = useState(false);
   const [settingsModel, setSettingsModel] = useState('');
   const [ragMode, setRagMode] = useState('auto'); // 'auto' | 'detallado'
+  const [currentModelSupportsVision, setCurrentModelSupportsVision] = useState(false);
 
   // Adjuntos del record
   const [recordAttachments, setRecordAttachments] = useState([]);
@@ -269,7 +271,18 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         geminifree: settings.geminiFreeModel,
         lmstudio: settings.lmStudioRagModel || settings.lmStudioModel,
       };
-      setSettingsModel(modelByProvider[provider] || '');
+      const newSettingsModel = modelByProvider[provider] || '';
+      setSettingsModel(newSettingsModel);
+
+      // Comprobar soporte de visión para el modelo actual
+      const checkVision = async () => {
+        const activeModel = sessionModel || newSettingsModel;
+        if (activeModel) {
+          const supportsVision = await checkModelVisionSupport(activeModel);
+          setCurrentModelSupportsVision(supportsVision);
+        }
+      };
+      checkVision();
 
       // Guardar context length para el proveedor actual
       let ctxLen = 8000; // Por defecto
@@ -722,6 +735,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
   const handleSessionModelChange = async (model) => {
     setSessionModel(model);
+    
+    // Comprobar soporte de visión para el nuevo modelo seleccionado
+    checkModelVisionSupport(model).then(supportsVision => {
+      setCurrentModelSupportsVision(supportsVision);
+    });
     
     // Para Ollama y LM Studio: el modelo elegido en el chat se guarda como "Modelo de Chat"
     // (ollamaRagModel / lmStudioRagModel), sin tocar el Modelo General.
@@ -1456,6 +1474,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                 [],
               onModelChange: handleSessionModelChange,
               isVerifyingModel,
+              modelSupportsVision: currentModelSupportsVision,
               // Adjuntos
               recordAttachments,
               onPickNewAttachment: handlePickNewAttachment,
