@@ -24,7 +24,10 @@
     "generalModel": "General Model",
     "embedding": "Embedding",
     "bestPerformance": "Best performance",
-    "lessResources": "Less resources"
+    "lessResources": "Less resources",
+    "recommendedModels": "Recommended models",
+    "canirunLabel": "What fits your PC?",
+    "canirunTooltip": "canirun.ai helps you find the best model for your machine"
   },
   "sidebar": {
     "home": "Home",

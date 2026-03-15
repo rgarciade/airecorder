@@ -41,7 +41,10 @@
     "generalModel": "Modelo General",
     "embedding": "Embedding",
     "bestPerformance": "Mejor rendimiento",
-    "lessResources": "Menos recursos"
+    "lessResources": "Menos recursos",
+    "recommendedModels": "Modelos recomendados",
+    "canirunLabel": "¿Cuál va mejor en tu PC?",
+    "canirunTooltip": "canirun.ai te ayuda a saber qué modelos puede correr tu máquina"
   },
   "sidebar": {
     "home": "Inicio",
