@@ -208,3 +208,66 @@ export async function sendToLMStudioStreaming(textContent, onChunk, modelOverrid
 
   return fullText;
 }
+
+// ---------------------------------------------------------------------------
+// Chat nativo via array de mensajes — para uso exclusivo del chat con historial
+// ---------------------------------------------------------------------------
+
+/**
+ * Envía un array de mensajes a LM Studio (modo streaming nativo).
+ * @param {Array<{role:'system'|'user'|'assistant', content: string}>} messages
+ * @param {Function} onChunk
+ * @param {string|null} modelOverride
+ * @returns {Promise<string>}
+ */
+export async function chatCompletionStreaming(messages, onChunk, modelOverride = null) {
+  const settings = await getSettings();
+  const url = normalizeBaseUrl(settings.lmStudioHost || 'http://localhost:1234');
+  const model = modelOverride || settings.lmStudioModel;
+
+  if (!model) throw new Error('No hay modelo cargado o seleccionado en LM Studio');
+
+  const response = await fetch(`${url}${LM_STUDIO_ENDPOINTS.chatCompletions}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, messages, stream: true }),
+  });
+
+  if (!response.ok) {
+    const errBody = await response.json().catch(() => ({}));
+    const errMsg = typeof errBody.error === 'string'
+      ? errBody.error
+      : (errBody.error?.message || errBody.message || '');
+    throw new Error(`LM Studio Error: ${response.status}${errMsg ? ' — ' + errMsg : ''}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let fullText = '';
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (trimmedLine.startsWith('data: ') && trimmedLine !== 'data: [DONE]') {
+        try {
+          const data = JSON.parse(trimmedLine.slice(6));
+          const content = data.choices[0]?.delta?.content;
+          if (content) {
+            fullText += content;
+            if (onChunk) onChunk(content);
+          }
+        } catch (e) { /* ignorar */ }
+      }
+    }
+  }
+
+  return fullText;
+}
