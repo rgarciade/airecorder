@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, shell } = require('electron');
 
 // Para Sentry en el preload script no se llama a init(), solo se importa
 require('@sentry/electron/preload');
@@ -189,4 +189,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteAttachment: (recordingId, filename) => ipcRenderer.invoke('delete-attachment', recordingId, filename),
   readAttachmentContent: (recordingId, filename) => ipcRenderer.invoke('read-attachment-content', recordingId, filename),
   getAttachmentThumbnail: (recordingId, filename) => ipcRenderer.invoke('get-attachment-thumbnail', recordingId, filename),
+
+  // Abrir URLs en el navegador predeterminado del sistema
+  openExternal: (url) => shell.openExternal(url),
 }); 
