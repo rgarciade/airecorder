@@ -5,11 +5,11 @@
  */
 
 import { getSettings } from '../settingsService';
-import { sendToGemini, sendToGeminiStreaming } from './geminiProvider';
-import { sendToDeepseek, sendToDeepseekStreaming, getDeepseekAvailableModels } from './deepseekProvider';
-import { sendToKimi, sendToKimiStreaming, getKimiAvailableModels } from './kimiProvider';
-import { sendToLMStudio, sendToLMStudioStreaming, getLMStudioModels, getLMStudioModelInfo } from './lmStudioProvider';
-import { generateContent as ollamaGenerate, generateContentStreaming as ollamaGenerateStreaming, getOllamaModelInfo } from './ollamaProvider';
+import { sendToGemini, sendToGeminiStreaming, sendToGeminiChatStreaming } from './geminiProvider';
+import { sendToDeepseek, sendToDeepseekStreaming, getDeepseekAvailableModels, chatCompletionStreaming as deepseekChatStreaming } from './deepseekProvider';
+import { sendToKimi, sendToKimiStreaming, getKimiAvailableModels, chatCompletionStreaming as kimiChatStreaming } from './kimiProvider';
+import { sendToLMStudio, sendToLMStudioStreaming, getLMStudioModels, getLMStudioModelInfo, chatCompletionStreaming as lmStudioChatStreaming } from './lmStudioProvider';
+import { generateContent as ollamaGenerate, generateContentStreaming as ollamaGenerateStreaming, chatCompletionStreaming as ollamaChatStreaming, getOllamaModelInfo } from './ollamaProvider';
 import { aiQueueService, AI_TASK_TYPES } from './aiQueueService';
 
 // ---------------------------------------------------------------------------
@@ -309,6 +309,102 @@ export async function getActiveProviderContextWindow(settings) {
   }
 
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// Chat con historial nativo (Message Array) — EXCLUSIVO para el chat de la UI
+// No usar para resúmenes, tareas u otras llamadas de análisis.
+// ---------------------------------------------------------------------------
+
+/**
+ * Lógica interna de chat con array de mensajes. Se ejecuta dentro de la tarea encolada.
+ * @param {Array<{role:'system'|'user'|'assistant', content: string}>} messages
+ * @param {Function} onChunk
+ * @param {Object} options
+ */
+async function _runCallChatProviderStreaming(messages, onChunk, options) {
+  const settings = await getSettings();
+  const provider = options.providerOverride || settings.aiProvider || 'geminifree';
+  const images = options.images || [];
+
+  console.log(`[callChatProviderStreaming] Provider: ${provider}`);
+
+  switch (provider) {
+    case 'geminifree': {
+      const fullResponse = await sendToGeminiChatStreaming(messages, onChunk, true, images);
+      return { text: fullResponse || 'Sin respuesta', provider: 'geminifree', streaming: true };
+    }
+
+    case 'gemini': {
+      const fullResponse = await sendToGeminiChatStreaming(messages, onChunk, false, images);
+      return { text: fullResponse || 'Sin respuesta', provider: 'gemini', streaming: true };
+    }
+
+    case 'deepseek': {
+      if (!settings.deepseekApiKey) throw new Error('No se ha configurado la DeepSeek API Key en los ajustes.');
+      const fullResponse = await deepseekChatStreaming(messages, onChunk, options.model || null);
+      return { text: fullResponse || 'Sin respuesta', provider: 'deepseek', streaming: true };
+    }
+
+    case 'kimi': {
+      if (!settings.kimiApiKey) throw new Error('No se ha configurado la Kimi API Key en los ajustes.');
+      const fullResponse = await kimiChatStreaming(messages, onChunk, options.model || null);
+      return { text: fullResponse || 'Sin respuesta', provider: 'kimi', streaming: true };
+    }
+
+    case 'lmstudio': {
+      const model = options.model || options.ragModel || settings.lmStudioModel;
+      if (!model) throw new Error('No se ha seleccionado un modelo en LM Studio.');
+      const fullResponse = await lmStudioChatStreaming(messages, onChunk, model);
+      return { text: fullResponse || 'Sin respuesta', provider: 'lmstudio', model, streaming: true };
+    }
+
+    case 'ollama': {
+      const model = options.model || options.ragModel || settings.ollamaModel;
+      if (!model) throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
+      console.log(`[callChatProviderStreaming] Ollama /api/chat modelo: ${model}`);
+      const fullResponse = await ollamaChatStreaming(model, messages, onChunk, images);
+      return { text: fullResponse || 'Sin respuesta', provider: 'ollama', model, streaming: true };
+    }
+
+    default: {
+      throw new Error(`Proveedor de chat no soportado: ${provider}`);
+    }
+  }
+}
+
+/**
+ * Envía un array de mensajes (historial completo) al proveedor de IA configurado,
+ * usando el protocolo nativo de cada proveedor (Multi-turn chat).
+ *
+ * EXCLUSIVO para el chat interactivo. Para resúmenes y análisis usa callProvider.
+ *
+ * @param {Array<{role:'system'|'user'|'assistant', content: string}>} messages
+ * @param {Function} onChunk - Callback que recibe cada chunk de la respuesta
+ * @param {Object} options - { model, ragModel, images, providerOverride, queueMeta }
+ * @returns {Promise<{text: string, provider: string, streaming: boolean}>}
+ */
+export async function callChatProviderStreaming(messages, onChunk, options = {}) {
+  let engine = 'IA';
+  try {
+    const settings = await getSettings();
+    const provider = options.providerOverride || settings.aiProvider || 'geminifree';
+    engine = _resolveEngineName(settings, provider, options);
+  } catch {
+    // fallback
+  }
+
+  const meta = {
+    ...(options.queueMeta || {}),
+    name: options.queueMeta?.name || 'Chat con IA',
+    type: options.queueMeta?.type || AI_TASK_TYPES.CHAT,
+    engine: options.queueMeta?.engine || engine,
+  };
+
+  return aiQueueService.enqueue(
+    () => _runCallChatProviderStreaming(messages, onChunk, options),
+    meta
+  );
 }
 
 // Re-exportar funciones útiles de proveedores

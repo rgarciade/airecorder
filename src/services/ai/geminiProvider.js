@@ -319,3 +319,121 @@ export async function sendToGeminiStreaming(textContent, onChunk, useFreeTier = 
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Chat nativo via array de mensajes — para uso exclusivo del chat con historial
+// ---------------------------------------------------------------------------
+
+/**
+ * Envía un array de mensajes a Gemini usando el formato nativo de conversación.
+ * El mensaje con role:'system' se extrae y se pone en system_instruction.
+ * Los roles 'assistant' se mapean a 'model' (formato Gemini).
+ * Las imágenes del último mensaje se incluyen en parts multimodal.
+ *
+ * @param {Array<{role:'system'|'user'|'assistant', content: string}>} messages
+ * @param {Function} onChunk
+ * @param {boolean} useFreeTier
+ * @param {Array<{base64: string, mimeType: string}>} [images] - Imágenes del último turno
+ * @returns {Promise<string>}
+ */
+export async function sendToGeminiChatStreaming(messages, onChunk, useFreeTier = false, images = []) {
+  const MAX_RETRIES = 3;
+  const BASE_DELAY = 2000;
+
+  const settings = await getSettings();
+  const GEMINI_API_KEY = useFreeTier && settings.geminiFreeApiKey
+    ? settings.geminiFreeApiKey
+    : settings.geminiApiKey;
+  const geminiModel = useFreeTier && settings.geminiFreeModel
+    ? settings.geminiFreeModel
+    : (settings.geminiModel || 'gemini-2.0-flash');
+
+  if (!GEMINI_API_KEY) {
+    throw new Error(`No se ha configurado la ${useFreeTier ? 'Gemini Free' : 'Gemini'} API Key en los ajustes.`);
+  }
+
+  // Separar system_instruction del resto de mensajes
+  const systemMsg = messages.find(m => m.role === 'system');
+  const conversationMsgs = messages.filter(m => m.role !== 'system');
+
+  // Mapear al formato Gemini: user → user, assistant → model
+  const contents = conversationMsgs.map((m, idx) => {
+    const geminiRole = m.role === 'assistant' ? 'model' : 'user';
+    // Añadir imágenes al último mensaje del usuario
+    if (idx === conversationMsgs.length - 1 && m.role === 'user' && images && images.length > 0) {
+      const parts = [{ text: m.content }];
+      images.forEach(img => {
+        parts.push({ inline_data: { mime_type: img.mimeType, data: img.base64 } });
+      });
+      return { role: geminiRole, parts };
+    }
+    return { role: geminiRole, parts: [{ text: m.content }] };
+  });
+
+  const body = {
+    contents,
+    ...(systemMsg ? { system_instruction: { parts: [{ text: systemMsg.content }] } } : {}),
+  };
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const streamingUrl = getGeminiUrl(geminiModel, true);
+      console.log(`[Gemini Chat] Usando modelo: ${geminiModel} (${useFreeTier ? 'Free' : 'Pro'})`);
+
+      const response = await fetch(streamingUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-goog-api-key': GEMINI_API_KEY },
+        body: JSON.stringify(body),
+      });
+
+      if (response.status === 429) throw new Error('429 Too Many Requests');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Error en la API de Gemini: ${response.status} ${errorData.error?.message || ''}`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullResponse = '';
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('data: ')) {
+            const dataStr = trimmed.slice(6);
+            if (dataStr === '[DONE]') continue;
+            try {
+              const data = JSON.parse(dataStr);
+              const chunk = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+              if (chunk) {
+                fullResponse += chunk;
+                if (onChunk) onChunk(chunk);
+              }
+            } catch (e) { /* ignorar */ }
+          }
+        }
+      }
+
+      return fullResponse;
+
+    } catch (error) {
+      const isLastAttempt = attempt === MAX_RETRIES - 1;
+      if (error.message.includes('429') && !isLastAttempt) {
+        const delay = BASE_DELAY * Math.pow(2, attempt);
+        console.warn(`⚠️ Gemini 429. Reintentando en ${delay / 1000}s... (${attempt + 1}/${MAX_RETRIES})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      console.error('Error en sendToGeminiChatStreaming:', error);
+      throw error;
+    }
+  }
+}

@@ -482,15 +482,17 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     if (!messageText.trim() || !activeChatId || isSendingMessage) return;
 
     const trimmedMessage = messageText.trim();
-    
-    // 1. Añadir optimísticamente el mensaje del usuario al estado local
+    const tempId = Date.now().toString();
+
+    // 1. Añadir optimísticamente el mensaje del usuario al estado local (V2)
     const tempUserMessage = {
-      id: `temp_u_${Date.now()}`,
+      id: `temp_u_${tempId}`,
       tipo: 'usuario',
       contenido: trimmedMessage,
-      fecha: new Date().toISOString()
+      fecha: new Date().toISOString(),
+      chatVersion: 2,
     };
-    
+
     setChatHistory(prev => [...prev, tempUserMessage]);
     setIsSendingMessage(true);
 
@@ -502,26 +504,43 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       // 2. Guardar mensaje del usuario en DB
       await projectChatService.saveProjectChatMessage(project.id, activeChatId, {
         tipo: 'usuario',
-        contenido: trimmedMessage
+        contenido: trimmedMessage,
+        chatVersion: 2,
       });
 
-      // 3. Generar respuesta de la IA
+      // 3. Generar respuesta de la IA con streaming nativo (V2)
       const sessionOptions = { model: sessionModel || undefined };
+      let streamingAnswer = '';
+
       const { text: aiResponse, contextInfo } = await projectChatService.generateAiResponse(
-        project.id, trimmedMessage, activeChatId, chatHistory, ragMode, sessionOptions
+        project.id, trimmedMessage, activeChatId, chatHistory, ragMode, sessionOptions,
+        (chunk) => {
+          streamingAnswer += chunk;
+          // Actualizar el mensaje de streaming en tiempo real
+          setChatHistory(prev => {
+            const withoutStreaming = prev.filter(m => m.id !== `streaming_${tempId}`);
+            return [...withoutStreaming, {
+              id: `streaming_${tempId}`,
+              tipo: 'asistente',
+              contenido: streamingAnswer,
+              fecha: new Date().toISOString(),
+              chatVersion: 2,
+            }];
+          });
+        }
       );
       setLastContextInfo(contextInfo || null);
 
       // 4. Guardar respuesta de la IA en DB
       await projectChatService.saveProjectChatMessage(project.id, activeChatId, {
         tipo: 'asistente',
-        contenido: aiResponse
+        contenido: aiResponse,
+        chatVersion: 2,
       });
 
-      // 5. Recargar historial real para sincronizar IDs y fechas
+      // 5. Recargar historial real para sincronizar IDs y fechas (reemplaza el mensaje de streaming)
       await loadChatHistory(activeChatId);
 
-      // Limpiar petición pendiente
       chatPendingService.clearPending(pendingKey);
     } catch (error) {
       console.error('Error enviando mensaje:', error);

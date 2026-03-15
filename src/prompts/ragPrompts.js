@@ -2,17 +2,6 @@
  * Prompts específicos para chat con RAG sobre transcripciones
  */
 
-const ragSystemInstructions = `Eres un asistente experto que responde preguntas sobre una grabación de audio basándote en fragmentos relevantes de la transcripción y en los documentos adjuntos (si los hay).
-
-REGLAS:
-1. Basa tu respuesta en los fragmentos de la transcripción Y en los DOCUMENTOS ADJUNTOS proporcionados.
-2. Si el usuario pregunta por un archivo, documento o excel, DA PRIORIDAD ABSOLUTA a la información de la sección "DOCUMENTOS ADJUNTOS".
-3. Si la información no está ni en los fragmentos ni en los documentos, indícalo claramente.
-4. Al citar información de la transcripción, usa SIEMPRE el minuto exacto (ej: "A las 24:05...") o reproduce una frase literal entre comillas.
-5. NUNCA uses expresiones como "Fragmento N". El usuario no ve los fragmentos.
-6. Responde en español usando formato Markdown (negritas, listas, tablas cuando sea apropiado).
-7. Sé conciso y directo`;
-
 /**
  * Formatea segundos a MM:SS o H:MM:SS
  */
@@ -24,15 +13,142 @@ function formatTime(seconds) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+// ---------------------------------------------------------------------------
+// System Prompts para Chat V2 (array de mensajes nativo — Multi-turn Chat)
+// ---------------------------------------------------------------------------
+
 /**
- * Construye el prompt completo para una pregunta de chat con RAG
- * @param {string} question - Pregunta del usuario
- * @param {Array<{ textDisplay: string, score: number, startTime: number, endTime: number, speakers: string }>} chunks - Fragmentos relevantes
- * @param {string} [chatHistory] - Historial reciente del chat (comprimido)
- * @returns {string}
+ * Genera el contenido del mensaje { role: 'system' } para el chat RAG sobre una grabación.
+ * El historial y la pregunta del usuario se envían aparte en el array de mensajes.
+ *
+ * @param {Array<{ textDisplay: string, startTime: number, endTime: number }>} chunks
+ * @param {string} [docContext] - Texto de documentos/PDFs adjuntos
+ * @returns {string} Contenido del system prompt
+ */
+export const ragSystemPrompt = (chunks, docContext = '') => {
+  let system = `Eres un asistente experto que responde preguntas sobre una grabación de audio basándote en fragmentos relevantes de la transcripción y en los documentos adjuntos (si los hay).
+
+REGLAS:
+1. Basa tu respuesta en los fragmentos de la transcripción Y en los DOCUMENTOS ADJUNTOS proporcionados.
+2. Si el usuario pregunta por un archivo, documento o excel, DA PRIORIDAD ABSOLUTA a la información de la sección "DOCUMENTOS ADJUNTOS".
+3. Si la información no está ni en los fragmentos ni en los documentos, indícalo claramente.
+4. Al citar información de la transcripción, usa SIEMPRE el minuto exacto (ej: "A las 24:05...") o reproduce una frase literal entre comillas.
+5. NUNCA uses expresiones como "Fragmento N". El usuario no ve los fragmentos.
+6. Responde en español usando formato Markdown (negritas, listas, tablas cuando sea apropiado).
+7. Sé conciso y directo.`;
+
+  system += '\n\n--- FRAGMENTOS RELEVANTES DE LA TRANSCRIPCIÓN ---\n';
+  chunks.forEach((chunk) => {
+    const startMin = chunk.startTime != null ? formatTime(chunk.startTime) : '';
+    const endMin = chunk.endTime != null ? formatTime(chunk.endTime) : '';
+    const timeLabel = startMin ? `[${startMin} - ${endMin}]` : '';
+    system += `\n${timeLabel}\n`;
+    system += chunk.textDisplay + '\n';
+  });
+  system += '\n--- FIN FRAGMENTOS ---\n';
+
+  if (docContext) {
+    system += `\n--- DOCUMENTOS ADJUNTOS ---${docContext}\n--- FIN DOCUMENTOS ADJUNTOS ---\n`;
+  }
+
+  return system;
+};
+
+/**
+ * Genera el contenido del mensaje { role: 'system' } para el chat RAG multi-grabación (proyectos).
+ *
+ * @param {Array<{ textDisplay: string, startTime: number, endTime: number, recordingTitle: string }>} chunks
+ * @returns {string} Contenido del system prompt
+ */
+export const projectRagSystemPrompt = (chunks) => {
+  let system = `Eres un asistente experto que responde preguntas sobre un proyecto basándote en fragmentos relevantes de las transcripciones de sus reuniones.
+
+REGLAS:
+1. Basa tu respuesta SOLO en los fragmentos proporcionados
+2. Si los fragmentos no contienen información suficiente, indícalo claramente
+3. Al citar información, usa SIEMPRE el nombre de la reunión y el minuto exacto (ej: "En 'Reunión de kick-off', a las 24:05...")
+4. NUNCA uses expresiones como "Fragmento N" u otras referencias numéricas
+5. Responde en español usando formato Markdown
+6. Sé conciso y directo`;
+
+  system += '\n\n--- FRAGMENTOS RELEVANTES DE LAS REUNIONES ---\n';
+  chunks.forEach((chunk) => {
+    const startMin = chunk.startTime != null ? formatTime(chunk.startTime) : '';
+    const endMin = chunk.endTime != null ? formatTime(chunk.endTime) : '';
+    const timeLabel = startMin ? `${startMin} - ${endMin}` : '';
+    const reunionLabel = chunk.recordingTitle
+      ? `[Reunión: "${chunk.recordingTitle}"${timeLabel ? ` · ${timeLabel}` : ''}]`
+      : `[${timeLabel}]`;
+    system += `\n${reunionLabel}\n`;
+    system += chunk.textDisplay + '\n';
+  });
+  system += '\n--- FIN FRAGMENTOS ---\n';
+
+  return system;
+};
+
+/**
+ * Mapea el historial interno de AIRecorder al formato estándar de mensajes.
+ * Soporta dos formatos de entrada:
+ *   - Mensaje individual (memoria): { tipo, contenido }
+ *   - Par pregunta/respuesta (JSON persistido): { tipo, pregunta, respuesta } o { pregunta, respuesta }
+ *
+ * @param {Array} history - Historial en cualquier formato interno de AIRecorder
+ * @returns {Array<{role: 'user'|'assistant', content: string}>}
+ */
+export const mapHistoryToMessages = (history) => {
+  if (!history || history.length === 0) return [];
+
+  const messages = [];
+
+  for (const item of history) {
+    // Formato 1: mensaje individual en memoria (tiene contenido explícito)
+    if (item.contenido !== undefined) {
+      const text = item.contenido;
+      if (!text || text.startsWith('⚠️')) continue; // ignorar errores
+      messages.push({
+        role: item.tipo === 'usuario' ? 'user' : 'assistant',
+        content: text,
+      });
+      continue;
+    }
+
+    // Formato 2: par pregunta/respuesta del JSON persistido (tiene pregunta)
+    if (item.pregunta !== undefined) {
+      const pregunta = item.pregunta;
+      if (pregunta) {
+        messages.push({ role: 'user', content: pregunta });
+      }
+      const respuesta = item.respuesta;
+      if (respuesta && !respuesta.startsWith('⚠️')) {
+        messages.push({ role: 'assistant', content: respuesta });
+      }
+    }
+  }
+
+  return messages;
+};
+
+// ---------------------------------------------------------------------------
+// Funciones legacy (Prompt Stuffing) — mantenidas para compatibilidad con
+// otros módulos que aún las importen pero ya no se usan en el chat principal.
+// ---------------------------------------------------------------------------
+
+/**
+ * @deprecated Usar ragSystemPrompt + mapHistoryToMessages + callChatProviderStreaming.
+ * Construye el prompt completo para una pregunta de chat con RAG (formato antiguo).
  */
 export const ragChatPrompt = (question, chunks, chatHistory = '', docContext = '') => {
-  let prompt = ragSystemInstructions;
+  let prompt = `Eres un asistente experto que responde preguntas sobre una grabación de audio basándote en fragmentos relevantes de la transcripción y en los documentos adjuntos (si los hay).
+
+REGLAS:
+1. Basa tu respuesta en los fragmentos de la transcripción Y en los DOCUMENTOS ADJUNTOS proporcionados.
+2. Si el usuario pregunta por un archivo, documento o excel, DA PRIORIDAD ABSOLUTA a la información de la sección "DOCUMENTOS ADJUNTOS".
+3. Si la información no está ni en los fragmentos ni en los documentos, indícalo claramente.
+4. Al citar información de la transcripción, usa SIEMPRE el minuto exacto (ej: "A las 24:05...") o reproduce una frase literal entre comillas.
+5. NUNCA uses expresiones como "Fragmento N". El usuario no ve los fragmentos.
+6. Responde en español usando formato Markdown (negritas, listas, tablas cuando sea apropiado).
+7. Sé conciso y directo`;
 
   prompt += '\n\n--- FRAGMENTOS RELEVANTES DE LA TRANSCRIPCIÓN ---\n';
   chunks.forEach((chunk) => {
@@ -59,12 +175,8 @@ export const ragChatPrompt = (question, chunks, chatHistory = '', docContext = '
 };
 
 /**
- * Construye el prompt para chat de proyecto con RAG multi-grabación.
- * Los chunks tienen el campo adicional `recordingTitle`.
- * @param {string} question
- * @param {Array<{ textDisplay: string, score: number, startTime: number, endTime: number, recordingTitle: string }>} chunks
- * @param {string} [chatHistory]
- * @returns {string}
+ * @deprecated Usar projectRagSystemPrompt + mapHistoryToMessages + callChatProviderStreaming.
+ * Construye el prompt para chat de proyecto con RAG multi-grabación (formato antiguo).
  */
 export const projectRagChatPrompt = (question, chunks, chatHistory = '') => {
   let prompt = `Eres un asistente experto que responde preguntas sobre un proyecto basándote en fragmentos relevantes de las transcripciones de sus reuniones.
@@ -101,25 +213,19 @@ REGLAS:
 };
 
 /**
- * Comprime el historial de chat reciente para incluirlo en el prompt RAG
- * @param {Array<{ tipo: string, contenido: string }>} messages - Mensajes del chat
- * @param {number} maxMessages - Máximo de mensajes a incluir (pares pregunta/respuesta)
- * @returns {string}
+ * @deprecated Usar mapHistoryToMessages en su lugar.
+ * Comprime el historial de chat reciente para incluirlo en el prompt RAG (formato antiguo).
  */
 export const compressChatHistory = (messages, maxMessages = 3) => {
   if (!messages || messages.length === 0) return '';
 
-  // Tomar los últimos N*2 mensajes (pares pregunta/respuesta)
   const recent = messages.slice(-(maxMessages * 2));
 
   return recent
     .map(m => {
       const role = m.tipo === 'usuario' ? 'Usuario' : 'Asistente';
-      const text = m.contenido || ''; // Asegurar que sea string
-      // Truncar respuestas largas del asistente
-      const content = text.length > 300
-        ? text.substring(0, 300) + '...'
-        : text;
+      const text = m.contenido || '';
+      const content = text.length > 300 ? text.substring(0, 300) + '...' : text;
       return `${role}: ${content}`;
     })
     .join('\n');

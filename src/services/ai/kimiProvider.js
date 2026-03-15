@@ -4,6 +4,42 @@ import { getSettings } from '../settingsService';
 
 const KIMI_API_BASE = 'https://api.moonshot.ai/v1';
 
+// ---------------------------------------------------------------------------
+// Helper interno: SSE reader compatible con OpenAI
+// ---------------------------------------------------------------------------
+async function _readOpenAIStream(response, onChunk) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let fullResponse = '';
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('data: ')) {
+        const dataStr = trimmed.slice(6);
+        if (dataStr === '[DONE]') continue;
+        try {
+          const data = JSON.parse(dataStr);
+          const chunk = data.choices?.[0]?.delta?.content || '';
+          if (chunk) {
+            fullResponse += chunk;
+            if (onChunk) onChunk(chunk);
+          }
+        } catch (e) { /* ignorar */ }
+      }
+    }
+  }
+  return fullResponse;
+}
+
 // Modelos Kimi disponibles
 const KIMI_MODELS = [
   { name: 'kimi-k2', label: 'Kimi K2', description: 'Modelo base con 1T parámetros, contexto 128K' },
@@ -186,6 +222,60 @@ export async function sendToKimiStreaming(textContent, onChunk, modelOverride = 
       }
 
       console.error('Error en streaming de Kimi:', error);
+      throw error;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Chat nativo via array de mensajes — para uso exclusivo del chat con historial
+// ---------------------------------------------------------------------------
+
+/**
+ * Envía un array de mensajes a Kimi (modo streaming nativo).
+ * @param {Array<{role:'system'|'user'|'assistant', content: string}>} messages
+ * @param {Function} onChunk
+ * @param {string|null} modelOverride
+ * @returns {Promise<string>}
+ */
+export async function chatCompletionStreaming(messages, onChunk, modelOverride = null) {
+  const MAX_RETRIES = 3;
+  const BASE_DELAY = 2000;
+
+  const settings = await getSettings();
+  const apiKey = settings.kimiApiKey;
+  const model = modelOverride || settings.kimiModel || 'kimi-k2';
+
+  if (!apiKey) throw new Error('No se ha configurado la Kimi API Key en los ajustes.');
+
+  const body = { model, messages, stream: true };
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      console.log(`[Kimi Chat] Llamando a la API (Intento ${attempt + 1})...`);
+      const response = await fetch(`${KIMI_API_BASE}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify(body),
+      });
+
+      if (response.status === 429) throw new Error('429 Too Many Requests');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Error en la API de Kimi: ${response.status} ${errorData.error?.message || ''}`);
+      }
+
+      return await _readOpenAIStream(response, onChunk);
+
+    } catch (error) {
+      const isLastAttempt = attempt === MAX_RETRIES - 1;
+      if (error.message.includes('429') && !isLastAttempt) {
+        const delay = BASE_DELAY * Math.pow(2, attempt);
+        console.warn(`⚠️ Kimi 429. Reintentando en ${delay / 1000}s... (${attempt + 1}/${MAX_RETRIES})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      console.error('Error en chatCompletionStreaming de Kimi:', error);
       throw error;
     }
   }

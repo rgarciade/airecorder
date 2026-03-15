@@ -3,11 +3,11 @@
  * Genera análisis reales basados en las grabaciones del proyecto
  */
 
-import { callProvider } from './ai/providerRouter';
+import { callProvider, callChatProviderStreaming } from './ai/providerRouter';
 import { AI_TASK_TYPES } from './ai/aiQueueService';
 import { parseJsonObject } from '../utils/aiResponseParser';
-import { projectAnalysisPrompt } from '../prompts/aiPrompts';
-import { projectRagChatPrompt, compressChatHistory } from '../prompts/ragPrompts';
+import { projectAnalysisPrompt, chatSystemPrompt } from '../prompts/aiPrompts';
+import { projectRagSystemPrompt, mapHistoryToMessages } from '../prompts/ragPrompts';
 import { getSettings } from './settingsService';
 
 class ProjectAiService {
@@ -331,19 +331,21 @@ class ProjectAiService {
   }
 
   /**
-   * Pregunta a la IA sobre el proyecto con contexto real.
+   * Pregunta a la IA sobre el proyecto con contexto real usando el paradigma V2 (array de mensajes).
    * Usa RAG si las grabaciones están indexadas; si no, usa los resúmenes JSON.
-   * @param {string} projectId - ID del proyecto
-   * @param {string} question - Pregunta del usuario
-   * @param {Array} recordingIds - IDs de grabaciones para el contexto
-   * @param {Object} recordingTitles - Mapa { [recId]: string } con títulos de grabaciones
-   * @param {Array} chatHistory - Historial de mensajes del chat
-   * @param {'auto'|'detallado'} ragMode - Modo de búsqueda RAG
+   *
+   * @param {string} projectId
+   * @param {string} question
+   * @param {Array} recordingIds
+   * @param {Object} recordingTitles - Mapa { [recId]: string }
+   * @param {Array} chatHistory - Historial completo de mensajes (formato interno AIRecorder)
+   * @param {'auto'|'detallado'} ragMode
+   * @param {Object} options - Opciones adicionales (model, etc.)
+   * @param {Function} [onChunk] - Callback de streaming (opcional)
    * @returns {Promise<{text: string, contextInfo: Object|null}>}
    */
-  async askProjectQuestion(projectId, question, recordingIds = [], recordingTitles = {}, chatHistory = [], ragMode = 'auto', options = {}) {
+  async askProjectQuestion(projectId, question, recordingIds = [], recordingTitles = {}, chatHistory = [], ragMode = 'auto', options = {}, onChunk = null) {
     try {
-      // Calcular topK según modo: auto reparte un presupuesto de 20 chunks entre grabaciones
       const topKPerRecording = ragMode === 'detallado'
         ? 10
         : Math.max(3, Math.floor(20 / Math.max(1, recordingIds.length)));
@@ -367,24 +369,35 @@ class ProjectAiService {
         }
       }
 
-      // 2a. Si hay chunks RAG, usarlos
+      // 2a. Modo RAG V2 — system prompt con chunks + historial completo nativo
       if (allChunks.length > 0) {
-        console.log(`[ProjectAI] RAG: ${allChunks.length} chunks de ${recordingIds.length} grabaciones`);
-        const history = compressChatHistory(chatHistory);
-        const prompt = projectRagChatPrompt(question, allChunks, history);
-        const result = await callProvider(prompt, {
+        console.log(`[ProjectAI V2] RAG: ${allChunks.length} chunks de ${recordingIds.length} grabaciones`);
+        const systemContent = projectRagSystemPrompt(allChunks);
+        const historyMessages = mapHistoryToMessages(chatHistory);
+        const messages = [
+          { role: 'system', content: systemContent },
+          ...historyMessages,
+          { role: 'user', content: question },
+        ];
+
+        const estimatedTokens = Math.round(systemContent.length / 4);
+        let answer = '';
+        const response = await callChatProviderStreaming(messages, (chunk) => {
+          answer += chunk;
+          if (onChunk) onChunk(chunk);
+        }, {
           ...options,
           queueMeta: { name: 'Chat del proyecto', type: AI_TASK_TYPES.CHAT },
         });
-        const estimatedTokens = Math.round(prompt.length / 4);
+
         return {
-          text: result.text || 'No he podido generar una respuesta en este momento.',
+          text: response.text || answer || 'No he podido generar una respuesta en este momento.',
           contextInfo: { mode: 'rag', chunksUsed: allChunks.length, estimatedTokens }
         };
       }
 
-      // 2b. Fallback: resúmenes JSON
-      console.log('[ProjectAI] Sin chunks RAG, usando resúmenes JSON como contexto');
+      // 2b. Fallback: resúmenes JSON como contexto con historial nativo
+      console.log('[ProjectAI V2] Sin chunks RAG, usando resúmenes JSON como contexto');
       const analysis = await this._ensureAnalysis(projectId);
       let contextText = `Información General del Proyecto:\n${analysis.resumen_breve}\n\n`;
 
@@ -398,26 +411,26 @@ class ProjectAiService {
         }
       }
 
-      const prompt = `Actúa como un asistente experto en el proyecto. Utiliza el siguiente contexto para responder a la pregunta del usuario.
+      const systemContent = chatSystemPrompt(contextText, 'es');
+      const historyMessages = mapHistoryToMessages(chatHistory);
+      const messages = [
+        { role: 'system', content: systemContent },
+        ...historyMessages,
+        { role: 'user', content: question },
+      ];
 
-Contexto del Proyecto:
-${contextText}
-
-Pregunta del usuario:
-${question}
-
-Instrucciones:
-1. Responde de forma clara y profesional en Español.
-2. Si la información no está en el contexto, indícalo educadamente.
-3. Utiliza formato Markdown para mejorar la legibilidad.`;
-
-      const result = await callProvider(prompt, {
+      const estimatedTokens = Math.round(systemContent.length / 4);
+      let answer = '';
+      const response = await callChatProviderStreaming(messages, (chunk) => {
+        answer += chunk;
+        if (onChunk) onChunk(chunk);
+      }, {
         ...options,
         queueMeta: { name: 'Chat del proyecto', type: AI_TASK_TYPES.CHAT },
       });
-      const estimatedTokens = Math.round(prompt.length / 4);
+
       return {
-        text: result.text || 'No he podido generar una respuesta en este momento.',
+        text: response.text || answer || 'No he podido generar una respuesta en este momento.',
         contextInfo: { mode: 'full', estimatedTokens }
       };
     } catch (error) {

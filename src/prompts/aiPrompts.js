@@ -117,8 +117,44 @@ CRITICAL RULES:
 7. The final output MUST be in ${langName(lang)}.
 `;
 
+// ---------------------------------------------------------------------------
+// System Prompt para Chat V2 — modo clásico (transcripción completa como contexto)
+// ---------------------------------------------------------------------------
+
 /**
- * Prompt para preguntas del chat con contexto de transcripción.
+ * Genera el contenido del mensaje { role: 'system' } para el chat clásico
+ * (cuando no hay RAG activo y se envía la transcripción/resumen completo como contexto).
+ *
+ * @param {string} transcriptionText - Transcripción completa o resumen detallado
+ * @param {string} [lang] - Código de idioma
+ * @param {string} [docContext] - Texto de documentos/PDFs adjuntos
+ * @returns {string} Contenido del system prompt
+ */
+export const chatSystemPrompt = (transcriptionText, lang = 'es', docContext = '') => {
+  const langUpper = langName(lang);
+  let system = `Eres un asistente experto que ayuda a responder preguntas sobre una grabación de audio o reunión.
+
+⚠️ REGLA OBLIGATORIA DE IDIOMA: TODA TU RESPUESTA DEBE ESTAR ESCRITA EN ${langUpper}. NO USES NINGÚN OTRO IDIOMA.
+
+Responde de forma concisa usando formato Markdown (negritas, listas, encabezados cuando sea apropiado).
+Si la pregunta requiere información específica de la conversación, usa el contexto proporcionado para dar una respuesta precisa y detallada.`;
+
+  system += `\n\n--- CONTEXTO DE LA GRABACIÓN ---\n${transcriptionText}\n--- FIN CONTEXTO ---\n`;
+
+  if (docContext) {
+    system += `\n--- DOCUMENTOS ADJUNTOS ---${docContext}\n--- FIN DOCUMENTOS ADJUNTOS ---\n`;
+  }
+
+  return system;
+};
+
+// ---------------------------------------------------------------------------
+// Prompts legacy para chat (Prompt Stuffing) — mantenidos para compatibilidad
+// ---------------------------------------------------------------------------
+
+/**
+ * @deprecated Usar chatSystemPrompt + mapHistoryToMessages + callChatProviderStreaming.
+ * Prompt para preguntas del chat con contexto de transcripción (formato antiguo).
  * @param {string} question - Pregunta del usuario
  * @param {string} lang - Código de idioma ('es', 'en', ...)
  * @param {string} [docContext] - Texto de documentos adjuntos (PDFs, .txt, .md)

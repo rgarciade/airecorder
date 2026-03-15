@@ -103,22 +103,24 @@ class ProjectChatService {
   }
 
   /**
-   * Genera una respuesta de la IA real basada en el contexto del chat y del proyecto
-   * @param {string} projectId - ID del proyecto
-   * @param {string} question - Pregunta del usuario
-   * @param {string} chatId - ID del chat para obtener el contexto
-   * @param {Array} chatHistory - Historial de mensajes para contexto RAG
-   * @param {'auto'|'detallado'} ragMode - Modo de búsqueda RAG
-   * @returns {Promise<{text: string, contextInfo: Object|null}>} Respuesta de la IA con metadatos de contexto
+   * Genera una respuesta de la IA real usando el paradigma V2 (array de mensajes nativo).
+   * Soporta streaming en tiempo real via onChunk.
+   *
+   * @param {string} projectId
+   * @param {string} question
+   * @param {string} chatId
+   * @param {Array} chatHistory - Historial completo de mensajes (formato interno)
+   * @param {'auto'|'detallado'} ragMode
+   * @param {Object} options
+   * @param {Function} [onChunk] - Callback de streaming
+   * @returns {Promise<{text: string, contextInfo: Object|null}>}
    */
-  async generateAiResponse(projectId, question, chatId, chatHistory = [], ragMode = 'auto', options = {}) {
+  async generateAiResponse(projectId, question, chatId, chatHistory = [], ragMode = 'auto', options = {}, onChunk = null) {
     try {
-      // Obtener el chat para ver su contexto
       const chats = await this.getProjectChats(projectId);
       const chat = chats.find(c => c.id === chatId);
       const recordingIds = chat?.contexto || [];
 
-      // Construir mapa de títulos para RAG multi-grabación
       const recordingTitles = {};
       if (recordingIds.length > 0) {
         try {
@@ -131,8 +133,9 @@ class ProjectChatService {
         }
       }
 
-      // Llamar al servicio de IA con contexto RAG
-      return await projectAiService.askProjectQuestion(projectId, question, recordingIds, recordingTitles, chatHistory, ragMode, options);
+      return await projectAiService.askProjectQuestion(
+        projectId, question, recordingIds, recordingTitles, chatHistory, ragMode, options, onChunk
+      );
     } catch (error) {
       console.error('Error generando respuesta IA:', error);
       return { text: 'Lo siento, ha ocurrido un error al procesar tu pregunta.', contextInfo: null };

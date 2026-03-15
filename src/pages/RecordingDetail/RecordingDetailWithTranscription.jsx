@@ -4,10 +4,11 @@ import projectsService from '../../services/projectsService';
 import { getSettings, updateSettings, addSettingsListener, removeSettingsListener } from '../../services/settingsService';
 import { getAvailableModels, checkModelSupportsStreaming, getOllamaModelInfo } from '../../services/ai/ollamaProvider';
 import { getLMStudioModels } from '../../services/ai/lmStudioProvider';
-import { generateWithContext, generateWithContextStreaming } from '../../services/aiService';
-import { callProvider, callProviderStreaming } from '../../services/ai/providerRouter';
-import { chatQuestionPrompt } from '../../prompts/aiPrompts';
-import { ragChatPrompt, compressChatHistory } from '../../prompts/ragPrompts';
+// generateWithContext y generateWithContextStreaming se mantienen para el análisis (resúmenes, etc.)
+// El chat de grabaciones usa callChatProviderStreaming directamente.
+import { callProvider, callProviderStreaming, callChatProviderStreaming } from '../../services/ai/providerRouter';
+import { chatSystemPrompt } from '../../prompts/aiPrompts';
+import { ragSystemPrompt, mapHistoryToMessages } from '../../prompts/ragPrompts';
 import ragService from '../../services/ragService';
 import recordingAiService from '../../services/recordingAiService';
 import chatPendingService from '../../services/chatPendingService';
@@ -434,13 +435,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     // Crear ID temporal único para este mensaje
     const tempId = Date.now().toString();
 
-    // Añadir la pregunta del usuario inmediatamente al historial
+    // Añadir la pregunta del usuario inmediatamente al historial (V2)
     const userMessage = {
       id: `user_${tempId}`,
       tipo: 'usuario',
       contenido: questionText,
       adjuntos: attachmentsToUse,
-      fecha: new Date().toISOString()
+      fecha: new Date().toISOString(),
+      chatVersion: 2,
     };
     setQaHistory(prev => [...prev, userMessage]);
 
@@ -448,10 +450,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     const pendingKey = `recording_${recording.id}`;
     chatPendingService.setPending(pendingKey, questionText);
     await recordingsService.saveQuestionHistory(recording.id, {
+      tipo: 'usuario',
       pregunta: questionText,
       adjuntos: attachmentsToUse,
       respuesta: null,
-      fecha: new Date().toISOString()
+      fecha: new Date().toISOString(),
+      chatVersion: 2,
     });
 
     // Para estimar tokens enviados (usada en el catch para el hint de context length)
@@ -514,7 +518,6 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         const ragStatus = await ragService.getStatus(recording.id);
         if (ragStatus.success && ragStatus.indexed) {
           setRagIndexed(true);
-          // Usar más chunks si estamos en modo detallado (igual que en proyectos)
           const limit = ragMode === 'detallado' ? 40 : 10;
           const searchResult = await ragService.search(recording.id, questionText, limit);
           if (searchResult.success && searchResult.chunks && searchResult.chunks.length > 0) {
@@ -526,60 +529,60 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         console.warn('🔍 [RAG] Error consultando, usando modo clásico:', ragErr.message);
       }
 
-      let prompt;
       let answer = '';
 
       if (useRag) {
-        // --- MODO RAG: prompt con chunks relevantes ---
-        console.log(`🔍 [RAG] Usando ${ragChunks.length} chunks relevantes`);
-        const history = compressChatHistory(qaHistory);
-        prompt = ragChatPrompt(questionText, ragChunks, history, docContext);
-        sentCharsEstimate = prompt.length + docContext.length;
+        // --- MODO RAG V2: array de mensajes nativo con system prompt ---
+        console.log(`🔍 [RAG V2] Usando ${ragChunks.length} chunks relevantes`);
 
-        const attachmentTokens = attachmentImages.length * 256; // ~256 tokens fijos por imagen
+        const systemContent = ragSystemPrompt(ragChunks, docContext);
+        sentCharsEstimate = systemContent.length + docContext.length;
+
+        const attachmentTokens = attachmentImages.length * 256;
         setContextInfo({
           mode: 'rag',
           chunksUsed: ragChunks.length,
           estimatedTokens: Math.ceil(sentCharsEstimate / 4) + attachmentTokens
         });
 
-        // Opciones para RAG: ragModel (settings) tiene prioridad; si no hay, usar sessionModel
+        // Construir array de mensajes: system + historial completo + pregunta actual
+        const historyMessages = mapHistoryToMessages(qaHistory);
+        const messages = [
+          { role: 'system', content: systemContent },
+          ...historyMessages,
+          { role: 'user', content: questionText },
+        ];
+
         const activeRagModel = aiProvider === 'lmstudio' ? lmStudioRagModel : ollamaRagModel;
         const ragOptions = {
           ...(activeRagModel ? { ragModel: activeRagModel } : { model: sessionModel || undefined }),
-          ...(attachmentImages.length > 0 ? { images: attachmentImages } : {})
+          ...(attachmentImages.length > 0 ? { images: attachmentImages } : {}),
+          queueMeta: { name: 'Chat RAG' }
         };
-        console.log('🤖 [RAG] Configuración:', {
-          activeRagModel: activeRagModel || 'no configurado',
-          sessionModel: sessionModel || 'settings',
+
+        console.log('🤖 [RAG V2] Enviando array de mensajes:', {
           provider: aiProvider,
-          options: ragOptions,
+          totalMessages: messages.length,
           attachments: attachmentImages.length
         });
 
-        if (shouldUseStreaming) {
-          console.log('🚀 Iniciando chat RAG en modo STREAMING');
-          const response = await callProviderStreaming(prompt, (chunk) => {
-            answer += chunk;
-            setStreamingMessage(answer);
-          }, ragOptions);
-          console.log('✅ [RAG] Respuesta recibida:', { provider: response.provider, model: response.model });
-          answer = response.text || answer || 'No answer generated.';
-        } else {
-          console.log('🔄 Iniciando chat RAG en modo NORMAL');
-          const response = await callProvider(prompt, ragOptions);
-          console.log('✅ [RAG] Respuesta recibida:', { provider: response.provider, model: response.model });
-          answer = response.text || 'No answer generated.';
-        }
+        console.log('🚀 Iniciando chat RAG en modo STREAMING (V2)');
+        const response = await callChatProviderStreaming(messages, (chunk) => {
+          answer += chunk;
+          setStreamingMessage(answer);
+        }, ragOptions);
+        console.log('✅ [RAG V2] Respuesta recibida:', { provider: response.provider, model: response.model });
+        answer = response.text || answer || 'No answer generated.';
+
       } else {
-        // --- MODO CLÁSICO: transcripción completa como contexto ---
+        // --- MODO CLÁSICO V2: system prompt con transcripción + historial nativo ---
         let context = detailedSummary;
         if (!context) {
           context = await recordingsService.getTranscriptionTxt(recording.id);
         }
 
-        prompt = chatQuestionPrompt(questionText, uiLanguage, docContext);
-        sentCharsEstimate = prompt.length + (context?.length || 0) + docContext.length;
+        const systemContent = chatSystemPrompt(context || 'No context available.', uiLanguage, docContext);
+        sentCharsEstimate = systemContent.length;
 
         const attachmentTokens = attachmentImages.length * 256;
         setContextInfo({
@@ -587,45 +590,47 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           estimatedTokens: Math.ceil(sentCharsEstimate / 4) + attachmentTokens
         });
 
+        // Construir array de mensajes: system + historial completo + pregunta actual
+        const historyMessages = mapHistoryToMessages(qaHistory);
+        const messages = [
+          { role: 'system', content: systemContent },
+          ...historyMessages,
+          { role: 'user', content: questionText },
+        ];
+
         const classicOptions = {
           model: sessionModel || undefined,
-          ...(attachmentImages.length > 0 ? { images: attachmentImages } : {})
+          ...(attachmentImages.length > 0 ? { images: attachmentImages } : {}),
+          queueMeta: { name: 'Chat Grabación' }
         };
 
-        if (shouldUseStreaming) {
-          console.log('🚀 Iniciando chat en modo STREAMING');
-          const response = await generateWithContextStreaming(
-            prompt,
-            context || "No context available.",
-            (chunk) => {
-              answer += chunk;
-              setStreamingMessage(answer);
-            },
-            classicOptions
-          );
-          answer = response.text || answer || 'No answer generated.';
-        } else {
-          console.log('🔄 Iniciando chat en modo NORMAL (no streaming)');
-          const response = await generateWithContext(prompt, context || "No context available.", classicOptions);
-          answer = response.text || 'No answer generated.';
-        }
+        console.log('🚀 Iniciando chat clásico en modo STREAMING (V2)', {
+          totalMessages: messages.length,
+          provider: aiProvider
+        });
+        const response = await callChatProviderStreaming(messages, (chunk) => {
+          answer += chunk;
+          setStreamingMessage(answer);
+        }, classicOptions);
+        answer = response.text || answer || 'No answer generated.';
       }
 
       setStreamingMessage('');
 
-      // Crear el mensaje de la IA con la respuesta completa
+      // Crear el mensaje de la IA con la respuesta completa (V2)
       const aiMessage = {
         id: `ai_${tempId}`,
         tipo: 'asistente',
         contenido: answer,
-        fecha: new Date().toISOString()
+        fecha: new Date().toISOString(),
+        chatVersion: 2,
       };
 
       // Añadir mensaje de la IA al historial
       setQaHistory(prev => [...prev, aiMessage]);
 
       // Actualizar la entrada en disco (reemplazar respuesta null por la real)
-      const qa = { pregunta: questionText, adjuntos: attachmentsToUse, respuesta: answer, fecha: new Date().toISOString() };
+      const qa = { tipo: 'usuario', pregunta: questionText, adjuntos: attachmentsToUse, respuesta: answer, fecha: new Date().toISOString(), chatVersion: 2 };
       await recordingsService.updateLastQuestionHistory(recording.id, qa);
 
       // Limpiar petición pendiente
@@ -664,10 +669,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       // Actualizar entrada en disco con el error como respuesta y marcar error en pending
       const errorText = `⚠️ ${err.message || 'Error al procesar la pregunta.'}`;
       await recordingsService.updateLastQuestionHistory(recording.id, {
+        tipo: 'usuario',
         pregunta: questionText,
         adjuntos: attachmentsToUse,
         respuesta: errorText,
-        fecha: new Date().toISOString()
+        fecha: new Date().toISOString(),
+        chatVersion: 2,
       });
       chatPendingService.setError(pendingKey, err.message);
     } finally {
@@ -765,17 +772,19 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   };
 
   const convertChatHistory = () => {
-    // Manejar ambos formatos: el antiguo (pregunta/respuesta) y el nuevo (mensajes individuales)
+    // Manejar tres formatos posibles del historial:
+    // 1. Mensaje individual en memoria: tiene `tipo` y `contenido` — devolver tal cual
+    // 2. Par pregunta/respuesta V2 en JSON: tiene `tipo` y `pregunta` (pero no `contenido`) — expandir en dos
+    // 3. Par pregunta/respuesta V1 en JSON (legacy): solo tiene `pregunta`, sin `tipo` — expandir en dos
     const history = qaHistory.flatMap((item, i) => {
-      // Si es el formato nuevo (tiene tipo), devolverlo directamente
-      if (item.tipo) {
+      // Caso 1: mensaje individual en memoria (tiene contenido explícito)
+      if (item.tipo && item.contenido !== undefined) {
         return [item];
       }
-      // Si es el formato antiguo (tiene pregunta/respuesta), convertirlo
+      // Casos 2 y 3: par pregunta/respuesta guardado en JSON — expandir en mensajes separados
       const msgs = [
         { id: `u_${i}`, tipo: 'usuario', contenido: item.pregunta, fecha: item.fecha, adjuntos: item.adjuntos || [] }
       ];
-      // Solo agregar respuesta si existe (no null = petición pendiente)
       if (item.respuesta) {
         msgs.push({ id: `a_${i}`, tipo: 'asistente', contenido: item.respuesta, fecha: item.fecha });
       }
