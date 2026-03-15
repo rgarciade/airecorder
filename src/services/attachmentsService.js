@@ -22,10 +22,11 @@ export async function getAttachments(recordingId) {
  * Abre el selector de archivos del sistema y añade el/los archivos
  * seleccionados a la carpeta de adjuntos de la grabación.
  * @param {number|string} recordingId
+ * @param {Object} options Opciones como { allowImages: boolean }
  * @returns {Promise<{attachments: [], canceled: boolean}>}
  */
-export async function pickAndAddAttachment(recordingId) {
-  const result = await window.electronAPI.pickAndAddAttachment(recordingId);
+export async function pickAndAddAttachment(recordingId, options = {}) {
+  const result = await window.electronAPI.pickAndAddAttachment(recordingId, options);
   if (!result.success && !result.canceled) {
     console.error('Error añadiendo adjunto:', result.error);
     return { attachments: [], canceled: false };

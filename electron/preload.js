@@ -185,7 +185,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Adjuntos de grabaciones
   getAttachments: (recordingId) => ipcRenderer.invoke('get-attachments', recordingId),
-  pickAndAddAttachment: (recordingId) => ipcRenderer.invoke('pick-and-add-attachment', recordingId),
+  pickAndAddAttachment: (recordingId, options) => ipcRenderer.invoke('pick-and-add-attachment', recordingId, options),
   deleteAttachment: (recordingId, filename) => ipcRenderer.invoke('delete-attachment', recordingId, filename),
   readAttachmentContent: (recordingId, filename) => ipcRenderer.invoke('read-attachment-content', recordingId, filename),
   getAttachmentThumbnail: (recordingId, filename) => ipcRenderer.invoke('get-attachment-thumbnail', recordingId, filename),

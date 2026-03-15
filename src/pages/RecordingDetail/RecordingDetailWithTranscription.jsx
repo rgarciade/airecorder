@@ -725,7 +725,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
   // Handler para subir archivo nuevo desde el botón + del chat
   const handlePickNewAttachment = async () => {
-    const result = await pickAndAddAttachment(recording.id);
+    const options = { allowImages: currentModelSupportsVision };
+    const result = await pickAndAddAttachment(recording.id, options);
     if (!result.canceled && result.attachments.length > 0) {
       setRecordAttachments(prev => [...prev, ...result.attachments]);
       // Seleccionar automáticamente el archivo recién subido
