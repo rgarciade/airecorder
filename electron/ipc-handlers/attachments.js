@@ -66,16 +66,26 @@ module.exports.registerAttachmentsHandlers = () => {
   });
 
   // Abrir file picker y añadir adjunto a la grabación
-  ipcMain.handle('pick-and-add-attachment', async (event, recordingId) => {
+  ipcMain.handle('pick-and-add-attachment', async (event, recordingId, options = {}) => {
     try {
+      const allowImages = options.allowImages !== false;
+
+      const filters = [];
+      
+      if (allowImages) {
+        filters.push({ name: 'Todos los soportados', extensions: SUPPORTED_EXTENSIONS.map(e => e.replace(/^\./, '')) });
+        filters.push({ name: 'Imágenes', extensions: IMAGE_EXTENSIONS.map(e => e.replace(/^\./, '')) });
+      } else {
+        const nonImageExtensions = SUPPORTED_EXTENSIONS.filter(ext => !IMAGE_EXTENSIONS.includes(ext));
+        filters.push({ name: 'Documentos soportados', extensions: nonImageExtensions.map(e => e.replace(/^\./, '')) });
+      }
+
+      filters.push({ name: 'Documentos', extensions: [...PDF_EXTENSIONS, ...TEXT_EXTENSIONS].map(e => e.replace(/^\./, '')) });
+      filters.push({ name: 'Hojas de cálculo', extensions: EXCEL_EXTENSIONS.map(e => e.replace(/^\./, '')) });
+
       const result = await dialog.showOpenDialog({
         properties: ['openFile', 'multiSelections'],
-        filters: [
-          { name: 'Todos los soportados', extensions: SUPPORTED_EXTENSIONS.map(e => e.replace(/^\./, '')) },
-          { name: 'Imágenes', extensions: IMAGE_EXTENSIONS.map(e => e.replace(/^\./, '')) },
-          { name: 'Documentos', extensions: [...PDF_EXTENSIONS, ...TEXT_EXTENSIONS].map(e => e.replace(/^\./, '')) },
-          { name: 'Hojas de cálculo', extensions: EXCEL_EXTENSIONS.map(e => e.replace(/^\./, '')) }
-        ]
+        filters
       });
 
       if (result.canceled || result.filePaths.length === 0) {
@@ -94,6 +104,11 @@ module.exports.registerAttachmentsHandlers = () => {
         const ext = path.extname(originalFilename).toLowerCase();
 
         if (!SUPPORTED_EXTENSIONS.includes(ext)) continue;
+        
+        if (!allowImages && IMAGE_EXTENSIONS.includes(ext)) {
+          dialog.showErrorBox('Archivo no soportado', `El modelo actual de IA no soporta el análisis de imágenes. El archivo ${originalFilename} no se adjuntará.`);
+          continue;
+        }
 
         // Evitar colisiones de nombre
         let destFilename = originalFilename;
