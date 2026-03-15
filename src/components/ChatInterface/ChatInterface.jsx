@@ -4,7 +4,8 @@ import remarkGfm from 'remark-gfm';
 import styles from './ChatInterface.module.css';
 import {
   MdSend, MdPerson, MdSmartToy, MdDeleteOutline, MdMoreHoriz,
-  MdAdd, MdAttachFile, MdClose, MdImage, MdPictureAsPdf, MdDescription, MdInsertDriveFile, MdTableChart
+  MdAdd, MdAttachFile, MdClose, MdImage, MdPictureAsPdf, MdDescription, MdInsertDriveFile, MdTableChart,
+  MdVisibility, MdVisibilityOff
 } from 'react-icons/md';
 
 function AttachmentTypeIcon({ type, size = 14 }) {
@@ -33,6 +34,7 @@ export default function ChatInterface({
   availableModels = [],
   onModelChange = null,
   isVerifyingModel = false,
+  modelSupportsVision = false, // <- NUEVA PROP
   // Adjuntos
   recordAttachments = [],
   onPickNewAttachment,
@@ -117,6 +119,12 @@ export default function ChatInterface({
 
   // Toggle de adjunto en el picker (activa/desactiva del contexto)
   const handleToggleAttachment = (attachment) => {
+    // Validar si es imagen y el modelo no soporta visión
+    if (attachment.type === 'image' && !modelSupportsVision) {
+      alert("El modelo actual no es compatible con el análisis de imágenes.");
+      return;
+    }
+
     const isActive = activeAttachments.some(a => a.filename === attachment.filename);
     const updated = isActive
       ? activeAttachments.filter(a => a.filename !== attachment.filename)
@@ -239,6 +247,10 @@ export default function ChatInterface({
                 >
                   {isVerifyingModel && <span className={styles.verifySpinner} />}
                   <span className={styles.modelName}>{currentModel}</span>
+                  {/* ICONO DE VISIÓN */}
+                  <span className={styles.visionIcon} title={modelSupportsVision ? "Este modelo soporta análisis de imágenes" : "Este modelo no soporta imágenes"}>
+                    {modelSupportsVision ? <MdVisibility size={14} className="text-green-600" /> : <MdVisibilityOff size={14} className="text-gray-400" />}
+                  </span>
                   {availableModels.length > 1 && !isVerifyingModel && <span className={styles.chevron}>▾</span>}
                 </button>
                 {showModelDropdown && (
@@ -453,11 +465,16 @@ export default function ChatInterface({
                               checked={isActive}
                               onChange={() => handleToggleAttachment(att)}
                               className={styles.pickerCheckbox}
+                              disabled={att.type === 'image' && !modelSupportsVision}
                             />
                             <AttachmentTypeIcon type={att.type} size={15} />
                             <span className={styles.pickerFilename} title={att.filename}>
                               {att.filename}
                             </span>
+                            {/* Feedback visual si está bloqueado */}
+                            {att.type === 'image' && !modelSupportsVision && (
+                               <span className="ml-auto text-red-400" title="Modelo no compatible"><MdVisibilityOff size={12}/></span>
+                            )}
                           </label>
                         );
                       })}
