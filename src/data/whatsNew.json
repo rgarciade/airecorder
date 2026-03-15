@@ -1,6 +1,6 @@
 {
-  "version": "0.2.2",
-  "releaseDate": "2026-03-13",
+  "version": "0.3.1",
+  "releaseDate": "2026-03-15",
   "i18n": {
     "es": {
       "modalTitle": "Novedades de esta versión",
@@ -12,7 +12,7 @@
       "pageSubheading": "Todos los cambios y mejoras de cada versión",
       "pageVersionLabel": "Versión",
       "pageReleaseDateLabel": "Fecha de lanzamiento",
-      "releaseTitle": "Mejoras en Onboarding, Documentación y Componentes UI",
+      "releaseTitle": "Adjuntos con IA, System Prompts y Correcciones",
       "releaseDateFormatted": "Marzo 2026",
       "catNew": "Nuevas funciones"
     },
@@ -26,58 +26,70 @@
       "pageSubheading": "All changes and improvements for each version",
       "pageVersionLabel": "Version",
       "pageReleaseDateLabel": "Release date",
-      "releaseTitle": "Onboarding Improvements, Documentation & UI Components",
+      "releaseTitle": "AI Attachments, System Prompts & Fixes",
       "releaseDateFormatted": "March 2026",
       "catNew": "New features"
     }
   },
   "changes": [
     {
-      "id": "onboarding-updates",
-      "icon": "🚀",
+      "id": "ai-attachments",
+      "icon": "📎",
       "es": {
-        "title": "Mejoras en el onboarding",
-        "desc": "Onboarding actualizado con mejor distribución visual, iconos mejorados, scroll optimizado y mejor adaptación a pantallas pequeñas en los pasos de información de IA local."
+        "title": "Adjuntos como contexto para la IA",
+        "desc": "Adjunta imágenes, PDFs, documentos Word y Excel a cualquier grabación o proyecto. La IA los incorpora como contexto en el chat, con detección automática de soporte de visión para modelos compatibles."
       },
       "en": {
-        "title": "Onboarding Updates",
-        "desc": "Updated onboarding with better visual layout, improved icons, optimized scroll and better adaptation to small screens in local AI info steps."
+        "title": "Attachments as AI Context",
+        "desc": "Attach images, PDFs, Word documents and Excel files to any recording or project. The AI incorporates them as context in the chat, with automatic vision support detection for compatible models."
       }
     },
     {
-      "id": "docs-page",
-      "icon": "📚",
+      "id": "vision-detection",
+      "icon": "🤖",
       "es": {
-        "title": "Página de documentación",
-        "desc": "Nueva sección de documentación con guías sobre configuración de IA local, tecnología usada y cómo reportar bugs. Links desde navbar y changelog."
+        "title": "Detección automática de soporte de visión",
+        "desc": "La app consulta la API de Hugging Face para detectar automáticamente si el modelo activo soporta imágenes, habilitando o restringiendo la selección de adjuntos de tipo imagen según corresponda."
       },
       "en": {
-        "title": "Documentation Page",
-        "desc": "New documentation section with guides on local AI setup, technology stack and how to report bugs. Links from navbar and changelog."
+        "title": "Automatic Vision Support Detection",
+        "desc": "The app queries the Hugging Face API to automatically detect whether the active model supports images, enabling or restricting image attachment selection accordingly."
       }
     },
     {
-      "id": "head-footer-components",
-      "icon": "🧩",
+      "id": "system-prompts",
+      "icon": "🧠",
       "es": {
-        "title": "Nuevos componentes head y footer",
-        "desc": "Componentes web reutilizables para el header y footer de las páginas de documentación, manteniendo consistencia visual."
+        "title": "System prompts y configuración dual de modelo",
+        "desc": "Nuevo sistema de prompts personalizados por contexto. Permite configurar modelos distintos para tareas generales y para el chat, ofreciendo más control sobre el comportamiento de la IA."
       },
       "en": {
-        "title": "Head & Footer Components",
-        "desc": "Reusable web components for header and footer in documentation pages, maintaining visual consistency."
+        "title": "System Prompts & Dual Model Config",
+        "desc": "New context-specific custom prompt system. Allows configuring separate models for general tasks and chat, offering more control over AI behavior."
       }
     },
     {
-      "id": "context-bar",
-      "icon": "📊",
+      "id": "canirun",
+      "icon": "🔗",
       "es": {
-        "title": "Mejoras en la barra de contexto",
-        "desc": "Barra de contexto mejorada para mostrar información relevante durante el procesamiento de transcripciones."
+        "title": "Botón \"¿Puedo ejecutarlo?\" integrado",
+        "desc": "Acceso directo desde la app a la herramienta canirun.com para comprobar si tu Mac puede ejecutar un modelo de IA local antes de descargarlo."
       },
       "en": {
-        "title": "Context Bar Improvements",
-        "desc": "Enhanced context bar to display relevant information during transcription processing."
+        "title": "\"Can I Run It?\" Button",
+        "desc": "Direct access from the app to the canirun.com tool to check if your Mac can run a local AI model before downloading it."
+      }
+    },
+    {
+      "id": "stability-fixes",
+      "icon": "🐛",
+      "es": {
+        "title": "Correcciones de estabilidad y UI",
+        "desc": "Corrección del z-index del menú de adjuntos con React Portal, fixes en la selección de archivos según soporte de visión, mejoras en el botón de eliminar y el selector de archivos en proyectos."
+      },
+      "en": {
+        "title": "Stability & UI Fixes",
+        "desc": "Fixed z-index of the attachments menu using React Portal, fixes in file selection based on vision support, improvements to the delete button and file selector in projects."
       }
     }
   ]
