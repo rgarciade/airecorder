@@ -4,19 +4,23 @@ import projectsService from '../../services/projectsService';
 import { getSettings, updateSettings, addSettingsListener, removeSettingsListener } from '../../services/settingsService';
 import { getAvailableModels, checkModelSupportsStreaming, getOllamaModelInfo } from '../../services/ai/ollamaProvider';
 import { getLMStudioModels } from '../../services/ai/lmStudioProvider';
-import { generateWithContext, generateWithContextStreaming } from '../../services/aiService';
-import { callProvider, callProviderStreaming } from '../../services/ai/providerRouter';
-import { chatQuestionPrompt } from '../../prompts/aiPrompts';
-import { ragChatPrompt, compressChatHistory } from '../../prompts/ragPrompts';
+// generateWithContext y generateWithContextStreaming se mantienen para el análisis (resúmenes, etc.)
+// El chat de grabaciones usa callChatProviderStreaming directamente.
+import { callProvider, callProviderStreaming, callChatProviderStreaming } from '../../services/ai/providerRouter';
+import { chatSystemPrompt } from '../../prompts/aiPrompts';
+import { ragSystemPrompt, mapHistoryToMessages } from '../../prompts/ragPrompts';
 import ragService from '../../services/ragService';
 import recordingAiService from '../../services/recordingAiService';
 import chatPendingService from '../../services/chatPendingService';
+import { checkModelVisionSupport } from '../../services/ai/huggingFaceService';
 
 import styles from './RecordingDetail.module.css';
 import OverviewTab from './components/OverviewTab/OverviewTab';
 import TranscriptionChatTab from './components/TranscriptionChatTab/TranscriptionChatTab';
 import EpicsTab from './components/EpicsTab/EpicsTab';
+import AttachmentsTab from './components/AttachmentsTab/AttachmentsTab';
 import AIErrorModal from '../../components/AIErrorModal/AIErrorModal';
+import { getAttachments, pickAndAddAttachment, readAttachmentContent, estimateAttachmentTokens } from '../../services/attachmentsService';
 
 // Icons
 import { 
@@ -99,6 +103,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [isVerifyingModel, setIsVerifyingModel] = useState(false);
   const [settingsModel, setSettingsModel] = useState('');
   const [ragMode, setRagMode] = useState('auto'); // 'auto' | 'detallado'
+  const [currentModelSupportsVision, setCurrentModelSupportsVision] = useState(false);
+
+  // Adjuntos del record
+  const [recordAttachments, setRecordAttachments] = useState([]);
+  const [activeAttachments, setActiveAttachments] = useState([]); // adjuntos activos en el contexto del chat
 
   // Idioma de la interfaz (determina el idioma de respuesta de la IA)
   const [uiLanguage, setUiLanguage] = useState('es');
@@ -174,6 +183,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     // Load Chat History
     recordingsService.getQuestionHistory(recording.id).then(setQaHistory);
 
+    // Load Attachments
+    getAttachments(recording.id).then(setRecordAttachments);
+
     // Load AI Config
     getSettings().then(settings => {
       setAiProvider(settings.aiProvider || 'geminifree');
@@ -234,12 +246,15 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       setAiProvider(provider);
       setSupportsStreaming(isStreamingSupported);
       setUiLanguage(settings.uiLanguage || 'es');
-      if (settings.ollamaModel) {
-        setSelectedOllamaModel(settings.ollamaModel);
+      
+      // Para el chat, seleccionamos el modelo de chat (ragModel) o el general como fallback
+      if (settings.ollamaRagModel || settings.ollamaModel) {
+        setSelectedOllamaModel(settings.ollamaRagModel || settings.ollamaModel);
       }
-      if (settings.lmStudioModel) {
-        setSelectedLmStudioModel(settings.lmStudioModel);
+      if (settings.lmStudioRagModel || settings.lmStudioModel) {
+        setSelectedLmStudioModel(settings.lmStudioRagModel || settings.lmStudioModel);
       }
+      
       // Cargar modelos RAG específicos si existen
       if (settings.ollamaRagModel) {
         setOllamaRagModel(settings.ollamaRagModel);
@@ -247,16 +262,27 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       if (settings.lmStudioRagModel) {
         setLmStudioRagModel(settings.lmStudioRagModel);
       }
-      // Guardar modelo de settings según proveedor
+      // Guardar modelo de settings según proveedor (priorizando modelo de chat para proveedores locales)
       const modelByProvider = {
-        ollama: settings.ollamaModel,
+        ollama: settings.ollamaRagModel || settings.ollamaModel,
         deepseek: settings.deepseekModel,
         kimi: settings.kimiModel,
         gemini: settings.geminiModel,
         geminifree: settings.geminiFreeModel,
-        lmstudio: settings.lmStudioModel,
+        lmstudio: settings.lmStudioRagModel || settings.lmStudioModel,
       };
-      setSettingsModel(modelByProvider[provider] || '');
+      const newSettingsModel = modelByProvider[provider] || '';
+      setSettingsModel(newSettingsModel);
+
+      // Comprobar soporte de visión para el modelo actual
+      const checkVision = async () => {
+        const activeModel = sessionModel || newSettingsModel;
+        if (activeModel) {
+          const supportsVision = await checkModelVisionSupport(activeModel);
+          setCurrentModelSupportsVision(supportsVision);
+        }
+      };
+      checkVision();
 
       // Guardar context length para el proveedor actual
       let ctxLen = 8000; // Por defecto
@@ -418,19 +444,21 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
   // --- HANDLERS ---
 
-  const handleAskQuestion = async (questionText) => {
+  const handleAskQuestion = async (questionText, attachmentsToUse = []) => {
     setQuestionLoading(true);
     setStreamingMessage('');
 
     // Crear ID temporal único para este mensaje
     const tempId = Date.now().toString();
 
-    // Añadir la pregunta del usuario inmediatamente al historial
+    // Añadir la pregunta del usuario inmediatamente al historial (V2)
     const userMessage = {
       id: `user_${tempId}`,
       tipo: 'usuario',
       contenido: questionText,
-      fecha: new Date().toISOString()
+      adjuntos: attachmentsToUse,
+      fecha: new Date().toISOString(),
+      chatVersion: 2,
     };
     setQaHistory(prev => [...prev, userMessage]);
 
@@ -438,13 +466,51 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     const pendingKey = `recording_${recording.id}`;
     chatPendingService.setPending(pendingKey, questionText);
     await recordingsService.saveQuestionHistory(recording.id, {
+      tipo: 'usuario',
       pregunta: questionText,
+      adjuntos: attachmentsToUse,
       respuesta: null,
-      fecha: new Date().toISOString()
+      fecha: new Date().toISOString(),
+      chatVersion: 2,
     });
 
     // Para estimar tokens enviados (usada en el catch para el hint de context length)
     let sentCharsEstimate = 0;
+
+    // --- Preprocesar adjuntos activos e historial ---
+    let docContext = ''; // Texto de documentos/PDFs adjuntos
+    let attachmentImages = []; // { base64, mimeType } para imágenes
+
+    // Recolectar adjuntos únicos (los de esta petición + los del historial de chat)
+    const allAttachmentsMap = new Map();
+    
+    // 1. Adjuntos del historial
+    qaHistory.forEach(msg => {
+      if (msg.adjuntos) {
+        msg.adjuntos.forEach(att => allAttachmentsMap.set(att.filename, att));
+      }
+    });
+    
+    // 2. Adjuntos de la petición actual
+    attachmentsToUse.forEach(att => allAttachmentsMap.set(att.filename, att));
+
+    const uniqueAttachments = Array.from(allAttachmentsMap.values());
+
+    if (uniqueAttachments.length > 0) {
+      for (const att of uniqueAttachments) {
+        try {
+          const content = await readAttachmentContent(recording.id, att.filename);
+          if (!content) continue;
+          if (content.type === 'image') {
+            attachmentImages.push({ base64: content.data, mimeType: content.mimeType });
+          } else if (content.type === 'text') {
+            docContext += `\n\n--- ADJUNTO: ${att.filename} ---\n${content.data}\n--- FIN ADJUNTO ---`;
+          }
+        } catch (attErr) {
+          console.warn(`Error leyendo adjunto ${att.filename}:`, attErr);
+        }
+      }
+    }
 
     try {
       // Usar estado local actualizado por el listener (más fiable y rápido)
@@ -468,7 +534,6 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         const ragStatus = await ragService.getStatus(recording.id);
         if (ragStatus.success && ragStatus.indexed) {
           setRagIndexed(true);
-          // Usar más chunks si estamos en modo detallado (igual que en proyectos)
           const limit = ragMode === 'detallado' ? 40 : 10;
           const searchResult = await ragService.search(recording.id, questionText, limit);
           if (searchResult.success && searchResult.chunks && searchResult.chunks.length > 0) {
@@ -480,99 +545,108 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         console.warn('🔍 [RAG] Error consultando, usando modo clásico:', ragErr.message);
       }
 
-      let prompt;
       let answer = '';
 
       if (useRag) {
-        // --- MODO RAG: prompt con chunks relevantes ---
-        console.log(`🔍 [RAG] Usando ${ragChunks.length} chunks relevantes`);
-        const history = compressChatHistory(qaHistory);
-        prompt = ragChatPrompt(questionText, ragChunks, history);
-        sentCharsEstimate = prompt.length;
+        // --- MODO RAG V2: array de mensajes nativo con system prompt ---
+        console.log(`🔍 [RAG V2] Usando ${ragChunks.length} chunks relevantes`);
 
+        const systemContent = ragSystemPrompt(ragChunks, docContext);
+        sentCharsEstimate = systemContent.length + docContext.length;
+
+        const attachmentTokens = attachmentImages.length * 256;
         setContextInfo({
           mode: 'rag',
           chunksUsed: ragChunks.length,
-          estimatedTokens: Math.ceil(prompt.length / 4)
+          estimatedTokens: Math.ceil(sentCharsEstimate / 4) + attachmentTokens
         });
 
-        // Opciones para RAG: ragModel (settings) tiene prioridad; si no hay, usar sessionModel
+        // Construir array de mensajes: system + historial completo + pregunta actual
+        const historyMessages = mapHistoryToMessages(qaHistory);
+        const messages = [
+          { role: 'system', content: systemContent },
+          ...historyMessages,
+          { role: 'user', content: questionText },
+        ];
+
         const activeRagModel = aiProvider === 'lmstudio' ? lmStudioRagModel : ollamaRagModel;
-        const ragOptions = activeRagModel
-          ? { ragModel: activeRagModel }
-          : { model: sessionModel || undefined };
-        console.log('🤖 [RAG] Configuración:', {
-          activeRagModel: activeRagModel || 'no configurado',
-          sessionModel: sessionModel || 'settings',
+        const ragOptions = {
+          ...(activeRagModel ? { ragModel: activeRagModel } : { model: sessionModel || undefined }),
+          ...(attachmentImages.length > 0 ? { images: attachmentImages } : {}),
+          queueMeta: { name: 'Chat RAG' }
+        };
+
+        console.log('🤖 [RAG V2] Enviando array de mensajes:', {
           provider: aiProvider,
-          options: ragOptions
+          totalMessages: messages.length,
+          attachments: attachmentImages.length
         });
 
-        if (shouldUseStreaming) {
-          console.log('🚀 Iniciando chat RAG en modo STREAMING');
-          const response = await callProviderStreaming(prompt, (chunk) => {
-            answer += chunk;
-            setStreamingMessage(answer);
-          }, ragOptions);
-          console.log('✅ [RAG] Respuesta recibida:', { provider: response.provider, model: response.model });
-          answer = response.text || answer || 'No answer generated.';
-        } else {
-          console.log('🔄 Iniciando chat RAG en modo NORMAL');
-          const response = await callProvider(prompt, ragOptions);
-          console.log('✅ [RAG] Respuesta recibida:', { provider: response.provider, model: response.model });
-          answer = response.text || 'No answer generated.';
-        }
+        console.log('🚀 Iniciando chat RAG en modo STREAMING (V2)');
+        const response = await callChatProviderStreaming(messages, (chunk) => {
+          answer += chunk;
+          setStreamingMessage(answer);
+        }, ragOptions);
+        console.log('✅ [RAG V2] Respuesta recibida:', { provider: response.provider, model: response.model });
+        answer = response.text || answer || 'No answer generated.';
+
       } else {
-        // --- MODO CLÁSICO: transcripción completa como contexto ---
+        // --- MODO CLÁSICO V2: system prompt con transcripción + historial nativo ---
         let context = detailedSummary;
         if (!context) {
           context = await recordingsService.getTranscriptionTxt(recording.id);
         }
 
-        prompt = chatQuestionPrompt(questionText, uiLanguage);
-        sentCharsEstimate = prompt.length + (context?.length || 0);
+        const systemContent = chatSystemPrompt(context || 'No context available.', uiLanguage, docContext);
+        sentCharsEstimate = systemContent.length;
 
+        const attachmentTokens = attachmentImages.length * 256;
         setContextInfo({
           mode: 'full',
-          estimatedTokens: Math.ceil(sentCharsEstimate / 4)
+          estimatedTokens: Math.ceil(sentCharsEstimate / 4) + attachmentTokens
         });
 
-        const classicOptions = { model: sessionModel || undefined };
+        // Construir array de mensajes: system + historial completo + pregunta actual
+        const historyMessages = mapHistoryToMessages(qaHistory);
+        const messages = [
+          { role: 'system', content: systemContent },
+          ...historyMessages,
+          { role: 'user', content: questionText },
+        ];
 
-        if (shouldUseStreaming) {
-          console.log('🚀 Iniciando chat en modo STREAMING');
-          const response = await generateWithContextStreaming(
-            prompt,
-            context || "No context available.",
-            (chunk) => {
-              answer += chunk;
-              setStreamingMessage(answer);
-            },
-            classicOptions
-          );
-          answer = response.text || answer || 'No answer generated.';
-        } else {
-          console.log('🔄 Iniciando chat en modo NORMAL (no streaming)');
-          const response = await generateWithContext(prompt, context || "No context available.", classicOptions);
-          answer = response.text || 'No answer generated.';
-        }
+        const classicOptions = {
+          model: sessionModel || undefined,
+          ...(attachmentImages.length > 0 ? { images: attachmentImages } : {}),
+          queueMeta: { name: 'Chat Grabación' }
+        };
+
+        console.log('🚀 Iniciando chat clásico en modo STREAMING (V2)', {
+          totalMessages: messages.length,
+          provider: aiProvider
+        });
+        const response = await callChatProviderStreaming(messages, (chunk) => {
+          answer += chunk;
+          setStreamingMessage(answer);
+        }, classicOptions);
+        answer = response.text || answer || 'No answer generated.';
       }
 
       setStreamingMessage('');
 
-      // Crear el mensaje de la IA con la respuesta completa
+      // Crear el mensaje de la IA con la respuesta completa (V2)
       const aiMessage = {
         id: `ai_${tempId}`,
         tipo: 'asistente',
         contenido: answer,
-        fecha: new Date().toISOString()
+        fecha: new Date().toISOString(),
+        chatVersion: 2,
       };
 
       // Añadir mensaje de la IA al historial
       setQaHistory(prev => [...prev, aiMessage]);
 
       // Actualizar la entrada en disco (reemplazar respuesta null por la real)
-      const qa = { pregunta: questionText, respuesta: answer, fecha: new Date().toISOString() };
+      const qa = { tipo: 'usuario', pregunta: questionText, adjuntos: attachmentsToUse, respuesta: answer, fecha: new Date().toISOString(), chatVersion: 2 };
       await recordingsService.updateLastQuestionHistory(recording.id, qa);
 
       // Limpiar petición pendiente
@@ -611,9 +685,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       // Actualizar entrada en disco con el error como respuesta y marcar error en pending
       const errorText = `⚠️ ${err.message || 'Error al procesar la pregunta.'}`;
       await recordingsService.updateLastQuestionHistory(recording.id, {
+        tipo: 'usuario',
         pregunta: questionText,
+        adjuntos: attachmentsToUse,
         respuesta: errorText,
-        fecha: new Date().toISOString()
+        fecha: new Date().toISOString(),
+        chatVersion: 2,
       });
       chatPendingService.setError(pendingKey, err.message);
     } finally {
@@ -622,18 +699,60 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
   };
 
+  // Recalcular contextInfo cuando cambian los adjuntos activos en el chat
+  const handleActiveAttachmentsChange = async (newActiveAttachments) => {
+    setActiveAttachments(newActiveAttachments);
+    if (!contextInfo) return;
+    // Leer tokens de los adjuntos nuevos
+    let attachmentTokens = 0;
+    for (const att of newActiveAttachments) {
+      try {
+        const content = await readAttachmentContent(recording.id, att.filename);
+        if (content) attachmentTokens += estimateAttachmentTokens(content);
+      } catch (_) { /* ignorar */ }
+    }
+    setContextInfo(prev => {
+      if (!prev) return prev;
+      // Recalcular: tokens base (sin adjuntos previos) + nuevos tokens de adjuntos
+      const baseTokens = prev.baseTokens ?? prev.estimatedTokens;
+      return {
+        ...prev,
+        baseTokens,
+        estimatedTokens: baseTokens + attachmentTokens
+      };
+    });
+  };
+
+  // Handler para subir archivo nuevo desde el botón + del chat
+  const handlePickNewAttachment = async () => {
+    const options = { allowImages: currentModelSupportsVision };
+    const result = await pickAndAddAttachment(recording.id, options);
+    if (!result.canceled && result.attachments.length > 0) {
+      setRecordAttachments(prev => [...prev, ...result.attachments]);
+      // Seleccionar automáticamente el archivo recién subido
+      handleActiveAttachmentsChange([...activeAttachments, ...result.attachments]);
+    }
+  };
+
   const handleSessionModelChange = async (model) => {
     setSessionModel(model);
     
-    // Persistir el modelo seleccionado globalmente para el proveedor actual
+    // Comprobar soporte de visión para el nuevo modelo seleccionado
+    checkModelVisionSupport(model).then(supportsVision => {
+      setCurrentModelSupportsVision(supportsVision);
+    });
+    
+    // Para Ollama y LM Studio: el modelo elegido en el chat se guarda como "Modelo de Chat"
+    // (ollamaRagModel / lmStudioRagModel), sin tocar el Modelo General.
+    // Para el resto de proveedores (cloud) se guarda directamente en su campo de modelo.
     try {
       const settingsUpdate = {};
-      if (aiProvider === 'ollama') settingsUpdate.ollamaModel = model;
+      if (aiProvider === 'ollama') settingsUpdate.ollamaRagModel = model;
+      else if (aiProvider === 'lmstudio') settingsUpdate.lmStudioRagModel = model;
       else if (aiProvider === 'deepseek') settingsUpdate.deepseekModel = model;
       else if (aiProvider === 'kimi') settingsUpdate.kimiModel = model;
       else if (aiProvider === 'gemini') settingsUpdate.geminiModel = model;
       else if (aiProvider === 'geminifree') settingsUpdate.geminiFreeModel = model;
-      else if (aiProvider === 'lmstudio') settingsUpdate.lmStudioModel = model;
       
       if (Object.keys(settingsUpdate).length > 0) {
         await updateSettings(settingsUpdate);
@@ -643,6 +762,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
 
     if (aiProvider === 'ollama') {
+      // Actualizar el estado local del modelo de chat
+      setOllamaRagModel(model);
       setIsVerifyingModel(true);
       try {
         const s = await getSettings();
@@ -657,6 +778,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
     // LM Studio usa API OpenAI-compatible, siempre soporta streaming
     if (aiProvider === 'lmstudio') {
+      setLmStudioRagModel(model);
       setSelectedLmStudioModel(model);
       setSupportsStreaming(true);
     }
@@ -676,18 +798,33 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
   };
 
+  const handleAttachmentsChange = (newAttachments) => {
+    setRecordAttachments(newAttachments);
+    
+    // Limpiar activeAttachments si algún archivo fue eliminado
+    const nextActive = activeAttachments.filter(att => 
+      newAttachments.some(na => na.filename === att.filename)
+    );
+    
+    if (nextActive.length !== activeAttachments.length) {
+      handleActiveAttachmentsChange(nextActive);
+    }
+  };
+
   const convertChatHistory = () => {
-    // Manejar ambos formatos: el antiguo (pregunta/respuesta) y el nuevo (mensajes individuales)
+    // Manejar tres formatos posibles del historial:
+    // 1. Mensaje individual en memoria: tiene `tipo` y `contenido` — devolver tal cual
+    // 2. Par pregunta/respuesta V2 en JSON: tiene `tipo` y `pregunta` (pero no `contenido`) — expandir en dos
+    // 3. Par pregunta/respuesta V1 en JSON (legacy): solo tiene `pregunta`, sin `tipo` — expandir en dos
     const history = qaHistory.flatMap((item, i) => {
-      // Si es el formato nuevo (tiene tipo), devolverlo directamente
-      if (item.tipo) {
+      // Caso 1: mensaje individual en memoria (tiene contenido explícito)
+      if (item.tipo && item.contenido !== undefined) {
         return [item];
       }
-      // Si es el formato antiguo (tiene pregunta/respuesta), convertirlo
+      // Casos 2 y 3: par pregunta/respuesta guardado en JSON — expandir en mensajes separados
       const msgs = [
-        { id: `u_${i}`, tipo: 'usuario', contenido: item.pregunta, fecha: item.fecha }
+        { id: `u_${i}`, tipo: 'usuario', contenido: item.pregunta, fecha: item.fecha, adjuntos: item.adjuntos || [] }
       ];
-      // Solo agregar respuesta si existe (no null = petición pendiente)
       if (item.respuesta) {
         msgs.push({ id: `a_${i}`, tipo: 'asistente', contenido: item.respuesta, fecha: item.fecha });
       }
@@ -713,7 +850,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       summaries: true,
       keyTopics: true,
       detailedSummary: true,
-      participants: false
+      participants: false,
+      attachments: []
     });
 
     // Refresh config
@@ -764,6 +902,21 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     };
 
     try {
+      // Leer contenido de adjuntos seleccionados para la regeneración
+      let regenerateDocContext = '';
+      if (regenerateOptions.attachments && regenerateOptions.attachments.length > 0) {
+        for (const filename of regenerateOptions.attachments) {
+          try {
+            const content = await readAttachmentContent(recording.id, filename);
+            if (content && content.type === 'text') {
+              regenerateDocContext += `\n\n--- ADJUNTO: ${filename} ---\n${content.data}\n--- FIN ADJUNTO ---`;
+            }
+          } catch (attErr) {
+            console.warn(`Error leyendo adjunto ${filename} para regeneración:`, attErr);
+          }
+        }
+      }
+
       // Regenerate Summaries
       if (regenerateOptions.summaries || regenerateOptions.keyTopics || regenerateOptions.detailedSummary) {
         await recordingAiService.cancelGeneration(recording.id);
@@ -775,7 +928,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           {
             summaries: regenerateOptions.summaries,
             keyTopics: regenerateOptions.keyTopics,
-            detailedSummary: regenerateOptions.detailedSummary
+            detailedSummary: regenerateOptions.detailedSummary,
+            docContext: regenerateDocContext
           },
           providerOverrides
         );
@@ -1277,6 +1431,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         >
           Tareas{tasks.length > 0 ? ` (${tasks.length})` : ''}
         </button>
+        <button
+          className={`${styles.tabButton} ${activeTab === 'attachments' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('attachments')}
+        >
+          Adjuntos{recordAttachments.length > 0 ? ` (${recordAttachments.length})` : ''}
+        </button>
       </nav>
 
       {/* Main Content */}
@@ -1328,7 +1488,20 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                 [],
               onModelChange: handleSessionModelChange,
               isVerifyingModel,
+              modelSupportsVision: currentModelSupportsVision,
+              // Adjuntos
+              recordAttachments,
+              onPickNewAttachment: handlePickNewAttachment,
+              activeAttachments,
+              onActiveAttachmentsChange: handleActiveAttachmentsChange,
             }}
+          />
+        )}
+        {activeTab === 'attachments' && (
+          <AttachmentsTab
+            recordingId={recording.id}
+            attachments={recordAttachments}
+            onAttachmentsChange={handleAttachmentsChange}
           />
         )}
         {activeTab === 'tasks' && (
@@ -1444,19 +1617,49 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                     />
                     Key Highlights
                   </label>
-                  <label className={styles.checkboxLabel}>
-                    <input 
-                      type="checkbox" 
-                      checked={regenerateOptions.participants}
-                      onChange={() => handleToggleRegenerateOption('participants')}
-                    />
-                    Extract Participants
-                  </label>
-                </div>
-              </div>
-            </div>
+                   <label className={styles.checkboxLabel}>
+                     <input 
+                       type="checkbox" 
+                       checked={regenerateOptions.participants}
+                       onChange={() => handleToggleRegenerateOption('participants')}
+                     />
+                     Extract Participants
+                   </label>
+                 </div>
+               </div>
 
-            <div className={styles.modalButtons}>
+               {/* Sección de adjuntos (solo si hay adjuntos) */}
+               {recordAttachments.length > 0 && (
+                 <div className={styles.modalSection}>
+                   <label className={styles.modalLabel}>Incluir adjuntos en la regeneración</label>
+                   <div className={styles.checkboxGroup}>
+                     {recordAttachments.map(att => (
+                       <label key={att.filename} className={styles.checkboxLabel}>
+                         <input
+                           type="checkbox"
+                           checked={regenerateOptions.attachments?.includes(att.filename) || false}
+                           onChange={() => {
+                             setRegenerateOptions(prev => {
+                               const current = prev.attachments || [];
+                               const updated = current.includes(att.filename)
+                                 ? current.filter(f => f !== att.filename)
+                                 : [...current, att.filename];
+                               return { ...prev, attachments: updated };
+                             });
+                           }}
+                         />
+                         {att.filename}
+                         <span style={{ color: '#9CA3AF', fontSize: '0.75rem', marginLeft: 4 }}>
+                           ({att.type})
+                         </span>
+                       </label>
+                     ))}
+                   </div>
+                 </div>
+               )}
+             </div>
+
+             <div className={styles.modalButtons}>
               <button 
                 className={styles.cancelModalBtn} 
                 onClick={() => setShowRegenerateConfirm(false)}

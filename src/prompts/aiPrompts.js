@@ -117,19 +117,67 @@ CRITICAL RULES:
 7. The final output MUST be in ${langName(lang)}.
 `;
 
+// ---------------------------------------------------------------------------
+// System Prompt para Chat V2 — modo clásico (transcripción completa como contexto)
+// ---------------------------------------------------------------------------
+
 /**
- * Prompt para preguntas del chat con contexto de transcripción.
+ * Genera el contenido del mensaje { role: 'system' } para el chat clásico
+ * (cuando no hay RAG activo y se envía la transcripción/resumen completo como contexto).
+ *
+ * @param {string} transcriptionText - Transcripción completa o resumen detallado
+ * @param {string} [lang] - Código de idioma
+ * @param {string} [docContext] - Texto de documentos/PDFs adjuntos
+ * @returns {string} Contenido del system prompt
+ */
+export const chatSystemPrompt = (transcriptionText, lang = 'es', docContext = '') => {
+  const langUpper = langName(lang);
+  let system = `Eres un asistente experto que ayuda a responder preguntas sobre una grabación de audio o reunión.
+
+⚠️ REGLA OBLIGATORIA DE IDIOMA: TODA TU RESPUESTA DEBE ESTAR ESCRITA EN ${langUpper}. NO USES NINGÚN OTRO IDIOMA.
+
+Responde de forma concisa usando formato Markdown (negritas, listas, encabezados cuando sea apropiado).
+Si la pregunta requiere información específica de la conversación, usa el contexto proporcionado para dar una respuesta precisa y detallada.`;
+
+  system += `\n\n--- CONTEXTO DE LA GRABACIÓN ---\n${transcriptionText}\n--- FIN CONTEXTO ---\n`;
+
+  if (docContext) {
+    system += `\n--- DOCUMENTOS ADJUNTOS ---${docContext}\n--- FIN DOCUMENTOS ADJUNTOS ---\n`;
+  }
+
+  return system;
+};
+
+// ---------------------------------------------------------------------------
+// Prompts legacy para chat (Prompt Stuffing) — mantenidos para compatibilidad
+// ---------------------------------------------------------------------------
+
+/**
+ * @deprecated Usar chatSystemPrompt + mapHistoryToMessages + callChatProviderStreaming.
+ * Prompt para preguntas del chat con contexto de transcripción (formato antiguo).
  * @param {string} question - Pregunta del usuario
  * @param {string} lang - Código de idioma ('es', 'en', ...)
+ * @param {string} [docContext] - Texto de documentos adjuntos (PDFs, .txt, .md)
  */
-export const chatQuestionPrompt = (question, lang = 'es') =>
-  `${question}
+export const chatQuestionPrompt = (question, lang = 'es', docContext = '') => {
+  let prompt = question;
+
+  if (docContext) {
+    prompt += `\n\n--- DOCUMENTOS ADJUNTOS ---${docContext}\n--- FIN DOCUMENTOS ADJUNTOS ---`;
+  }
+
+  prompt += `
 
 ⚠️ MANDATORY LANGUAGE RULE: YOUR ENTIRE RESPONSE MUST BE WRITTEN IN ${langName(lang)}. DO NOT USE ANY OTHER LANGUAGE.
 
-Respond concisely using Markdown format to improve readability (use bold, lists, headings, etc. when appropriate).
+Respond concisely using Markdown format to improve readability (use bold, lists, headings, tables, etc. when appropriate).
+
+CRITICAL RULE: If "DOCUMENTOS ADJUNTOS" are provided and the question refers to files, documents, or data, you MUST give absolute priority to the content inside "DOCUMENTOS ADJUNTOS". Use the transcription context only as supplementary information or if the documents don't have the answer.
 
 If the question requires specific information from the conversation, use the provided context to give a precise and detailed answer.`;
+
+  return prompt;
+};
 
 /**
  * Prompt para extraer participantes de la transcripción.
@@ -199,7 +247,45 @@ FINAL REMINDER: Return ONLY the JSON array. The "layer" field can ONLY be "front
 `;
 
 /**
- * Prompt para mejorar una tarea individual.
+ * System prompt fijo para mejorar una tarea individual (instrucciones de comportamiento del modelo).
+ * @param {string} lang - Código de idioma ('es', 'en', ...)
+ * @returns {string} System prompt con las instrucciones
+ */
+export const taskImprovementSystemPrompt = (lang = 'es') =>
+  `YOUR TASK: Improve a software development task based on the provided instructions and context.
+
+⚠️ MANDATORY LANGUAGE RULE: The "title" and "content" VALUES MUST be written in ${langName(lang)}. DO NOT USE ANY OTHER LANGUAGE.
+
+STRICT JSON FORMAT INSTRUCTIONS:
+1. Respond ONLY with a valid JSON object (no markdown, no code blocks).
+2. Do NOT include any text before or after the JSON.
+3. Format: {"title": "X", "content": "Y"}
+4. The title must be short, actionable and in the imperative form.
+5. The content must be a detailed, clear and actionable description.`;
+
+/**
+ * Genera el contenido del mensaje de usuario para mejorar una tarea.
+ * Incluye la tarea actual y el contexto de la grabación.
+ * @param {string} title - Título actual de la tarea
+ * @param {string} content - Contenido actual de la tarea
+ * @param {string} contextText - Contexto de la grabación (resumen o transcripción)
+ * @returns {string} Mensaje de usuario con tarea + contexto
+ */
+export const taskImprovementUserContent = (title, content, contextText = '') => {
+  let msg = `TASK TO IMPROVE:
+Title: ${title}
+Content: ${content}`;
+
+  if (contextText) {
+    msg += `\n\nCONTEXT FROM RECORDING:\n${contextText}`;
+  }
+
+  return msg;
+};
+
+/**
+ * @deprecated Usar taskImprovementSystemPrompt + taskImprovementUserContent por separado.
+ * Mantenido por compatibilidad con llamadas antiguas.
  * @param {string} userInstructions - Instrucciones del usuario
  * @param {string} lang - Código de idioma ('es', 'en', ...)
  */
@@ -222,20 +308,17 @@ TASK TO IMPROVE:
 `;
 
 /**
- * Prompt para análisis completo de proyecto basado en grabaciones.
- * @param {string} contextText - Texto de contexto con resúmenes de grabaciones
+ * System prompt para análisis completo de proyecto (instrucciones de rol y formato de salida).
+ * Se envía separado del contenido de las grabaciones.
  * @param {string} lang - Código de idioma ('es', 'en', ...)
+ * @returns {string} System prompt con instrucciones de análisis de proyecto
  */
-export const projectAnalysisPrompt = (contextText, lang = 'es') =>
-  `Act as an expert Project Manager. Below I provide you with summaries of several meetings/recordings associated with a project.
-They are presented in CHRONOLOGICAL ORDER (from oldest to most recent).
+export const projectAnalysisSystemPrompt = (lang = 'es') =>
+  `Act as an expert Project Manager. You will receive summaries of several meetings/recordings associated with a project, presented in CHRONOLOGICAL ORDER (from oldest to most recent).
 Your task is to analyze this information as a whole and generate an updated project status report.
 
 ⚠️ MANDATORY LANGUAGE RULE: ALL free-text fields (resumen_breve, resumen_extenso, titulo, descripcion, nombre_proyecto, proximo_hito, presupuesto, duracion_prevista, and the "role" field in miembros) MUST be written in ${langName(lang)}. DO NOT USE ANY OTHER LANGUAGE FOR THOSE FIELDS.
 The JSON KEYS and ENUM VALUES (estado, fecha, semana, initials, "completado", "en_progreso", "pendiente", "En Progreso", "Completado", "Pausado", "En Riesgo") remain EXACTLY as defined below — do NOT translate them.
-
-Recording information:
-${contextText}
 
 Respond EXCLUSIVELY with a JSON object (no markdown, no code blocks) with the following exact structure:
 {
@@ -272,6 +355,15 @@ Respond EXCLUSIVELY with a JSON object (no markdown, no code blocks) with the fo
 }
 
 If information is missing for any field, make a reasonable estimate based on context or use a 'Not specified' equivalent in ${langName(lang)}.`;
+
+/**
+ * @deprecated Usar projectAnalysisSystemPrompt(lang) + contextText como userContent por separado.
+ * Prompt legado que embebe el contextText dentro del string (no usa system prompt separado).
+ * @param {string} contextText - Texto de contexto con resúmenes de grabaciones
+ * @param {string} lang - Código de idioma ('es', 'en', ...)
+ */
+export const projectAnalysisPrompt = (contextText, lang = 'es') =>
+  `${projectAnalysisSystemPrompt(lang)}\n\nRecording information:\n${contextText}`;
 
 // Prompts para proyectos (futuro)
 export const projectPrompts = {

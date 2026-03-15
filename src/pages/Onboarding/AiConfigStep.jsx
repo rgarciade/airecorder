@@ -17,6 +17,8 @@ const AiConfigStep = ({
   ollamaModels,
   selectedOllamaModel,
   setSelectedOllamaModel,
+  selectedOllamaChatModel,
+  setSelectedOllamaChatModel,
   ollamaEmbeddingModel,
   setOllamaEmbeddingModel,
   lmStudioEmbeddingModel,
@@ -220,6 +222,22 @@ const AiConfigStep = ({
                           <option key={m} value={m}>{m}</option>
                         ))}
                       </select>
+                    </div>
+                    <div className="mt-3">
+                      <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">
+                        {t('onboarding.ai.ollama.chatModelLabel')}
+                      </label>
+                      <select
+                        className="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        value={selectedOllamaChatModel}
+                        onChange={(e) => setSelectedOllamaChatModel(e.target.value)}
+                      >
+                        <option value="">{t('settings.misc.useMainModel')}</option>
+                        {ollamaModels.filter(m => !m.toLowerCase().includes('embed')).map(m => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-slate-400 mt-1">{t('onboarding.ai.ollama.chatModelHelp')}</p>
                     </div>
                     <div className="mt-3">
                       <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">
