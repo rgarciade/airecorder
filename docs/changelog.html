@@ -181,6 +181,79 @@
     <div class="container">
       <div class="releases-inner">
 
+        <!-- ── v0.3.1 ── -->
+        <div class="release-entry animate-on-scroll">
+          <div class="release-header">
+            <span class="release-version">v0.3.1</span>
+            <span class="release-date" data-i18n="v031date">Marzo 2026</span>
+            <span class="release-branch">feature/best-chat</span>
+          </div>
+          <div class="release-title" data-i18n="v031Title">Adjuntos con IA, System Prompts y Correcciones</div>
+
+          <div class="release-category">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span data-i18n="v031Cat">Nuevas funciones</span>
+          </div>
+
+          <div class="change-list">
+            <div class="change-item">
+              <div class="change-emoji">📎</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Adjuntos como contexto para la IA"
+                  data-en="Attachments as AI Context">Adjuntos como contexto para la IA</div>
+                <div class="change-desc"
+                  data-es="Adjunta imágenes, PDFs, documentos Word y Excel a cualquier grabación o proyecto. La IA los incorpora como contexto en el chat, con detección automática de soporte de visión para modelos compatibles."
+                  data-en="Attach images, PDFs, Word documents and Excel files to any recording or project. The AI incorporates them as context in the chat, with automatic vision support detection for compatible models.">Adjunta imágenes, PDFs, documentos Word y Excel a cualquier grabación o proyecto. La IA los incorpora como contexto en el chat, con detección automática de soporte de visión para modelos compatibles.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">🤖</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Detección automática de soporte de visión"
+                  data-en="Automatic Vision Support Detection">Detección automática de soporte de visión</div>
+                <div class="change-desc"
+                  data-es="La app consulta la API de Hugging Face para detectar automáticamente si el modelo activo soporta imágenes, habilitando o restringiendo la selección de adjuntos de tipo imagen según corresponda."
+                  data-en="The app queries the Hugging Face API to automatically detect whether the active model supports images, enabling or restricting image attachment selection accordingly.">La app consulta la API de Hugging Face para detectar automáticamente si el modelo activo soporta imágenes, habilitando o restringiendo la selección de adjuntos de tipo imagen según corresponda.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">🧠</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="System prompts y configuración dual de modelo"
+                  data-en="System Prompts &amp; Dual Model Config">System prompts y configuración dual de modelo</div>
+                <div class="change-desc"
+                  data-es="Nuevo sistema de prompts personalizados por contexto. Permite configurar modelos distintos para tareas generales y para el chat, ofreciendo más control sobre el comportamiento de la IA."
+                  data-en="New context-specific custom prompt system. Allows configuring separate models for general tasks and chat, offering more control over AI behavior.">Nuevo sistema de prompts personalizados por contexto. Permite configurar modelos distintos para tareas generales y para el chat, ofreciendo más control sobre el comportamiento de la IA.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">🔗</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Botón &quot;¿Puedo ejecutarlo?&quot; integrado"
+                  data-en="&quot;Can I Run It?&quot; Button">Botón "¿Puedo ejecutarlo?" integrado</div>
+                <div class="change-desc"
+                  data-es="Acceso directo desde la app a la herramienta canirun.com para comprobar si tu Mac puede ejecutar un modelo de IA local antes de descargarlo."
+                  data-en="Direct access from the app to the canirun.com tool to check if your Mac can run a local AI model before downloading it.">Acceso directo desde la app a la herramienta canirun.com para comprobar si tu Mac puede ejecutar un modelo de IA local antes de descargarlo.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">🐛</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Correcciones de estabilidad y UI"
+                  data-en="Stability &amp; UI Fixes">Correcciones de estabilidad y UI</div>
+                <div class="change-desc"
+                  data-es="Corrección del z-index del menú de adjuntos con React Portal, fixes en la selección de archivos según soporte de visión, mejoras en el botón de eliminar y el selector de archivos en proyectos."
+                  data-en="Fixed z-index of the attachments menu using React Portal, fixes in file selection based on vision support, improvements to the delete button and file selector in projects.">Corrección del z-index del menú de adjuntos con React Portal, fixes en la selección de archivos según soporte de visión, mejoras en el botón de eliminar y el selector de archivos en proyectos.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- ── v0.2.2 ── -->
         <div class="release-entry animate-on-scroll">
           <div class="release-header">
@@ -463,6 +536,10 @@
         heroBadgeText:    'Historial de versiones',
         changelogTitle:   'Novedades',
         changelogSubtitle:'Mejoras y nuevas funcionalidades incorporadas en cada versión.',
+        // v0.3.1
+        v031date:  'Marzo 2026',
+        v031Title: 'Adjuntos con IA, System Prompts y Correcciones',
+        v031Cat:   'Nuevas funciones',
         // v0.2.2
         v022date:  'Marzo 2026',
         v022Title: 'Mejoras en Onboarding, Documentación y Componentes UI',
@@ -497,6 +574,10 @@
         heroBadgeText:    'Version history',
         changelogTitle:   "What's New",
         changelogSubtitle:'Improvements and new features added in each version.',
+        // v0.3.1
+        v031date:  'March 2026',
+        v031Title: 'AI Attachments, System Prompts & Fixes',
+        v031Cat:   'New features',
         // v0.2.2
         v022date:  'March 2026',
         v022Title: 'Onboarding Improvements, Documentation & UI Components',
