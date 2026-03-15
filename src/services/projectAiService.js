@@ -372,7 +372,7 @@ class ProjectAiService {
       // 2a. Modo RAG V2 — system prompt con chunks + historial completo nativo
       if (allChunks.length > 0) {
         console.log(`[ProjectAI V2] RAG: ${allChunks.length} chunks de ${recordingIds.length} grabaciones`);
-        const systemContent = projectRagSystemPrompt(allChunks);
+        const systemContent = projectRagSystemPrompt(allChunks, options.extraContext || '');
         const historyMessages = mapHistoryToMessages(chatHistory);
         const messages = [
           { role: 'system', content: systemContent },
@@ -409,6 +409,10 @@ class ProjectAiService {
             contextText += `- Grabación ${recId}:\n${JSON.stringify(summaryResult.summary)}\n\n`;
           }
         }
+      }
+      
+      if (options.extraContext) {
+        contextText += `\n\n--- DOCUMENTOS ADJUNTOS ---${options.extraContext}\n--- FIN DOCUMENTOS ADJUNTOS ---\n`;
       }
 
       const systemContent = chatSystemPrompt(contextText, 'es');

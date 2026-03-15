@@ -55,7 +55,7 @@ function AttachmentCard({ attachment, recordingId, onDelete }) {
   };
 
   return (
-    <div className={styles.card}>
+    <div className={styles.card} onMouseLeave={() => setConfirmDelete(false)}>
       <div className={styles.cardPreview}>
         {thumbnail ? (
           <img src={thumbnail} alt={attachment.filename} className={styles.thumbnail} />
@@ -84,8 +84,8 @@ function AttachmentCard({ attachment, recordingId, onDelete }) {
         )}
       </button>
       {confirmDelete && !deleting && (
-        <div className={styles.confirmBadge} onClick={() => setConfirmDelete(false)}>
-          ¿Eliminar?
+        <div className={styles.confirmBadge} onClick={handleDelete}>
+          Confirmar
         </div>
       )}
     </div>
