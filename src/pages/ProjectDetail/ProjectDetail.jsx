@@ -23,8 +23,6 @@ import { checkModelVisionSupport } from '../../services/ai/huggingFaceService';
 import chatPendingService from '../../services/chatPendingService';
 import { getAttachments } from '../../services/attachmentsService';
 
-import { getAttachments } from '../../services/attachmentsService';
-
 const DEEPSEEK_CHAT_MODELS = [
   { value: 'deepseek-chat', label: 'DeepSeek Chat' },
   { value: 'deepseek-reasoner', label: 'DeepSeek Reasoner' },
@@ -592,7 +590,6 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       id: `temp_u_${tempId}`,
       tipo: 'usuario',
       contenido: trimmedMessage,
-      adjuntos: activeProjectAttachments,
       fecha: new Date().toISOString(),
       chatVersion: 2,
       adjuntos: attachmentsToUse.map(a => ({ filename: a.filename, type: a.type }))
@@ -610,33 +607,11 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       await projectChatService.saveProjectChatMessage(project.id, activeChatId, {
         tipo: 'usuario',
         contenido: trimmedMessage,
-        adjuntos: activeProjectAttachments,
         chatVersion: 2,
         adjuntos: attachmentsToUse.map(a => ({ filename: a.filename, type: a.type }))
       });
 
       // 3. Generar respuesta de la IA con streaming nativo (V2)
-      // Extraer imágenes de los adjuntos para pasarlas al chat
-      const attachmentImages = [];
-      if (activeProjectAttachments.length > 0) {
-        // Necesitamos leer el contenido de las imágenes adjuntas.
-        // Dado que la función genera la respuesta, podríamos necesitar hacer esto en projectChatService
-        // pero por ahora lo inyectamos en `images` en sessionOptions para que lo procese el router.
-        // Asumimos que projectChatService ya recibe 'chatHistory' con los adjuntos y los lee,
-        // o necesitamos leerlos aquí y pasarlos en options.images.
-        // Vamos a leerlos aquí igual que en RecordingDetailWithTranscription
-        const { readAttachmentContent } = await import('../../services/attachmentsService');
-        for (const att of activeProjectAttachments) {
-          if (att.type === 'image') {
-            try {
-              const content = await readAttachmentContent(att.recordingId, att.filename);
-              if (content && content.type === 'image') {
-                attachmentImages.push({ base64: content.data, mimeType: content.mimeType });
-              }
-            } catch (err) {
-              console.warn(`Error leyendo adjunto ${att.filename}:`, err);
-            }
-          }
       // Extraer contenido de adjuntos para pasarlo al servicio
       let extraContext = '';
       const attachmentImages = [];
@@ -657,7 +632,6 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
 
       const sessionOptions = { 
         model: sessionModel || undefined,
-        ...(attachmentImages.length > 0 ? { images: attachmentImages } : {})
         images: attachmentImages.length > 0 ? attachmentImages : undefined,
         extraContext: extraContext || undefined
       };
@@ -1011,9 +985,6 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                   recordAttachments={projectContextAttachments}
                   activeAttachments={activeProjectAttachments}
                   onActiveAttachmentsChange={setActiveProjectAttachments}
-                  recordAttachments={activeChatAttachments}
-                  activeAttachments={activeAttachments}
-                  onActiveAttachmentsChange={setActiveAttachments}
                 />
               </div>
               {activeChat?.contexto && activeChat.contexto.length > 0 && (
