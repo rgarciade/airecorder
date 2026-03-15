@@ -40,6 +40,7 @@ export default function ChatInterface({
   onPickNewAttachment,
   activeAttachments = [],
   onActiveAttachmentsChange,
+  allowNewAttachments = true,
 }) {
   const [newMessage, setNewMessage] = useState('');
   const [showOptions, setShowOptions] = useState(false);
