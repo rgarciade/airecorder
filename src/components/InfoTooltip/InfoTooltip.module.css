@@ -5,31 +5,57 @@
   align-items: center;
 }
 
-/* ─── Trigger button ──────────────────────────────────────── */
+/* ─── Trigger button (texto "Modelos recomendados") ──────── */
 .trigger {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
   border: none;
   background: transparent;
-  color: #64748b;
+  color: #3b82f6;
   cursor: pointer;
   padding: 0;
-  transition: color 0.15s ease, background-color 0.15s ease;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgba(59, 130, 246, 0.45);
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
   flex-shrink: 0;
+  line-height: 1.2;
 }
 
 .trigger:hover {
-  color: #3b82f6;
-  background-color: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+  text-decoration-color: #2563eb;
 }
 
 .active {
+  color: #2563eb;
+}
+
+/* ─── Enlace canirun.ai ───────────────────────────────────── */
+.canirunLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 8px;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: #64748b;
+  text-decoration: none;
+  white-space: nowrap;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 1px 6px;
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.canirunLink:hover {
   color: #3b82f6;
-  background-color: rgba(59, 130, 246, 0.15);
+  border-color: #93c5fd;
+  background-color: rgba(59, 130, 246, 0.06);
+  text-decoration: none;
 }
 
 /* ─── Popover panel ───────────────────────────────────────── */
