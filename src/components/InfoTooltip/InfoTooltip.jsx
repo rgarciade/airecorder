@@ -45,17 +45,22 @@ export default function InfoTooltip({ title, sections = [], position = 'left' })
         {t('modelInfo.recommendedModels')}
       </button>
 
-      <a
-        href="https://www.canirun.ai/"
-        target="_blank"
-        rel="noreferrer noopener"
+      <button
+        type="button"
         className={styles.canirunLink}
         title={t('modelInfo.canirunTooltip')}
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (window.electronAPI?.openExternal) {
+            window.electronAPI.openExternal('https://www.canirun.ai/');
+          } else {
+            window.open('https://www.canirun.ai/', '_blank', 'noreferrer');
+          }
+        }}
       >
         <MdOpenInNew size={13} />
         {t('modelInfo.canirunLabel')}
-      </a>
+      </button>
 
       {visible && (
         <div className={`${styles.popover} ${position === 'right' ? styles.popoverRight : styles.popoverLeft}`}>
