@@ -18,7 +18,11 @@ import ragService from '../../services/ragService';
 import ContextBar from '../../components/ContextBar/ContextBar';
 import { getSettings, updateSettings } from '../../services/settingsService';
 import { getAvailableModels, checkModelSupportsStreaming } from '../../services/ai/ollamaProvider';
+import { getLMStudioModels } from '../../services/ai/lmStudioProvider';
+import { checkModelVisionSupport } from '../../services/ai/huggingFaceService';
 import chatPendingService from '../../services/chatPendingService';
+import { getAttachments } from '../../services/attachmentsService';
+
 import { getAttachments } from '../../services/attachmentsService';
 
 const DEEPSEEK_CHAT_MODELS = [
@@ -71,12 +75,18 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const [maxContextLength, setMaxContextLength] = useState(8000);
   const [ragMode, setRagMode] = useState('auto'); // 'auto' | 'detallado'
 
+  // Estados para adjuntos del contexto del chat
+  const [projectContextAttachments, setProjectContextAttachments] = useState([]);
+  const [activeProjectAttachments, setActiveProjectAttachments] = useState([]);
+
   // Estados para selector de modelo de sesión
   const [aiProvider, setAiProvider] = useState('geminifree');
   const [settingsModel, setSettingsModel] = useState('');
   const [sessionModel, setSessionModel] = useState(null);
   const [isVerifyingModel, setIsVerifyingModel] = useState(false);
   const [projectOllamaModels, setProjectOllamaModels] = useState([]);
+  const [projectLmStudioModels, setProjectLmStudioModels] = useState([]);
+  const [currentModelSupportsVision, setCurrentModelSupportsVision] = useState(false);
   const [ollamaHost, setOllamaHost] = useState('http://localhost:11434');
 
   // Estados para modales
@@ -126,6 +136,16 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
         }
         setMaxContextLength(ctxLen);
 
+        // Comprobar soporte de visión para el modelo actual
+        const checkVision = async () => {
+          const activeModel = sessionModel || currentModel;
+          if (activeModel) {
+            const supportsVision = await checkModelVisionSupport(activeModel);
+            setCurrentModelSupportsVision(supportsVision);
+          }
+        };
+        checkVision();
+
         if (provider === 'ollama') {
           try {
             const models = await getAvailableModels(host);
@@ -133,6 +153,15 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
             setProjectOllamaModels(modelNames.filter(m => !m.toLowerCase().includes('embed')));
           } catch {
             setProjectOllamaModels([]);
+          }
+        }
+        if (provider === 'lmstudio') {
+          try {
+            const models = await getLMStudioModels();
+            const modelNames = models.map(m => m.name || m);
+            setProjectLmStudioModels(modelNames);
+          } catch {
+            setProjectLmStudioModels([]);
           }
         }
       } catch (e) {
@@ -213,6 +242,41 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       }
     });
   }, [activeChatId, chats]);
+
+  // Cargar adjuntos del contexto del chat activo
+  useEffect(() => {
+    if (!activeChatId) {
+      setProjectContextAttachments([]);
+      return;
+    }
+    const chat = chats.find(c => c.id === activeChatId);
+    if (!chat?.contexto?.length) {
+      setProjectContextAttachments([]);
+      return;
+    }
+
+    const loadAttachments = async () => {
+      let allAttachments = [];
+      for (const recId of chat.contexto) {
+        try {
+          const atts = await getAttachments(recId);
+          // Decorar los adjuntos con la grabación a la que pertenecen
+          const recording = recordingSummaries.find(r => r.id === recId) || { title: `Grabación ${recId}` };
+          const decoratedAtts = atts.map(att => ({
+            ...att,
+            recordingId: recId,
+            recordingTitle: recording.title
+          }));
+          allAttachments = [...allAttachments, ...decoratedAtts];
+        } catch (error) {
+          console.error(`Error cargando adjuntos para la grabación ${recId}:`, error);
+        }
+      }
+      setProjectContextAttachments(allAttachments);
+    };
+
+    loadAttachments();
+  }, [activeChatId, chats, recordingSummaries]);
 
   // --- HANDLERS ---
   const loadProjectTasks = async () => {
@@ -435,6 +499,11 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const handleSessionModelChange = async (model) => {
     setSessionModel(model);
 
+    // Comprobar soporte de visión para el nuevo modelo seleccionado
+    checkModelVisionSupport(model).then(supportsVision => {
+      setCurrentModelSupportsVision(supportsVision);
+    });
+
     // Para Ollama y LM Studio: el modelo elegido en el chat se guarda como "Modelo de Chat"
     // (ollamaRagModel / lmStudioRagModel), sin tocar el Modelo General.
     try {
@@ -523,6 +592,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       id: `temp_u_${tempId}`,
       tipo: 'usuario',
       contenido: trimmedMessage,
+      adjuntos: activeProjectAttachments,
       fecha: new Date().toISOString(),
       chatVersion: 2,
       adjuntos: attachmentsToUse.map(a => ({ filename: a.filename, type: a.type }))
@@ -540,11 +610,33 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       await projectChatService.saveProjectChatMessage(project.id, activeChatId, {
         tipo: 'usuario',
         contenido: trimmedMessage,
+        adjuntos: activeProjectAttachments,
         chatVersion: 2,
         adjuntos: attachmentsToUse.map(a => ({ filename: a.filename, type: a.type }))
       });
 
       // 3. Generar respuesta de la IA con streaming nativo (V2)
+      // Extraer imágenes de los adjuntos para pasarlas al chat
+      const attachmentImages = [];
+      if (activeProjectAttachments.length > 0) {
+        // Necesitamos leer el contenido de las imágenes adjuntas.
+        // Dado que la función genera la respuesta, podríamos necesitar hacer esto en projectChatService
+        // pero por ahora lo inyectamos en `images` en sessionOptions para que lo procese el router.
+        // Asumimos que projectChatService ya recibe 'chatHistory' con los adjuntos y los lee,
+        // o necesitamos leerlos aquí y pasarlos en options.images.
+        // Vamos a leerlos aquí igual que en RecordingDetailWithTranscription
+        const { readAttachmentContent } = await import('../../services/attachmentsService');
+        for (const att of activeProjectAttachments) {
+          if (att.type === 'image') {
+            try {
+              const content = await readAttachmentContent(att.recordingId, att.filename);
+              if (content && content.type === 'image') {
+                attachmentImages.push({ base64: content.data, mimeType: content.mimeType });
+              }
+            } catch (err) {
+              console.warn(`Error leyendo adjunto ${att.filename}:`, err);
+            }
+          }
       // Extraer contenido de adjuntos para pasarlo al servicio
       let extraContext = '';
       const attachmentImages = [];
@@ -565,6 +657,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
 
       const sessionOptions = { 
         model: sessionModel || undefined,
+        ...(attachmentImages.length > 0 ? { images: attachmentImages } : {})
         images: attachmentImages.length > 0 ? attachmentImages : undefined,
         extraContext: extraContext || undefined
       };
@@ -906,12 +999,18 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                   currentModel={sessionModel || settingsModel}
                   availableModels={
                     aiProvider === 'ollama'   ? projectOllamaModels.map(m => ({ value: m, label: m })) :
+                    aiProvider === 'lmstudio' ? projectLmStudioModels.map(m => ({ value: m, label: m })) :
                     aiProvider === 'deepseek' ? DEEPSEEK_CHAT_MODELS :
                     aiProvider === 'kimi'     ? KIMI_CHAT_MODELS :
                     []
                   }
                   onModelChange={handleSessionModelChange}
                   isVerifyingModel={isVerifyingModel}
+                  modelSupportsVision={currentModelSupportsVision}
+                  allowNewAttachments={false}
+                  recordAttachments={projectContextAttachments}
+                  activeAttachments={activeProjectAttachments}
+                  onActiveAttachmentsChange={setActiveProjectAttachments}
                   recordAttachments={activeChatAttachments}
                   activeAttachments={activeAttachments}
                   onActiveAttachmentsChange={setActiveAttachments}
