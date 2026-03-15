@@ -1,14 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MdInfoOutline } from 'react-icons/md';
+import { MdOpenInNew } from 'react-icons/md';
+import { useTranslation } from 'react-i18next';
 import styles from './InfoTooltip.module.css';
 
 /**
- * Icono de información con popover que muestra secciones de ayuda.
+ * Enlace de texto "Modelos recomendados" con popover + botón a canirun.ai.
  * @param {string}  title    - Título del popover (opcional)
  * @param {Array}   sections - [{ title, items: [{ icon, label, value }] }]
  * @param {string}  position - 'left' | 'right' (alineación del popover, default 'left')
  */
 export default function InfoTooltip({ title, sections = [], position = 'left' }) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const ref = useRef(null);
 
@@ -40,7 +42,24 @@ export default function InfoTooltip({ title, sections = [], position = 'left' })
         onClick={(e) => { e.stopPropagation(); setVisible(!visible); }}
         type="button"
       >
-        <MdInfoOutline size={16} />
+        {t('modelInfo.recommendedModels')}
+      </button>
+
+      <button
+        type="button"
+        className={styles.canirunLink}
+        title={t('modelInfo.canirunTooltip')}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (window.electronAPI?.openExternal) {
+            window.electronAPI.openExternal('https://www.canirun.ai/');
+          } else {
+            window.open('https://www.canirun.ai/', '_blank', 'noreferrer');
+          }
+        }}
+      >
+        <MdOpenInNew size={13} />
+        {t('modelInfo.canirunLabel')}
       </button>
 
       {visible && (

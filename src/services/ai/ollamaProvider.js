@@ -5,6 +5,7 @@ const DEFAULT_OLLAMA_URL = 'http://localhost:11434';
 
 // Endpoints de la API de Ollama
 const OLLAMA_ENDPOINTS = {
+  chat:     '/api/chat',
   models:   '/api/tags',
   show:     '/api/show',
   generate: '/api/generate',
@@ -136,14 +137,19 @@ function extractNumCtxFromParams(params) {
  * Genera contenido usando un modelo de Ollama
  * Incluye reintentos automáticos para errores de red y errores 5xx
  * @param {string} model - Nombre del modelo a usar
- * @param {string} prompt - Prompt para el modelo
- * @param {Object} options - Opciones adicionales (ej: { format: 'json' })
+ * @param {string} prompt - Prompt de usuario
+ * @param {Object} options - Opciones adicionales (ej: { format: 'json', images: [{base64, mimeType}], systemPrompt: string })
  * @returns {Promise<string>} Respuesta generada
  */
 export async function generateContent(model, prompt, options = {}) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 1000;
   const url = await getBaseUrl();
+
+  // Extraer imágenes base64 si las hay (para modelos de visión como LLaVA)
+  const imagesBase64 = options.images && options.images.length > 0
+    ? options.images.map(img => img.base64)
+    : undefined;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
@@ -154,7 +160,10 @@ export async function generateContent(model, prompt, options = {}) {
           model,
           prompt,
           stream: false,
-          ...(options.format ? { format: options.format } : {})
+          // System prompt separado → campo "system" de /api/generate
+          ...(options.systemPrompt ? { system: options.systemPrompt } : {}),
+          ...(options.format ? { format: options.format } : {}),
+          ...(imagesBase64 ? { images: imagesBase64 } : {})
         }),
       });
 
@@ -190,14 +199,27 @@ export async function generateContent(model, prompt, options = {}) {
 
 /**
  * Genera contenido usando un modelo de Ollama (versión con streaming)
+ * @param {string} model - Nombre del modelo
+ * @param {string} prompt - Prompt
+ * @param {Function} onChunk - Callback por chunk
+ * @param {Array<{base64: string, mimeType: string}>} [images] - Imágenes (modelos de visión)
  */
-export async function generateContentStreaming(model, prompt, onChunk) {
+export async function generateContentStreaming(model, prompt, onChunk, images = []) {
   const url = await getBaseUrl();
+  // Extraer imágenes base64 si las hay
+  const imagesBase64 = images && images.length > 0
+    ? images.map(img => img.base64)
+    : undefined;
   try {
     const response = await fetch(`${url}${OLLAMA_ENDPOINTS.generate}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, prompt, stream: true }),
+      body: JSON.stringify({
+        model,
+        prompt,
+        stream: true,
+        ...(imagesBase64 ? { images: imagesBase64 } : {})
+      }),
     });
 
     if (!response.ok) {
@@ -246,6 +268,79 @@ export async function generateContentStreaming(model, prompt, onChunk) {
     return fullResponse;
   } catch (error) {
     console.error('Error generando contenido con Ollama (streaming):', error);
+    throw error;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Chat nativo via /api/chat — para uso exclusivo del chat con historial
+// ---------------------------------------------------------------------------
+
+/**
+ * Envía un array de mensajes al endpoint /api/chat de Ollama (modo streaming).
+ * @param {string} model - Nombre del modelo
+ * @param {Array<{role:'system'|'user'|'assistant', content: string}>} messages - Historial completo
+ * @param {Function} onChunk - Callback por chunk de texto
+ * @param {Array<{base64: string, mimeType: string}>} [images] - Imágenes para el último mensaje (multimodal)
+ * @returns {Promise<string>} Respuesta completa
+ */
+export async function chatCompletionStreaming(model, messages, onChunk, images = []) {
+  const url = await getBaseUrl();
+
+  // Si hay imágenes, las añadimos al último mensaje del usuario
+  let finalMessages = messages;
+  if (images && images.length > 0) {
+    const imagesBase64 = images.map(img => img.base64);
+    finalMessages = messages.map((m, idx) => {
+      if (idx === messages.length - 1 && m.role === 'user') {
+        return { ...m, images: imagesBase64 };
+      }
+      return m;
+    });
+  }
+
+  try {
+    const response = await fetch(`${url}${OLLAMA_ENDPOINTS.chat}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, messages: finalMessages, stream: true }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error en la API de Ollama (/api/chat): ${response.status}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullResponse = '';
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const data = JSON.parse(line);
+          const chunk = data.message?.content || '';
+          if (chunk) {
+            fullResponse += chunk;
+            if (onChunk) onChunk(chunk);
+          }
+        } catch (e) {
+          // ignorar líneas inválidas
+        }
+      }
+    }
+
+    return fullResponse;
+  } catch (error) {
+    console.error('Error en chatCompletionStreaming de Ollama:', error);
     throw error;
   }
 }

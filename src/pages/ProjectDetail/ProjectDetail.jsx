@@ -12,12 +12,16 @@ import ProjectRecordingSummaries from '../../components/ProjectRecordingSummarie
 import ChatInterface from '../../components/ChatInterface/ChatInterface';
 import EpicsTab from '../RecordingDetail/components/EpicsTab/EpicsTab';
 import ProjectKanbanBoard from './components/ProjectKanbanBoard/ProjectKanbanBoard';
+import ProjectAttachmentsTab from './components/ProjectAttachmentsTab/ProjectAttachmentsTab';
 import { MdArrowBack, MdRefresh, MdFormatListBulleted, MdGridView } from 'react-icons/md';
 import ragService from '../../services/ragService';
 import ContextBar from '../../components/ContextBar/ContextBar';
 import { getSettings, updateSettings } from '../../services/settingsService';
 import { getAvailableModels, checkModelSupportsStreaming } from '../../services/ai/ollamaProvider';
+import { getLMStudioModels } from '../../services/ai/lmStudioProvider';
+import { checkModelVisionSupport } from '../../services/ai/huggingFaceService';
 import chatPendingService from '../../services/chatPendingService';
+import { getAttachments } from '../../services/attachmentsService';
 
 const DEEPSEEK_CHAT_MODELS = [
   { value: 'deepseek-chat', label: 'DeepSeek Chat' },
@@ -57,6 +61,10 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const [isLoading, setIsLoading] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
 
+  // Estados para adjuntos del proyecto
+  const [projectAttachments, setProjectAttachments] = useState([]);
+  const [activeAttachments, setActiveAttachments] = useState([]);
+
   // Estados para RAG de proyecto
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [ragStatuses, setRagStatuses] = useState({}); // { [recId]: null|false|true|'skipped' }
@@ -65,12 +73,18 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const [maxContextLength, setMaxContextLength] = useState(8000);
   const [ragMode, setRagMode] = useState('auto'); // 'auto' | 'detallado'
 
+  // Estados para adjuntos del contexto del chat
+  const [projectContextAttachments, setProjectContextAttachments] = useState([]);
+  const [activeProjectAttachments, setActiveProjectAttachments] = useState([]);
+
   // Estados para selector de modelo de sesión
   const [aiProvider, setAiProvider] = useState('geminifree');
   const [settingsModel, setSettingsModel] = useState('');
   const [sessionModel, setSessionModel] = useState(null);
   const [isVerifyingModel, setIsVerifyingModel] = useState(false);
   const [projectOllamaModels, setProjectOllamaModels] = useState([]);
+  const [projectLmStudioModels, setProjectLmStudioModels] = useState([]);
+  const [currentModelSupportsVision, setCurrentModelSupportsVision] = useState(false);
   const [ollamaHost, setOllamaHost] = useState('http://localhost:11434');
 
   // Estados para modales
@@ -88,15 +102,22 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
         setAiProvider(provider);
         const host = s.ollamaHost || 'http://localhost:11434';
         setOllamaHost(host);
+        
+        // Priorizar modelo de chat (ragModel) si existe para Ollama/LM Studio
         const modelByProvider = {
-          ollama: s.ollamaModel,
+          ollama: s.ollamaRagModel || s.ollamaModel,
           deepseek: s.deepseekModel,
           kimi: s.kimiModel,
           gemini: s.geminiModel,
           geminifree: s.geminiFreeModel,
-          lmstudio: s.lmStudioModel,
+          lmstudio: s.lmStudioRagModel || s.lmStudioModel,
         };
-        setSettingsModel(modelByProvider[provider] || '');
+        const currentModel = modelByProvider[provider] || '';
+        setSettingsModel(currentModel);
+        
+        // Inicializar el modelo de sesión para que el ChatInterface lo muestre correctamente
+        if (provider === 'ollama') setSelectedOllamaModel(currentModel);
+        if (provider === 'lmstudio') setSelectedLmStudioModel(currentModel);
         
         // Guardar context length
         let ctxLen = 8000;
@@ -113,6 +134,16 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
         }
         setMaxContextLength(ctxLen);
 
+        // Comprobar soporte de visión para el modelo actual
+        const checkVision = async () => {
+          const activeModel = sessionModel || currentModel;
+          if (activeModel) {
+            const supportsVision = await checkModelVisionSupport(activeModel);
+            setCurrentModelSupportsVision(supportsVision);
+          }
+        };
+        checkVision();
+
         if (provider === 'ollama') {
           try {
             const models = await getAvailableModels(host);
@@ -120,6 +151,15 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
             setProjectOllamaModels(modelNames.filter(m => !m.toLowerCase().includes('embed')));
           } catch {
             setProjectOllamaModels([]);
+          }
+        }
+        if (provider === 'lmstudio') {
+          try {
+            const models = await getLMStudioModels();
+            const modelNames = models.map(m => m.name || m);
+            setProjectLmStudioModels(modelNames);
+          } catch {
+            setProjectLmStudioModels([]);
           }
         }
       } catch (e) {
@@ -201,6 +241,41 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     });
   }, [activeChatId, chats]);
 
+  // Cargar adjuntos del contexto del chat activo
+  useEffect(() => {
+    if (!activeChatId) {
+      setProjectContextAttachments([]);
+      return;
+    }
+    const chat = chats.find(c => c.id === activeChatId);
+    if (!chat?.contexto?.length) {
+      setProjectContextAttachments([]);
+      return;
+    }
+
+    const loadAttachments = async () => {
+      let allAttachments = [];
+      for (const recId of chat.contexto) {
+        try {
+          const atts = await getAttachments(recId);
+          // Decorar los adjuntos con la grabación a la que pertenecen
+          const recording = recordingSummaries.find(r => r.id === recId) || { title: `Grabación ${recId}` };
+          const decoratedAtts = atts.map(att => ({
+            ...att,
+            recordingId: recId,
+            recordingTitle: recording.title
+          }));
+          allAttachments = [...allAttachments, ...decoratedAtts];
+        } catch (error) {
+          console.error(`Error cargando adjuntos para la grabación ${recId}:`, error);
+        }
+      }
+      setProjectContextAttachments(allAttachments);
+    };
+
+    loadAttachments();
+  }, [activeChatId, chats, recordingSummaries]);
+
   // --- HANDLERS ---
   const loadProjectTasks = async () => {
     try {
@@ -267,6 +342,17 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
         recordingsService.getProjectTaskSuggestions(project.id)
       ]);
 
+      // Cargar adjuntos de todas las grabaciones del proyecto
+      let allAttachments = [];
+      if (recordings && recordings.length > 0) {
+        const attachmentsPromises = recordings.map(async (rec) => {
+          const atts = await getAttachments(rec.id);
+          return atts.map(a => ({ ...a, recordingId: rec.id, recordingName: rec.title }));
+        });
+        const nestedAtts = await Promise.all(attachmentsPromises);
+        allAttachments = nestedAtts.flat();
+      }
+
       setProjectSummary(summary);
       setProjectMembers(members);
       setProjectHighlights(highlights);
@@ -274,6 +360,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       setRecordingSummaries(recordings);
       setProjectDuration(duration);
       setProjectTasks(tasks || []);
+      setProjectAttachments(allAttachments);
     } catch (error) {
       console.error('Error cargando datos del proyecto:', error);
     } finally {
@@ -410,15 +497,21 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const handleSessionModelChange = async (model) => {
     setSessionModel(model);
 
-    // Persistir el modelo seleccionado globalmente para el proveedor actual
+    // Comprobar soporte de visión para el nuevo modelo seleccionado
+    checkModelVisionSupport(model).then(supportsVision => {
+      setCurrentModelSupportsVision(supportsVision);
+    });
+
+    // Para Ollama y LM Studio: el modelo elegido en el chat se guarda como "Modelo de Chat"
+    // (ollamaRagModel / lmStudioRagModel), sin tocar el Modelo General.
     try {
       const settingsUpdate = {};
-      if (aiProvider === 'ollama') settingsUpdate.ollamaModel = model;
+      if (aiProvider === 'ollama') settingsUpdate.ollamaRagModel = model;
+      else if (aiProvider === 'lmstudio') settingsUpdate.lmStudioRagModel = model;
       else if (aiProvider === 'deepseek') settingsUpdate.deepseekModel = model;
       else if (aiProvider === 'kimi') settingsUpdate.kimiModel = model;
       else if (aiProvider === 'gemini') settingsUpdate.geminiModel = model;
       else if (aiProvider === 'geminifree') settingsUpdate.geminiFreeModel = model;
-      else if (aiProvider === 'lmstudio') settingsUpdate.lmStudioModel = model;
       
       if (Object.keys(settingsUpdate).length > 0) {
         await updateSettings(settingsUpdate);
@@ -431,8 +524,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       setIsVerifyingModel(true);
       try {
         const ok = await checkModelSupportsStreaming(model, ollamaHost);
-        // En el chat de proyecto no usamos streaming directo, pero actualizamos el estado
-        console.log(`[ProjectDetail] Modelo ${model} soporta streaming: ${ok}`);
+        console.log(`[ProjectDetail] Modelo de chat ${model} soporta streaming: ${ok}`);
         await updateSettings({ ollamaModelSupportsStreaming: ok });
       } catch {
         // ignorar
@@ -478,19 +570,31 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     }
   };
 
-  const handleSendMessage = async (messageText) => {
+  const handleProjectAttachmentsChange = (newAttachments) => {
+    setProjectAttachments(newAttachments);
+    
+    // En proyectos, la clave única es recordingId + filename
+    setActiveAttachments(prev => prev.filter(att => 
+      newAttachments.some(na => na.recordingId === att.recordingId && na.filename === att.filename)
+    ));
+  };
+
+  const handleSendMessage = async (messageText, attachmentsToUse = []) => {
     if (!messageText.trim() || !activeChatId || isSendingMessage) return;
 
     const trimmedMessage = messageText.trim();
-    
-    // 1. Añadir optimísticamente el mensaje del usuario al estado local
+    const tempId = Date.now().toString();
+
+    // 1. Añadir optimísticamente el mensaje del usuario al estado local (V2)
     const tempUserMessage = {
-      id: `temp_u_${Date.now()}`,
+      id: `temp_u_${tempId}`,
       tipo: 'usuario',
       contenido: trimmedMessage,
-      fecha: new Date().toISOString()
+      fecha: new Date().toISOString(),
+      chatVersion: 2,
+      adjuntos: attachmentsToUse.map(a => ({ filename: a.filename, type: a.type }))
     };
-    
+
     setChatHistory(prev => [...prev, tempUserMessage]);
     setIsSendingMessage(true);
 
@@ -502,26 +606,67 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       // 2. Guardar mensaje del usuario en DB
       await projectChatService.saveProjectChatMessage(project.id, activeChatId, {
         tipo: 'usuario',
-        contenido: trimmedMessage
+        contenido: trimmedMessage,
+        chatVersion: 2,
+        adjuntos: attachmentsToUse.map(a => ({ filename: a.filename, type: a.type }))
       });
 
-      // 3. Generar respuesta de la IA
-      const sessionOptions = { model: sessionModel || undefined };
+      // 3. Generar respuesta de la IA con streaming nativo (V2)
+      // Extraer contenido de adjuntos para pasarlo al servicio
+      let extraContext = '';
+      const attachmentImages = [];
+      
+      for (const att of attachmentsToUse) {
+        try {
+          const content = await window.electronAPI.readAttachmentContent(att.recordingId, att.filename);
+          if (!content || !content.success) continue;
+          if (content.type === 'image') {
+            attachmentImages.push({ base64: content.data, mimeType: content.mimeType });
+          } else if (content.type === 'text') {
+            extraContext += `\n\n--- ADJUNTO: ${att.filename} ---\n${content.data}\n--- FIN ADJUNTO ---`;
+          }
+        } catch (err) {
+          console.warn(`Error leyendo adjunto ${att.filename}:`, err);
+        }
+      }
+
+      const sessionOptions = { 
+        model: sessionModel || undefined,
+        images: attachmentImages.length > 0 ? attachmentImages : undefined,
+        extraContext: extraContext || undefined
+      };
+      
+      let streamingAnswer = '';
+
       const { text: aiResponse, contextInfo } = await projectChatService.generateAiResponse(
-        project.id, trimmedMessage, activeChatId, chatHistory, ragMode, sessionOptions
+        project.id, trimmedMessage, activeChatId, chatHistory, ragMode, sessionOptions,
+        (chunk) => {
+          streamingAnswer += chunk;
+          // Actualizar el mensaje de streaming en tiempo real
+          setChatHistory(prev => {
+            const withoutStreaming = prev.filter(m => m.id !== `streaming_${tempId}`);
+            return [...withoutStreaming, {
+              id: `streaming_${tempId}`,
+              tipo: 'asistente',
+              contenido: streamingAnswer,
+              fecha: new Date().toISOString(),
+              chatVersion: 2,
+            }];
+          });
+        }
       );
       setLastContextInfo(contextInfo || null);
 
       // 4. Guardar respuesta de la IA en DB
       await projectChatService.saveProjectChatMessage(project.id, activeChatId, {
         tipo: 'asistente',
-        contenido: aiResponse
+        contenido: aiResponse,
+        chatVersion: 2,
       });
 
-      // 5. Recargar historial real para sincronizar IDs y fechas
+      // 5. Recargar historial real para sincronizar IDs y fechas (reemplaza el mensaje de streaming)
       await loadChatHistory(activeChatId);
 
-      // Limpiar petición pendiente
       chatPendingService.clearPending(pendingKey);
     } catch (error) {
       console.error('Error enviando mensaje:', error);
@@ -558,6 +703,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const someRagIndexed = activeChatRecordingIds.some(id => ragStatuses[id] === true);
   const totalRagChunksCount = activeChatRecordingIds.reduce((s, id) => s + (ragTotalChunks[id] || 0), 0);
   const aggregateRagIndexed = isAnyIndexing ? false : (allRagKnown ? (someRagIndexed ? true : 'skipped') : null);
+  const activeChatAttachments = projectAttachments.filter(a => activeChatRecordingIds.includes(a.recordingId));
 
   return (
     <div className={styles.container}>
@@ -598,6 +744,15 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
           Tareas
           {projectTasks.length > 0 && (
             <span className={styles.tabBadge}>{projectTasks.length}</span>
+          )}
+        </button>
+        <button
+          className={`${styles.tabButton} ${activeTab === 'attachments' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('attachments')}
+        >
+          Adjuntos
+          {projectAttachments.length > 0 && (
+            <span className={styles.tabBadge}>{projectAttachments.length}</span>
           )}
         </button>
       </nav>
@@ -659,6 +814,14 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                 projectEmptyHint="Abre una transcripción del proyecto, genera tareas con IA y pulsa «Agregar» para incorporarlas aquí, o crea tareas manualmente desde este mismo proyecto."
               />
             )}
+          </div>
+        ) : activeTab === 'attachments' ? (
+          <div className={styles.attachmentsContent}>
+            <ProjectAttachmentsTab 
+              recordings={recordingSummaries}
+              attachments={projectAttachments} 
+              onAttachmentsChange={handleProjectAttachmentsChange}
+            />
           </div>
         ) : activeTab === 'overview' ? (
           <div className={styles.overviewGrid}>
@@ -810,12 +973,18 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                   currentModel={sessionModel || settingsModel}
                   availableModels={
                     aiProvider === 'ollama'   ? projectOllamaModels.map(m => ({ value: m, label: m })) :
+                    aiProvider === 'lmstudio' ? projectLmStudioModels.map(m => ({ value: m, label: m })) :
                     aiProvider === 'deepseek' ? DEEPSEEK_CHAT_MODELS :
                     aiProvider === 'kimi'     ? KIMI_CHAT_MODELS :
                     []
                   }
                   onModelChange={handleSessionModelChange}
                   isVerifyingModel={isVerifyingModel}
+                  modelSupportsVision={currentModelSupportsVision}
+                  allowNewAttachments={false}
+                  recordAttachments={projectContextAttachments}
+                  activeAttachments={activeProjectAttachments}
+                  onActiveAttachmentsChange={setActiveProjectAttachments}
                 />
               </div>
               {activeChat?.contexto && activeChat.contexto.length > 0 && (
