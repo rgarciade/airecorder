@@ -48,6 +48,7 @@ export default function ChatInterface({
   const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [attachmentSearch, setAttachmentSearch] = useState('');
 
   const messagesEndRef = useRef(null);
   const optionsRef = useRef(null);
