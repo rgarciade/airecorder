@@ -60,11 +60,11 @@ REGLAS:
  * @param {Array<{ textDisplay: string, startTime: number, endTime: number, recordingTitle: string }>} chunks
  * @returns {string} Contenido del system prompt
  */
-export const projectRagSystemPrompt = (chunks) => {
-  let system = `Eres un asistente experto que responde preguntas sobre un proyecto basándote en fragmentos relevantes de las transcripciones de sus reuniones.
+export const projectRagSystemPrompt = (chunks, docContext = '') => {
+  let system = `Eres un asistente experto que responde preguntas sobre un proyecto basándote en fragmentos relevantes de las transcripciones de sus reuniones y en los documentos adjuntos si los hay.
 
 REGLAS:
-1. Basa tu respuesta SOLO en los fragmentos proporcionados
+1. Basa tu respuesta SOLO en los fragmentos proporcionados y documentos adjuntos
 2. Si los fragmentos no contienen información suficiente, indícalo claramente
 3. Al citar información, usa SIEMPRE el nombre de la reunión y el minuto exacto (ej: "En 'Reunión de kick-off', a las 24:05...")
 4. NUNCA uses expresiones como "Fragmento N" u otras referencias numéricas
@@ -83,6 +83,10 @@ REGLAS:
     system += chunk.textDisplay + '\n';
   });
   system += '\n--- FIN FRAGMENTOS ---\n';
+
+  if (docContext) {
+    system += `\n--- DOCUMENTOS ADJUNTOS ---${docContext}\n--- FIN DOCUMENTOS ADJUNTOS ---\n`;
+  }
 
   return system;
 };

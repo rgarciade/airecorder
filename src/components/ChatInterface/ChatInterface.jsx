@@ -394,33 +394,35 @@ export default function ChatInterface({
 
           <div className={styles.messageInputContainer}>
 
-            {/* Botón + (subir archivo nuevo) */}
-            <div className={styles.attachBtnGroup} ref={plusMenuRef}>
-              <button
-                type="button"
-                className={styles.attachBtn}
-                onClick={() => setShowPlusMenu(v => !v)}
-                disabled={isLoading || uploadingAttachment}
-                title="Añadir archivo"
-              >
-                {uploadingAttachment
-                  ? <span className={styles.attachSpinner} />
-                  : <MdAdd size={18} />
-                }
-              </button>
-              {showPlusMenu && (
-                <div className={styles.plusMenu}>
-                  <button
-                    type="button"
-                    className={styles.plusMenuItem}
-                    onClick={handlePickNewFile}
-                  >
-                    <MdAttachFile size={15} />
-                    Subir archivo
-                  </button>
-                </div>
-              )}
-            </div>
+            {/* Botón + (subir archivo nuevo) - Solo si hay onPickNewAttachment */}
+            {onPickNewAttachment && (
+              <div className={styles.attachBtnGroup} ref={plusMenuRef}>
+                <button
+                  type="button"
+                  className={styles.attachBtn}
+                  onClick={() => setShowPlusMenu(v => !v)}
+                  disabled={isLoading || uploadingAttachment}
+                  title="Añadir archivo"
+                >
+                  {uploadingAttachment
+                    ? <span className={styles.attachSpinner} />
+                    : <MdAdd size={18} />
+                  }
+                </button>
+                {showPlusMenu && (
+                  <div className={styles.plusMenu}>
+                    <button
+                      type="button"
+                      className={styles.plusMenuItem}
+                      onClick={handlePickNewFile}
+                    >
+                      <MdAttachFile size={15} />
+                      Subir archivo
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Botón adjuntar (seleccionar de los adjuntos del record) */}
             {recordAttachments.length > 0 && (

@@ -779,6 +779,19 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
   };
 
+  const handleAttachmentsChange = (newAttachments) => {
+    setRecordAttachments(newAttachments);
+    
+    // Limpiar activeAttachments si algún archivo fue eliminado
+    const nextActive = activeAttachments.filter(att => 
+      newAttachments.some(na => na.filename === att.filename)
+    );
+    
+    if (nextActive.length !== activeAttachments.length) {
+      handleActiveAttachmentsChange(nextActive);
+    }
+  };
+
   const convertChatHistory = () => {
     // Manejar tres formatos posibles del historial:
     // 1. Mensaje individual en memoria: tiene `tipo` y `contenido` — devolver tal cual
@@ -1468,7 +1481,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           <AttachmentsTab
             recordingId={recording.id}
             attachments={recordAttachments}
-            onAttachmentsChange={setRecordAttachments}
+            onAttachmentsChange={handleAttachmentsChange}
           />
         )}
         {activeTab === 'tasks' && (
