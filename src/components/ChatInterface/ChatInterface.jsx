@@ -414,8 +414,8 @@ export default function ChatInterface({
 
           <div className={styles.messageInputContainer}>
 
-            {/* Botón + (subir archivo nuevo) */}
-            {allowNewAttachments && (
+            {/* Botón + (subir archivo nuevo) - Solo si hay onPickNewAttachment */}
+            {onPickNewAttachment && (
               <div className={styles.attachBtnGroup} ref={plusMenuRef}>
                 <button
                   type="button"

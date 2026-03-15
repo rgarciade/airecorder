@@ -12,6 +12,7 @@ import ProjectRecordingSummaries from '../../components/ProjectRecordingSummarie
 import ChatInterface from '../../components/ChatInterface/ChatInterface';
 import EpicsTab from '../RecordingDetail/components/EpicsTab/EpicsTab';
 import ProjectKanbanBoard from './components/ProjectKanbanBoard/ProjectKanbanBoard';
+import ProjectAttachmentsTab from './components/ProjectAttachmentsTab/ProjectAttachmentsTab';
 import { MdArrowBack, MdRefresh, MdFormatListBulleted, MdGridView } from 'react-icons/md';
 import ragService from '../../services/ragService';
 import ContextBar from '../../components/ContextBar/ContextBar';
@@ -20,6 +21,7 @@ import { getAvailableModels, checkModelSupportsStreaming } from '../../services/
 import { getLMStudioModels } from '../../services/ai/lmStudioProvider';
 import { checkModelVisionSupport } from '../../services/ai/huggingFaceService';
 import chatPendingService from '../../services/chatPendingService';
+import { getAttachments } from '../../services/attachmentsService';
 
 import { getAttachments } from '../../services/attachmentsService';
 
@@ -60,6 +62,10 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const [chatHistory, setChatHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+
+  // Estados para adjuntos del proyecto
+  const [projectAttachments, setProjectAttachments] = useState([]);
+  const [activeAttachments, setActiveAttachments] = useState([]);
 
   // Estados para RAG de proyecto
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -338,6 +344,17 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
         recordingsService.getProjectTaskSuggestions(project.id)
       ]);
 
+      // Cargar adjuntos de todas las grabaciones del proyecto
+      let allAttachments = [];
+      if (recordings && recordings.length > 0) {
+        const attachmentsPromises = recordings.map(async (rec) => {
+          const atts = await getAttachments(rec.id);
+          return atts.map(a => ({ ...a, recordingId: rec.id, recordingName: rec.title }));
+        });
+        const nestedAtts = await Promise.all(attachmentsPromises);
+        allAttachments = nestedAtts.flat();
+      }
+
       setProjectSummary(summary);
       setProjectMembers(members);
       setProjectHighlights(highlights);
@@ -345,6 +362,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       setRecordingSummaries(recordings);
       setProjectDuration(duration);
       setProjectTasks(tasks || []);
+      setProjectAttachments(allAttachments);
     } catch (error) {
       console.error('Error cargando datos del proyecto:', error);
     } finally {
@@ -554,7 +572,16 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     }
   };
 
-  const handleSendMessage = async (messageText) => {
+  const handleProjectAttachmentsChange = (newAttachments) => {
+    setProjectAttachments(newAttachments);
+    
+    // En proyectos, la clave única es recordingId + filename
+    setActiveAttachments(prev => prev.filter(att => 
+      newAttachments.some(na => na.recordingId === att.recordingId && na.filename === att.filename)
+    ));
+  };
+
+  const handleSendMessage = async (messageText, attachmentsToUse = []) => {
     if (!messageText.trim() || !activeChatId || isSendingMessage) return;
 
     const trimmedMessage = messageText.trim();
@@ -568,6 +595,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       adjuntos: activeProjectAttachments,
       fecha: new Date().toISOString(),
       chatVersion: 2,
+      adjuntos: attachmentsToUse.map(a => ({ filename: a.filename, type: a.type }))
     };
 
     setChatHistory(prev => [...prev, tempUserMessage]);
@@ -584,6 +612,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
         contenido: trimmedMessage,
         adjuntos: activeProjectAttachments,
         chatVersion: 2,
+        adjuntos: attachmentsToUse.map(a => ({ filename: a.filename, type: a.type }))
       });
 
       // 3. Generar respuesta de la IA con streaming nativo (V2)
@@ -608,12 +637,29 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
               console.warn(`Error leyendo adjunto ${att.filename}:`, err);
             }
           }
+      // Extraer contenido de adjuntos para pasarlo al servicio
+      let extraContext = '';
+      const attachmentImages = [];
+      
+      for (const att of attachmentsToUse) {
+        try {
+          const content = await window.electronAPI.readAttachmentContent(att.recordingId, att.filename);
+          if (!content || !content.success) continue;
+          if (content.type === 'image') {
+            attachmentImages.push({ base64: content.data, mimeType: content.mimeType });
+          } else if (content.type === 'text') {
+            extraContext += `\n\n--- ADJUNTO: ${att.filename} ---\n${content.data}\n--- FIN ADJUNTO ---`;
+          }
+        } catch (err) {
+          console.warn(`Error leyendo adjunto ${att.filename}:`, err);
         }
       }
 
       const sessionOptions = { 
         model: sessionModel || undefined,
         ...(attachmentImages.length > 0 ? { images: attachmentImages } : {})
+        images: attachmentImages.length > 0 ? attachmentImages : undefined,
+        extraContext: extraContext || undefined
       };
       
       let streamingAnswer = '';
@@ -683,6 +729,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const someRagIndexed = activeChatRecordingIds.some(id => ragStatuses[id] === true);
   const totalRagChunksCount = activeChatRecordingIds.reduce((s, id) => s + (ragTotalChunks[id] || 0), 0);
   const aggregateRagIndexed = isAnyIndexing ? false : (allRagKnown ? (someRagIndexed ? true : 'skipped') : null);
+  const activeChatAttachments = projectAttachments.filter(a => activeChatRecordingIds.includes(a.recordingId));
 
   return (
     <div className={styles.container}>
@@ -723,6 +770,15 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
           Tareas
           {projectTasks.length > 0 && (
             <span className={styles.tabBadge}>{projectTasks.length}</span>
+          )}
+        </button>
+        <button
+          className={`${styles.tabButton} ${activeTab === 'attachments' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('attachments')}
+        >
+          Adjuntos
+          {projectAttachments.length > 0 && (
+            <span className={styles.tabBadge}>{projectAttachments.length}</span>
           )}
         </button>
       </nav>
@@ -784,6 +840,14 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                 projectEmptyHint="Abre una transcripción del proyecto, genera tareas con IA y pulsa «Agregar» para incorporarlas aquí, o crea tareas manualmente desde este mismo proyecto."
               />
             )}
+          </div>
+        ) : activeTab === 'attachments' ? (
+          <div className={styles.attachmentsContent}>
+            <ProjectAttachmentsTab 
+              recordings={recordingSummaries}
+              attachments={projectAttachments} 
+              onAttachmentsChange={handleProjectAttachmentsChange}
+            />
           </div>
         ) : activeTab === 'overview' ? (
           <div className={styles.overviewGrid}>
@@ -947,6 +1011,9 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                   recordAttachments={projectContextAttachments}
                   activeAttachments={activeProjectAttachments}
                   onActiveAttachmentsChange={setActiveProjectAttachments}
+                  recordAttachments={activeChatAttachments}
+                  activeAttachments={activeAttachments}
+                  onActiveAttachmentsChange={setActiveAttachments}
                 />
               </div>
               {activeChat?.contexto && activeChat.contexto.length > 0 && (
