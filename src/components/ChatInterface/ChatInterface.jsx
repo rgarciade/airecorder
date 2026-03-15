@@ -125,16 +125,22 @@ export default function ChatInterface({
       return;
     }
 
-    const isActive = activeAttachments.some(a => a.filename === attachment.filename);
+    const isActive = activeAttachments.some(a => a.filename === attachment.filename && a.recordingId === attachment.recordingId);
     const updated = isActive
-      ? activeAttachments.filter(a => a.filename !== attachment.filename)
+      ? activeAttachments.filter(a => !(a.filename === attachment.filename && a.recordingId === attachment.recordingId))
       : [...activeAttachments, attachment];
     onActiveAttachmentsChange?.(updated);
   };
 
-  // Quitar adjunto del contexto activo (× en el preview)
-  const handleRemoveActiveAttachment = (filename) => {
-    const updated = activeAttachments.filter(a => a.filename !== filename);
+  // Quitar adjunto activo de la barra
+  const handleRemoveActiveAttachment = (attachmentToRemove) => {
+    const updated = activeAttachments.filter(a => {
+      // Si estamos en un contexto de proyecto, usar recordingId para no quitar adjuntos con mismo nombre de otra grabación
+      if (a.recordingId && attachmentToRemove.recordingId) {
+        return !(a.filename === attachmentToRemove.filename && a.recordingId === attachmentToRemove.recordingId);
+      }
+      return a.filename !== attachmentToRemove.filename;
+    });
     onActiveAttachmentsChange?.(updated);
   };
 
@@ -394,7 +400,7 @@ export default function ChatInterface({
                   <button
                     type="button"
                     className={styles.removeAttachmentBtn}
-                    onClick={() => handleRemoveActiveAttachment(att.filename)}
+                    onClick={() => handleRemoveActiveAttachment(att)}
                     title="Quitar del contexto"
                   >
                     <MdClose size={12} />
@@ -407,32 +413,34 @@ export default function ChatInterface({
           <div className={styles.messageInputContainer}>
 
             {/* Botón + (subir archivo nuevo) */}
-            <div className={styles.attachBtnGroup} ref={plusMenuRef}>
-              <button
-                type="button"
-                className={styles.attachBtn}
-                onClick={() => setShowPlusMenu(v => !v)}
-                disabled={isLoading || uploadingAttachment}
-                title="Añadir archivo"
-              >
-                {uploadingAttachment
-                  ? <span className={styles.attachSpinner} />
-                  : <MdAdd size={18} />
-                }
-              </button>
-              {showPlusMenu && (
-                <div className={styles.plusMenu}>
-                  <button
-                    type="button"
-                    className={styles.plusMenuItem}
-                    onClick={handlePickNewFile}
-                  >
-                    <MdAttachFile size={15} />
-                    Subir archivo
-                  </button>
-                </div>
-              )}
-            </div>
+            {allowNewAttachments && (
+              <div className={styles.attachBtnGroup} ref={plusMenuRef}>
+                <button
+                  type="button"
+                  className={styles.attachBtn}
+                  onClick={() => setShowPlusMenu(v => !v)}
+                  disabled={isLoading || uploadingAttachment}
+                  title="Añadir archivo"
+                >
+                  {uploadingAttachment
+                    ? <span className={styles.attachSpinner} />
+                    : <MdAdd size={18} />
+                  }
+                </button>
+                {showPlusMenu && (
+                  <div className={styles.plusMenu}>
+                    <button
+                      type="button"
+                      className={styles.plusMenuItem}
+                      onClick={handlePickNewFile}
+                    >
+                      <MdAttachFile size={15} />
+                      Subir archivo
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Botón adjuntar (seleccionar de los adjuntos del record) */}
             {recordAttachments.length > 0 && (
@@ -455,29 +463,87 @@ export default function ChatInterface({
                     <div className={styles.pickerHeader}>
                       Adjuntar al contexto del chat
                     </div>
+                    <div className="px-2 pb-2">
+                      <input 
+                        type="text" 
+                        placeholder="Buscar archivo..." 
+                        value={attachmentSearch}
+                        onChange={(e) => setAttachmentSearch(e.target.value)}
+                        className={styles.attachmentSearchInput}
+                      />
+                    </div>
                     <div className={styles.pickerList}>
-                      {recordAttachments.map(att => {
-                        const isActive = activeAttachments.some(a => a.filename === att.filename);
-                        return (
-                          <label key={att.filename} className={`${styles.pickerItem} ${isActive ? styles.pickerItemActive : ''}`}>
-                            <input
-                              type="checkbox"
-                              checked={isActive}
-                              onChange={() => handleToggleAttachment(att)}
-                              className={styles.pickerCheckbox}
-                              disabled={att.type === 'image' && !modelSupportsVision}
-                            />
-                            <AttachmentTypeIcon type={att.type} size={15} />
-                            <span className={styles.pickerFilename} title={att.filename}>
-                              {att.filename}
-                            </span>
-                            {/* Feedback visual si está bloqueado */}
-                            {att.type === 'image' && !modelSupportsVision && (
-                               <span className="ml-auto text-red-400" title="Modelo no compatible"><MdVisibilityOff size={12}/></span>
-                            )}
-                          </label>
+                      {(() => {
+                        const filteredAttachments = recordAttachments.filter(att => 
+                          att.filename.toLowerCase().includes(attachmentSearch.toLowerCase())
                         );
-                      })}
+
+                        if (filteredAttachments.length === 0) {
+                          return <div className="text-xs text-gray-500 text-center py-2">No se encontraron archivos</div>;
+                        }
+
+                        const hasGroups = filteredAttachments.some(att => att.recordingTitle);
+
+                        if (!hasGroups) {
+                          return filteredAttachments.map(att => {
+                            const isActive = activeAttachments.some(a => a.filename === att.filename);
+                            return (
+                              <label key={att.filename} className={`${styles.pickerItem} ${isActive ? styles.pickerItemActive : ''}`}>
+                                <input
+                                  type="checkbox"
+                                  checked={isActive}
+                                  onChange={() => handleToggleAttachment(att)}
+                                  className={styles.pickerCheckbox}
+                                  disabled={att.type === 'image' && !modelSupportsVision}
+                                />
+                                <AttachmentTypeIcon type={att.type} size={15} />
+                                <span className={styles.pickerFilename} title={att.filename}>
+                                  {att.filename}
+                                </span>
+                                {att.type === 'image' && !modelSupportsVision && (
+                                   <span className="ml-auto text-red-400" title="Modelo no compatible"><MdVisibilityOff size={12}/></span>
+                                )}
+                              </label>
+                            );
+                          });
+                        }
+
+                        const groupedAttachments = filteredAttachments.reduce((acc, att) => {
+                          const group = att.recordingTitle || 'Otros';
+                          if (!acc[group]) acc[group] = [];
+                          acc[group].push(att);
+                          return acc;
+                        }, {});
+
+                        return Object.entries(groupedAttachments).map(([group, atts]) => (
+                          <div key={group} className={styles.pickerGroup}>
+                            <div className={styles.pickerGroupTitle}>{group}</div>
+                            {atts.map(att => {
+                              // Cuando hay grupos, unimos el recordingId o title para no cruzar IDs, 
+                              // pero como el toggle usa filename vamos a asegurar que el toggle compare recordingId si está en un proyecto
+                              const isActive = activeAttachments.some(a => a.filename === att.filename && a.recordingId === att.recordingId);
+                              return (
+                                <label key={`${att.recordingId}-${att.filename}`} className={`${styles.pickerItem} ${isActive ? styles.pickerItemActive : ''}`}>
+                                  <input
+                                    type="checkbox"
+                                    checked={isActive}
+                                    onChange={() => handleToggleAttachment(att)}
+                                    className={styles.pickerCheckbox}
+                                    disabled={att.type === 'image' && !modelSupportsVision}
+                                  />
+                                  <AttachmentTypeIcon type={att.type} size={15} />
+                                  <span className={styles.pickerFilename} title={att.filename}>
+                                    {att.filename}
+                                  </span>
+                                  {att.type === 'image' && !modelSupportsVision && (
+                                     <span className="ml-auto text-red-400" title="Modelo no compatible"><MdVisibilityOff size={12}/></span>
+                                  )}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        ));
+                      })()}
                     </div>
                   </div>
                 )}

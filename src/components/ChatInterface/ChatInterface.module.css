@@ -668,15 +668,45 @@
   font-size: 0.75rem;
   font-weight: 600;
   color: #6B7280;
-  border-bottom: 1px solid #F3F4F6;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
+.attachmentSearchInput {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  background-color: #F9FAFB;
+  color: #374151;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 4px;
+}
+
+.attachmentSearchInput:focus {
+  border-color: #3994EF;
+}
+
 .pickerList {
-  max-height: 220px;
+  max-height: 250px;
   overflow-y: auto;
   padding: 4px 0;
+}
+
+.pickerGroup {
+  margin-bottom: 6px;
+}
+
+.pickerGroupTitle {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #9CA3AF;
+  padding: 4px 14px;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .pickerItem {
