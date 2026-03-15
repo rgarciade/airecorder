@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import styles from './ProjectAttachmentsTab.module.css';
 import {
   MdImage,
@@ -97,6 +98,32 @@ export default function ProjectAttachmentsTab({ recordings, attachments, onAttac
   const [uploadingRecordings, setUploadingRecordings] = useState({});
   const [showUploadMenu, setShowUploadMenu] = useState(false);
   const [uploadSearch, setUploadSearch] = useState('');
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
+  const uploadBtnRef = useRef(null);
+
+  const toggleUploadMenu = () => {
+    if (!showUploadMenu && uploadBtnRef.current) {
+      const rect = uploadBtnRef.current.getBoundingClientRect();
+      setMenuPos({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right
+      });
+      setShowUploadMenu(true);
+    } else {
+      setShowUploadMenu(false);
+    }
+  };
+
+  useEffect(() => {
+    const closeMenu = () => setShowUploadMenu(false);
+    if (showUploadMenu) {
+      window.addEventListener('resize', closeMenu);
+      // Opcionalmente, agregar listener al scroll del contenedor si es necesario
+    }
+    return () => {
+      window.removeEventListener('resize', closeMenu);
+    };
+  }, [showUploadMenu]);
 
   const handleUpload = async (recordingId) => {
     setShowUploadMenu(false);
@@ -141,8 +168,9 @@ export default function ProjectAttachmentsTab({ recordings, attachments, onAttac
         {recordings.length > 0 && (
           <div className={styles.uploadMenuWrapper}>
             <button
+              ref={uploadBtnRef}
               className={styles.uploadBtn}
-              onClick={() => setShowUploadMenu(!showUploadMenu)}
+              onClick={toggleUploadMenu}
               disabled={anyUploading}
             >
               {anyUploading ? (
@@ -152,13 +180,21 @@ export default function ProjectAttachmentsTab({ recordings, attachments, onAttac
               )}
               <span style={{ marginLeft: 4 }}>Subir archivo</span>
             </button>
-            {showUploadMenu && (
+            {showUploadMenu && createPortal(
               <>
                 <div 
-                  style={{position: 'fixed', inset: 0, zIndex: 998}} 
+                  style={{position: 'fixed', inset: 0, zIndex: 9998}} 
                   onClick={() => setShowUploadMenu(false)} 
                 />
-                <div className={styles.uploadMenu}>
+                <div 
+                  className={styles.uploadMenu} 
+                  style={{ 
+                    position: 'fixed', 
+                    top: `${menuPos.top}px`, 
+                    right: `${menuPos.right}px`, 
+                    zIndex: 9999 
+                  }}
+                >
                   <div className={styles.uploadMenuHeader}>Selecciona a qué récord subir</div>
                   <div className={styles.uploadMenuSearch}>
                     <MdSearch size={15} className={styles.uploadMenuSearchIcon} />
@@ -187,7 +223,8 @@ export default function ProjectAttachmentsTab({ recordings, attachments, onAttac
                     }
                   </div>
                 </div>
-              </>
+              </>,
+              document.body
             )}
           </div>
         )}
