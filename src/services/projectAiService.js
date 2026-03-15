@@ -6,7 +6,7 @@
 import { callProvider, callChatProviderStreaming } from './ai/providerRouter';
 import { AI_TASK_TYPES } from './ai/aiQueueService';
 import { parseJsonObject } from '../utils/aiResponseParser';
-import { projectAnalysisPrompt, chatSystemPrompt } from '../prompts/aiPrompts';
+import { projectAnalysisSystemPrompt, chatSystemPrompt } from '../prompts/aiPrompts';
 import { projectRagSystemPrompt, mapHistoryToMessages } from '../prompts/ragPrompts';
 import { getSettings } from './settingsService';
 
@@ -498,8 +498,10 @@ class ProjectAiService {
     const settings = await getSettings();
     const lang = settings.uiLanguage || 'es';
 
-    const prompt = projectAnalysisPrompt(contextText, lang);
-    const result = await callProvider(prompt, {
+    // System prompt: instrucciones de rol + formato JSON. User content: resúmenes de las grabaciones.
+    const sysPrompt = projectAnalysisSystemPrompt(lang);
+    const result = await callProvider(contextText, {
+      systemPrompt: sysPrompt,
       queueMeta: { name: 'Análisis de proyecto', type: AI_TASK_TYPES.PROJECT_ANALYSIS },
     });
 

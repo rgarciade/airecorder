@@ -9,7 +9,7 @@ import { getSettings } from './settingsService';
 import { callProvider, getActiveProviderContextWindow } from './ai/providerRouter';
 import { AI_TASK_TYPES } from './ai/aiQueueService';
 import { cleanAiResponse, parseJsonArray, parseJsonObject } from '../utils/aiResponseParser';
-import { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt, participantsPrompt, participantsPromptSuffix, taskSuggestionsPrompt, taskSuggestionsPromptSuffix, taskImprovementPrompt, consolidateSummaryPrompt } from '../prompts/aiPrompts';
+import { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt, participantsPrompt, participantsPromptSuffix, taskSuggestionsPrompt, taskSuggestionsPromptSuffix, taskImprovementSystemPrompt, taskImprovementUserContent, consolidateSummaryPrompt } from '../prompts/aiPrompts';
 
 class RecordingAiService {
   constructor() {
@@ -307,9 +307,11 @@ class RecordingAiService {
           // Procesar fragmentos secuencialmente para no saturar la RAM/VRAM local
           for (let i = 0; i < chunks.length; i++) {
             console.log(`  🧩 Procesando fragmento ${i + 1}/${chunks.length}...`);
-            const chunkPrompt = `A continuación se presenta un fragmento de una transcripción de reunión (Parte ${i + 1}/${chunks.length}). Por favor, genera un resumen detallado y puntos clave de esta sección específica.\n\nTranscripción:\n${chunks[i]}`;
+            // System prompt: instrucciones de tarea. User content: el fragmento a procesar.
+            const chunkSystemPrompt = detailedSummaryPrompt(lang) +
+              `\n\nNote: This is part ${i + 1} of ${chunks.length} of a longer transcription. Summarize only this specific section.`;
             
-            const partialResult = await this._callAiProvider(chunkPrompt, null, {
+            const partialResult = await this._callAiProvider(chunkSystemPrompt, chunks[i], {
               ...providerOverrides,
               queueMeta: { 
                 name: `Resumen detallado (Parte ${i + 1}/${chunks.length}): ${recName}`, 
@@ -464,11 +466,11 @@ class RecordingAiService {
           contextText = contextText.substring(0, maxChars);
         }
 
-        // Construir prompt sándwich
-        const combinedPrompt = `${participantsPrompt(lang)}\n${contextText}\n${participantsPromptSuffix}`;
+        // System prompt: instrucciones + recordatorio final. User content: el texto a analizar.
+        const participantsSystemPrompt = `${participantsPrompt(lang)}\n${participantsPromptSuffix}`;
 
-        // Llamar a la IA con contexto null y forzando formato JSON para Ollama
-        const participantsResponse = await this._callAiProvider(combinedPrompt, null, {
+        // Llamar a la IA con system prompt separado y forzando formato JSON para Ollama
+        const participantsResponse = await this._callAiProvider(participantsSystemPrompt, contextText, {
           ...providerOverrides,
           format: 'json',
           queueMeta: { name: `Participantes: ${recName}`, type: AI_TASK_TYPES.PARTICIPANTS },
@@ -604,8 +606,9 @@ class RecordingAiService {
         contextText = contextText.substring(0, maxChars);
       }
 
-      const combinedPrompt = `${taskSuggestionsPrompt(lang)}\n${contextText}\n${taskSuggestionsPromptSuffix}`;
-      const response = await this._callAiProvider(combinedPrompt, null, {
+      // System prompt: instrucciones + recordatorio final. User content: el texto a analizar.
+      const taskSystemPrompt = `${taskSuggestionsPrompt(lang)}\n${taskSuggestionsPromptSuffix}`;
+      const response = await this._callAiProvider(taskSystemPrompt, contextText, {
         format: 'json',
         queueMeta: { name: `Tareas: ${recName}`, type: AI_TASK_TYPES.TASK_SUGGESTIONS },
       });
@@ -680,8 +683,10 @@ class RecordingAiService {
         contextText = contextText.substring(0, maxChars);
       }
 
-      const prompt = taskImprovementPrompt(task.title, task.content, contextText, lang);
-      const response = await this._callAiProvider(prompt, null, {
+      // System prompt: instrucciones fijas. User content: tarea + contexto de grabación.
+      const taskSysPrompt = taskImprovementSystemPrompt(lang);
+      const taskUserContent = taskImprovementUserContent(task.title, task.content, contextText);
+      const response = await this._callAiProvider(taskSysPrompt, taskUserContent, {
         format: 'json',
         queueMeta: { name: `Mejorar tarea: ${task.title}`, type: AI_TASK_TYPES.TASK_IMPROVEMENT },
       });
@@ -702,16 +707,29 @@ class RecordingAiService {
   }
 
   /**
-   * Método de utilidad para llamar al proveedor de IA configurado
+   * Método de utilidad para llamar al proveedor de IA configurado.
+   *
+   * Separación system/user:
+   * - `systemPrompt` se envía como instrucciones de sistema (campo separado en cada proveedor).
+   * - `userContent` es el mensaje del usuario (transcripción, resumen, etc.).
+   *
+   * Para compatibilidad con el uso antiguo:
+   * - Si se llama con la firma antigua (prompt, context, options), y `prompt` no está en options,
+   *   se detecta automáticamente: `systemPrompt = prompt` y `userContent = context`.
+   *
+   * @param {string} systemPrompt - Instrucciones de sistema (el prompt de aiPrompts.js)
+   * @param {string|null} userContent - Contenido a procesar (transcripción o resumen)
+   * @param {Object} options - Opciones para callProvider (queueMeta, format, providerOverride, etc.)
    * @private
    */
-  async _callAiProvider(prompt, context, options = {}) {
-    let fullPrompt = prompt;
-    if (context) {
-      fullPrompt = `${prompt}\n\nTranscripción:\n${context}`;
-    }
-
-    return await callProvider(fullPrompt, options);
+  async _callAiProvider(systemPrompt, userContent, options = {}) {
+    // El contenido de usuario se pasa directamente como prompt al proveedor.
+    // Las instrucciones del sistema van en options.systemPrompt (campo separado).
+    const prompt = userContent || '';
+    return await callProvider(prompt, {
+      ...options,
+      systemPrompt,
+    });
   }
 
   /**

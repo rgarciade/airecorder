@@ -57,10 +57,12 @@ export function getKimiAvailableModels() {
 
 /**
  * Envía el texto a Kimi con manejo de reintentos
- * @param {string} textContent - El contenido a enviar
+ * @param {string} textContent - El contenido a enviar (mensaje de usuario)
+ * @param {string|null} modelOverride - Modelo a usar (opcional)
+ * @param {string|null} systemPrompt - Instrucciones de sistema (opcional, reemplaza el genérico de Kimi)
  * @returns {Promise<string>} - Respuesta generada
  */
-export async function sendToKimi(textContent, modelOverride = null) {
+export async function sendToKimi(textContent, modelOverride = null, systemPrompt = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
@@ -72,10 +74,14 @@ export async function sendToKimi(textContent, modelOverride = null) {
     throw new Error('No se ha configurado la Kimi API Key en los ajustes.');
   }
 
+  // Si se pasa systemPrompt específico, usarlo; si no, usar el genérico de Kimi como fallback
+  const effectiveSystemPrompt = systemPrompt ||
+    'You are Kimi, an AI assistant provided by Moonshot AI. You are proficient in Chinese and English conversations. You provide users with safe, helpful, and accurate answers.';
+
   const body = {
     model: model,
     messages: [
-      { role: 'system', content: 'You are Kimi, an AI assistant provided by Moonshot AI. You are proficient in Chinese and English conversations. You provide users with safe, helpful, and accurate answers.' },
+      { role: 'system', content: effectiveSystemPrompt },
       { role: 'user', content: textContent }
     ],
     stream: false
@@ -122,11 +128,13 @@ export async function sendToKimi(textContent, modelOverride = null) {
 
 /**
  * Envía el texto a Kimi en modo streaming
- * @param {string} textContent - El contenido a enviar
+ * @param {string} textContent - El contenido a enviar (mensaje de usuario)
  * @param {Function} onChunk - Callback que recibe cada chunk de texto
+ * @param {string|null} modelOverride - Modelo a usar (opcional)
+ * @param {string|null} systemPrompt - Instrucciones de sistema (opcional)
  * @returns {Promise<string>} - Texto completo de la respuesta
  */
-export async function sendToKimiStreaming(textContent, onChunk, modelOverride = null) {
+export async function sendToKimiStreaming(textContent, onChunk, modelOverride = null, systemPrompt = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
@@ -138,13 +146,16 @@ export async function sendToKimiStreaming(textContent, onChunk, modelOverride = 
 
   if (!apiKey) {
     console.error('[Kimi] Falta API Key');
-    throw new Error('No se ha configurado la Kimi API Key en los ajustes.');
+    throw new Error('No se ha configurada la Kimi API Key en los ajustes.');
   }
+
+  const effectiveSystemPrompt = systemPrompt ||
+    'You are Kimi, an AI assistant provided by Moonshot AI. You are proficient in Chinese and English conversations. You provide users with safe, helpful, and accurate answers.';
 
   const body = {
     model: model,
     messages: [
-      { role: 'system', content: 'You are Kimi, an AI assistant provided by Moonshot AI. You are proficient in Chinese and English conversations. You provide users with safe, helpful, and accurate answers.' },
+      { role: 'system', content: effectiveSystemPrompt },
       { role: 'user', content: textContent }
     ],
     stream: true

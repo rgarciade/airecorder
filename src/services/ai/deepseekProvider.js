@@ -57,10 +57,12 @@ export function getDeepseekAvailableModels() {
 
 /**
  * Envía el texto a DeepSeek con manejo de reintentos
- * @param {string} textContent - El contenido a enviar
+ * @param {string} textContent - El contenido a enviar (mensaje de usuario)
+ * @param {string|null} modelOverride - Modelo a usar (opcional)
+ * @param {string|null} systemPrompt - Instrucciones de sistema (opcional)
  * @returns {Promise<string>} - Respuesta generada
  */
-export async function sendToDeepseek(textContent, modelOverride = null) {
+export async function sendToDeepseek(textContent, modelOverride = null, systemPrompt = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
@@ -72,11 +74,15 @@ export async function sendToDeepseek(textContent, modelOverride = null) {
     throw new Error('No se ha configurado la DeepSeek API Key en los ajustes.');
   }
 
+  // Construir array de mensajes: system primero (si existe), luego user
+  const messages = [
+    ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+    { role: 'user', content: textContent }
+  ];
+
   const body = {
     model: model,
-    messages: [
-      { role: 'user', content: textContent }
-    ],
+    messages,
     stream: false
   };
 

@@ -148,6 +148,8 @@
       "hostUrl": "URL del Host",
       "baseUrl": "URL Base",
       "ragModel": "Modelo de Chat para RAG (opcional)",
+      "generalModel": "Modelo General",
+      "chatModel": "Modelo de Chat (opcional)",
       "embeddingModel": "Modelo de Embeddings ({{provider}})",
       "databasePath": "Directorio de la Base de Datos",
       "contextLength": "Ventana de Contexto (tokens)"
@@ -160,6 +162,8 @@
       "whisperModel": "Elige el modelo por defecto para nuevas transcripciones. Los modelos pequeños son más rápidos pero menos precisos.",
       "cpuThreads": "Más hilos aumentan la velocidad de transcripción pero consumen más recursos del ordenador.",
       "ragModel": "Modelo específico para responder consultas RAG (ej: deepseek-r1). Dejar vacío para usar el modelo principal.",
+      "generalModel": "Modelo utilizado para resúmenes, análisis y tareas de procesamiento.",
+      "chatModel": "Modelo utilizado para las conversaciones del chat. Si se deja vacío, se usará el Modelo General.",
       "embeddingModel": "Modelo usado para indexar y buscar fragmentos (ej: nomic-embed-text).",
       "databasePath": "Cambia dónde se guarda la base de datos. Se recomienda usar la ruta por defecto.",
       "contextLengthInput": "Deja vacío para detectarlo automáticamente en cada generación, o introduce el valor manualmente.",
@@ -503,7 +507,9 @@
         "checking": "Comprobando...",
         "connected": "Conectado:",
         "connFailed": "Conexión fallida",
-        "modelLabel": "Modelo"
+        "modelLabel": "Modelo General",
+        "chatModelLabel": "Modelo de Chat (opcional)",
+        "chatModelHelp": "Para conversaciones del chat. Vacío = usa el Modelo General."
       },
       "lmstudio": {
         "subtitle": "Procesamiento local",

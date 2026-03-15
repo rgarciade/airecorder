@@ -88,15 +88,22 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
         setAiProvider(provider);
         const host = s.ollamaHost || 'http://localhost:11434';
         setOllamaHost(host);
+        
+        // Priorizar modelo de chat (ragModel) si existe para Ollama/LM Studio
         const modelByProvider = {
-          ollama: s.ollamaModel,
+          ollama: s.ollamaRagModel || s.ollamaModel,
           deepseek: s.deepseekModel,
           kimi: s.kimiModel,
           gemini: s.geminiModel,
           geminifree: s.geminiFreeModel,
-          lmstudio: s.lmStudioModel,
+          lmstudio: s.lmStudioRagModel || s.lmStudioModel,
         };
-        setSettingsModel(modelByProvider[provider] || '');
+        const currentModel = modelByProvider[provider] || '';
+        setSettingsModel(currentModel);
+        
+        // Inicializar el modelo de sesión para que el ChatInterface lo muestre correctamente
+        if (provider === 'ollama') setSelectedOllamaModel(currentModel);
+        if (provider === 'lmstudio') setSelectedLmStudioModel(currentModel);
         
         // Guardar context length
         let ctxLen = 8000;
@@ -410,15 +417,16 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const handleSessionModelChange = async (model) => {
     setSessionModel(model);
 
-    // Persistir el modelo seleccionado globalmente para el proveedor actual
+    // Para Ollama y LM Studio: el modelo elegido en el chat se guarda como "Modelo de Chat"
+    // (ollamaRagModel / lmStudioRagModel), sin tocar el Modelo General.
     try {
       const settingsUpdate = {};
-      if (aiProvider === 'ollama') settingsUpdate.ollamaModel = model;
+      if (aiProvider === 'ollama') settingsUpdate.ollamaRagModel = model;
+      else if (aiProvider === 'lmstudio') settingsUpdate.lmStudioRagModel = model;
       else if (aiProvider === 'deepseek') settingsUpdate.deepseekModel = model;
       else if (aiProvider === 'kimi') settingsUpdate.kimiModel = model;
       else if (aiProvider === 'gemini') settingsUpdate.geminiModel = model;
       else if (aiProvider === 'geminifree') settingsUpdate.geminiFreeModel = model;
-      else if (aiProvider === 'lmstudio') settingsUpdate.lmStudioModel = model;
       
       if (Object.keys(settingsUpdate).length > 0) {
         await updateSettings(settingsUpdate);
@@ -431,8 +439,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       setIsVerifyingModel(true);
       try {
         const ok = await checkModelSupportsStreaming(model, ollamaHost);
-        // En el chat de proyecto no usamos streaming directo, pero actualizamos el estado
-        console.log(`[ProjectDetail] Modelo ${model} soporta streaming: ${ok}`);
+        console.log(`[ProjectDetail] Modelo de chat ${model} soporta streaming: ${ok}`);
         await updateSettings({ ollamaModelSupportsStreaming: ok });
       } catch {
         // ignorar

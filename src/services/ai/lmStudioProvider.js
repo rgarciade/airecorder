@@ -116,20 +116,29 @@ export async function checkLMStudioAvailability(baseUrl = null) {
 
 /**
  * Envía una petición a LM Studio (modo normal)
+ * @param {string} textContent - Mensaje de usuario
+ * @param {string|null} modelOverride - Modelo a usar (opcional)
+ * @param {string|null} systemPrompt - Instrucciones de sistema (opcional)
  */
-export async function sendToLMStudio(textContent, modelOverride = null) {
+export async function sendToLMStudio(textContent, modelOverride = null, systemPrompt = null) {
   const settings = await getSettings();
   const url = normalizeBaseUrl(settings.lmStudioHost || 'http://localhost:1234');
   const model = modelOverride || settings.lmStudioModel;
 
   if (!model) throw new Error('No hay modelo cargado o seleccionado en LM Studio');
 
+  // Construir array de mensajes: system primero (si existe), luego user
+  const messages = [
+    ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+    { role: 'user', content: textContent }
+  ];
+
   const response = await fetch(`${url}${LM_STUDIO_ENDPOINTS.chatCompletions}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model,
-      messages: [{ role: 'user', content: textContent }],
+      messages,
       stream: false
     })
   });

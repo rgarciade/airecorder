@@ -244,12 +244,15 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       setAiProvider(provider);
       setSupportsStreaming(isStreamingSupported);
       setUiLanguage(settings.uiLanguage || 'es');
-      if (settings.ollamaModel) {
-        setSelectedOllamaModel(settings.ollamaModel);
+      
+      // Para el chat, seleccionamos el modelo de chat (ragModel) o el general como fallback
+      if (settings.ollamaRagModel || settings.ollamaModel) {
+        setSelectedOllamaModel(settings.ollamaRagModel || settings.ollamaModel);
       }
-      if (settings.lmStudioModel) {
-        setSelectedLmStudioModel(settings.lmStudioModel);
+      if (settings.lmStudioRagModel || settings.lmStudioModel) {
+        setSelectedLmStudioModel(settings.lmStudioRagModel || settings.lmStudioModel);
       }
+      
       // Cargar modelos RAG específicos si existen
       if (settings.ollamaRagModel) {
         setOllamaRagModel(settings.ollamaRagModel);
@@ -257,14 +260,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       if (settings.lmStudioRagModel) {
         setLmStudioRagModel(settings.lmStudioRagModel);
       }
-      // Guardar modelo de settings según proveedor
+      // Guardar modelo de settings según proveedor (priorizando modelo de chat para proveedores locales)
       const modelByProvider = {
-        ollama: settings.ollamaModel,
+        ollama: settings.ollamaRagModel || settings.ollamaModel,
         deepseek: settings.deepseekModel,
         kimi: settings.kimiModel,
         gemini: settings.geminiModel,
         geminifree: settings.geminiFreeModel,
-        lmstudio: settings.lmStudioModel,
+        lmstudio: settings.lmStudioRagModel || settings.lmStudioModel,
       };
       setSettingsModel(modelByProvider[provider] || '');
 
@@ -720,15 +723,17 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const handleSessionModelChange = async (model) => {
     setSessionModel(model);
     
-    // Persistir el modelo seleccionado globalmente para el proveedor actual
+    // Para Ollama y LM Studio: el modelo elegido en el chat se guarda como "Modelo de Chat"
+    // (ollamaRagModel / lmStudioRagModel), sin tocar el Modelo General.
+    // Para el resto de proveedores (cloud) se guarda directamente en su campo de modelo.
     try {
       const settingsUpdate = {};
-      if (aiProvider === 'ollama') settingsUpdate.ollamaModel = model;
+      if (aiProvider === 'ollama') settingsUpdate.ollamaRagModel = model;
+      else if (aiProvider === 'lmstudio') settingsUpdate.lmStudioRagModel = model;
       else if (aiProvider === 'deepseek') settingsUpdate.deepseekModel = model;
       else if (aiProvider === 'kimi') settingsUpdate.kimiModel = model;
       else if (aiProvider === 'gemini') settingsUpdate.geminiModel = model;
       else if (aiProvider === 'geminifree') settingsUpdate.geminiFreeModel = model;
-      else if (aiProvider === 'lmstudio') settingsUpdate.lmStudioModel = model;
       
       if (Object.keys(settingsUpdate).length > 0) {
         await updateSettings(settingsUpdate);
@@ -738,6 +743,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
 
     if (aiProvider === 'ollama') {
+      // Actualizar el estado local del modelo de chat
+      setOllamaRagModel(model);
       setIsVerifyingModel(true);
       try {
         const s = await getSettings();
@@ -752,6 +759,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
     // LM Studio usa API OpenAI-compatible, siempre soporta streaming
     if (aiProvider === 'lmstudio') {
+      setLmStudioRagModel(model);
       setSelectedLmStudioModel(model);
       setSupportsStreaming(true);
     }
