@@ -86,6 +86,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
 
   // Ollama
   const [ollamaModel, setOllamaModel] = useState('');
+  const [ollamaRagModel, setOllamaRagModel] = useState(''); // Modelo de Chat
   const [ollamaEmbeddingModel, setOllamaEmbeddingModel] = useState('');
   const [ollamaModels, setOllamaModels] = useState([]);
   const [ollamaEmbeddingModels, setOllamaEmbeddingModels] = useState([]);
@@ -96,6 +97,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
 
   // LM Studio
   const [lmStudioModel, setLmStudioModel] = useState('');
+  const [lmStudioRagModel, setLmStudioRagModel] = useState(''); // Modelo de Chat
   const [lmStudioEmbeddingModel, setLmStudioEmbeddingModel] = useState('');
   const [lmStudioModels, setLmStudioModels] = useState([]);
   const [lmStudioChatModels, setLmStudioChatModels] = useState([]);
@@ -201,6 +203,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         // LM Studio
         setLmStudioHost(savedSettings.lmStudioHost || 'http://localhost:1234/v1');
         setLmStudioModel(savedSettings.lmStudioModel || '');
+        setLmStudioRagModel(savedSettings.lmStudioRagModel || '');
         setLmStudioEmbeddingModel(savedSettings.lmStudioEmbeddingModel || '');
         setLmStudioContextLengthSaved(savedSettings.lmStudioContextLength ? String(savedSettings.lmStudioContextLength) : '');
 
@@ -209,6 +212,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         
         setAiProvider(savedSettings.aiProvider || 'ollama');
         setOllamaModel(savedSettings.ollamaModel || '');
+        setOllamaRagModel(savedSettings.ollamaRagModel || '');
         setOllamaEmbeddingModel(savedSettings.ollamaEmbeddingModel || 'nomic-embed-text');
         setOllamaModelSupportsStreaming(savedSettings.ollamaModelSupportsStreaming || false);
         if (savedSettings.ollamaHost) setOllamaHost(savedSettings.ollamaHost);
@@ -531,10 +535,12 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         // LM Studio
         lmStudioHost: lmStudioHost,
         lmStudioModel: lmStudioModel,
+        lmStudioRagModel: lmStudioRagModel,
         lmStudioEmbeddingModel: lmStudioEmbeddingModel,
         // Ollama
         aiProvider: aiProvider,
         ollamaModel: ollamaModel,
+        ollamaRagModel: ollamaRagModel,
         ollamaEmbeddingModel: ollamaEmbeddingModel,
         ollamaHost: ollamaHost,
         ollamaModelSupportsStreaming: ollamaModelSupportsStreaming,
@@ -737,7 +743,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>{t('settings.fields.model')}</label>
+                    <label className={styles.label}>{t('settings.fields.generalModel')}</label>
                     <select
                       className={styles.input}
                       value={ollamaModel}
@@ -760,6 +766,23 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         {ollamaModelSupportsStreaming ? t('settings.messages.supportsStreaming') : t('settings.messages.noStreaming')}
                       </p>
                     )}
+                    <p className={styles.helpText}>{t('settings.helpText.generalModel')}</p>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>{t('settings.fields.chatModel')}</label>
+                    <select
+                      className={styles.input}
+                      value={ollamaRagModel}
+                      onChange={(e) => setOllamaRagModel(e.target.value)}
+                      disabled={aiProvider !== 'ollama' || !ollamaAvailable}
+                    >
+                      <option value="">{t('settings.misc.useMainModel')}</option>
+                      {ollamaModels.map(model => (
+                        <option key={model.name} value={model.name}>{model.name}</option>
+                      ))}
+                    </select>
+                    <p className={styles.helpText}>{t('settings.helpText.chatModel')}</p>
                   </div>
 
                   <div className={styles.formGroup}>
@@ -895,7 +918,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>{t('settings.fields.model')}</label>
+                    <label className={styles.label}>{t('settings.fields.generalModel')}</label>
                     <select
                       className={styles.input}
                       value={lmStudioModel}
@@ -912,6 +935,23 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         {t('settings.messages.modelError')}
                       </p>
                     )}
+                    <p className={styles.helpText}>{t('settings.helpText.generalModel')}</p>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>{t('settings.fields.chatModel')}</label>
+                    <select
+                      className={styles.input}
+                      value={lmStudioRagModel}
+                      onChange={(e) => setLmStudioRagModel(e.target.value)}
+                      disabled={aiProvider !== 'lmstudio' || !lmStudioAvailable}
+                    >
+                      <option value="">{t('settings.misc.useMainModel')}</option>
+                      {(lmStudioChatModels.length > 0 ? lmStudioChatModels : lmStudioModels).map(model => (
+                        <option key={model.name} value={model.name}>{model.name}</option>
+                      ))}
+                    </select>
+                    <p className={styles.helpText}>{t('settings.helpText.chatModel')}</p>
                   </div>
 
                   <div className={styles.formGroup}>

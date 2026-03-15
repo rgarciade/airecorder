@@ -131,6 +131,8 @@
       "hostUrl": "Host URL",
       "baseUrl": "Base URL",
       "ragModel": "RAG Chat Model (optional)",
+      "generalModel": "General Model",
+      "chatModel": "Chat Model (optional)",
       "embeddingModel": "Embedding Model ({{provider}})",
       "databasePath": "Database Directory",
       "contextLength": "Context Window (tokens)"
@@ -143,6 +145,8 @@
       "whisperModel": "Choose the default model for new transcriptions. Smaller models are faster but less accurate.",
       "cpuThreads": "More threads increase transcription speed but use more computer resources.",
       "ragModel": "Specific model for answering RAG queries (e.g.: deepseek-r1). Leave empty to use the main model.",
+      "generalModel": "Model used for summaries, analysis and processing tasks.",
+      "chatModel": "Model used for chat conversations. If empty, the General Model will be used.",
       "embeddingModel": "Model used for indexing and searching fragments (e.g.: nomic-embed-text).",
       "databasePath": "Change where the database is stored. Default location is recommended.",
       "contextLengthInput": "Leave empty to detect automatically on each generation, or enter the value manually.",
@@ -486,7 +490,9 @@
         "checking": "Checking...",
         "connected": "Connected:",
         "connFailed": "Connection failed",
-        "modelLabel": "Model"
+        "modelLabel": "General Model",
+        "chatModelLabel": "Chat Model (optional)",
+        "chatModelHelp": "For chat conversations. Empty = uses General Model."
       },
       "lmstudio": {
         "subtitle": "Self-hosted processing",

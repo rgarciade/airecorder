@@ -137,8 +137,8 @@ function extractNumCtxFromParams(params) {
  * Genera contenido usando un modelo de Ollama
  * Incluye reintentos automáticos para errores de red y errores 5xx
  * @param {string} model - Nombre del modelo a usar
- * @param {string} prompt - Prompt para el modelo
- * @param {Object} options - Opciones adicionales (ej: { format: 'json', images: [{base64, mimeType}] })
+ * @param {string} prompt - Prompt de usuario
+ * @param {Object} options - Opciones adicionales (ej: { format: 'json', images: [{base64, mimeType}], systemPrompt: string })
  * @returns {Promise<string>} Respuesta generada
  */
 export async function generateContent(model, prompt, options = {}) {
@@ -160,6 +160,8 @@ export async function generateContent(model, prompt, options = {}) {
           model,
           prompt,
           stream: false,
+          // System prompt separado → campo "system" de /api/generate
+          ...(options.systemPrompt ? { system: options.systemPrompt } : {}),
           ...(options.format ? { format: options.format } : {}),
           ...(imagesBase64 ? { images: imagesBase64 } : {})
         }),

@@ -122,13 +122,14 @@ const defaultPrompt = `A continuación tienes una transcripción. Quiero que me 
 
 /**
  * Envía el texto a Gemini con manejo de reintentos para errores 429
- * @param {string} textContent - El contenido a enviar (prompt + contexto o solo contexto)
+ * @param {string} textContent - El contenido a enviar (mensaje de usuario)
  * @param {boolean} isRaw - Si es true, envía textContent tal cual. Si es false, le añade el defaultPrompt.
  * @param {boolean} useFreeTier - Si es true, usa geminiFreeApiKey en lugar de geminiApiKey
  * @param {Array<{base64: string, mimeType: string}>} [images] - Imágenes adjuntas (multimodal)
+ * @param {string} [systemPrompt] - Instrucciones de sistema (se envía como system_instruction separado)
  * @returns {Promise<Object>} - Respuesta de Gemini
  */
-export async function sendToGemini(textContent, isRaw = false, useFreeTier = false, images = []) {
+export async function sendToGemini(textContent, isRaw = false, useFreeTier = false, images = [], systemPrompt = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000; // 2 segundos
 
@@ -160,7 +161,9 @@ export async function sendToGemini(textContent, isRaw = false, useFreeTier = fal
   }
 
   const body = {
-    contents: [{ parts }]
+    contents: [{ parts }],
+    // System prompt separado → system_instruction (solo si se proporciona)
+    ...(systemPrompt ? { system_instruction: { parts: [{ text: systemPrompt }] } } : {}),
   };
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {

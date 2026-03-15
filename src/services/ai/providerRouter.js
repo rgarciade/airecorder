@@ -41,37 +41,38 @@ function _resolveEngineName(settings, provider, options = {}) {
 async function _runCallProvider(prompt, options) {
   const settings = await getSettings();
   const provider = options.providerOverride || settings.aiProvider || 'ollama';
+  const systemPrompt = options.systemPrompt || null;
 
   switch (provider) {
     case 'ollama': {
       const model = options.model || options.ragModel || settings.ollamaModel;
       if (!model) throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
-      const response = await ollamaGenerate(model, prompt, { ...options, images: options.images || [] });
+      const response = await ollamaGenerate(model, prompt, { ...options, images: options.images || [], systemPrompt });
       return { text: response || 'Sin respuesta', provider: 'ollama', model };
     }
 
     case 'lmstudio': {
       const model = options.model || options.ragModel || settings.lmStudioModel;
       if (!model) throw new Error('No se ha seleccionado un modelo en LM Studio.');
-      const response = await sendToLMStudio(prompt, model);
+      const response = await sendToLMStudio(prompt, model, systemPrompt);
       return { text: response || 'Sin respuesta', provider: 'lmstudio', model };
     }
 
     case 'deepseek': {
       if (!settings.deepseekApiKey) throw new Error('No se ha configurado la DeepSeek API Key en los ajustes.');
-      const response = await sendToDeepseek(prompt, options.model || null);
+      const response = await sendToDeepseek(prompt, options.model || null, systemPrompt);
       return { text: response || 'Sin respuesta', provider: 'deepseek' };
     }
 
     case 'kimi': {
       if (!settings.kimiApiKey) throw new Error('No se ha configurado la Kimi API Key en los ajustes.');
-      const response = await sendToKimi(prompt, options.model || null);
+      const response = await sendToKimi(prompt, options.model || null, systemPrompt);
       return { text: response || 'Sin respuesta', provider: 'kimi' };
     }
 
     case 'gemini': {
       if (!settings.geminiApiKey) throw new Error('No se ha configurado la Gemini API Key en los ajustes.');
-      const result = await sendToGemini(prompt, true, false, options.images || []);
+      const result = await sendToGemini(prompt, true, false, options.images || [], systemPrompt);
       const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta';
       return { text, provider: 'gemini' };
     }
@@ -80,7 +81,7 @@ async function _runCallProvider(prompt, options) {
     default: {
       const apiKey = settings.geminiFreeApiKey || settings.geminiApiKey;
       if (!apiKey) throw new Error('No se ha configurado la Gemini Free API Key en los ajustes.');
-      const result = await sendToGemini(prompt, true, true, options.images || []);
+      const result = await sendToGemini(prompt, true, true, options.images || [], systemPrompt);
       const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta';
       return { text, provider: 'geminifree' };
     }
@@ -165,8 +166,9 @@ async function _runCallProviderStreaming(prompt, onChunk, options) {
  * Envía un prompt al proveedor de IA configurado.
  * La llamada se encola y se ejecuta en orden FIFO.
  *
- * @param {string} prompt - Prompt completo
+ * @param {string} prompt - Contenido del mensaje de usuario
  * @param {Object} options - Opciones adicionales.
+ *   options.systemPrompt?: string — Instrucciones de sistema (se envía como campo separado en cada proveedor).
  *   options.queueMeta?: { name?: string, type?: string, engine?: string }
  *   para personalizar cómo aparece en la cola de la UI.
  * @returns {Promise<{text: string, provider: string}>}
@@ -353,14 +355,16 @@ async function _runCallChatProviderStreaming(messages, onChunk, options) {
     }
 
     case 'lmstudio': {
-      const model = options.model || options.ragModel || settings.lmStudioModel;
+      // Prioridad: override explícito > ragModel de contexto > modelo de chat configurado > modelo general
+      const model = options.model || options.ragModel || settings.lmStudioRagModel || settings.lmStudioModel;
       if (!model) throw new Error('No se ha seleccionado un modelo en LM Studio.');
       const fullResponse = await lmStudioChatStreaming(messages, onChunk, model);
       return { text: fullResponse || 'Sin respuesta', provider: 'lmstudio', model, streaming: true };
     }
 
     case 'ollama': {
-      const model = options.model || options.ragModel || settings.ollamaModel;
+      // Prioridad: override explícito > ragModel de contexto > modelo de chat configurado > modelo general
+      const model = options.model || options.ragModel || settings.ollamaRagModel || settings.ollamaModel;
       if (!model) throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
       console.log(`[callChatProviderStreaming] Ollama /api/chat modelo: ${model}`);
       const fullResponse = await ollamaChatStreaming(model, messages, onChunk, images);

@@ -40,6 +40,7 @@ export default function Onboarding({ onComplete }) {
   const [ollamaHost, setOllamaHost] = useState('http://localhost:11434');
   const [ollamaModels, setOllamaModels] = useState([]);
   const [selectedOllamaModel, setSelectedOllamaModel] = useState('');
+  const [selectedOllamaChatModel, setSelectedOllamaChatModel] = useState(''); // Modelo de Chat (opcional)
   const [ollamaEmbeddingModel, setOllamaEmbeddingModel] = useState('nomic-embed-text');
   const [lmStudioEmbeddingModel, setLmStudioEmbeddingModel] = useState('nomic-embed-text');
   const [ollamaStatus, setOllamaStatus] = useState('idle');
@@ -149,6 +150,7 @@ export default function Onboarding({ onComplete }) {
         ollamaHost,
         lmStudioHost: aiProvider === 'lmstudio' ? 'http://localhost:1234/v1' : undefined,
         ollamaModel: selectedOllamaModel,
+        ollamaRagModel: selectedOllamaChatModel || undefined,
         ollamaEmbeddingModel: aiProvider === 'ollama' ? ollamaEmbeddingModel : undefined,
         lmStudioEmbeddingModel: aiProvider === 'lmstudio' ? lmStudioEmbeddingModel : undefined,
         geminiApiKey: aiProvider === 'gemini' ? geminiKey : undefined,
@@ -353,6 +355,8 @@ export default function Onboarding({ onComplete }) {
         ollamaModels={ollamaModels}
         selectedOllamaModel={selectedOllamaModel}
         setSelectedOllamaModel={setSelectedOllamaModel}
+        selectedOllamaChatModel={selectedOllamaChatModel}
+        setSelectedOllamaChatModel={setSelectedOllamaChatModel}
         ollamaEmbeddingModel={ollamaEmbeddingModel}
         setOllamaEmbeddingModel={setOllamaEmbeddingModel}
         lmStudioEmbeddingModel={lmStudioEmbeddingModel}
