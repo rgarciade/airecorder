@@ -26,6 +26,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
+  <!-- Swiper.js -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+
   <style>
     /* =============================================
        CSS VARIABLES (Design System de AIRecorder)
@@ -1167,11 +1170,11 @@
       border-top: 1px solid var(--color-card-border);
     }
 
-    .screenshots-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 28px;
+    /* Swiper container */
+    .screenshots .swiper {
       margin-top: 56px;
+      overflow: hidden;
+      padding-bottom: 48px; /* espacio para paginación */
     }
 
     .screenshot-item {
@@ -1187,6 +1190,7 @@
       box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.07);
       border: 1px solid var(--color-card-border);
       transition: transform 0.3s ease, box-shadow 0.3s ease;
+      background: var(--color-white);
     }
 
     .screenshot-frame:hover {
@@ -1208,12 +1212,64 @@
       line-height: 1.4;
     }
 
-    @media (max-width: 900px) {
-      .screenshots-grid {
-        grid-template-columns: 1fr;
-        max-width: 520px;
-        margin-left: auto;
-        margin-right: auto;
+    /* Swiper Navigation (flechas) */
+    .screenshots .swiper-button-prev,
+    .screenshots .swiper-button-next {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+      background: var(--color-white);
+      box-shadow: var(--shadow-card);
+      transition: var(--transition);
+    }
+
+    .screenshots .swiper-button-prev::after,
+    .screenshots .swiper-button-next::after {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--color-text);
+      transition: color 0.25s ease;
+    }
+
+    .screenshots .swiper-button-prev:hover,
+    .screenshots .swiper-button-next:hover {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      box-shadow: var(--shadow-button);
+    }
+
+    .screenshots .swiper-button-prev:hover::after,
+    .screenshots .swiper-button-next:hover::after {
+      color: var(--color-white);
+    }
+
+    /* Swiper Pagination (dots) */
+    .screenshots .swiper-pagination-bullet {
+      width: 10px;
+      height: 10px;
+      background: #D1D5DB;
+      opacity: 1;
+      transition: all 0.3s ease;
+    }
+
+    .screenshots .swiper-pagination-bullet-active {
+      background: var(--color-primary);
+      width: 28px;
+      border-radius: 5px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .screenshots .swiper-button-prev,
+      .screenshots .swiper-button-next {
+        width: 36px;
+        height: 36px;
+      }
+      
+      .screenshots .swiper-button-prev::after,
+      .screenshots .swiper-button-next::after {
+        font-size: 14px;
       }
     }
   </style>
@@ -1310,27 +1366,67 @@
         <p class="section-subtitle animate-on-scroll delay-2" data-i18n="screenshotsSubtitle">Una interfaz limpia y enfocada en tu flujo de trabajo. Sin distracciones.</p>
       </div>
 
-      <div class="screenshots-grid">
-        <figure class="screenshot-item animate-on-scroll delay-1">
-          <div class="screenshot-frame">
-            <img src="screenshots/screen-home.png" alt="Pantalla de inicio de AIRecorder" loading="lazy" width="1280" height="800">
+      <div class="swiper">
+        <div class="swiper-wrapper">
+          <div class="swiper-slide">
+            <figure class="screenshot-item">
+              <div class="screenshot-frame">
+                <img src="screenshots/screen-resumen.png" alt="Resumen generado con IA" loading="lazy" width="1280" height="800">
+              </div>
+              <figcaption class="screenshot-caption" data-i18n="screenshotResumen">Resumen · Análisis e insights generados con IA</figcaption>
+            </figure>
           </div>
-          <figcaption class="screenshot-caption" data-i18n="screenshotHome">Inicio · Nueva sesión de grabación</figcaption>
-        </figure>
 
-        <figure class="screenshot-item animate-on-scroll delay-2">
-          <div class="screenshot-frame">
-            <img src="screenshots/screen-projects.png" alt="Biblioteca de proyectos" loading="lazy" width="1280" height="800">
+          <div class="swiper-slide">
+            <figure class="screenshot-item">
+              <div class="screenshot-frame">
+                <img src="screenshots/screen-audio-chat.png" alt="Chat de audio con IA" loading="lazy" width="1280" height="800">
+              </div>
+              <figcaption class="screenshot-caption" data-i18n="screenshotAudioChat">Audio Chat · Conversación en tiempo real con IA</figcaption>
+            </figure>
           </div>
-          <figcaption class="screenshot-caption" data-i18n="screenshotProjects">Proyectos · Biblioteca y grabaciones recientes</figcaption>
-        </figure>
 
-        <figure class="screenshot-item animate-on-scroll delay-3">
-          <div class="screenshot-frame">
-            <img src="screenshots/screen-ai-chat.png" alt="Chat con IA sobre el proyecto" loading="lazy" width="1280" height="800">
+          <div class="swiper-slide">
+            <figure class="screenshot-item">
+              <div class="screenshot-frame">
+                <img src="screenshots/screee-transcription.png" alt="Vista de transcripción" loading="lazy" width="1280" height="800">
+              </div>
+              <figcaption class="screenshot-caption" data-i18n="screenshotTranscription">Transcripción · Texto generado automáticamente con Whisper</figcaption>
+            </figure>
           </div>
-          <figcaption class="screenshot-caption" data-i18n="screenshotAiChat">Chat con IA · Búsqueda semántica sobre el proyecto</figcaption>
-        </figure>
+
+          <div class="swiper-slide">
+            <figure class="screenshot-item">
+              <div class="screenshot-frame">
+                <img src="screenshots/screen-home.png" alt="Pantalla de inicio de AIRecorder" loading="lazy" width="1280" height="800">
+              </div>
+              <figcaption class="screenshot-caption" data-i18n="screenshotHome">Inicio · Nueva sesión de grabación</figcaption>
+            </figure>
+          </div>
+
+          <div class="swiper-slide">
+            <figure class="screenshot-item">
+              <div class="screenshot-frame">
+                <img src="screenshots/screen-projects.png" alt="Biblioteca de proyectos" loading="lazy" width="1280" height="800">
+              </div>
+              <figcaption class="screenshot-caption" data-i18n="screenshotProjects">Proyectos · Biblioteca y grabaciones recientes</figcaption>
+            </figure>
+          </div>
+
+          <div class="swiper-slide">
+            <figure class="screenshot-item">
+              <div class="screenshot-frame">
+                <img src="screenshots/screen-ai-chat.png" alt="Chat con IA sobre el proyecto" loading="lazy" width="1280" height="800">
+              </div>
+              <figcaption class="screenshot-caption" data-i18n="screenshotAiChat">Chat con IA · Búsqueda semántica sobre el proyecto</figcaption>
+            </figure>
+          </div>
+
+        </div>
+
+        <div class="swiper-button-prev"></div>
+        <div class="swiper-button-next"></div>
+        <div class="swiper-pagination"></div>
       </div>
     </div>
   </section>
@@ -1417,7 +1513,7 @@
             </svg>
           </div>
           <h3 class="feature-title" data-i18n="feat5Title">Exportación de documentos</h3>
-          <p class="feature-desc" data-i18n="feat5Desc">Exporta transcripciones y resúmenes a DOCX o PDF con un clic. Comparte actas de reunión sin esfuerzo.</p>
+          <p class="feature-desc" data-i18n="feat5Desc">Exporta transcripciones y resúmenes a DOCX, PDF o Markdown con un clic. Comparte actas de reunión sin esfuerzo.</p>
         </div>
 
         <!-- Proyectos -->
@@ -1486,6 +1582,56 @@
           </div>
           <h3 class="feature-title" data-i18n="feat10Title">Sube audio de dispositivos externos</h3>
           <p class="feature-desc" data-i18n="feat10Desc">Grabaste con una grabadora, móvil o cualquier otro dispositivo. Sube el archivo de audio y AIRecorder lo transcribe y analiza automáticamente.</p>
+        </div>
+
+        <!-- Tareas con IA y Kanban -->
+        <div class="feature-card animate-on-scroll delay-3">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+              <path d="M14 17h7M17 14v7"/>
+            </svg>
+          </div>
+          <h3 class="feature-title" data-i18n="feat11Title">Tareas con IA y tablero Kanban</h3>
+          <p class="feature-desc" data-i18n="feat11Desc">La IA extrae tareas accionables de cada reunión y las organiza en un tablero Kanban con columnas Backlog, En progreso, Bloqueado y Hecho. Arrastra, edita y refina cada tarea con IA.</p>
+        </div>
+
+        <!-- Búsqueda semántica RAG -->
+        <div class="feature-card animate-on-scroll delay-4">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              <path d="M11 8v3l2 2"/>
+            </svg>
+          </div>
+          <h3 class="feature-title" data-i18n="feat12Title">Búsqueda semántica con RAG</h3>
+          <p class="feature-desc" data-i18n="feat12Desc">Las transcripciones se indexan con embeddings vectoriales en LanceDB. El chat usa RAG para encontrar exactamente el fragmento relevante, incluso en proyectos con horas de grabaciones.</p>
+        </div>
+
+        <!-- Adjuntos como contexto -->
+        <div class="feature-card animate-on-scroll delay-5">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+            </svg>
+          </div>
+          <h3 class="feature-title" data-i18n="feat13Title">Adjuntos como contexto para la IA</h3>
+          <p class="feature-desc" data-i18n="feat13Desc">Adjunta imágenes, PDFs, documentos o Excel a cualquier grabación o proyecto. La IA los incorpora como contexto en el chat, con soporte de visión para modelos compatibles.</p>
+        </div>
+
+        <!-- Reproductor sincronizado -->
+        <div class="feature-card animate-on-scroll delay-6">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+              <line x1="19" y1="3" x2="19" y2="21"/>
+            </svg>
+          </div>
+          <h3 class="feature-title" data-i18n="feat14Title">Reproductor sincronizado con la transcripción</h3>
+          <p class="feature-desc" data-i18n="feat14Desc">Haz clic en cualquier frase de la transcripción para saltar al instante exacto del audio. Reproduce micrófono y sistema como pistas independientes con control de velocidad.</p>
         </div>
 
       </div>
@@ -1786,9 +1932,12 @@
         heroNote: 'Windows próximamente · Código abierto en GitHub',
         screenshotsLabel: 'Vista previa', screenshotsTitle: 'Mira cómo funciona',
         screenshotsSubtitle: 'Una interfaz limpia y enfocada en tu flujo de trabajo. Sin distracciones.',
+        screenshotResumen: 'Resumen · Análisis e insights generados con IA',
+        screenshotAudioChat: 'Audio Chat · Conversación en tiempo real con IA',
         screenshotHome: 'Inicio · Nueva sesión de grabación',
         screenshotProjects: 'Proyectos · Biblioteca y grabaciones recientes',
         screenshotAiChat: 'Chat con IA · Búsqueda semántica sobre el proyecto',
+        screenshotTranscription: 'Transcripción · Texto generado automáticamente con Whisper',
         featLabel: 'Funciones',
         featTitle: 'Todo lo que necesitas para<br>tus reuniones y proyectos',
         featSubtitle: 'Desde la grabación hasta el análisis con IA, AIRecorder cubre todo el flujo de trabajo sin depender de servicios externos.',
@@ -1796,12 +1945,16 @@
         feat2Title: 'Transcripción automática', feat2Desc: 'Whisper de OpenAI funciona directamente en tu equipo. Alta precisión, múltiples modelos y sin enviar audio a ningún servidor.',
         feat3Title: 'Análisis con IA', feat3Desc: 'Genera resúmenes detallados, extrae puntos clave e identifica participantes automáticamente a partir de la transcripción.',
         feat4Title: 'Chat interactivo', feat4Desc: 'Pregunta a la IA directamente sobre el contenido de cualquier reunión. Extrae información, fechas, compromisos o cualquier detalle.',
-        feat5Title: 'Exportación de documentos', feat5Desc: 'Exporta transcripciones y resúmenes a DOCX o PDF con un clic. Comparte actas de reunión sin esfuerzo.',
+        feat5Title: 'Exportación de documentos', feat5Desc: 'Exporta transcripciones y resúmenes a DOCX, PDF o Markdown con un clic. Comparte actas de reunión sin esfuerzo.',
         feat6Title: 'Gestión de proyectos', feat6Desc: 'Organiza tus grabaciones en proyectos. Dashboard con estadísticas de horas, reuniones y estado de transcripciones.',
         feat7Title: 'Múltiples modelos de IA', feat7Desc: 'Compatible con Gemini, DeepSeek, Kimi en la nube, y con Ollama y LM Studio para análisis completamente local.',
         feat8Title: 'Funciona sin conexión', feat8Desc: 'Con Ollama o LM Studio, toda la cadena, grabación, transcripción y análisis, funciona sin internet ni suscripciones.',
         feat9Title: 'Importa transcripciones de Teams', feat9Desc: '¿Tu reunión fue grabada en Microsoft Teams? Importa el archivo de transcripción directamente y analízalo con IA como si lo hubieras grabado tú mismo.',
         feat10Title: 'Sube audio de dispositivos externos', feat10Desc: 'Grabaste con una grabadora, móvil o cualquier otro dispositivo. Sube el archivo de audio y AIRecorder lo transcribe y analiza automáticamente.',
+        feat11Title: 'Tareas con IA y tablero Kanban', feat11Desc: 'La IA extrae tareas accionables de cada reunión y las organiza en un tablero Kanban con columnas Backlog, En progreso, Bloqueado y Hecho. Arrastra, edita y refina cada tarea con IA.',
+        feat12Title: 'Búsqueda semántica con RAG', feat12Desc: 'Las transcripciones se indexan con embeddings vectoriales en LanceDB. El chat usa RAG para encontrar exactamente el fragmento relevante, incluso en proyectos con horas de grabaciones.',
+        feat13Title: 'Adjuntos como contexto para la IA', feat13Desc: 'Adjunta imágenes, PDFs, documentos o Excel a cualquier grabación o proyecto. La IA los incorpora como contexto en el chat, con soporte de visión para modelos compatibles.',
+        feat14Title: 'Reproductor sincronizado con la transcripción', feat14Desc: 'Haz clic en cualquier frase de la transcripción para saltar al instante exacto del audio. Reproduce micrófono y sistema como pistas independientes con control de velocidad.',
         privLabel: 'Privacidad',
         privTitle: 'Tu privacidad,<br>nuestra prioridad',
         privSubtitle: 'Tus reuniones contienen información sensible. AIRecorder está diseñado para que tus datos nunca salgan de tu equipo.',
@@ -1838,9 +1991,12 @@
         heroNote: 'Windows coming soon · Open source on GitHub',
         screenshotsLabel: 'Preview', screenshotsTitle: 'See it in action',
         screenshotsSubtitle: 'A clean interface focused on your workflow. No distractions.',
+        screenshotResumen: 'Summary · AI-generated analysis and insights',
+        screenshotAudioChat: 'Audio Chat · Real-time AI conversation',
         screenshotHome: 'Home · New recording session',
         screenshotProjects: 'Projects · Library and recent recordings',
         screenshotAiChat: 'AI Chat · Semantic search over the project',
+        screenshotTranscription: 'Transcription · Text automatically generated with Whisper',
         featLabel: 'Features',
         featTitle: 'Everything you need for<br>your meetings and projects',
         featSubtitle: 'From recording to AI analysis, AIRecorder covers the entire workflow without depending on external services.',
@@ -1848,12 +2004,16 @@
         feat2Title: 'Automatic transcription', feat2Desc: "OpenAI's Whisper runs directly on your machine. High accuracy, multiple models, no audio sent to any server.",
         feat3Title: 'AI analysis', feat3Desc: 'Generate detailed summaries, extract key points, and automatically identify participants from the transcript.',
         feat4Title: 'Interactive chat', feat4Desc: "Ask the AI directly about any meeting's content. Extract information, dates, commitments, or any detail.",
-        feat5Title: 'Document export', feat5Desc: 'Export transcripts and summaries to DOCX or PDF with one click. Share meeting minutes effortlessly.',
+        feat5Title: 'Document export', feat5Desc: 'Export transcripts and summaries to DOCX, PDF or Markdown with one click. Share meeting minutes effortlessly.',
         feat6Title: 'Project management', feat6Desc: 'Organize your recordings into projects. Dashboard with statistics on hours, meetings, and transcription status.',
         feat7Title: 'Multiple AI models', feat7Desc: 'Compatible with Gemini, DeepSeek, Kimi in the cloud, and Ollama and LM Studio for fully local analysis.',
         feat8Title: 'Works offline', feat8Desc: 'With Ollama or LM Studio, the entire chain — recording, transcription, and analysis — works without internet or subscriptions.',
         feat9Title: 'Import Teams transcripts', feat9Desc: 'Was your meeting recorded in Microsoft Teams? Import the transcript file directly and analyze it with AI as if you had recorded it yourself.',
         feat10Title: 'Upload audio from external devices', feat10Desc: 'Recorded with a recorder, phone, or any other device? Upload the audio file and AIRecorder will transcribe and analyze it automatically.',
+        feat11Title: 'AI Tasks & Kanban Board', feat11Desc: 'AI extracts actionable tasks from each meeting and organizes them into a Kanban board with Backlog, In Progress, Blocked and Done columns. Drag, edit and refine each task with AI.',
+        feat12Title: 'Semantic search with RAG', feat12Desc: 'Transcripts are indexed with vector embeddings in LanceDB. The chat uses RAG to find exactly the relevant fragment, even in projects with hours of recordings.',
+        feat13Title: 'Attachments as AI context', feat13Desc: 'Attach images, PDFs, documents or Excel files to any recording or project. The AI incorporates them as context in the chat, with vision support for compatible models.',
+        feat14Title: 'Player synced with transcript', feat14Desc: 'Click any phrase in the transcript to jump to the exact moment in the audio. Play microphone and system as independent tracks with speed control.',
         privLabel: 'Privacy',
         privTitle: 'Your privacy,<br>our priority',
         privSubtitle: 'Your meetings contain sensitive information. AIRecorder is designed so your data never leaves your machine.',
@@ -1904,5 +2064,30 @@
   </script>
 
   <script src="components.js"></script>
+
+  <!-- Swiper.js -->
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <script>
+    new Swiper('.screenshots .swiper', {
+      slidesPerView: 1,
+      spaceBetween: 32,
+      loop: true,
+      speed: 600,
+      grabCursor: true,
+      autoplay: {
+        delay: 6000,
+        disableOnInteraction: false,
+        pauseOnMouseEnter: true,
+      },
+      pagination: {
+        el: '.swiper-pagination',
+        clickable: true,
+      },
+      navigation: {
+        nextEl: '.swiper-button-next',
+        prevEl: '.swiper-button-prev',
+      },
+    });
+  </script>
 </body>
 </html>
