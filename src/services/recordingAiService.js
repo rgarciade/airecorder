@@ -385,7 +385,17 @@ class RecordingAiService {
               queueMeta: { name: `Puntos clave: ${recName}`, type: AI_TASK_TYPES.KEY_POINTS }
             }).then(res => {
               keyPointText = res.text;
-              ideas = parseJsonArray(res.text, ['keyPoints', 'puntos_clave', 'ideas']);
+              // Restaurar extracción manual: el prompt de keyPoints devuelve formato "--|-- X --|-- texto", NO JSON.
+              ideas = [];
+              if (keyPointText) {
+                ideas = keyPointText.split('\n')
+                  .filter(line => line.includes('--|--'))
+                  .map(line => {
+                    const parts = line.split('--|--');
+                    return parts[parts.length - 1].trim();
+                  })
+                  .filter(idea => idea.length > 0);
+              }
             })
           );
         }
@@ -466,13 +476,13 @@ class RecordingAiService {
           contextText = contextText.substring(0, maxChars);
         }
 
-        // System prompt: instrucciones + recordatorio final. User content: el texto a analizar.
-        const participantsSystemPrompt = `${participantsPrompt(lang)}\n${participantsPromptSuffix}`;
+        // System prompt: instrucciones fijas. User content: texto + recordatorio final.
+        const participantsSystemPrompt = participantsPrompt(lang);
+        const userContentWithSuffix = `${contextText}\n${participantsPromptSuffix}`;
 
-        // Llamar a la IA con system prompt separado y forzando formato JSON para Ollama
-        const participantsResponse = await this._callAiProvider(participantsSystemPrompt, contextText, {
+        // Llamar a la IA (sin format: 'json' porque Ollama devuelve objetos únicos en vez de arrays)
+        const participantsResponse = await this._callAiProvider(participantsSystemPrompt, userContentWithSuffix, {
           ...providerOverrides,
-          format: 'json',
           queueMeta: { name: `Participantes: ${recName}`, type: AI_TASK_TYPES.PARTICIPANTS },
         });
         
@@ -606,10 +616,12 @@ class RecordingAiService {
         contextText = contextText.substring(0, maxChars);
       }
 
-      // System prompt: instrucciones + recordatorio final. User content: el texto a analizar.
-      const taskSystemPrompt = `${taskSuggestionsPrompt(lang)}\n${taskSuggestionsPromptSuffix}`;
-      const response = await this._callAiProvider(taskSystemPrompt, contextText, {
-        format: 'json',
+      // System prompt: instrucciones fijas. User content: texto + recordatorio final.
+      const taskSystemPrompt = taskSuggestionsPrompt(lang);
+      const userContentWithSuffix = `${contextText}\n${taskSuggestionsPromptSuffix}`;
+      const response = await this._callAiProvider(taskSystemPrompt, userContentWithSuffix, {
+        // NO usar format: 'json' aquí - Ollama con format json devuelve un solo objeto en vez de array
+        // El parser aiResponseParser ya maneja JSON en markdown correctamente
         queueMeta: { name: `Tareas: ${recName}`, type: AI_TASK_TYPES.TASK_SUGGESTIONS },
       });
 
@@ -687,7 +699,7 @@ class RecordingAiService {
       const taskSysPrompt = taskImprovementSystemPrompt(lang);
       const taskUserContent = taskImprovementUserContent(task.title, task.content, contextText);
       const response = await this._callAiProvider(taskSysPrompt, taskUserContent, {
-        format: 'json',
+        // NO usar format: 'json' - mejor dejar que devuelva JSON en markdown
         queueMeta: { name: `Mejorar tarea: ${task.title}`, type: AI_TASK_TYPES.TASK_IMPROVEMENT },
       });
 
@@ -723,12 +735,18 @@ class RecordingAiService {
    * @private
    */
   async _callAiProvider(systemPrompt, userContent, options = {}) {
-    // El contenido de usuario se pasa directamente como prompt al proveedor.
-    // Las instrucciones del sistema van en options.systemPrompt (campo separado).
-    const prompt = userContent || '';
+    // Para asegurar la máxima compatibilidad con modelos locales (Ollama/LMStudio)
+    // que a menudo ignoran el campo de 'system' o no lo tienen en su template,
+    // y dado que los prompts terminan con "BELOW IS THE TRANSCRIPT:",
+    // concatenamos explícitamente las instrucciones y el contenido.
+    let prompt = systemPrompt;
+    if (userContent) {
+      prompt = `${systemPrompt}\n\n${userContent}`;
+    }
+
     return await callProvider(prompt, {
       ...options,
-      systemPrompt,
+      systemPrompt: null, // Ya lo hemos concatenado en el prompt
     });
   }
 

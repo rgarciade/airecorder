@@ -24,13 +24,13 @@ const Sidebar = ({ currentView, onViewChange, queueCount = 0 }) => {
     { id: 'projects', label: t('sidebar.projects'), icon: <FolderIcon /> },
     {
       id: 'queue',
-      label: <span className={styles.multilineLabel}>{t('sidebar.transcriptionQueue').split('\n').map((line, i) => i === 0 ? line : <><br key={i}/>{line}</>)}</span>,
+      label: <span className={styles.multilineLabel}>{t('sidebar.transcriptionQueue').split('\n').map((line, i) => <React.Fragment key={i}>{i > 0 && <br />}{line}</React.Fragment>)}</span>,
       icon: <QueueIcon />,
       badge: queueCount > 0 ? queueCount : null
     },
     {
       id: 'ai-queue',
-      label: <span className={styles.multilineLabel}>{t('sidebar.aiQueue').split('\n').map((line, i) => i === 0 ? line : <><br key={i}/>{line}</>)}</span>,
+      label: <span className={styles.multilineLabel}>{t('sidebar.aiQueue').split('\n').map((line, i) => <React.Fragment key={i}>{i > 0 && <br />}{line}</React.Fragment>)}</span>,
       icon: <MdAutoAwesome />,
       badge: aiQueueCount > 0 ? aiQueueCount : null,
     },
