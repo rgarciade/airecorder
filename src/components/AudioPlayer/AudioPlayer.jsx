@@ -33,6 +33,7 @@ const AudioPlayer = forwardRef(({
   const micHowl = useRef(null);
   const sysHowl = useRef(null);
   const progressInterval = useRef(null);
+  const isSeekingRef = useRef(false); // Evita que onseek sobreescriba el currentTime durante seekTo
 
   // Internal duration state
   const [loadedDuration, setLoadedDuration] = useState(0);
@@ -92,12 +93,14 @@ const AudioPlayer = forwardRef(({
           sysHowl.current?.stop();
         },
         onseek: () => {
-           // Sync seek
+           // Sync seek — solo actualiza currentTime si NO estamos en medio de un seekTo
+           // (seekTo ya envía el valor correcto vía onTimeUpdate)
+           if (isSeekingRef.current) return;
            const seekVal = micHowl.current.seek();
            const t = typeof seekVal === 'number' ? seekVal : 0;
            sysHowl.current?.seek(t);
            setCurrentTime(t); // Update UI immediately
-        },
+         },
         onloaderror: (id, error) => {
           console.error('Error loading microphone audio:', error);
         }
@@ -197,6 +200,7 @@ const AudioPlayer = forwardRef(({
   useImperativeHandle(ref, () => ({
     seekTo: (time) => {
       const newTime = Math.min(Math.max(time, 0), effectiveDuration);
+      isSeekingRef.current = true;
       setCurrentTime(newTime);
       if (micHowl.current) {
         micHowl.current.seek(newTime);
@@ -207,6 +211,8 @@ const AudioPlayer = forwardRef(({
         }
       }
       if (onTimeUpdate) onTimeUpdate(newTime);
+      // Permitir que onseek actualice el currentTime tras el seek
+      setTimeout(() => { isSeekingRef.current = false; }, 50);
     },
     play: () => {
       if (!isPlaying && micHowl.current) micHowl.current.play();

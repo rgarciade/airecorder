@@ -27,6 +27,7 @@ export default function ChatInterface({
   selectedOllamaModel = '',
   onOllamaModelChange = () => { },
   onNavigateToRecording,
+  onSeekToTime,          // (segundos: number) → seek directo en el player de la vista actual
   onDeleteMessage,
   onResetChat,
   // Selector de modelo de sesión
@@ -154,6 +155,89 @@ export default function ChatInterface({
     });
   };
 
+  // Regex que detecta todos los patrones de timestamp que puede generar el modelo:
+  // 1. [TS: recId | MM:SS - MM:SS | "titulo"]  — formato explícito con rango
+  // 2. [TS: recId | MM:SS | "titulo"]  — formato explícito sin rango
+  // 3. **[MM:SS - MM:SS]** o [MM:SS - MM:SS]  — rango de tiempo natural del modelo
+  // 4. [MM:SS]  — timestamp solitario
+  const TS_REGEX = /\[TS:\s*([^|\]]*?)\s*\|\s*(\d{1,2}:\d{2}(?::\d{2})?)\s*[-–]\s*(\d{1,2}:\d{2}(?::\d{2})?)\s*(?:\|\s*"?([^"\]]+?)"?)?\]|\[TS:\s*([^|\]]*?)\s*\|\s*(\d{1,2}:\d{2}(?::\d{2})?)\s*(?:\|\s*"?([^"\]]+?)"?)?\]|\*{0,2}\[(\d{1,2}:\d{2}(?::\d{2})?)\s*[-–]\s*(\d{1,2}:\d{2}(?::\d{2})?)\]\*{0,2}|(?<!\()\[(\d{1,2}:\d{2}(?::\d{2})?)\](?!\()/g;
+
+  // Convierte MM:SS o H:MM:SS a segundos
+  const timeToSeconds = (t) => {
+    const p = t.split(':').map(Number);
+    return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p[0] * 60 + (p[1] || 0);
+  };
+
+  // Formatea segundos a MM:SS — siempre sin horas, igual que la transcripción
+  // (la transcripción usa minutes:seconds sin límite de 60 min por hora)
+  const formatSeconds = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+  };
+
+  // Renderiza un segmento de texto que puede contener timestamps mezclados con texto normal.
+  // Devuelve un array de strings y elementos React.
+  const renderTextWithTimestamps = (text) => {
+    if (!text || typeof text !== 'string') return text;
+    TS_REGEX.lastIndex = 0;
+    const parts = [];
+    let lastIndex = 0;
+    let m;
+    while ((m = TS_REGEX.exec(text)) !== null) {
+      // Texto antes del match
+      if (m.index > lastIndex) parts.push(text.slice(lastIndex, m.index));
+
+      // Determinar tiempo y recordingId según qué grupo capturó
+      let recId = '', startSecs = 0, endSecs = null, title = '';
+      if (m[1] !== undefined) {
+        // Grupo 1-4: formato [TS: recId | MM:SS - MM:SS | titulo]
+        recId = m[1].trim();
+        startSecs = timeToSeconds(m[2].trim());
+        endSecs = timeToSeconds(m[3].trim());
+        title = m[4] ? m[4].trim() : '';
+      } else if (m[5] !== undefined) {
+        // Grupo 5-7: formato [TS: recId | MM:SS | titulo]
+        recId = m[5].trim();
+        startSecs = timeToSeconds(m[6].trim());
+        title = m[7] ? m[7].trim() : '';
+      } else if (m[8] !== undefined) {
+        // Grupo 8-9: rango natural [MM:SS - MM:SS]
+        startSecs = timeToSeconds(m[8].trim());
+        endSecs = timeToSeconds(m[9].trim());
+      } else if (m[10] !== undefined) {
+        // Grupo 10: timestamp solitario [MM:SS]
+        startSecs = timeToSeconds(m[10].trim());
+      }
+
+      const seconds = startSecs;
+      const label = endSecs !== null
+        ? `${formatSeconds(startSecs)} – ${formatSeconds(endSecs)}`
+        : (title ? `${title} · ${formatSeconds(startSecs)}` : formatSeconds(startSecs));
+
+      const clickTime = formatSeconds(startSecs);
+      parts.push(
+        <button
+          key={`ts-${m.index}`}
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 bg-purple-50 hover:bg-purple-100 text-purple-600 hover:text-purple-700 rounded text-xs font-medium transition-colors cursor-pointer border border-purple-200"
+          onClick={() => {
+            if (!recId && onSeekToTime) {
+              onSeekToTime(seconds);
+            } else if (recId && onNavigateToRecording) {
+              onNavigateToRecording(recId, clickTime);
+            }
+          }}
+          title="Ir a este momento"
+        >
+          ⏱ {label}
+        </button>
+      );
+      lastIndex = m.index + m[0].length;
+    }
+    if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+    return parts.length > 0 ? parts : text;
+  };
+
   const processMessageContent = (content) => {
     if (!content) return '';
     let processed = content;
@@ -162,7 +246,8 @@ export default function ChatInterface({
     if (match) {
       processed = match[1];
     }
-    return processed.replace(
+    // Parsear [Ref: id | "titulo" | timestamp] → enlace de cita (sigue usando links normales de MD)
+    processed = processed.replace(
       /\[Ref:\s*([^|\]]+?)\s*\|\s*"?([^|"]+?)"?\s*(?:\|\s*([^\]]+?))?\]/g,
       (match, id, title, timestamp) => {
         const cleanId = id.trim();
@@ -173,13 +258,33 @@ export default function ChatInterface({
         return `[📎 ${displayText}](${linkUrl})`;
       }
     );
+    // Los timestamps los maneja renderTextWithTimestamps directamente en el render,
+    // así que no los tocamos aquí — ReactMarkdown los verá como texto normal.
+    return processed;
+  };
+
+  // Procesa los children de un nodo MD buscando strings con timestamps y expandiéndolos
+  const processChildren = (children) => {
+    if (!children) return children;
+    const arr = React.Children.toArray(children);
+    return arr.flatMap((child, i) => {
+      if (typeof child === 'string') {
+        const parts = renderTextWithTimestamps(child);
+        return Array.isArray(parts) ? parts.map((p, j) =>
+          typeof p === 'string' ? p : React.cloneElement(p, { key: `ts-${i}-${j}` })
+        ) : [parts];
+      }
+      return [child];
+    });
   };
 
   const markdownComponents = {
-    p: ({ children }) => <p className={styles.messageParagraph}>{children}</p>,
+    p: ({ children }) => <p className={styles.messageParagraph}>{processChildren(children)}</p>,
     a: ({ href, children }) => {
       if (href && href.startsWith('citation:')) {
-        const [_, id, time] = href.split(':');
+        const parts = href.split(':');
+        const id = parts[1];
+        const time = parts.slice(2).join(':');
         return (
           <button
             className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-1 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 rounded text-xs font-medium transition-colors cursor-pointer border border-blue-200"
@@ -199,15 +304,13 @@ export default function ChatInterface({
     },
     ul: ({ children }) => <ul className={styles.messageList}>{children}</ul>,
     ol: ({ children }) => <ol className={styles.messageList} style={{ listStyleType: 'decimal' }}>{children}</ol>,
-    li: ({ children }) => <li className={styles.messageListItem}>{children}</li>,
-    strong: ({ children }) => <strong className={styles.messageBold}>{children}</strong>,
-    em: ({ children }) => <em className={styles.messageItalic}>{children}</em>,
+    li: ({ children }) => <li className={styles.messageListItem}>{processChildren(children)}</li>,
+    strong: ({ children }) => <strong className={styles.messageBold}>{processChildren(children)}</strong>,
+    em: ({ children }) => <em className={styles.messageItalic}>{processChildren(children)}</em>,
     code: ({ inline, children }) =>
-      inline ? (
-        <code className={styles.messageInlineCode}>{children}</code>
-      ) : (
-        <pre className={styles.messageCodeBlock}><code>{children}</code></pre>
-      ),
+      inline
+        ? <code className={styles.messageInlineCode}>{children}</code>
+        : <pre className={styles.messageCodeBlock}><code>{children}</code></pre>,
     h1: ({ children }) => <h1 className={styles.messageHeading1}>{children}</h1>,
     h2: ({ children }) => <h2 className={styles.messageHeading2}>{children}</h2>,
     h3: ({ children }) => <h3 className={styles.messageHeading3}>{children}</h3>,

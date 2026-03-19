@@ -139,6 +139,8 @@ export const chatSystemPrompt = (transcriptionText, lang = 'es', docContext = ''
 Responde de forma concisa usando formato Markdown (negritas, listas, encabezados cuando sea apropiado).
 Si la pregunta requiere información específica de la conversación, usa el contexto proporcionado para dar una respuesta precisa y detallada.`;
 
+  system += `\nTIMESTAMPS NAVEGABLES: Cuando menciones un momento específico de la grabación, usa SIEMPRE este formato para que el usuario pueda navegar directamente a ese punto: [TS: | MM:SS] (ejemplo: "Esto ocurrió [TS: | 03:45]"). Usa este formato CADA VEZ que cites un minuto concreto.\n`;
+
   system += `\n\n--- CONTEXTO DE LA GRABACIÓN ---\n${transcriptionText}\n--- FIN CONTEXTO ---\n`;
 
   if (docContext) {

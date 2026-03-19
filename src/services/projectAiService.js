@@ -360,7 +360,7 @@ class ProjectAiService {
             if (chunks && chunks.length > 0) {
               const title = recordingTitles[recId] || `Grabación ${recId}`;
               chunks.forEach(chunk => {
-                allChunks.push({ ...chunk, recordingTitle: title });
+                allChunks.push({ ...chunk, recordingTitle: title, recordingId: recId });
               });
             }
           } catch {

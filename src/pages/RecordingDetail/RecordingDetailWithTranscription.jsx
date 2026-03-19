@@ -59,6 +59,19 @@ const KIMI_CHAT_MODELS = [
   { value: 'kimi-k2.5', label: 'Kimi K2.5' },
 ];
 
+/**
+ * Convierte un timestamp en formato MM:SS o H:MM:SS a segundos.
+ * @param {string} ts - Ej: "03:45" o "1:23:45"
+ * @returns {number} Segundos totales
+ */
+function parseTimestampToSeconds(ts) {
+  if (!ts) return 0;
+  const parts = ts.split(':').map(Number);
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return 0;
+}
+
 export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject }) {
   // --- STATE MANAGEMENT ---
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'transcription' | 'tasks'
@@ -151,7 +164,19 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const isIndexingRef = useRef(false);
   const isGeneratingRef = useRef(false);
 
+  // Timestamp inicial para navegar desde un enlace del chat (ej: desde proyecto)
+  const [initialSeekSeconds, setInitialSeekSeconds] = useState(null);
+
   // --- EFFECTS ---
+
+  // Efecto: si viene un initialTimestamp, cambiar automáticamente al tab de transcripción
+  useEffect(() => {
+    if (recording?.initialTimestamp) {
+      const seconds = parseTimestampToSeconds(recording.initialTimestamp);
+      setInitialSeekSeconds(seconds);
+      setActiveTab('transcription');
+    }
+  }, [recording?.initialTimestamp]);
 
   // 1. Load Initial Data (Transcription, AI Config, Project)
   useEffect(() => {
@@ -1469,6 +1494,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             ragTotalChunks={ragTotalChunks}
             ragMode={ragMode}
             onRagModeChange={setRagMode}
+            initialSeekSeconds={initialSeekSeconds}
+            onInitialSeekDone={() => setInitialSeekSeconds(null)}
             chatProps={{
               chatHistory: convertChatHistory(),
               onSendMessage: handleAskQuestion,

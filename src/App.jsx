@@ -199,7 +199,7 @@ export default function App() {
     setCurrentView('project-detail')
   }
 
-  const handleNavigateToRecording = async (recordingId) => {
+  const handleNavigateToRecording = async (recordingId, timestamp = null) => {
     try {
       // Intentar obtener todas las grabaciones para encontrar la que coincide
       const { default: recordingsService } = await import('./services/recordingsService');
@@ -209,7 +209,15 @@ export default function App() {
       const recording = recordings.find(r => r.dbId === recordingId || r.id === recordingId || r.name === recordingId);
       
       if (recording) {
-        setSelectedRecording(recording);
+        // Guardar el contexto de origen para poder volver (ej: desde chat de proyecto)
+        const originView = currentView;
+        const originProject = selectedProject;
+        setSelectedRecording({
+          ...recording,
+          initialTimestamp: timestamp || null,
+          originView: originView !== 'recording-detail' ? originView : null,
+          originProject: originView === 'project-detail' ? originProject : null,
+        });
         setCurrentView('recording-detail');
       } else {
         console.error('No se pudo encontrar la grabación con ID:', recordingId);

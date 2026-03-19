@@ -34,7 +34,7 @@ Cada tarea tiene su propio par de funciones en `aiPrompts.js`:
 | `taskImprovementSystemPrompt(lang)` | System | Instrucciones para mejorar una tarea |
 | `taskImprovementUserContent(title, content, context)` | User | Tarea + contexto a mejorar |
 | `projectAnalysisSystemPrompt(lang)` | System | Instrucciones para análisis de proyecto |
-| `chatSystemPrompt(transcription, lang, docContext)` | System | System prompt del chat interactivo |
+| `chatSystemPrompt(transcription, lang, docContext)` | System | System prompt del chat interactivo (incluye instrucciones de timestamps `[TS: \| MM:SS]`) |
 
 El contenido de usuario (transcripción, resumen, etc.) siempre se pasa **por separado** como segundo argumento de `_callAiProvider` o como `prompt` en `callProvider` con `options.systemPrompt`.
 
@@ -97,6 +97,129 @@ se guarda en `ollamaRagModel` / `lmStudioRagModel` — **nunca sobrescribe el Mo
 ```
 
 Los mensajes nuevos se guardan con `chatVersion: 2`. Si un chat tiene mensajes sin esta marca, `ChatInterface.jsx` muestra un banner de migración.
+
+## 4.5 Timestamps Navegables en el Chat (Enlaces Clicables)
+
+### ¿Qué son?
+
+Cuando la IA menciona un momento específico de una grabación o proyecto (ej: "en el minuto 3:45"), puede usar un formato especial que el frontend convierte en **botones clicables** que navegan directamente a ese punto en el audio, sin reproducir.
+
+### Formato para la IA
+
+**Grabación individual:**
+```
+[TS: | MM:SS]
+Ejemplo: "Esto se discutió [TS: | 03:45] cuando se habló del presupuesto."
+```
+
+**Proyecto (múltiples grabaciones):**
+```
+[TS: recordingId | MM:SS | "Título de la reunión"]
+Ejemplo: "Fue decidido en [TS: 45 | 12:30 | "Daily standup"] que comenzaría mañana."
+```
+
+El `recordingId` es el identificador numérico de la grabación. El frontend lo usa para saber cuál grabación abrir.
+
+### Instrucciones en los Prompts
+
+Cada system prompt ya incluye instrucciones para que la IA use este formato:
+
+- **`ragSystemPrompt()`** (Regla #8): Instrucciones para grabaciones individuales — usar `[TS: | MM:SS]`
+- **`projectRagSystemPrompt()`** (Regla #7): Instrucciones para proyectos — usar `[TS: recordingId | MM:SS | "título"]`
+- **`chatSystemPrompt()`**: Instrucciones para modo clásico sin RAG — usar `[TS: | MM:SS]`
+
+#### Cómo funciona el contexto para proyectos
+
+En `projectAiService.js`, cada chunk de transcripción incluye:
+```js
+{
+  textDisplay: "...",
+  startTime: 120,      // segundos
+  recordingTitle: "Daily standup",
+  recordingId: 45      // ← Nuevo: necesario para la IA
+}
+```
+
+El prompt etiqueta cada fragmento así:
+```
+[Reunión: "Daily standup" · id:45 · 12:30 - 15:45]
+Texto del fragmento...
+```
+
+Esto permite a la IA saber qué ID corresponde a cada reunión cuando menciona timestamps.
+
+### Cómo el Frontend Procesa los Timestamps
+
+**1. Detección en nodos de texto (`ChatInterface.jsx`)**
+
+El parser NO toca el Markdown — deja el texto tal cual. En el render, `processChildren()` recorre los nodos de texto de cada `<p>`, `<li>`, `<strong>` y `<em>`, detecta timestamps con un regex unificado y los sustituye por botones React directamente.
+
+El regex unificado (`TS_REGEX`) detecta 4 patrones:
+```js
+/\[TS:\s*([^|\]]*?)\s*\|\s*(\d{1,2}:\d{2}(?::\d{2})?)\s*[-–]\s*(\d{1,2}:\d{2}(?::\d{2})?)\s*(?:\|\s*"?([^"\]]+?)"?)?\]|\[TS:\s*([^|\]]*?)\s*\|\s*(\d{1,2}:\d{2}(?::\d{2})?)\s*(?:\|\s*"?([^"\]]+?)"?)?\]|\*{0,2}\[(\d{1,2}:\d{2}(?::\d{2})?)\s*[-–]\s*(\d{1,2}:\d{2}(?::\d{2})?)\]\*{0,2}|(?<!\()\[(\d{1,2}:\d{2}(?::\d{2})?)\](?!\()/g
+```
+
+Conversiones (el texto Markdown queda intacto, los timestamps se transforman en botones inline):
+- `[TS: | 0:44:11 - 0:44:28]` → botón `⏱ 0:44:11 – 0:44:28`
+- `[TS: 45 | 12:30 | "Daily standup"]` → botón `⏱ Daily standup · 12:30`
+- `[TS: | 03:45]` → botón `⏱ 03:45`
+- `**[0:08:06 - 0:08:44]**` → botón `⏱ 0:08:06 – 0:08:44`
+- `[3:45]` → botón `⏱ 3:45`
+
+**2. Flujo al pulsar un timestamp**
+
+```
+Clic en botón ⏱ 03:45 (sin recId → grabación actual)
+    ↓
+ChatInterface.renderTextWithTimestamps → onSeekToTime(segundos)
+    ↓
+TranscriptionChatTab.handleSeek(segundos)  ← misma función que usa la transcripción
+    ↓
+playerRef.current.seekTo(segundos) + TranscriptionViewer scrollea
+    ↓
+Audio posicionado + texto resaltado
+
+Clic en botón ⏱ 12:30 (con recId → otra grabación en proyecto)
+    ↓
+ChatInterface → onNavigateToRecording(recId, "12:30")
+    ↓
+App.jsx navega a esa grabación con el timestamp
+    ↓
+RecordingDetailWithTranscription recibe initialTimestamp, cambia a tab transcription
+    ↓
+TranscriptionChatTab ejecuta seekTo con reintentos (player puede no estar listo)
+```
+
+### Conversión de Timestamps
+
+El formato `MM:SS` (o `H:MM:SS`) se convierte a segundos para el player:
+
+```js
+function parseTimestampToSeconds(ts) {
+  // "03:45" → 225 segundos
+  // "1:23:45" → 5025 segundos
+  const parts = ts.split(':').map(Number);
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return 0;
+}
+```
+
+### Vuelta Automática al Proyecto
+
+Cuando navegas desde un chat de proyecto a una grabación específica:
+
+1. `App.jsx` guarda `originView: 'project-detail'` en el objeto recording
+2. El botón "← Volver" en `RecordingDetail` lo detecta
+3. En vez de ir al Home, vuelve a `ProjectDetail` automáticamente
+
+Esto mantiene el flujo de trabajo dentro del contexto del proyecto.
+
+### Limitaciones y Consideraciones
+
+- **Sincronización de IDs:** El `recordingId` que menciona la IA debe coincidir exactamente con el de la BD. El prompt incluye `· id:X` en cada fragmento para que la IA sepa qué ID usar.
+- **Formato flexible:** Si la IA escribe `[TS: 45|03:45]` sin espacios, el regex aún la detecta (soporta espacios opcionales).
+- **Solo para menciones explícitas:** Esta característica solo se activa cuando la IA menciona un timestamp de forma explícita en el formato esperado.
 
 ## 4. El Flujo de Análisis de IA Secuencial
 

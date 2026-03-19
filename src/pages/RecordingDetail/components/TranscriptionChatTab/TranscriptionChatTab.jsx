@@ -20,7 +20,9 @@ export default function TranscriptionChatTab({
   transcriptionModel,
   audioUrls,
   duration,
-  transcriptionDuration
+  transcriptionDuration,
+  initialSeekSeconds = null,
+  onInitialSeekDone = null,
 }) {
   const [chatWidth, setChatWidth] = useState(550);
   const [isDragging, setIsDragging] = useState(false);
@@ -29,6 +31,8 @@ export default function TranscriptionChatTab({
   // Audio Player State
   const [currentTime, setCurrentTime] = useState(0);
   const playerRef = useRef(null);
+  // Controla si ya se aplicó el seek inicial (para no repetirlo)
+  const initialSeekAppliedRef = useRef(false);
 
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
@@ -95,6 +99,23 @@ export default function TranscriptionChatTab({
       playerRef.current.seekTo(time);
     }
   };
+
+  // Efecto: aplicar seek inicial cuando llega un timestamp desde el chat
+  useEffect(() => {
+    if (initialSeekSeconds == null || initialSeekAppliedRef.current) return;
+
+    // Intentar hacer el seek; si el player aún no está listo, reintentar tras un breve delay
+    const attemptSeek = () => {
+      if (playerRef.current) {
+        playerRef.current.seekTo(initialSeekSeconds);
+        initialSeekAppliedRef.current = true;
+        onInitialSeekDone?.();
+      } else {
+        setTimeout(attemptSeek, 300);
+      }
+    };
+    attemptSeek();
+  }, [initialSeekSeconds]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className={styles.container} ref={containerRef}>
@@ -177,7 +198,7 @@ export default function TranscriptionChatTab({
           ragMode={ragMode}
           onRagModeChange={onRagModeChange}
         />
-        <ChatInterface {...chatProps} />
+        <ChatInterface {...chatProps} onSeekToTime={handleSeek} />
       </div>
     </div>
   );
