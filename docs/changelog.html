@@ -181,6 +181,57 @@
     <div class="container">
       <div class="releases-inner">
 
+        <!-- ── v0.3.2 ── -->
+        <div class="release-entry animate-on-scroll">
+          <div class="release-header">
+            <span class="release-version">v0.3.2</span>
+            <span class="release-date" data-i18n="v032date">Marzo 2026</span>
+            <span class="release-branch">main</span>
+          </div>
+          <div class="release-title" data-i18n="v032Title">Correcciones críticas de estabilidad</div>
+
+          <div class="release-category">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span data-i18n="v032Cat">Correcciones y mejoras</span>
+          </div>
+
+          <div class="change-list">
+            <div class="change-item">
+              <div class="change-emoji">💥</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Corrección de crash al transcribir"
+                  data-en="Transcription Crash Fix">Corrección de crash al transcribir</div>
+                <div class="change-desc"
+                  data-es="Se corrige un crash crítico en la versión compilada que bloqueaba la aplicación durante la transcripción. Era causado por una recursión infinita entre el handler de stderr de Python y el sistema de telemetría Sentry."
+                  data-en="Fixed a critical crash in the compiled app that would freeze the application during transcription, caused by an infinite recursion between the Python stderr handler and the Sentry telemetry system.">Se corrige un crash crítico en la versión compilada que bloqueaba la aplicación durante la transcripción. Era causado por una recursión infinita entre el handler de stderr de Python y el sistema de telemetría Sentry.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">📄</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Exportación mejorada con soporte Markdown"
+                  data-en="Export with Markdown Support">Exportación mejorada con soporte Markdown</div>
+                <div class="change-desc"
+                  data-es="La exportación a PDF y DOCX ahora renderiza correctamente el formato Markdown del resumen: negritas, cursivas, listas y encabezados."
+                  data-en="Export to PDF and DOCX now correctly renders Markdown formatting from the summary: bold, italic, lists and headings.">La exportación a PDF y DOCX ahora renderiza correctamente el formato Markdown del resumen: negritas, cursivas, listas y encabezados.</div>
+              </div>
+            </div>
+            <div class="change-item">
+              <div class="change-emoji">🤖</div>
+              <div class="change-content">
+                <div class="change-title"
+                  data-es="Mejor compatibilidad con modelos locales"
+                  data-en="Better Local Model Compatibility">Mejor compatibilidad con modelos locales</div>
+                <div class="change-desc"
+                  data-es="Se mejora la generación de resúmenes, participantes y tareas con modelos locales (Ollama/LM Studio), concatenando correctamente el system prompt para modelos que no soportan el campo de sistema separado."
+                  data-en="Improved summary, participants and tasks generation with local models (Ollama/LM Studio) by correctly concatenating the system prompt for models that don't support a separate system field.">Se mejora la generación de resúmenes, participantes y tareas con modelos locales (Ollama/LM Studio), concatenando correctamente el system prompt para modelos que no soportan el campo de sistema separado.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- ── v0.3.1 ── -->
         <div class="release-entry animate-on-scroll">
           <div class="release-header">
@@ -536,6 +587,10 @@
         heroBadgeText:    'Historial de versiones',
         changelogTitle:   'Novedades',
         changelogSubtitle:'Mejoras y nuevas funcionalidades incorporadas en cada versión.',
+        // v0.3.2
+        v032date:  'Marzo 2026',
+        v032Title: 'Correcciones críticas de estabilidad',
+        v032Cat:   'Correcciones y mejoras',
         // v0.3.1
         v031date:  'Marzo 2026',
         v031Title: 'Adjuntos con IA, System Prompts y Correcciones',
@@ -574,6 +629,10 @@
         heroBadgeText:    'Version history',
         changelogTitle:   "What's New",
         changelogSubtitle:'Improvements and new features added in each version.',
+        // v0.3.2
+        v032date:  'March 2026',
+        v032Title: 'Critical Stability Fixes',
+        v032Cat:   'Fixes & improvements',
         // v0.3.1
         v031date:  'March 2026',
         v031Title: 'AI Attachments, System Prompts & Fixes',
