@@ -32,19 +32,14 @@ class SentryService {
     if (!this.isInitialized) return;   
     try {
       Sentry.captureMessage(message, {contexts: context,level: "info" });
-      console.log('[SentryService] Log de info enviado a Sentry:', message, context);
-    } catch (err) {
-      console.error('[SentryService] Error al enviar logInfo:', err);
-    }
+    } catch (_) { /* silenciar para evitar recursión */ }
   }
+
   logWarning(message, context = {}) {
     if (!this.isInitialized) return;
     try {
       Sentry.captureMessage(message, {contexts: context,level: "warning" });
-      console.log('[SentryService] Log de advertencia enviado a Sentry:', message, context);
-    } catch (err) {
-      console.error('[SentryService] Error al enviar logWarning:', err);
-    }
+    } catch (_) { /* silenciar para evitar recursión */ }
   }
 
   logError(errorOrMessage, context = {}) {
@@ -58,15 +53,11 @@ class SentryService {
 
         if (errorOrMessage instanceof Error) {
           Sentry.captureException(errorOrMessage);
-          console.error('[SentryService] Error enviado a Sentry:', errorOrMessage, context);
         } else {
           Sentry.captureMessage(String(errorOrMessage), {contexts: context,level: "error" });
-          console.error('[SentryService] Mensaje de error enviado a Sentry:', errorOrMessage, context);
         }
       });
-    } catch (err) {
-      console.error('[SentryService] Error al enviar logError:', err);
-    }
+    } catch (_) { /* silenciar para evitar recursión */ }
   }
 }
 
