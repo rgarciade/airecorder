@@ -35,7 +35,12 @@ REGLAS:
 4. Al citar información de la transcripción, usa SIEMPRE el minuto exacto (ej: "A las 24:05...") o reproduce una frase literal entre comillas.
 5. NUNCA uses expresiones como "Fragmento N". El usuario no ve los fragmentos.
 6. Responde en español usando formato Markdown (negritas, listas, tablas cuando sea apropiado).
-7. Sé conciso y directo.`;
+7. Sé conciso y directo.
+8. REGLA DE TIMESTAMPS NAVEGABLES: Cuando menciones un momento específico de la grabación, usa SIEMPRE este formato especial para que el usuario pueda navegar directamente a ese punto:
+   [TS: | MM:SS]
+   Ejemplos: "Esto se discutió [TS: | 03:45] cuando se habló del presupuesto."
+   El campo antes del | debe estar SIEMPRE vacío para grabaciones individuales.
+   Usa este formato CADA VEZ que menciones un minuto o timestamp concreto.`;
 
   system += '\n\n--- FRAGMENTOS RELEVANTES DE LA TRANSCRIPCIÓN ---\n';
   chunks.forEach((chunk) => {
@@ -69,15 +74,21 @@ REGLAS:
 3. Al citar información, usa SIEMPRE el nombre de la reunión y el minuto exacto (ej: "En 'Reunión de kick-off', a las 24:05...")
 4. NUNCA uses expresiones como "Fragmento N" u otras referencias numéricas
 5. Responde en español usando formato Markdown
-6. Sé conciso y directo`;
+6. Sé conciso y directo
+7. REGLA DE TIMESTAMPS NAVEGABLES: Cuando menciones un momento específico de una reunión, usa SIEMPRE este formato especial para que el usuario pueda navegar directamente a ese punto:
+   [TS: recordingId | MM:SS | "Título de la reunión"]
+   El recordingId es el identificador numérico de la grabación que aparece en la etiqueta [Reunión:].
+   Ejemplos: "Esto se decidió [TS: 45 | 12:30 | "Daily standup"] durante la planificación."
+   Usa este formato CADA VEZ que menciones un minuto o timestamp concreto de una reunión específica.`;
 
   system += '\n\n--- FRAGMENTOS RELEVANTES DE LAS REUNIONES ---\n';
   chunks.forEach((chunk) => {
     const startMin = chunk.startTime != null ? formatTime(chunk.startTime) : '';
     const endMin = chunk.endTime != null ? formatTime(chunk.endTime) : '';
     const timeLabel = startMin ? `${startMin} - ${endMin}` : '';
+    const recId = chunk.recordingId != null ? chunk.recordingId : '';
     const reunionLabel = chunk.recordingTitle
-      ? `[Reunión: "${chunk.recordingTitle}"${timeLabel ? ` · ${timeLabel}` : ''}]`
+      ? `[Reunión: "${chunk.recordingTitle}" · id:${recId}${timeLabel ? ` · ${timeLabel}` : ''}]`
       : `[${timeLabel}]`;
     system += `\n${reunionLabel}\n`;
     system += chunk.textDisplay + '\n';

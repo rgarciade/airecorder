@@ -83,7 +83,7 @@ export default function TranscriptionViewer({
     if (activeSegmentIndex !== -1 && activeSegmentRef.current && !userIsScrolling) {
        activeSegmentRef.current.scrollIntoView({
          behavior: 'smooth',
-         block: 'nearest'
+         block: 'start'
        });
     }
   }, [activeSegmentIndex, userIsScrolling]);
