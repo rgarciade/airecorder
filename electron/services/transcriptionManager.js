@@ -259,7 +259,14 @@ class TranscriptionManager {
         });
 
         this.process.stderr.on('data', (data) => {
-            console.error(`[Transcription ${task.id} ERR]: ${data}`);
+            const msg = data.toString().trim();
+            // Los warnings de Python (matplotlib, etc.) no son errores fatales de la app.
+            // Usamos console.warn para evitar que lleguen a Sentry vía el override de console.error.
+            if (msg.toLowerCase().includes('warning') || msg.toLowerCase().includes('userwarning')) {
+                console.warn(`[Transcription ${task.id} WARN]: ${msg}`);
+            } else {
+                console.error(`[Transcription ${task.id} ERR]: ${msg}`);
+            }
         });
 
         this.process.on('close', (code) => {
