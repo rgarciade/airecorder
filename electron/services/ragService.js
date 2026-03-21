@@ -11,6 +11,9 @@ const DEFAULT_WINDOW_SECONDS = 15; // Reducido de 30s a 15s para mayor granulari
 const DEFAULT_OVERLAP_SECONDS = 5; // Reducido proporcionalmente
 const MAX_EMBEDDING_CHARS = 1500; // Límite conservador para no exceder context length del modelo de embeddings
 
+// Nombre del archivo de metadata que guarda el modelo usado para indexar
+const METADATA_FILENAME = 'rag_metadata.json';
+
 // Cache de conexiones LanceDB por path
 const connectionCache = new Map();
 
@@ -130,6 +133,50 @@ function createChunks(parsedLines, options = {}) {
   }
 
   return chunks;
+}
+
+/**
+ * Construye un identificador único del modelo de embeddings actual
+ * Formato: "provider:model" (ej: "gemini:text-embedding-004", "ollama:nomic-embed-text")
+ * @param {{ provider: string }} providerInfo
+ * @returns {string}
+ */
+function getEmbeddingModelId(providerInfo) {
+  const model = embeddingService.getEmbeddingModel();
+  return `${providerInfo.provider}:${model}`;
+}
+
+/**
+ * Guarda metadata de indexación (modelo usado, fecha, etc.)
+ * @param {string} vectordbPath
+ * @param {string} embeddingModelId
+ * @param {number} totalChunks
+ */
+function saveIndexMetadata(vectordbPath, embeddingModelId, totalChunks) {
+  const metadataPath = path.join(vectordbPath, METADATA_FILENAME);
+  const metadata = {
+    embeddingModel: embeddingModelId,
+    indexedAt: new Date().toISOString(),
+    totalChunks,
+  };
+  fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), 'utf8');
+}
+
+/**
+ * Lee metadata de indexación de un vectordb existente
+ * @param {string} vectordbPath
+ * @returns {{ embeddingModel: string, indexedAt: string, totalChunks: number } | null}
+ */
+function readIndexMetadata(vectordbPath) {
+  const metadataPath = path.join(vectordbPath, METADATA_FILENAME);
+  try {
+    if (fs.existsSync(metadataPath)) {
+      return JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    }
+  } catch (error) {
+    console.warn('[RAG] Error leyendo metadata:', error.message);
+  }
+  return null;
 }
 
 /**
@@ -265,8 +312,12 @@ async function indexRecording(recordingPath) {
         );
       }
 
+      // Guardar metadata con el modelo usado para poder detectar cambios
+      const embeddingModelId = getEmbeddingModelId(provider);
+      saveIndexMetadata(vectordbPath, embeddingModelId, chunks.length);
+
       console.log(
-        `[RAG] Indexación completada: ${chunks.length} chunks en ${vectordbPath}`,
+        `[RAG] Indexación completada: ${chunks.length} chunks en ${vectordbPath} (modelo: ${embeddingModelId})`,
       );
       return { indexed: true, skippedRag: false, totalChunks: chunks.length };
     } catch (error) {
@@ -309,6 +360,21 @@ async function searchRecording(recordingPath, query, topK = 10) {
     throw new Error("No hay provider de embeddings disponible para búsqueda");
   }
 
+  // Verificar si el modelo de embeddings cambió desde la indexación
+  const currentModelId = getEmbeddingModelId(provider);
+  const metadata = readIndexMetadata(vectordbPath);
+  if (metadata && metadata.embeddingModel && metadata.embeddingModel !== currentModelId) {
+    console.warn(
+      `[RAG] Modelo de embeddings cambió: indexado con "${metadata.embeddingModel}", actual "${currentModelId}". Re-indexando...`,
+    );
+    const reindexResult = await indexRecording(recordingPath);
+    if (!reindexResult.indexed) {
+      console.error('[RAG] Re-indexación falló:', reindexResult.error);
+      return [];
+    }
+    console.log(`[RAG] Re-indexación completada (${reindexResult.totalChunks} chunks). Continuando búsqueda...`);
+  }
+
   // Generar embedding de la query
   console.log(
     `[RAG] Buscando: "${query.substring(0, 100)}${query.length > 100 ? "..." : ""}" (topK=${topK})`,
@@ -341,6 +407,21 @@ async function searchRecording(recordingPath, query, topK = 10) {
         .toArray();
       break; // éxito
     } catch (searchErr) {
+      // Detectar error de dimensiones incompatibles (mismatch) — posible índice sin metadata
+      const errMsg = (searchErr.message || '').toLowerCase();
+      const isDimensionError = errMsg.includes('dimension') || errMsg.includes('shape') || errMsg.includes('length');
+      if (isDimensionError && !metadata?.embeddingModel) {
+        console.warn(`[RAG] Error de dimensiones sin metadata (índice legacy). Re-indexando...`);
+        const reindexResult = await indexRecording(recordingPath);
+        if (reindexResult.indexed) {
+          console.log(`[RAG] Re-indexación completada. Reintentando búsqueda...`);
+          // Reintentar la búsqueda recursivamente tras re-indexar
+          return searchRecording(recordingPath, query, topK);
+        }
+        console.error('[RAG] Re-indexación falló:', reindexResult.error);
+        return [];
+      }
+
       if (attempt === 0) {
         console.warn(`[RAG] Búsqueda vectorial falló (${searchErr.code || searchErr.message}), invalidando caché y reintentando...`);
         connectionCache.delete(vectordbPath);
@@ -474,7 +555,12 @@ async function getStatus(recordingPath) {
     const db = await getConnection(vectordbPath);
     const table = await db.openTable("chunks");
     const count = await table.countRows();
-    return { indexed: true, totalChunks: count };
+    const metadata = readIndexMetadata(vectordbPath);
+    return {
+      indexed: true,
+      totalChunks: count,
+      embeddingModel: metadata?.embeddingModel || null,
+    };
   } catch {
     return { indexed: false, totalChunks: 0 };
   }
