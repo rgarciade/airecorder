@@ -116,6 +116,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [isVerifyingModel, setIsVerifyingModel] = useState(false);
   const [settingsModel, setSettingsModel] = useState('');
   const [ragMode, setRagMode] = useState('auto'); // 'auto' | 'detallado'
+  const [chatContextMode, setChatContextMode] = useState('rag'); // 'rag' | 'full'
+  const [showChatModeConfirm, setShowChatModeConfirm] = useState(false);
+  const [pendingChatMode, setPendingChatMode] = useState(null);
   const [currentModelSupportsVision, setCurrentModelSupportsVision] = useState(false);
 
   // Adjuntos del record
@@ -573,19 +576,21 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       let useRag = false;
       let ragChunks = [];
 
-      try {
-        const ragStatus = await ragService.getStatus(recording.id);
-        if (ragStatus.success && ragStatus.indexed) {
-          setRagIndexed(true);
-          const limit = ragMode === 'detallado' ? 40 : 10;
-          const searchResult = await ragService.search(recording.id, questionText, limit);
-          if (searchResult.success && searchResult.chunks && searchResult.chunks.length > 0) {
-            useRag = true;
-            ragChunks = searchResult.chunks;
+      if (chatContextMode !== 'full') {
+        try {
+          const ragStatus = await ragService.getStatus(recording.id);
+          if (ragStatus.success && ragStatus.indexed) {
+            setRagIndexed(true);
+            const limit = ragMode === 'detallado' ? 40 : 10;
+            const searchResult = await ragService.search(recording.id, questionText, limit);
+            if (searchResult.success && searchResult.chunks && searchResult.chunks.length > 0) {
+              useRag = true;
+              ragChunks = searchResult.chunks;
+            }
           }
+        } catch (ragErr) {
+          console.warn('🔍 [RAG] Error consultando, usando modo clásico:', ragErr.message);
         }
-      } catch (ragErr) {
-        console.warn('🔍 [RAG] Error consultando, usando modo clásico:', ragErr.message);
       }
 
       let answer = '';
@@ -838,6 +843,38 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         console.error('Error resetting chat:', error);
         alert('Error al borrar el historial');
       }
+    }
+  };
+
+  const applyContextModeChange = async (mode) => {
+    setChatContextMode(mode);
+    setQaHistory([]);
+    setStreamingMessage('');
+    setContextInfo(null);
+    try {
+      await recordingsService.clearQuestionHistory(recording.id);
+    } catch (err) {
+      console.error('Error limpiando historial al cambiar modo:', err);
+    }
+    setShowChatModeConfirm(false);
+    setPendingChatMode(null);
+    if (mode === 'full') {
+      try {
+        const text = detailedSummary || await recordingsService.getTranscriptionTxt(recording.id);
+        if (text) setContextInfo({ mode: 'full', estimatedTokens: Math.ceil(text.length / 4) });
+      } catch (err) {
+        console.warn('Error precalculando tokens modo completo:', err);
+      }
+    }
+  };
+
+  const handleChatModeChangeRequest = (newMode) => {
+    if (newMode === chatContextMode) return;
+    if (qaHistory.length > 0) {
+      setPendingChatMode(newMode);
+      setShowChatModeConfirm(true);
+    } else {
+      applyContextModeChange(newMode);
     }
   };
 
@@ -1514,6 +1551,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             ragTotalChunks={ragTotalChunks}
             ragMode={ragMode}
             onRagModeChange={setRagMode}
+            chatContextMode={chatContextMode}
+            onChatContextModeChange={handleChatModeChangeRequest}
             initialSeekSeconds={initialSeekSeconds}
             onInitialSeekDone={() => setInitialSeekSeconds(null)}
             chatProps={{
@@ -1796,6 +1835,32 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           </div>
         </div>
       )}
+      {/* Chat Context Mode Confirm Modal */}
+      {showChatModeConfirm && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h3 className={styles.modalTitle}>Cambiar modo de contexto</h3>
+            <p className={styles.modalText}>
+              Al cambiar al modo <strong>{pendingChatMode === 'full' ? 'Completo' : 'RAG'}</strong>, el historial de este chat se borrará. Esta acción no se puede deshacer.
+            </p>
+            <div className={styles.modalButtons}>
+              <button
+                className={styles.cancelModalBtn}
+                onClick={() => { setShowChatModeConfirm(false); setPendingChatMode(null); }}
+              >
+                Cancelar
+              </button>
+              <button
+                className={styles.deleteConfirmBtn}
+                onClick={() => applyContextModeChange(pendingChatMode)}
+              >
+                Cambiar y borrar chat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Export Modal */}
       {showExportModal && (
         <div className={styles.modalOverlay}>

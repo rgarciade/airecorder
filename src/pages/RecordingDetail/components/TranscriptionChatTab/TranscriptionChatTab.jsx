@@ -17,6 +17,8 @@ export default function TranscriptionChatTab({
   ragTotalChunks,
   ragMode,
   onRagModeChange,
+  chatContextMode,
+  onChatContextModeChange,
   transcriptionModel,
   audioUrls,
   duration,
@@ -190,13 +192,15 @@ export default function TranscriptionChatTab({
         className={styles.chatColumn}
         style={{ width: `${chatWidth}px` }}
       >
-        <ContextBar 
-          contextInfo={contextInfo} 
+        <ContextBar
+          contextInfo={contextInfo}
           maxContextLength={maxContextLength}
-          ragIndexed={ragIndexed} 
-          ragTotalChunks={ragTotalChunks} 
+          ragIndexed={ragIndexed}
+          ragTotalChunks={ragTotalChunks}
           ragMode={ragMode}
           onRagModeChange={onRagModeChange}
+          chatContextMode={chatContextMode}
+          onChatContextModeChange={onChatContextModeChange}
         />
         <ChatInterface {...chatProps} onSeekToTime={handleSeek} />
       </div>

@@ -494,6 +494,7 @@ module.exports = {
   embed,
   embedBatch,
   ensureModel,
+  getEmbeddingModel,
   EMBEDDING_DIMENSION,
   DEFAULT_EMBEDDING_MODEL: DEFAULT_EMBEDDING_MODEL_FALLBACK
 };

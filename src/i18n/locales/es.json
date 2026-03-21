@@ -23,7 +23,7 @@
     "context": "Contexto",
     "chunks": "fragmentos",
     "tokens": "tokens",
-    "fullMode": "Modo completo",
+    "fullMode": "Resumen completo",
     "indexing": "Preparando contexto...",
     "skipped": "Contexto no disponible · transcripción muy corta",
     "ready": "Contexto listo",

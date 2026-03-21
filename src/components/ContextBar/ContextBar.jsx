@@ -18,9 +18,40 @@ const ModeToggle = ({ ragMode, onRagModeChange, isProject, t }) => (
   </div>
 );
 
-const ContextBar = ({ contextInfo, maxContextLength = 8000, ragIndexed, ragTotalChunks = 0, ragMode, onRagModeChange, isProject = false }) => {
+const ContextToggle = ({ chatContextMode, onChatContextModeChange }) => (
+  <div className={styles.contextToggle}>
+    <div className={`${styles.modeSlider} ${chatContextMode === 'full' ? styles.modeSliderRight : ''}`} />
+    <button
+      className={`${styles.modeBtn} ${chatContextMode === 'rag' ? styles.modeBtnActive : ''}`}
+      onClick={() => onChatContextModeChange('rag')}
+      data-tooltip="Busca los fragmentos más relevantes de la transcripción"
+    >RAG</button>
+    <button
+      className={`${styles.modeBtn} ${chatContextMode === 'full' ? styles.modeBtnActive : ''}`}
+      onClick={() => onChatContextModeChange('full')}
+      data-tooltip="Usa el resumen completo como contexto"
+    >Completo</button>
+  </div>
+);
+
+const TogglesGroup = ({ chatContextMode, onChatContextModeChange, ragMode, onRagModeChange, isProject, t, showModeToggle = false }) => {
+  if (!onChatContextModeChange && !onRagModeChange) return null;
+  return (
+    <div className={styles.togglesGroup}>
+      {onRagModeChange && showModeToggle && chatContextMode !== 'full' && (
+        <ModeToggle ragMode={ragMode} onRagModeChange={onRagModeChange} isProject={isProject} t={t} />
+      )}
+      {onChatContextModeChange && (
+        <ContextToggle chatContextMode={chatContextMode} onChatContextModeChange={onChatContextModeChange} />
+      )}
+
+    </div>
+  );
+};
+
+const ContextBar = ({ contextInfo, maxContextLength = 8000, ragIndexed, ragTotalChunks = 0, ragMode, onRagModeChange, isProject = false, chatContextMode, onChatContextModeChange }) => {
   const { t } = useTranslation();
-  
+
   // Modo activo: RAG usado en el último mensaje
   if (contextInfo && contextInfo.mode === 'rag') {
     const pct = Math.min((contextInfo.estimatedTokens / maxContextLength) * 100, 100);
@@ -37,12 +68,12 @@ const ContextBar = ({ contextInfo, maxContextLength = 8000, ragIndexed, ragTotal
         <div className={styles.bar}>
           <div className={`${styles.fill} ${colorClass}`} style={{ width: `${pct}%` }} />
         </div>
-        {onRagModeChange && <ModeToggle ragMode={ragMode} onRagModeChange={onRagModeChange} isProject={isProject} t={t} />}
+        <TogglesGroup chatContextMode={chatContextMode} onChatContextModeChange={onChatContextModeChange} ragMode={ragMode} onRagModeChange={onRagModeChange} isProject={isProject} t={t} />
       </div>
     );
   }
 
-  // Modo completo: transcripción entera enviada al LLM
+  // Modo completo: resumen completo enviado al LLM
   if (contextInfo && contextInfo.mode === 'full') {
     const pct = Math.min((contextInfo.estimatedTokens / maxContextLength) * 100, 100);
     const colorClass = pct >= 80 ? styles.red : pct >= 50 ? styles.yellow : styles.green;
@@ -56,6 +87,10 @@ const ContextBar = ({ contextInfo, maxContextLength = 8000, ragIndexed, ragTotal
         <div className={styles.bar}>
           <div className={`${styles.fill} ${colorClass}`} style={{ width: `${pct}%` }} />
         </div>
+        {contextInfo.estimatedTokens > maxContextLength && (
+          <span className={styles.tokenWarning} title="El contexto supera el límite configurado del modelo">⚠ límite superado</span>
+        )}
+        <TogglesGroup chatContextMode={chatContextMode} onChatContextModeChange={onChatContextModeChange} ragMode={ragMode} onRagModeChange={onRagModeChange} isProject={isProject} t={t} />
       </div>
     );
   }
@@ -88,7 +123,7 @@ const ContextBar = ({ contextInfo, maxContextLength = 8000, ragIndexed, ragTotal
         <span className={`${styles.label} ${styles.labelMuted}`}>
           {t('contextBar.ready')}{ragTotalChunks > 0 ? ` · ${ragTotalChunks} ${t('contextBar.chunks')}` : ''}
         </span>
-        {onRagModeChange && <ModeToggle ragMode={ragMode} onRagModeChange={onRagModeChange} isProject={isProject} t={t} />}
+        <TogglesGroup chatContextMode={chatContextMode} onChatContextModeChange={onChatContextModeChange} ragMode={ragMode} onRagModeChange={onRagModeChange} isProject={isProject} t={t} showModeToggle />
       </div>
     );
   }
