@@ -350,8 +350,8 @@ export default function AiQueue() {
                 </tr>
               </thead>
               <tbody>
-                {displayHistory.map((item) => (
-                  <React.Fragment key={item.id}>
+                {displayHistory.map((item, index) => (
+                  <React.Fragment key={`${item.id}_${index}`}>
                     <tr className={item.isGroupParent ? styles.historyGroupRow : ''}>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -425,8 +425,8 @@ export default function AiQueue() {
                     </tr>
                     
                     {/* Subtasks rendering */}
-                    {item.isGroupParent && expandedGroups[item.groupId || item.id] && item.subtasks?.map(subtask => (
-                      <tr key={subtask.id} className={styles.historySubtaskRow}>
+                    {item.isGroupParent && expandedGroups[item.groupId || item.id] && item.subtasks?.map((subtask, subtaskIndex) => (
+                      <tr key={`${subtask.id}_${subtaskIndex}`} className={styles.historySubtaskRow}>
                         <td style={{ paddingLeft: '32px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span

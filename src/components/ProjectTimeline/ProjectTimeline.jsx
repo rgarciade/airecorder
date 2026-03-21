@@ -171,11 +171,14 @@ export default function ProjectTimeline({ highlights = [], onUpdateHighlights })
                     </div>
                     
                     <div className={styles.timelineDate}>
-                      {highlight.fecha ? new Date(highlight.fecha).toLocaleDateString('es-ES', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric'
-                      }) : 'Fecha no especificada'}
+                      {highlight.fecha ? (() => {
+                        const d = new Date(highlight.fecha);
+                        return isNaN(d.getTime()) ? highlight.fecha : d.toLocaleDateString('es-ES', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric'
+                        });
+                      })() : 'Fecha no especificada'}
                     </div>
                   </>
                 )}

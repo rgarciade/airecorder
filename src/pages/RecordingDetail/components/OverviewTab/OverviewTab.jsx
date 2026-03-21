@@ -7,18 +7,26 @@ import {
 } from 'react-icons/md';
 import ParticipantsList from '../../../../components/ParticipantsList/ParticipantsList';
 
-export default function OverviewTab({ 
-  summary, 
-  detailedSummary, 
-  highlights, 
+const AI_ENGINE_NAMES = { gemini: 'Gemini Pro', geminifree: 'Gemini Free', deepseek: 'DeepSeek', kimi: 'Kimi' };
+const formatAiEngine = (provider, model) => {
+  if (!provider) return null;
+  return model ? `${AI_ENGINE_NAMES[provider] || provider}: ${model}` : (AI_ENGINE_NAMES[provider] || provider);
+};
+
+export default function OverviewTab({
+  summary,
+  detailedSummary,
+  highlights,
   participants,
   onAddParticipant,
   onRemoveParticipant,
   onUpdateParticipant,
   isGeneratingAi,
-  hasTranscription
+  hasTranscription,
+  aiProvider,
+  aiModel
 }) {
-  
+
   // Custom markdown components
   const markdownComponents = {
     p: ({ children }) => <p>{children}</p>,
@@ -77,11 +85,14 @@ export default function OverviewTab({
           <div className={styles.leftPanel}>
             {/* Quick Summary */}
             <section className={`${styles.card} ${styles.quickSummaryCard}`}>
-              <div className={styles.cardHeader}>
+              <div className={styles.cardHeader} style={{ justifyContent: 'space-between' }}>
                 <div className={`${styles.cardTitle} ${styles.quickTitle}`}>
                   <MdAutoAwesome size={20} />
                   Quick Summary
                 </div>
+                {formatAiEngine(aiProvider, aiModel) && (
+                  <span className={styles.aiBadge}>{formatAiEngine(aiProvider, aiModel)}</span>
+                )}
               </div>
               <p className={styles.summaryText}>
                 {summary || "No quick summary available."}

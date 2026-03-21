@@ -1,6 +1,79 @@
 // Servicio para interactuar con LM Studio (API compatible con OpenAI)
 import { getSettings } from '../settingsService';
 
+/**
+ * Elimina artefactos de modelos razonadores de una respuesta de LM Studio:
+ * - Bloques <think>...</think> (DeepSeek R1, QwQ, etc.)
+ * - Tokens especiales de plantilla: <｜begin▁of▁sentence｜>, <｜end▁of▁sentence｜>,
+ *   <|im_start|>, <|im_end|> y variantes similares
+ */
+function stripThinkBlocks(text) {
+  if (!text) return text;
+
+  // 1. Tokens especiales de plantilla (DeepSeek, Qwen, etc.)
+  //    Usando caracteres literales del token ｜ (U+FF5C) y ▁ (U+2581)
+  text = text.replace(/<[｜|][^<>]*[｜|]>/g, '');
+  text = text.replace(/<\|[^|<>]*\|>/g, '');
+
+  // 2. Bloques <think>...</think> — bucle por si hay varios consecutivos
+  let prev;
+  do {
+    prev = text;
+    text = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+  } while (text !== prev);
+
+  return text.trim();
+}
+
+/**
+ * Filtro de estado para streams: acumula texto y suprime chunks que estén
+ * dentro de un bloque <think>...</think>. Devuelve solo el texto "exterior".
+ * También elimina tokens de plantilla de modelo al final de cada emisión.
+ */
+function createThinkFilter() {
+  let buffer = '';
+  let insideThink = false;
+
+  // Regex para tokens especiales de plantilla (DeepSeek, Qwen, etc.)
+  const specialTokenRe = /(<[｜|][^<>]*[｜|]>|<\|[^|<>]*\|>)/g;
+
+  return function filter(chunk) {
+    buffer += chunk;
+    let output = '';
+
+    while (buffer.length > 0) {
+      if (insideThink) {
+        const closeIdx = buffer.indexOf('</think>');
+        if (closeIdx !== -1) {
+          buffer = buffer.slice(closeIdx + '</think>'.length);
+          insideThink = false;
+        } else {
+          // Conservar solo los últimos chars por si el cierre llega partido
+          const safeLen = Math.max(0, buffer.length - '</think>'.length);
+          buffer = buffer.slice(safeLen);
+          break;
+        }
+      } else {
+        const openIdx = buffer.indexOf('<think>');
+        if (openIdx !== -1) {
+          output += buffer.slice(0, openIdx);
+          buffer = buffer.slice(openIdx + '<think>'.length);
+          insideThink = true;
+        } else {
+          // Emitir todo salvo los últimos chars (por si '<think>' llega partido)
+          const safeLen = Math.max(0, buffer.length - '<think>'.length);
+          output += buffer.slice(0, safeLen);
+          buffer = buffer.slice(safeLen);
+          break;
+        }
+      }
+    }
+
+    // Eliminar tokens de plantilla del fragmento emitido
+    return output.replace(specialTokenRe, '');
+  };
+}
+
 // Endpoints de la API de LM Studio (OpenAI-compat)
 const LM_STUDIO_ENDPOINTS = {
   models:          '/v1/models',
@@ -139,7 +212,10 @@ export async function sendToLMStudio(textContent, modelOverride = null, systemPr
     body: JSON.stringify({
       model,
       messages,
-      stream: false
+      stream: false,
+      // Desactiva el bloque <think> en modelos razonadores (DeepSeek R1, QwQ, etc.)
+      // LM Studio ≥ 0.3.x lo soporta; los modelos no-razonadores lo ignoran.
+      reasoning_effort: 'none'
     })
   });
 
@@ -152,7 +228,7 @@ export async function sendToLMStudio(textContent, modelOverride = null, systemPr
   }
 
   const data = await response.json();
-  return data.choices[0].message.content;
+  return stripThinkBlocks(data.choices[0].message.content);
 }
 
 /**
@@ -171,7 +247,8 @@ export async function sendToLMStudioStreaming(textContent, onChunk, modelOverrid
     body: JSON.stringify({
       model,
       messages: [{ role: 'user', content: textContent }],
-      stream: true
+      stream: true,
+      reasoning_effort: 'none'
     })
   });
 
@@ -185,6 +262,7 @@ export async function sendToLMStudioStreaming(textContent, onChunk, modelOverrid
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder('utf-8');
+  const thinkFilter = createThinkFilter();
   let fullText = '';
   let buffer = '';
 
@@ -205,8 +283,9 @@ export async function sendToLMStudioStreaming(textContent, onChunk, modelOverrid
           const data = JSON.parse(trimmedLine.slice(6));
           const content = data.choices[0]?.delta?.content;
           if (content) {
-            fullText += content;
-            if (onChunk) onChunk(content);
+            const filtered = thinkFilter(content);
+            fullText += filtered;
+            if (onChunk && filtered) onChunk(filtered);
           }
         } catch (e) {
           // Ignorar chunks mal formateados
@@ -215,7 +294,7 @@ export async function sendToLMStudioStreaming(textContent, onChunk, modelOverrid
     }
   }
 
-  return fullText;
+  return stripThinkBlocks(fullText);
 }
 
 // ---------------------------------------------------------------------------
@@ -239,7 +318,7 @@ export async function chatCompletionStreaming(messages, onChunk, modelOverride =
   const response = await fetch(`${url}${LM_STUDIO_ENDPOINTS.chatCompletions}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model, messages, stream: true }),
+    body: JSON.stringify({ model, messages, stream: true, reasoning_effort: 'none' }),
   });
 
   if (!response.ok) {
@@ -252,6 +331,7 @@ export async function chatCompletionStreaming(messages, onChunk, modelOverride =
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder('utf-8');
+  const thinkFilter = createThinkFilter();
   let fullText = '';
   let buffer = '';
 
@@ -270,13 +350,14 @@ export async function chatCompletionStreaming(messages, onChunk, modelOverride =
           const data = JSON.parse(trimmedLine.slice(6));
           const content = data.choices[0]?.delta?.content;
           if (content) {
-            fullText += content;
-            if (onChunk) onChunk(content);
+            const filtered = thinkFilter(content);
+            fullText += filtered;
+            if (onChunk && filtered) onChunk(filtered);
           }
         } catch (e) { /* ignorar */ }
       }
     }
   }
 
-  return fullText;
+  return stripThinkBlocks(fullText);
 }

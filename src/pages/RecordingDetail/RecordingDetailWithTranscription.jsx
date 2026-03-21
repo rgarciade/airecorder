@@ -424,6 +424,25 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                     setParticipants(newParticipants);
                 }
              }
+
+             // Indexar RAG tras generar el resumen
+             if (!isIndexingRef.current) {
+               isIndexingRef.current = true;
+               setRagIndexed(false);
+               try {
+                 const ragResult = await ragService.indexRecording(recording.id);
+                 if (ragResult.success && ragResult.indexed) {
+                   setRagIndexed(true);
+                   setRagTotalChunks(ragResult.totalChunks);
+                 } else if (ragResult.skippedRag) {
+                   setRagIndexed('skipped');
+                 } else {
+                   setRagIndexed(null);
+                 }
+               } finally {
+                 isIndexingRef.current = false;
+               }
+             }
            } catch (err) {
              console.error("Auto-generation failed:", err);
            } finally {
@@ -431,12 +450,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
              isGeneratingRef.current = false;
            }
         } else if (hasTranscription && hasSummary) {
-           // Si ya hay análisis pero no hay índice RAG, indexar en background
-           // Evitar llamadas duplicadas con ref
-           if (isIndexingRef.current) return;
-           
+           // Si ya hay análisis, verificar estado RAG
+           // Siempre llamamos getStatus; solo saltamos el indexado si ya hay una operación en curso
            const ragStatus = await ragService.getStatus(recording.id);
            if (!ragStatus.indexed) {
+             if (isIndexingRef.current) return;
              console.log('🔍 [RAG] Indexando grabación existente en background...');
              isIndexingRef.current = true;
              setRagIndexed(false);
@@ -1477,6 +1495,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             onUpdateParticipant={handleUpdateParticipant}
             isGeneratingAi={isGeneratingAi}
             hasTranscription={!!transcription}
+            aiProvider={geminiData.aiProvider || null}
+            aiModel={geminiData.aiModel || null}
           />
         )}
         {activeTab === 'transcription' && (
