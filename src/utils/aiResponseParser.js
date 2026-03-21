@@ -11,8 +11,30 @@
 export function cleanAiResponse(text) {
   if (!text) return '';
   let clean = text.trim();
-  clean = clean.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+  // 1. Eliminar tokens especiales de modelos (DeepSeek, QwQ, etc.)
+  //    Ej: <｜begin▁of▁sentence｜>, <｜end▁of▁sentence｜>, <|im_start|>, <|im_end|>
+  clean = clean.replace(/<[｜|][^>]*[｜|]>/g, '').trim();
+  clean = clean.replace(/<\|[^|>]*\|>/g, '').trim();
+
+  // 2. Eliminar todos los bloques <think>...</think> (puede haber varios)
+  //    Los modelos razonadores (DeepSeek R1, QwQ) los insertan antes/entre el JSON
+  let prev;
+  do {
+    prev = clean;
+    clean = clean.replace(/<think>[\s\S]*?<\/think>/gi, '');
+  } while (clean !== prev);
+  clean = clean.trim();
+
+  // 3. Eliminar markdown code fences
   clean = clean.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
+  // 4. Eliminar comentarios de línea (// ...) que algunos modelos añaden al JSON,
+  //    respetando el contenido de strings para no romper URLs como "http://..."
+  clean = clean.replace(/("(?:[^"\\]|\\.)*")|\/\/[^\n]*/g, (match, strLiteral) => {
+    return strLiteral ? match : ''; // Mantener strings, eliminar comentarios
+  });
+
   return clean.trim();
 }
 
@@ -140,21 +162,59 @@ export function parseJsonArray(text, wrapperKeys = []) {
 }
 
 /**
- * Extrae y parsea un objeto JSON de una respuesta de IA
+ * Extrae y parsea un objeto JSON de una respuesta de IA.
+ * Usa depth-tracking para encontrar el primer objeto JSON completo y válido,
+ * ignorando texto extra, comentarios o garbage antes/después del JSON.
  * @param {string} text - Respuesta cruda de la IA
  * @returns {Object|null} Objeto parseado, o null si falla
  */
 export function parseJsonObject(text) {
-  try {
-    const clean = cleanAiResponse(text);
+  if (!text) return null;
+  const clean = cleanAiResponse(text);
+  if (!clean) return null;
 
-    const firstBrace = clean.indexOf('{');
-    const lastBrace = clean.lastIndexOf('}');
+  // Estrategia 1: depth-tracking — encontrar cada bloque { ... } balanceado
+  // y probar a parsear el primero que sea un objeto JSON válido.
+  let searchFrom = 0;
+  while (searchFrom < clean.length) {
+    const start = clean.indexOf('{', searchFrom);
+    if (start === -1) break;
 
-    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-      return JSON.parse(clean.substring(firstBrace, lastBrace + 1));
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    let end = -1;
+
+    for (let i = start; i < clean.length; i++) {
+      const ch = clean[i];
+      if (escaped) { escaped = false; continue; }
+      if (ch === '\\' && inString) { escaped = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) { end = i; break; }
+      }
     }
 
+    if (end !== -1) {
+      try {
+        const candidate = clean.substring(start, end + 1);
+        const parsed = JSON.parse(candidate);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          return parsed;
+        }
+      } catch {
+        // bloque no parseable → seguir buscando el siguiente '{'
+      }
+    }
+
+    searchFrom = start + 1;
+  }
+
+  // Estrategia 2: parsear el texto completo limpio como último recurso
+  try {
     return JSON.parse(clean);
   } catch {
     return null;

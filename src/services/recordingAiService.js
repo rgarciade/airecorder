@@ -287,6 +287,7 @@ class RecordingAiService {
       let shortSummaryText = existing.resumen_breve || '';
       let keyPointText = existing.key_points || '';
       let ideas = existing.ideas || [];
+      let aiMeta = { provider: null, model: null };
 
       // Generar resumen detallado primero (si está solicitado) - contexto para los demás
       if (options.detailedSummary) {
@@ -313,8 +314,8 @@ class RecordingAiService {
             
             const partialResult = await this._callAiProvider(chunkSystemPrompt, chunks[i], {
               ...providerOverrides,
-              queueMeta: { 
-                name: `Resumen detallado (Parte ${i + 1}/${chunks.length}): ${recName}`, 
+              queueMeta: {
+                name: `Resumen detallado (Parte ${i + 1}/${chunks.length}): ${recName}`,
                 type: AI_TASK_TYPES.DETAILED_SUMMARY,
                 groupId: groupId,
                 groupIndex: i,
@@ -322,6 +323,7 @@ class RecordingAiService {
                 startTime: globalStartTime
               }
             });
+            if (!aiMeta.provider) aiMeta = { provider: partialResult.provider, model: partialResult.model || null };
             combinedPartialSummaries += partialResult.text + '\n\n';
           }
 
@@ -344,6 +346,7 @@ class RecordingAiService {
             ...providerOverrides,
             queueMeta: { name: `Resumen detallado: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY }
           });
+          aiMeta = { provider: detailedResult.provider, model: detailedResult.model || null };
           detailedText = detailedResult.text;
         }
       }
@@ -369,7 +372,10 @@ class RecordingAiService {
             this._callAiProvider(shortSummaryPrompt(lang), contextForShort, {
               ...providerOverrides,
               queueMeta: { name: `Resumen breve: ${recName}`, type: AI_TASK_TYPES.SUMMARY }
-            }).then(res => shortSummaryText = res.text)
+            }).then(res => {
+              shortSummaryText = res.text;
+              if (!aiMeta.provider) aiMeta = { provider: res.provider, model: res.model || null };
+            })
           );
         }
 
@@ -409,7 +415,9 @@ class RecordingAiService {
         resumen_detallado: detailedText,
         key_points: keyPointText,
         ideas: ideas,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
+        aiProvider: aiMeta.provider,
+        aiModel: aiMeta.model
       };
 
       // Guardar en disco

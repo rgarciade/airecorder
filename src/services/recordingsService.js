@@ -4,10 +4,6 @@
  */
 
 class RecordingsService {
-  constructor() {
-    this.baseRecordingPath = '/Users/raul.garciad/Desktop/recorder/grabaciones';
-  }
-
   /**
    * Obtiene todas las grabaciones disponibles
    * @returns {Promise<Array>} Lista de grabaciones con metadata
@@ -523,75 +519,6 @@ class RecordingsService {
     }
   }
 
-  /**
-   * Genera el análisis completo de una grabación (resumen detallado, corto y key points)
-   * @param {string} recordingId
-   * @param {string} transcriptionTxt - Texto opcional para evitar doble lectura
-   * @returns {Promise<Object>} Resultado del análisis
-   */
-  async generateFullAnalysis(recordingId, transcriptionTxt = null) {
-    try {
-      // 1. Verificar si ya existe
-      const existing = await this.getAiSummary(recordingId);
-      if (existing && existing.resumen_breve && Array.isArray(existing.ideas)) {
-        console.log(`Análisis ya existente para ${recordingId}`);
-        return existing;
-      }
-
-      // 2. Obtener texto si no se proporcionó
-      let txt = transcriptionTxt;
-      if (!txt) {
-        txt = await this.getTranscriptionTxt(recordingId);
-      }
-      
-      if (!txt) {
-        throw new Error('No se pudo obtener el texto de la transcripción');
-      }
-
-      // Importar dependencias dinámicamente para evitar ciclos o problemas de carga
-      const { generateWithContext } = await import('./aiService');
-      const { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt } = await import('../prompts/aiPrompts');
-
-      // 3. Generar resumen detallado primero (contexto para los demás)
-      const detailedResponse = await generateWithContext(detailedSummaryPrompt, txt);
-      const detailedText = detailedResponse.text || '';
-
-      // 4. Generar resumen corto y puntos clave en paralelo
-      const [shortSummary, keyPointResponse] = await Promise.all([
-        generateWithContext(shortSummaryPrompt, detailedText || txt),
-        generateWithContext(keyPointsPrompt, detailedText || txt)
-      ]);
-
-      const shortSummaryText = shortSummary.text || '';
-      const keyPointText = keyPointResponse.text || '';
-
-      // 5. Procesar ideas
-      let ideas = [];
-      if (keyPointText) {
-        ideas = keyPointText.split('\n')
-          .map(line => line.trim())
-          .filter(line => line.length > 0 && (line.startsWith('-') || line.startsWith('•') || /^\d+\./.test(line)))
-          .map(line => line.replace(/^[•-]\s*|^\d+\.\s*/, ''));
-      }
-
-      const dataToSave = {
-        resumen_breve: shortSummaryText,
-        ideas: ideas,
-        resumen_detallado: detailedText,
-        key_points: keyPointText,
-        resumen_corto: shortSummaryText
-      };
-
-      // 6. Guardar
-      await this.saveAiSummary(recordingId, dataToSave);
-      
-      return dataToSave;
-
-    } catch (error) {
-      console.error(`Error generando análisis completo para ${recordingId}:`, error);
-      throw error;
-    }
-  }
 }
 
 // Instancia singleton del servicio

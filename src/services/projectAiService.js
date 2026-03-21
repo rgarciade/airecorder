@@ -79,27 +79,33 @@ class ProjectAiService {
         const recordingsWithDates = [];
 
         // Importación dinámica para evitar ciclos de dependencia
-        const { default: recordingsService } = await import('./recordingsService');
+        const { default: recordingAiService } = await import('./recordingAiService');
 
         const successfulRecordingIds = [];
 
         for (const recId of recordingIds) {
           try {
-            // 1. Obtener resumen
-            let summaryResult = await window.electronAPI.getAiSummary(recId);
-            
-            // 2. Si no existe, generarlo recursivamente
+            // 1. Obtener resumen (si forceRefresh, regenerar siempre; si no, usar caché de disco)
+            let summaryResult = forceRefresh ? { success: false } : await window.electronAPI.getAiSummary(recId);
+
+            // 2. Si no existe o se fuerza regeneración, generarlo
             if (!summaryResult.success || !summaryResult.summary) {
-              console.log(`Generando resumen faltante para grabación ${recId} durante análisis de proyecto...`);
+              const reason = forceRefresh ? 'regeneración forzada' : 'resumen faltante';
+              console.log(`Generando resumen (${reason}) para grabación ${recId} durante análisis de proyecto...`);
               try {
-                // Generar análisis completo
-                const newSummary = await recordingsService.generateFullAnalysis(recId);
+                // Generar análisis completo (con chunking para modelos locales)
+                const newSummary = await recordingAiService.generateRecordingSummary(recId, null, true);
                 summaryResult = { success: true, summary: newSummary };
               } catch (genError) {
                 console.error(`Error generando resumen para ${recId}:`, genError);
-                // No agregamos a successfulRecordingIds, por lo que el análisis del proyecto
-                // quedará "incompleto" respecto al total, forzando un reintento la próxima vez.
-                continue; 
+                // Si era forceRefresh y falla, intentar usar el resumen existente del disco
+                if (forceRefresh) {
+                  summaryResult = await window.electronAPI.getAiSummary(recId);
+                }
+                if (!summaryResult.success || !summaryResult.summary) {
+                  // No agregamos a successfulRecordingIds, forzando un reintento la próxima vez.
+                  continue;
+                }
               }
             }
 
@@ -123,7 +129,7 @@ class ProjectAiService {
         // Construir contexto con orden explícito
         let contextText = recordingsWithDates.map((rec, index) => {
           const s = rec.summary || {};
-          // Incluimos solo lo esencial para no saturar el contexto de los LLMs locales
+          // Usamos resumen_breve para no saturar el contexto de los LLMs locales
           const compactSummary = {
             resumen_breve: s.resumen_breve,
             ideas: s.ideas,
@@ -192,7 +198,9 @@ class ProjectAiService {
     return {
       resumen_breve: analysis.resumen_breve,
       resumen_extenso: analysis.resumen_extenso,
-      progreso: this._calculateProgress(analysis)
+      progreso: this._calculateProgress(analysis),
+      aiProvider: analysis.aiProvider || null,
+      aiModel: analysis.aiModel || null
     };
   }
 
@@ -290,7 +298,7 @@ class ProjectAiService {
   async getProjectHighlights(projectId) {
     const analysis = await this._ensureAnalysis(projectId);
     return (analysis.hitos || []).map((h, index) => ({
-      id: h.id || index + 1,
+      id: h.id != null ? h.id : `auto_${index}`,
       semana: h.semana,
       titulo: h.titulo,
       descripcion: h.descripcion,
@@ -519,7 +527,7 @@ class ProjectAiService {
       throw new Error('La IA no devolvió un JSON válido');
     }
 
-    return parsed;
+    return { ...parsed, aiProvider: result.provider || null, aiModel: result.model || null };
   }
 
   /**

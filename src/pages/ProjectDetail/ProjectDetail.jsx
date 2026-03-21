@@ -48,6 +48,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   
   // Estados para datos del proyecto
   const [projectSummary, setProjectSummary] = useState(null);
+  const [highlightsCount, setHighlightsCount] = useState(2);
   const [projectMembers, setProjectMembers] = useState([]);
   const [projectHighlights, setProjectHighlights] = useState([]);
   const [projectDetails, setProjectDetails] = useState(null);
@@ -100,6 +101,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
         const s = await getSettings();
         const provider = s.aiProvider || 'geminifree';
         setAiProvider(provider);
+        setHighlightsCount(s.projectHighlightsCount || 2);
         const host = s.ollamaHost || 'http://localhost:11434';
         setOllamaHost(host);
         
@@ -115,9 +117,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
         const currentModel = modelByProvider[provider] || '';
         setSettingsModel(currentModel);
         
-        // Inicializar el modelo de sesión para que el ChatInterface lo muestre correctamente
-        if (provider === 'ollama') setSelectedOllamaModel(currentModel);
-        if (provider === 'lmstudio') setSelectedLmStudioModel(currentModel);
+        // El modelo actual ya queda reflejado en settingsModel (línea anterior)
         
         // Guardar context length
         let ctxLen = 8000;
@@ -830,7 +830,18 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
               {/* Resumen del Proyecto */}
               <div className={styles.section}>
                 <div className={styles.sectionTitleRow}>
-                  <h2 className={styles.sectionTitle}>Resumen del Proyecto</h2>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h2 className={styles.sectionTitle}>Resumen del Proyecto</h2>
+                    {projectSummary?.aiProvider && (
+                      <span className={styles.aiBadge}>
+                        {(() => {
+                          const names = { gemini: 'Gemini Pro', geminifree: 'Gemini Free', deepseek: 'DeepSeek', kimi: 'Kimi' };
+                          const { aiProvider, aiModel } = projectSummary;
+                          return aiModel ? `${names[aiProvider] || aiProvider}: ${aiModel}` : (names[aiProvider] || aiProvider);
+                        })()}
+                      </span>
+                    )}
+                  </div>
                   <button
                     onClick={handleRegenerateProjectSummary}
                     disabled={isRegenerating}
@@ -846,11 +857,11 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                 </p>
               </div>
 
-              {/* Highlights de las Últimas 2 Reuniones */}
+              {/* Highlights de las Últimas N Reuniones */}
               {recordingSummaries.length > 0 && (() => {
-                const lastTwoRecordings = recordingSummaries.slice(0, 2);
+                const lastNRecordings = recordingSummaries.slice(0, highlightsCount);
 
-                const recordingsWithHighlights = lastTwoRecordings.filter(rec =>
+                const recordingsWithHighlights = lastNRecordings.filter(rec =>
                   rec.summary?.ideas && rec.summary.ideas.length > 0
                 );
 
@@ -858,7 +869,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
 
                 return (
                   <div className={styles.section}>
-                    <h2 className={styles.sectionTitle}>Highlights de las Últimas 2 Reuniones</h2>
+                    <h2 className={styles.sectionTitle}>{`Highlights de las Últimas ${highlightsCount} Reunión${highlightsCount !== 1 ? 'es' : ''}`}</h2>
                     <div className={styles.recentHighlights}>
                       {recordingsWithHighlights.map((recording, idx) => {
                         const highlights = recording.summary.ideas;

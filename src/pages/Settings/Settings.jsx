@@ -44,6 +44,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
   const [selectedUiLanguage, setSelectedUiLanguage] = useState('es');
   const [selectedMicrophone, setSelectedMicrophone] = useState('');
   const [fontSize, setFontSize] = useState('medium');
+  const [projectHighlightsCount, setProjectHighlightsCount] = useState(2);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [whisperModel, setWhisperModel] = useState('small');
   const [cpuThreads, setCpuThreads] = useState(4);
@@ -171,6 +172,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         setSelectedUiLanguage(savedSettings.uiLanguage || 'es');
         setSelectedMicrophone(savedSettings.microphone || (systemMicrophones.length > 0 ? systemMicrophones[0].value : ''));
         setFontSize(savedSettings.fontSize || 'medium');
+        setProjectHighlightsCount(savedSettings.projectHighlightsCount || 2);
         setNotificationsEnabled(savedSettings.notificationsEnabled !== false); // Default true
         setWhisperModel(savedSettings.whisperModel || 'small');
         
@@ -518,6 +520,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         microphone: selectedMicrophone,
         notificationsEnabled: notificationsEnabled,
         fontSize: fontSize,
+        projectHighlightsCount: projectHighlightsCount,
         whisperModel: whisperModel,
         cpuThreads: cpuThreads,
         // Gemini Free
@@ -1496,7 +1499,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       {t('settings.helpText.uiLanguage')}
                     </p>
                   </div>
-                  <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                  <div className={styles.formGroup}>
                     <label className={styles.label}>{t('settings.fields.fontSize')}</label>
                     <select
                       className={styles.input}
@@ -1509,6 +1512,21 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                     </select>
                     <p className={styles.helpText}>
                       {t('settings.helpText.fontSize')}
+                    </p>
+                  </div>
+                  <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                    <label className={styles.label}>Reuniones recientes en resumen de proyecto</label>
+                    <input
+                      type="number"
+                      className={styles.input}
+                      min="1"
+                      max="10"
+                      value={projectHighlightsCount}
+                      onChange={(e) => setProjectHighlightsCount(Math.max(1, Math.min(10, parseInt(e.target.value) || 2)))}
+                      style={{ width: '80px' }}
+                    />
+                    <p className={styles.helpText}>
+                      Cuántas grabaciones recientes se muestran en los highlights del resumen de proyecto.
                     </p>
                   </div>
                 </div>

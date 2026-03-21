@@ -36,8 +36,8 @@ module.exports.registerRagHandlers = () => {
       const chunks = await ragService.searchRecording(recordingPath, query, topK || 5);
       return { success: true, chunks };
     } catch (error) {
-      console.error('[RAG] Error buscando:', error);
-      return { success: false, error: error.message };
+      console.error('[RAG] Error buscando:', { code: error.code, message: error.message, recordingId, query: query?.substring(0, 50) });
+      return { success: false, error: error.message || error.code || 'Error desconocido en búsqueda RAG' };
     }
   });
 

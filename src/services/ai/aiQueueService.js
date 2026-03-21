@@ -8,7 +8,37 @@
  * de tareas completadas, sin persistencia externa.
  */
 
-const MAX_HISTORY = 50;
+const MAX_HISTORY = 20;
+const STORAGE_KEY = 'aiqueue_history';
+
+function _loadPersistedHistory() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const items = JSON.parse(raw).map(t => ({
+      ...t,
+      startedAt:   t.startedAt   ? new Date(t.startedAt)   : null,
+      completedAt: t.completedAt ? new Date(t.completedAt) : null,
+    }));
+    // Deduplicar por ID (puede ocurrir con datos corruptos de sesiones anteriores)
+    const seen = new Set();
+    return items.filter(t => {
+      if (seen.has(t.id)) return false;
+      seen.add(t.id);
+      return true;
+    });
+  } catch {
+    return [];
+  }
+}
+
+function _persistHistory(history) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+  } catch {
+    // cuota excedida u otro error — ignorar
+  }
+}
 
 export const AI_TASK_TYPES = {
   SUMMARY: 'summary',
@@ -26,10 +56,12 @@ class AiQueueService {
   constructor() {
     this._queue = [];       // tareas pendientes (incluye _resolve, _reject, _fn internos)
     this._current = null;   // tarea en proceso (solo campos públicos)
-    this._history = [];     // tareas completadas/fallidas/canceladas
+    this._history = _loadPersistedHistory();
     this._listeners = new Set();
     this._processing = false;
-    this._nextId = 1;
+    // Inicializar desde el máximo ID persistido para evitar colisiones tras recarga
+    const maxId = this._history.reduce((max, t) => (t.id > max ? t.id : max), 0);
+    this._nextId = maxId + 1;
   }
 
   /**
@@ -190,6 +222,7 @@ class AiQueueService {
   /** Borra el historial de tareas completadas/fallidas/canceladas */
   clearHistory() {
     this._history = [];
+    _persistHistory(this._history);
     this._notify();
   }
 
@@ -198,6 +231,7 @@ class AiQueueService {
     if (this._history.length > MAX_HISTORY) {
       this._history.pop();
     }
+    _persistHistory(this._history);
   }
 }
 

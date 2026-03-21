@@ -315,22 +315,48 @@ async function searchRecording(recordingPath, query, topK = 10) {
   );
   const queryVector = await embeddingService.embed(query, provider);
 
-  // Buscar en LanceDB
-  const db = await getConnection(vectordbPath);
+  // Buscar en LanceDB (con retry tras invalidar caché si falla)
+  let vectorRows;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const db = await getConnection(vectordbPath);
 
-  let table;
-  try {
-    table = await db.openTable("chunks");
-  } catch {
-    console.warn("[RAG] Tabla chunks no encontrada");
-    return [];
+    let table;
+    try {
+      table = await db.openTable("chunks");
+    } catch {
+      if (attempt === 0) {
+        console.warn("[RAG] Tabla chunks no encontrada, invalidando caché y reintentando...");
+        connectionCache.delete(vectordbPath);
+        continue;
+      }
+      console.warn("[RAG] Tabla chunks no encontrada tras retry");
+      return [];
+    }
+
+    try {
+      // --- 1. Búsqueda vectorial (semántica) ---
+      vectorRows = await table
+        .search(queryVector)
+        .limit(topK * 4)
+        .toArray();
+      break; // éxito
+    } catch (searchErr) {
+      if (attempt === 0) {
+        console.warn(`[RAG] Búsqueda vectorial falló (${searchErr.code || searchErr.message}), invalidando caché y reintentando...`);
+        connectionCache.delete(vectordbPath);
+        continue;
+      }
+      // Segundo intento falló — propagar el error con más contexto
+      console.error(`[RAG] Búsqueda vectorial falló tras retry:`, {
+        code: searchErr.code,
+        message: searchErr.message,
+        vectordbPath,
+        queryVectorLength: queryVector?.length,
+        provider: provider.provider
+      });
+      throw searchErr;
+    }
   }
-
-  // --- 1. Búsqueda vectorial (semántica) ---
-  const vectorRows = await table
-    .search(queryVector)
-    .limit(topK * 4)
-    .toArray();
 
   // Construir map chunkId → chunk con score vectorial
   const chunkMap = new Map();
