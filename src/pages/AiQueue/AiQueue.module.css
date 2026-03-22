@@ -2,7 +2,7 @@
   padding: 36px 40px;
   overflow-y: auto;
   height: 100%;
-  background: #f8f9fb;
+  background: var(--color-bg-primary);
   box-sizing: border-box;
 }
 
@@ -14,13 +14,13 @@
 .pageTitle {
   font-size: 1.75rem;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--color-text-heading);
   margin: 0 0 4px 0;
 }
 
 .pageSubtitle {
   font-size: 0.9rem;
-  color: #64748b;
+  color: var(--color-text-tertiary);
   margin: 0;
 }
 
@@ -32,7 +32,7 @@
 .sectionLabel {
   font-size: 1.0625rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text-heading);
   margin: 0 0 14px 0;
 }
 
@@ -49,14 +49,14 @@
 
 .queueMeta {
   font-size: 0.8125rem;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-weight: 500;
 }
 
 /* Current Task Card */
 .currentCard {
-  background: #ffffff;
-  border: 1px solid #e8ecf2;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
   border-radius: 14px;
   padding: 18px 20px;
   display: flex;
@@ -68,8 +68,8 @@
 .taskIconWrap {
   width: 44px;
   height: 44px;
-  background: rgba(57, 148, 239, 0.1);
-  color: #3994ef;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -88,7 +88,7 @@
 .taskName {
   font-size: 0.9375rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text-heading);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -96,7 +96,7 @@
 
 .taskSubstep {
   font-size: 0.8rem;
-  color: #3994ef;
+  color: var(--color-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -104,7 +104,7 @@
 
 .taskEngine {
   font-size: 0.8125rem;
-  color: #64748b;
+  color: var(--color-text-tertiary);
 }
 
 .taskRight {
@@ -120,9 +120,9 @@
   gap: 5px;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #64748b;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-hover);
+  border: 1px solid var(--color-border-primary);
   padding: 5px 11px;
   border-radius: 9999px;
 }
@@ -146,7 +146,7 @@
   gap: 7px;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #dc2626;
+  color: var(--color-danger-hover);
   background: #fff5f5;
   border: 1px solid #fecaca;
   padding: 5px 13px;
@@ -157,7 +157,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #ef4444;
+  background: var(--color-danger);
   animation: pulseDot 1.6s ease-in-out infinite;
   flex-shrink: 0;
 }
@@ -170,7 +170,7 @@
 .moreBtn {
   background: none;
   border: none;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   cursor: pointer;
   padding: 6px;
   border-radius: 8px;
@@ -181,8 +181,8 @@
 }
 
 .moreBtn:hover {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
 }
 
 /* Queue List */
@@ -193,8 +193,8 @@
 }
 
 .queueItem {
-  background: #ffffff;
-  border: 1px solid #e8ecf2;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
   border-radius: 12px;
   padding: 14px 18px;
   display: flex;
@@ -206,8 +206,8 @@
 .queueIconWrap {
   width: 38px;
   height: 38px;
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--color-bg-hover);
+  color: var(--color-text-tertiary);
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -226,7 +226,7 @@
 .queueName {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--color-text-heading);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -234,16 +234,16 @@
 
 .queueEngine {
   font-size: 0.78rem;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 .pendingBadge {
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: #94a3b8;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  color: var(--color-text-muted);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
   padding: 4px 10px;
   border-radius: 6px;
   flex-shrink: 0;
@@ -252,7 +252,7 @@
 .removeBtn {
   background: none;
   border: none;
-  color: #cbd5e1;
+  color: var(--color-scrollbar-thumb);
   cursor: pointer;
   padding: 5px;
   border-radius: 6px;
@@ -264,14 +264,13 @@
 }
 
 .removeBtn:hover {
-  background: #fef2f2;
-  color: #ef4444;
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 /* History Table */
 .historyTableWrap {
-  background: #ffffff;
-  border: 1px solid #e8ecf2;
+  background: var(--color-bg-secondary);
   border-radius: 14px;
   overflow: hidden;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
@@ -283,7 +282,7 @@
 }
 
 .historyTable thead tr {
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--color-bg-hover);
 }
 
 .historyTable thead th {
@@ -292,12 +291,12 @@
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   text-transform: uppercase;
 }
 
 .historyTable tbody tr {
-  border-bottom: 1px solid #f8fafc;
+  border-bottom: 1px solid var(--color-bg-primary);
   transition: background 0.12s;
 }
 
@@ -306,7 +305,7 @@
 }
 
 .historyTable tbody tr:hover {
-  background: #f8fafc;
+  background: var(--color-bg-primary);
 }
 
 .historyGroupRow td {
@@ -321,17 +320,17 @@
 .historySubtaskRow td {
   background-color: #fafafa;
   font-size: 0.8125rem;
-  color: #64748b;
-  border-bottom: 1px dashed #e2e8f0;
+  color: var(--color-text-tertiary);
+  border-bottom: 1px dashed var(--color-border-primary);
 }
 
 .historySubtaskRow:hover td {
-  background-color: #f1f5f9;
+  background-color: var(--color-bg-hover);
 }
 
 .subtaskName {
   font-size: 0.8125rem;
-  color: #64748b;
+  color: var(--color-text-tertiary);
 }
 
 .expandGroupBtn {
@@ -340,7 +339,7 @@
   padding: 2px;
   margin: 0;
   margin-right: 4px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -349,14 +348,14 @@
 }
 
 .expandGroupBtn:hover {
-  background-color: #f1f5f9;
-  color: #334155;
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-secondary);
 }
 
 .historyTable tbody td {
   padding: 14px 20px;
   font-size: 0.875rem;
-  color: #334155;
+  color: var(--color-text-secondary);
 }
 
 .historyTable tbody td:first-child {
@@ -386,7 +385,7 @@
   height: 22px;
   border-radius: 50%;
   background: #fee2e2;
-  color: #dc2626;
+  color: var(--color-danger-hover);
   flex-shrink: 0;
 }
 
@@ -416,7 +415,7 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #eff6ff;
+  background: var(--color-primary-bg);
   color: #3b82f6;
   flex-shrink: 0;
 }
@@ -425,8 +424,8 @@
   display: inline-block;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #2563eb;
-  background: #eff6ff;
+  color: var(--color-primary-hover);
+  background: var(--color-primary-bg);
   border: 1px solid #bfdbfe;
   padding: 3px 10px;
   border-radius: 9999px;
@@ -436,15 +435,15 @@
   display: inline-block;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #dc2626;
-  background: #fef2f2;
+  color: var(--color-danger-hover);
+  background: var(--color-danger-bg);
   border: 1px solid #fecaca;
   padding: 3px 10px;
   border-radius: 9999px;
 }
 
 .historyTime {
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-size: 0.8125rem;
 }
 
@@ -453,33 +452,33 @@
   border: none;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #3994ef;
+  color: var(--color-primary);
   cursor: pointer;
   padding: 0;
   transition: color 0.15s;
 }
 
 .clearHistoryBtn:hover {
-  color: #2563eb;
+  color: var(--color-primary-hover);
 }
 
 /* Empty states */
 .emptyCurrentCard {
-  background: #ffffff;
-  border: 1px dashed #d1d9e6;
+  background: var(--color-bg-secondary);
+  border: 1px dashed var(--color-border-primary);
   border-radius: 14px;
   padding: 22px 24px;
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-size: 0.9rem;
   font-weight: 500;
 }
 
 .emptyText {
   font-size: 0.875rem;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   margin: 0;
   padding: 6px 0;
 }
@@ -492,8 +491,8 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #f3f4f6;
-  color: #9ca3af;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-muted);
   flex-shrink: 0;
 }
 
@@ -502,9 +501,9 @@
   display: inline-block;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #6b7280;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-secondary);
   padding: 3px 10px;
   border-radius: 9999px;
 }
@@ -513,7 +512,7 @@
 .viewDetailBtn {
   background: none;
   border: none;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   cursor: pointer;
   padding: 5px;
   border-radius: 6px;
@@ -524,8 +523,8 @@
 }
 
 .viewDetailBtn:hover {
-  background: #eff6ff;
-  color: #3994ef;
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
 }
 
 /* ── Modal de detalle ── */
@@ -542,7 +541,7 @@
 }
 
 .modal {
-  background: #ffffff;
+  background: var(--color-bg-secondary);
   border-radius: 18px;
   box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18), 0 4px 16px rgba(15, 23, 42, 0.08);
   width: 100%;
@@ -558,7 +557,7 @@
   align-items: flex-start;
   justify-content: space-between;
   padding: 22px 26px 18px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--color-bg-hover);
   flex-shrink: 0;
 }
 
@@ -571,8 +570,8 @@
 .modalIcon {
   width: 38px;
   height: 38px;
-  background: rgba(57, 148, 239, 0.1);
-  color: #3994ef;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -584,19 +583,19 @@
 .modalTitle {
   font-size: 1rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text-heading);
   margin: 0 0 3px 0;
 }
 
 .modalMeta {
   font-size: 0.8125rem;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 .modalCloseBtn {
   background: none;
   border: none;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   cursor: pointer;
   padding: 6px;
   border-radius: 8px;
@@ -609,8 +608,8 @@
 }
 
 .modalCloseBtn:hover {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
 }
 
 .modalBody {
@@ -639,7 +638,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 .copyBtn {
@@ -647,8 +646,8 @@
   align-items: center;
   gap: 5px;
   background: none;
-  border: 1px solid #e2e8f0;
-  color: #64748b;
+  border: 1px solid var(--color-border-primary);
+  color: var(--color-text-tertiary);
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
@@ -658,20 +657,20 @@
 }
 
 .copyBtn:hover {
-  background: #f1f5f9;
-  color: #334155;
-  border-color: #cbd5e1;
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
+  border-color: var(--color-scrollbar-thumb);
 }
 
 /* Bloque de prompt (monoespaciado, scrollable) */
 .promptText {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
   border-radius: 10px;
   padding: 14px 16px;
   font-size: 0.8125rem;
   font-family: 'Menlo', 'Consolas', 'Monaco', monospace;
-  color: #334155;
+  color: var(--color-text-secondary);
   white-space: pre-wrap;
   word-break: break-word;
   margin: 0;
@@ -682,12 +681,12 @@
 
 /* Bloque de respuesta (markdown renderizado) */
 .responseText {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
   border-radius: 10px;
   padding: 16px 18px;
   font-size: 0.875rem;
-  color: #334155;
+  color: var(--color-text-secondary);
   max-height: 320px;
   overflow-y: auto;
   line-height: 1.7;
@@ -716,20 +715,20 @@
 .responseText h3 {
   font-size: 0.9375rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text-heading);
   margin: 12px 0 6px 0;
 }
 
 .responseText code {
   font-family: 'Menlo', 'Consolas', 'Monaco', monospace;
   font-size: 0.8125rem;
-  background: #e2e8f0;
+  background: var(--color-border-primary);
   border-radius: 4px;
   padding: 1px 5px;
 }
 
 .responseText pre {
-  background: #1e293b;
+  background: var(--color-text-heading);
   border-radius: 8px;
   padding: 12px 14px;
   overflow-x: auto;
@@ -739,6 +738,6 @@
 .responseText pre code {
   background: none;
   padding: 0;
-  color: #e2e8f0;
+  color: var(--color-border-primary);
   font-size: 0.8rem;
 }

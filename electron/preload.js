@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Seleccionar directorio
   selectDirectory: () => ipcRenderer.invoke('select-directory'),
   getDefaultRecordingPath: () => ipcRenderer.invoke('get-default-recording-path'),
+  getDirectorySize: (dirPath) => ipcRenderer.invoke('get-directory-size', dirPath),
 
   // Funciones para la configuración
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),

@@ -1,6 +1,6 @@
 .card {
-  background-color: white;
-  border: 1px solid #E5E7EB;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 12px;
   padding: 24px;
   cursor: pointer;
@@ -26,9 +26,9 @@
 }
 
 .card:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 15px -3px var(--color-shadow);
   transform: translateY(-2px);
-  border-color: #3994EF;
+  border-color: var(--color-primary);
 }
 
 .header {
@@ -45,8 +45,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(57, 148, 239, 0.1);
-  color: #3994EF;
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
   transition: transform 0.3s ease;
 }
 
@@ -63,13 +63,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .optionsBtn:hover {
-  background-color: #F3F4F6;
+  background-color: var(--color-border-subtle);
   color: #1F2937;
 }
 
@@ -83,10 +83,10 @@
   right: 0;
   margin-top: 8px;
   width: 160px;
-  background-color: white;
-  border: 1px solid #E5E7EB;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 15px -3px var(--color-shadow-md), 0 4px 6px -2px var(--color-shadow);
   z-index: 10;
   padding: 4px;
 }
@@ -95,7 +95,7 @@
   width: 100%;
   padding: 8px 12px;
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--color-text-secondary);
   background: transparent;
   border: none;
   border-radius: 6px;
@@ -108,32 +108,32 @@
 }
 
 .dropdownItem:hover {
-  background-color: #F3F4F6;
+  background-color: var(--color-border-subtle);
 }
 
 .deleteItem {
-  color: #EF4444;
+  color: var(--color-danger);
 }
 
 .deleteItem:hover {
-  background-color: #FEF2F2;
+  background-color: var(--color-danger-bg);
 }
 
 .title {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
   margin: 0 0 8px 0;
   transition: color 0.2s;
 }
 
 .card:hover .title {
-  color: #3994EF;
+  color: var(--color-primary);
 }
 
 .description {
   font-size: 0.875rem;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   margin: 0 0 24px 0;
   line-height: 1.5;
   display: -webkit-box;
@@ -147,7 +147,7 @@
   justify-content: space-between;
   align-items: center;
   padding-top: 16px;
-  border-top: 1px solid #F3F4F6;
+  border-top: 1px solid var(--color-border-subtle);
   height: 40px; /* Fixed height */
   box-sizing: border-box;
 }
@@ -166,16 +166,16 @@
 }
 
 .statusDot.needsUpdate {
-  background-color: #F59E0B; /* Orange: Needs update */
+  background-color: var(--color-warning); /* Orange: Needs update */
 }
 
 .statusText {
   font-size: 0.75rem;
   font-weight: 500;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
 }
 
 .date {
   font-size: 0.75rem;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
 }

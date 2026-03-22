@@ -2,7 +2,7 @@
 .container {
   width: 100%;
   height: 100%;
-  background: white;
+  background: var(--color-bg-secondary);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -10,15 +10,15 @@
 
 /* Header con título y estadísticas (oculto en la nueva vista, pero mantenido por compatibilidad) */
 .header {
-  background: white;
+  background: var(--color-bg-secondary);
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid var(--color-border-secondary);
   flex-shrink: 0;
   display: none; /* Oculto porque el tab ya tiene header */
 }
 
 .title {
-  color: #111827;
+  color: var(--color-text-primary);
   font-size: 1.25rem;
   font-weight: 700;
   margin: 0 0 1rem 0;
@@ -30,12 +30,12 @@
 }
 
 .stat {
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   font-size: 0.8rem;
-  background: #F9FAFB;
+  background: var(--color-bg-primary);
   padding: 0.4rem 0.8rem;
   border-radius: 9999px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
 }
 
 /* Área de conversación */
@@ -64,7 +64,7 @@
 /* Active Segment Highlight */
 .activeSegment {
   background-color: #F0F9FF; /* Light blue background */
-  border-left-color: #3994EF;
+  border-left-color: var(--color-primary);
 }
 
 .messageHeader {
@@ -78,15 +78,15 @@
 
 .speaker {
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
   font-size: 0.95rem;
 }
 
 .timestamp {
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   font-size: 0.75rem;
   font-family: monospace;
-  background-color: #F3F4F6;
+  background-color: var(--color-bg-tertiary);
   padding: 2px 6px;
   border-radius: 4px;
   cursor: pointer;
@@ -95,8 +95,8 @@
 
 .timestamp:hover {
   text-decoration: none;
-  background-color: #E5E7EB;
-  color: #374151;
+  background-color: var(--color-border-secondary);
+  color: var(--color-text-secondary);
 }
 
 .activeTimestamp {
@@ -108,13 +108,13 @@
 /* Search Highlighting */
 .highlight {
   background-color: #FEF9C3; /* Yellow-100 */
-  color: #111827;
+  color: var(--color-text-primary);
   padding: 0 2px;
   border-radius: 2px;
 }
 
 .activeHighlight {
-  background-color: #F59E0B; /* Amber-500 */
+  background-color: var(--color-warning); /* Amber-500 */
   color: white;
   padding: 0 2px;
   border-radius: 2px;
@@ -123,7 +123,7 @@
 /* Texto del mensaje */
 .messageText {
   flex: 1;
-  color: #374151;
+  color: var(--color-text-secondary);
   line-height: 1.6;
   font-size: var(--app-font-size);
   word-wrap: break-word;
@@ -131,7 +131,7 @@
 }
 
 .messageText:hover {
-  color: #111827;
+  color: var(--color-text-primary);
 }
 
 /* Speaker types */
@@ -141,7 +141,7 @@
 }
 
 .microphone .messageText {
-  /* background-color: #F3F4F6; */ /* Removed bg to make the container highlight cleaner */
+  /* background-color: var(--color-bg-tertiary); */ /* Removed bg to make the container highlight cleaner */
   padding: 0;
   border-radius: 0;
 }
@@ -156,7 +156,7 @@
 }
 
 .system .messageText {
-  /* background-color: #EFF6FF; */ /* Removed bg */
+  /* background-color: var(--color-primary-bg); */ /* Removed bg */
   color: #1E40AF;
   padding: 0;
   border-radius: 0;
@@ -183,15 +183,15 @@
   justify-content: center;
   height: 100%;
   text-align: center;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   padding: 2rem;
 }
 
 .loading .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #E5E7EB;
-  border-top: 3px solid #3994EF;
+  border: 3px solid var(--color-border-secondary);
+  border-top: 3px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
@@ -203,16 +203,16 @@
 }
 
 .error {
-  color: #EF4444;
+  color: var(--color-danger);
 }
 
 .error h3 {
-  color: #DC2626;
+  color: var(--color-danger-hover);
   margin-bottom: 1rem;
 }
 
 .noTranscription h3 {
-  color: #374151;
+  color: var(--color-text-secondary);
   margin-bottom: 1rem;
 }
 

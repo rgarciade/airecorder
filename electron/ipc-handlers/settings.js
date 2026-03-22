@@ -108,4 +108,27 @@ module.exports.registerSettingsHandlers = () => {
     }
   });
 
+  // Calcular tamaño de una carpeta (recursivo)
+  ipcMain.handle('get-directory-size', async (event, dirPath) => {
+    try {
+      if (!dirPath || !fs.existsSync(dirPath)) return { success: true, gb: 0 };
+
+      const getSize = async (p) => {
+        const stat = await fs.promises.stat(p);
+        if (stat.isFile()) return stat.size;
+        const entries = await fs.promises.readdir(p);
+        const sizes = await Promise.all(
+          entries.map(e => getSize(path.join(p, e)).catch(() => 0))
+        );
+        return sizes.reduce((a, b) => a + b, 0);
+      };
+
+      const bytes = await getSize(dirPath);
+      const gb = bytes / (1000 * 1000 * 1000); // GB decimales (igual que macOS Finder)
+      return { success: true, gb };
+    } catch (err) {
+      return { success: false, error: err.message, bytes: 0 };
+    }
+  });
+
 };

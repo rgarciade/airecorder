@@ -3,7 +3,7 @@
   height: 100%;
   width: 100%;
   overflow: hidden;
-  background-color: #F9FAFB;
+  background-color: var(--color-bg-primary);
   position: relative; /* Needed for overlay */
 }
 
@@ -33,24 +33,24 @@
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  background-color: white;
+  background-color: var(--color-bg-secondary);
   padding: 32px;
   border-radius: 16px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 25px -5px var(--color-shadow-md), 0 8px 10px -6px var(--color-shadow-md);
   max-width: 400px;
   text-align: center;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
 }
 
 .aiSpinner {
   width: 64px;
   height: 64px;
-  background-color: #EFF6FF;
+  background-color: var(--color-primary-bg);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #3994EF;
+  color: var(--color-primary);
   position: relative;
   animation: pulse 2s infinite ease-in-out;
 }
@@ -77,13 +77,13 @@
 .loadingTitle {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .loadingSubtitle {
   font-size: 0.875rem;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   margin: 0;
   line-height: 1.5;
 }
@@ -124,15 +124,15 @@
 
 /* Cards */
 .card {
-  background-color: white;
-  border: 1px solid #E5E7EB;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 2px var(--color-shadow);
 }
 
 .quickSummaryCard {
-  background-color: #EFF6FF; /* primary-50 */
+  background-color: var(--color-primary-bg); /* primary-50 */
   border-color: #DBEAFE;
 }
 
@@ -146,7 +146,7 @@
 .cardTitle {
   font-size: 1rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -157,14 +157,14 @@
 }
 
 .summaryText {
-  color: #374151;
+  color: var(--color-text-secondary);
   line-height: 1.6;
   font-size: var(--app-font-size);
 }
 
 /* Detailed Summary */
 .detailedContent {
-  color: #374151;
+  color: var(--color-text-secondary);
   font-size: var(--app-font-size);
   line-height: 1.7;
 }
@@ -174,7 +174,7 @@
 }
 
 .highlightBox {
-  background-color: #F9FAFB;
+  background-color: var(--color-bg-primary);
   border-left: 4px solid #BFDBFE;
   padding: 16px;
   margin: 24px 0;
@@ -183,7 +183,7 @@
 
 .highlightTitle {
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
@@ -216,7 +216,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: #3994EF;
+  background-color: var(--color-primary);
   margin-top: 8px;
   flex-shrink: 0;
 }
@@ -224,13 +224,13 @@
 .highlightContent h4 {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-text-primary);
   margin: 0 0 4px 0;
 }
 
 .highlightContent p {
   font-size: 0.875rem;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   margin: 0;
   line-height: 1.5;
 }
@@ -252,7 +252,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: #F3F4F6;
+  background-color: var(--color-bg-tertiary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -264,20 +264,20 @@
 .participantInfo h4 {
   font-size: 0.875rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .participantInfo p {
   font-size: 0.75rem;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   margin: 0;
 }
 
 /* Interactive Participant Styles */
 .addBtn {
-  background-color: #EFF6FF;
-  color: #3994EF;
+  background-color: var(--color-primary-bg);
+  color: var(--color-primary);
   border: none;
   width: 24px;
   height: 24px;
@@ -291,12 +291,12 @@
 }
 
 .addBtn:hover {
-  background-color: #3994EF;
+  background-color: var(--color-primary);
   color: white;
 }
 
 .addForm, .editForm {
-  background-color: #F9FAFB;
+  background-color: var(--color-bg-primary);
   padding: 12px;
   border-radius: 8px;
   margin-bottom: 12px;
@@ -307,7 +307,7 @@
 
 .input {
   padding: 6px 10px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 4px;
   font-size: 0.875rem;
   width: 100%;
@@ -316,7 +316,7 @@
 
 .input:focus {
   outline: none;
-  border-color: #3994EF;
+  border-color: var(--color-primary);
 }
 
 .formActions {
@@ -326,7 +326,7 @@
 }
 
 .saveBtn {
-  background-color: #3994EF;
+  background-color: var(--color-primary);
   color: white;
   border: none;
   padding: 4px 12px;
@@ -336,9 +336,9 @@
 }
 
 .cancelBtn {
-  background-color: white;
-  color: #6B7280;
-  border: 1px solid #E5E7EB;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-tertiary);
+  border: 1px solid var(--color-border-secondary);
   padding: 4px 12px;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -355,7 +355,7 @@
 }
 
 .participantItem:hover {
-  background-color: #F9FAFB;
+  background-color: var(--color-bg-primary);
 }
 
 .participantItem:hover .actions {
@@ -376,12 +376,12 @@
   font-size: 0.875rem;
   padding: 4px;
   border-radius: 4px;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
 }
 
 .actionIconBtn:hover {
-  background-color: #E5E7EB;
-  color: #374151;
+  background-color: var(--color-border-secondary);
+  color: var(--color-text-secondary);
 }
 
 .nameRow {
@@ -414,8 +414,8 @@
 }
 
 .infoIcon {
-  color: #3994EF;
-  background-color: #EFF6FF;
+  color: var(--color-primary);
+  background-color: var(--color-primary-bg);
   padding: 8px;
   border-radius: 8px;
   flex-shrink: 0;
@@ -424,7 +424,7 @@
 .infoLabel {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin: 0;
@@ -433,7 +433,7 @@
 .infoValue {
   font-size: 0.875rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -444,8 +444,8 @@
   gap: 8px;
   width: 100%;
   padding: 10px;
-  background-color: #F3F4F6;
-  border: 1px solid #E5E7EB;
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
   color: #4B5563;
   font-size: 0.8125rem;
@@ -455,7 +455,7 @@
 }
 
 .reTranscribeInlineBtn:hover {
-  background-color: #E5E7EB;
-  color: #111827;
-  border-color: #D1D5DB;
+  background-color: var(--color-border-secondary);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-secondary);
 }

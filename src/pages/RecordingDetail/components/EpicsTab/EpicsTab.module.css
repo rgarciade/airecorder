@@ -15,20 +15,20 @@
 }
 
 .emptyIcon {
-  color: #D1D5DB;
+  color: var(--color-border-secondary);
   margin-bottom: 16px;
 }
 
 .emptyTitle {
   font-size: 18px;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text-secondary);
   margin: 0 0 8px 0;
 }
 
 .emptySubtitle {
   font-size: 14px;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   margin: 0 0 24px 0;
   max-width: 400px;
 }
@@ -44,7 +44,7 @@
   align-items: center;
   gap: 6px;
   padding: 10px 20px;
-  background-color: #3994EF;
+  background-color: var(--color-primary);
   color: white;
   border: none;
   border-radius: 8px;
@@ -68,9 +68,9 @@
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background-color: white;
-  color: #374151;
-  border: 1px solid #E5E7EB;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
@@ -79,8 +79,8 @@
 }
 
 .secondaryButton:hover:not(:disabled) {
-  background-color: #F9FAFB;
-  border-color: #D1D5DB;
+  background-color: var(--color-bg-primary);
+  border-color: var(--color-border-secondary);
 }
 
 .secondaryButton:disabled {
@@ -100,7 +100,7 @@
 .counter {
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text-secondary);
 }
 
 .toolbarActions {
@@ -116,8 +116,8 @@
 }
 
 .taskCard {
-  background: white;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 10px;
   overflow: hidden;
   transition: box-shadow 0.2s;
@@ -129,7 +129,7 @@
 
 .taskCard.expanded {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border-color: #D1D5DB;
+  border-color: var(--color-border-secondary);
 }
 
 /* Task header (accordion) */
@@ -156,7 +156,7 @@
 }
 
 .chevron {
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   flex-shrink: 0;
   margin-top: 1px;
 }
@@ -177,7 +177,7 @@
 
 .taskPreview {
   font-size: 13px;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
@@ -234,19 +234,19 @@
 
 .layerOption {
   padding: 5px 12px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 20px;
-  background: white;
+  background: var(--color-bg-secondary);
   font-size: 12px;
   font-weight: 500;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .layerOption:hover {
-  border-color: #D1D5DB;
-  background: #F9FAFB;
+  border-color: var(--color-border-secondary);
+  background: var(--color-bg-primary);
 }
 
 .layerOpt_frontend.layerOptionActive {
@@ -268,15 +268,15 @@
 }
 
 .layerOpt_general.layerOptionActive {
-  background-color: #F3F4F6;
-  border-color: #D1D5DB;
-  color: #374151;
+  background-color: var(--color-bg-tertiary);
+  border-color: var(--color-border-secondary);
+  color: var(--color-text-secondary);
 }
 
 /* Task body (expanded) */
 .taskBody {
   padding: 0 16px 16px 16px;
-  border-top: 1px solid #F3F4F6;
+  border-top: 1px solid var(--color-border-subtle);
   position: relative;
 }
 
@@ -290,7 +290,7 @@
   gap: 8px;
   z-index: 5;
   font-size: 14px;
-  color: #3994EF;
+  color: var(--color-primary);
   font-weight: 500;
   border-radius: 0 0 10px 10px;
 }
@@ -313,7 +313,7 @@
   display: block;
   font-size: 11px;
   font-weight: 600;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 0.4px;
@@ -322,25 +322,25 @@
 .fieldInput {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 6px;
   font-size: 14px;
   color: #1F2937;
   transition: border-color 0.2s;
   box-sizing: border-box;
-  background: white;
+  background: var(--color-bg-input);
 }
 
 .fieldInput:focus {
   outline: none;
-  border-color: #3994EF;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(57, 148, 239, 0.12);
 }
 
 .fieldTextarea {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 6px;
   font-size: 14px;
   color: #1F2937;
@@ -348,13 +348,13 @@
   font-family: inherit;
   transition: border-color 0.2s;
   box-sizing: border-box;
-  background: white;
+  background: var(--color-bg-input);
   line-height: 1.5;
 }
 
 .fieldTextarea:focus {
   outline: none;
-  border-color: #3994EF;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(57, 148, 239, 0.12);
 }
 
@@ -365,7 +365,7 @@
   gap: 8px;
   margin-top: 14px;
   padding-top: 12px;
-  border-top: 1px solid #F3F4F6;
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .saveButton {
@@ -373,7 +373,7 @@
   align-items: center;
   gap: 4px;
   padding: 7px 14px;
-  background-color: #3994EF;
+  background-color: var(--color-primary);
   color: white;
   border: none;
   border-radius: 6px;
@@ -422,8 +422,8 @@
   gap: 4px;
   padding: 7px 14px;
   background: none;
-  color: #9CA3AF;
-  border: 1px solid #E5E7EB;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
@@ -432,9 +432,9 @@
 }
 
 .deleteButton:hover {
-  color: #EF4444;
+  color: var(--color-danger);
   border-color: #FCA5A5;
-  background-color: #FEF2F2;
+  background-color: var(--color-danger-bg);
 }
 
 .deleteConfirm {
@@ -443,12 +443,12 @@
   gap: 8px;
   margin-left: auto;
   font-size: 13px;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
 }
 
 .deleteYes {
   padding: 4px 12px;
-  background: #EF4444;
+  background: var(--color-danger);
   color: white;
   border: none;
   border-radius: 4px;
@@ -458,13 +458,13 @@
 }
 
 .deleteYes:hover {
-  background: #DC2626;
+  background: var(--color-danger-hover);
 }
 
 .deleteNo {
   padding: 4px 12px;
-  background: #F3F4F6;
-  color: #6B7280;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-tertiary);
   border: none;
   border-radius: 4px;
   font-size: 12px;
@@ -473,7 +473,7 @@
 }
 
 .deleteNo:hover {
-  background: #E5E7EB;
+  background: var(--color-border-secondary);
 }
 
 /* Improve panel */
@@ -498,8 +498,8 @@
   gap: 4px;
   padding: 7px 14px;
   background: none;
-  color: #6B7280;
-  border: 1px solid #E5E7EB;
+  color: var(--color-text-tertiary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
@@ -507,7 +507,7 @@
 }
 
 .cancelButton:hover {
-  background: #F9FAFB;
+  background: var(--color-bg-primary);
 }
 
 /* Select all button in toolbar */
@@ -518,26 +518,26 @@
   border: none;
   padding: 4px;
   cursor: pointer;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   flex-shrink: 0;
   border-radius: 4px;
 }
 
 .selectAllBtn:hover {
-  background-color: #F3F4F6;
+  background-color: var(--color-bg-tertiary);
 }
 
 /* Checkbox icon colors */
 .checkboxOn {
-  color: #3994EF;
+  color: var(--color-primary);
 }
 
 .checkboxOff {
-  color: #D1D5DB;
+  color: var(--color-border-secondary);
 }
 
 .checkboxPartial {
-  color: #3994EF;
+  color: var(--color-primary);
 }
 
 /* Bulk action bar */
@@ -546,7 +546,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background: #EFF6FF;
+  background: var(--color-primary-bg);
   border: 1px solid #BFDBFE;
   border-radius: 8px;
   margin-bottom: 10px;
@@ -586,7 +586,7 @@
 }
 
 .bulkAddProjectBtn:hover {
-  background-color: #EFF6FF;
+  background-color: var(--color-primary-bg);
   border-color: #3B82F6;
 }
 
@@ -596,7 +596,7 @@
   gap: 4px;
   padding: 5px 12px;
   background: none;
-  color: #EF4444;
+  color: var(--color-danger);
   border: 1px solid #FCA5A5;
   border-radius: 6px;
   font-size: 12px;
@@ -606,13 +606,13 @@
 }
 
 .bulkDeleteBtn:hover {
-  background-color: #FEF2F2;
-  border-color: #EF4444;
+  background-color: var(--color-danger-bg);
+  border-color: var(--color-danger);
 }
 
 .bulkConfirmText {
   font-size: 13px;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
 }
 
 /* Per-task checkbox button */
@@ -623,14 +623,14 @@
   border: none;
   padding: 2px;
   cursor: pointer;
-  color: #D1D5DB;
+  color: var(--color-border-secondary);
   flex-shrink: 0;
   border-radius: 4px;
   margin-top: 1px;
 }
 
 .taskCheckbox:hover {
-  color: #3994EF;
+  color: var(--color-primary);
 }
 
 /* Task title row (title + new badge) */
@@ -668,8 +668,8 @@
 
 /* Create form */
 .createForm {
-  background: white;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 10px;
   padding: 16px;
   margin-bottom: 16px;
@@ -688,7 +688,7 @@
   gap: 8px;
   margin-top: 16px;
   padding-top: 12px;
-  border-top: 1px solid #F3F4F6;
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 /* ── Status badge ── */
@@ -717,8 +717,8 @@
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.12);
   z-index: 50;
@@ -739,7 +739,7 @@
   cursor: pointer;
   text-align: left;
   transition: background 0.1s;
-  color: #374151;
+  color: var(--color-text-secondary);
 }
 .statusMenuItem:hover { background: #f8fafc; }
 .statusMenuItem.menuItemActive { background: #f0f9ff; }
@@ -753,7 +753,7 @@
   font-weight: 600;
   color: #64748b;
   background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border-primary);
   padding: 1px 7px;
   border-radius: 5px;
   cursor: pointer;
@@ -773,7 +773,7 @@
   width: 26px;
   height: 26px;
   border-radius: 6px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border-primary);
   background: #f8fafc;
   color: #94a3b8;
   cursor: pointer;
@@ -798,7 +798,7 @@
   font-weight: 700;
   cursor: pointer;
   border: 1.5px solid #93C5FD;
-  background: #EFF6FF;
+  background: var(--color-primary-bg);
   color: #1D4ED8;
   transition: all 0.12s;
   white-space: nowrap;
