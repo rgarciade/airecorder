@@ -1,13 +1,13 @@
 .container {
-  background: #FFFFFF;
+  background: var(--color-bg-secondary);
   border-radius: 8px;
   padding: 16px;
-  border: 1px solid #E5E7EB;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--color-border-secondary);
+  box-shadow: 0 1px 2px var(--color-shadow);
 }
 
 .title {
-  color: #111827;
+  color: var(--color-text-primary);
   font-size: 18px;
   font-weight: 700;
   margin: 0 0 16px 0;
@@ -22,7 +22,7 @@
 }
 
 .emptyText {
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   font-size: 14px;
   margin: 0;
 }
@@ -47,7 +47,7 @@
   top: 24px;
   width: 2px;
   height: calc(100% + 8px);
-  background: #E5E7EB;
+  background: var(--color-border-secondary);
   z-index: 1;
 }
 
@@ -62,8 +62,8 @@
   align-items: center;
   justify-content: center;
   z-index: 2;
-  border: 2px solid white;
-  box-shadow: 0 0 0 1px #E5E7EB;
+  border: 2px solid var(--color-bg-secondary);
+  box-shadow: 0 0 0 1px var(--color-border-secondary);
 }
 
 .dotIcon {
@@ -72,19 +72,19 @@
 }
 
 .timelineContent {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
   padding: 16px;
   margin-left: 8px;
   transition: all 0.2s;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 2px var(--color-shadow);
 }
 
 .timelineContent:hover {
-  background: #F9FAFB;
-  border-color: #D1D5DB;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background: var(--color-bg-primary);
+  border-color: var(--color-border-secondary);
+  box-shadow: 0 4px 6px -1px var(--color-shadow-md);
 }
 
 .timelineHeader {
@@ -103,7 +103,7 @@
 }
 
 .semana {
-  color: #3994EF;
+  color: var(--color-primary);
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -111,7 +111,7 @@
 }
 
 .titulo {
-  color: #111827;
+  color: var(--color-text-primary);
   font-size: 16px;
   font-weight: 600;
   line-height: 1.3;
@@ -150,7 +150,7 @@
 .actionBtn {
   background: none;
   border: none;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
@@ -161,13 +161,13 @@
 }
 
 .actionBtn:hover {
-  background: #E5E7EB;
-  color: #374151;
+  background: var(--color-border-secondary);
+  color: var(--color-text-secondary);
 }
 
 .deleteBtn:hover {
   background: #FEE2E2;
-  color: #EF4444;
+  color: var(--color-danger);
 }
 
 /* Edit Form Styles */
@@ -185,10 +185,10 @@
 .editInput, .editSelect, .editTextArea {
   width: 100%;
   padding: 8px;
-  border: 1px solid #D1D5DB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 4px;
   font-size: 14px;
-  color: #111827;
+  color: var(--color-text-primary);
 }
 
 .editTextArea {
@@ -221,17 +221,17 @@
 }
 
 .saveButton:hover {
-  background: #2563EB;
+  background: var(--color-primary-hover);
 }
 
 .cancelButton {
-  background: white;
+  background: var(--color-bg-secondary);
   color: #4B5563;
-  border: 1px solid #D1D5DB;
+  border: 1px solid var(--color-border-secondary);
 }
 
 .cancelButton:hover {
-  background: #F3F4F6;
+  background: var(--color-border-subtle);
 }
 
 .timelineDescription {
@@ -242,7 +242,7 @@
 }
 
 .timelineDate {
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 500;
 }
@@ -254,25 +254,25 @@
     align-items: flex-start;
     gap: 8px;
   }
-  
+
   .statusBadge {
     align-self: flex-start;
   }
-  
+
   .timelineContent {
     margin-left: 0;
   }
-  
+
   .timeline {
     padding-left: 0;
   }
-  
+
   .timelineDot {
     position: static;
     margin-bottom: 12px;
     align-self: flex-start;
   }
-  
+
   .connector {
     display: none;
   }

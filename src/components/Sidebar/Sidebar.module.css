@@ -1,8 +1,8 @@
 .sidebar {
   width: 260px;
   height: 100vh;
-  background-color: #FFFFFF;
-  border-right: 1px solid #E2E8F0;
+  background-color: var(--color-sidebar-bg);
+  border-right: 1px solid var(--color-sidebar-border);
   display: flex;
   flex-direction: column;
   padding: 1.5rem 1rem;
@@ -16,7 +16,7 @@
 .logo {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-heading);
   padding: 0 0.75rem 2rem;
   display: flex;
   align-items: center;
@@ -37,7 +37,7 @@
   border: none;
   background: transparent;
   border-radius: 0.5rem;
-  color: #64748B;
+  color: var(--color-text-tertiary);
   transition: all 0.2s ease;
   width: 100%;
   text-align: left;
@@ -45,13 +45,13 @@
 }
 
 .navItem:hover {
-  background-color: #F1F5F9;
-  color: #1E293B;
+  background-color: var(--color-sidebar-hover-bg);
+  color: var(--color-text-primary);
 }
 
 .navItem.active {
-  background-color: #EFF6FF;
-  color: #2563EB;
+  background-color: var(--color-sidebar-active-bg);
+  color: var(--color-sidebar-active-text);
   font-weight: 500;
 }
 
@@ -72,7 +72,7 @@
   position: absolute;
   top: -6px;
   right: -8px;
-  background-color: #EF4444;
+  background-color: var(--color-danger);
   color: white;
   font-size: 0.65rem;
   font-weight: 700;
@@ -82,8 +82,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #FFFFFF;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  border: 2px solid var(--color-sidebar-bg);
+  box-shadow: 0 1px 2px var(--color-shadow);
 }
 
 .label {

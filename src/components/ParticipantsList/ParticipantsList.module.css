@@ -13,12 +13,12 @@
 .title {
   font-size: 1rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
 }
 
 .addBtn {
-  background-color: #EFF6FF;
-  color: #3994EF;
+  background-color: var(--color-primary-bg);
+  color: var(--color-primary);
   border: none;
   width: 24px;
   height: 24px;
@@ -32,35 +32,35 @@
 }
 
 .addBtn:hover {
-  background-color: #3994EF;
+  background-color: var(--color-primary);
   color: white;
 }
 
 .addForm, .editForm {
-  background-color: #F9FAFB;
+  background-color: var(--color-bg-primary);
   padding: 12px;
   border-radius: 8px;
   margin-bottom: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
 }
 
 .input {
   padding: 6px 10px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 4px;
   font-size: 0.875rem;
   width: 100%;
   box-sizing: border-box;
-  background-color: white;
-  color: #111827;
+  background-color: var(--color-bg-input);
+  color: var(--color-text-primary);
 }
 
 .input:focus {
   outline: none;
-  border-color: #3994EF;
+  border-color: var(--color-primary);
 }
 
 .formActions {
@@ -70,7 +70,7 @@
 }
 
 .saveBtn {
-  background-color: #3994EF;
+  background-color: var(--color-primary);
   color: white;
   border: none;
   padding: 4px 12px;
@@ -82,9 +82,9 @@
 }
 
 .cancelBtn {
-  background-color: white;
-  color: #6B7280;
-  border: 1px solid #E5E7EB;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-tertiary);
+  border: 1px solid var(--color-border-secondary);
   padding: 4px 12px;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -109,7 +109,7 @@
 }
 
 .item:hover {
-  background-color: #F9FAFB;
+  background-color: var(--color-bg-primary);
 }
 
 .item:hover .actions {
@@ -126,7 +126,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background-color: #F3F4F6;
+  background-color: var(--color-bg-tertiary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -139,13 +139,13 @@
 .details h4 {
   font-size: 0.875rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .details p {
   font-size: 0.75rem;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   margin: 0;
 }
 
@@ -179,16 +179,16 @@
   font-size: 0.875rem;
   padding: 4px;
   border-radius: 4px;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
 }
 
 .actionIconBtn:hover {
-  background-color: #E5E7EB;
-  color: #374151;
+  background-color: var(--color-border-secondary);
+  color: var(--color-text-secondary);
 }
 
 .emptyText {
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   font-size: 0.875rem;
   font-style: italic;
   padding: 16px 0;

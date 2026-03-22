@@ -4,7 +4,7 @@
   height: 100%;
   width: 100%;
   overflow-y: auto;
-  background-color: #F9FAFB;
+  background-color: var(--color-bg-primary);
   padding: 24px;
   box-sizing: border-box;
 }
@@ -26,19 +26,19 @@
 .title {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .count {
   font-size: 0.8rem;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   font-weight: 400;
 }
 
 .hint {
   font-size: 0.78rem;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   margin: 0 0 20px 0;
   line-height: 1.4;
 }
@@ -49,7 +49,7 @@
   align-items: center;
   gap: 6px;
   padding: 7px 14px;
-  background: #3994EF;
+  background: var(--color-primary);
   color: white;
   border: none;
   border-radius: 8px;
@@ -61,7 +61,7 @@
 }
 
 .uploadBtn:hover:not(:disabled) {
-  background: #2563EB;
+  background: var(--color-primary-hover);
 }
 
 .uploadBtn:disabled {
@@ -79,8 +79,8 @@
 /* ── Card individual ── */
 .card {
   position: relative;
-  background: white;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 12px;
   overflow: hidden;
   transition: box-shadow 0.15s, border-color 0.15s;
@@ -90,7 +90,7 @@
 
 .card:hover {
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  border-color: #D1D5DB;
+  border-color: var(--color-border-secondary);
 }
 
 .cardPreview {
@@ -99,7 +99,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #F3F4F6;
+  background: var(--color-bg-tertiary);
   overflow: hidden;
 }
 
@@ -120,7 +120,7 @@
 .typeIcon {
   width: 40px;
   height: 40px;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
 }
 
 .cardInfo {
@@ -134,7 +134,7 @@
 .filename {
   font-size: 0.8rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -142,7 +142,7 @@
 
 .fileSize {
   font-size: 0.72rem;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
 }
 
 /* ── Botón eliminar ── */
@@ -156,10 +156,10 @@
   align-items: center;
   justify-content: center;
   background: rgba(255,255,255,0.9);
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 50%;
   cursor: pointer;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   opacity: 0;
   transition: opacity 0.15s, background 0.15s, color 0.15s;
 }
@@ -170,14 +170,14 @@
 
 .deleteBtn:hover {
   background: #FEE2E2;
-  color: #EF4444;
+  color: var(--color-danger);
   border-color: #FECACA;
 }
 
 .deleteBtnConfirm {
   opacity: 1 !important;
   background: #FEE2E2 !important;
-  color: #EF4444 !important;
+  color: var(--color-danger) !important;
   border-color: #FECACA !important;
 }
 
@@ -186,7 +186,7 @@
   position: absolute;
   top: 36px;
   right: 4px;
-  background: #EF4444;
+  background: var(--color-danger);
   color: white;
   font-size: 0.7rem;
   font-weight: 600;
@@ -210,19 +210,19 @@
 }
 
 .emptyIcon {
-  color: #D1D5DB;
+  color: var(--color-border-secondary);
 }
 
 .emptyTitle {
   font-size: 1rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
 .emptySubtitle {
   font-size: 0.85rem;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   margin: 0;
   max-width: 280px;
   line-height: 1.5;
@@ -233,7 +233,7 @@
   align-items: center;
   gap: 6px;
   padding: 10px 20px;
-  background: #3994EF;
+  background: var(--color-primary);
   color: white;
   border: none;
   border-radius: 8px;
@@ -245,7 +245,7 @@
 }
 
 .uploadBtnLarge:hover:not(:disabled) {
-  background: #2563EB;
+  background: var(--color-primary-hover);
 }
 
 .uploadBtnLarge:disabled {

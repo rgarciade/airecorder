@@ -13,6 +13,7 @@ import RecordingOverlay from './components/RecordingOverlay/RecordingOverlay'
 import Sidebar from './components/Sidebar/Sidebar';
 import Onboarding from './pages/Onboarding/Onboarding';
 import { getSettings, updateSettings } from './services/settingsService';
+import { applyTheme } from './services/themeService';
 import styles from './App.module.css'
 import './App.css'
 
@@ -66,6 +67,10 @@ export default function App() {
       document.documentElement.setAttribute('data-font-size', 'medium');
     }
   }, [appSettings?.fontSize]);
+
+  useEffect(() => {
+    applyTheme(appSettings?.theme || 'system');
+  }, [appSettings?.theme]);
 
   const checkDbStatus = async () => {
     try {

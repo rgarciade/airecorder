@@ -1,6 +1,6 @@
 .card {
-  background-color: #F9FAFB;
-  border: 2px dashed #E5E7EB;
+  background-color: var(--color-bg-primary);
+  border: 2px dashed var(--color-border-secondary);
   border-radius: 12px;
   padding: 24px;
   display: flex;
@@ -16,43 +16,43 @@
 }
 
 .card:hover {
-  background-color: #F3F4F6;
-  border-color: #3994EF;
+  background-color: var(--color-border-subtle);
+  border-color: var(--color-primary);
 }
 
 .iconWrapper {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background-color: white;
+  background-color: var(--color-bg-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   margin-bottom: 16px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 2px var(--color-shadow);
   transition: all 0.3s ease;
 }
 
 .card:hover .iconWrapper {
-  color: #3994EF;
+  color: var(--color-primary);
   transform: scale(1.1);
 }
 
 .title {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #374151;
+  color: var(--color-text-secondary);
   margin: 0 0 4px 0;
   transition: color 0.3s ease;
 }
 
 .card:hover .title {
-  color: #3994EF;
+  color: var(--color-primary);
 }
 
 .subtitle {
   font-size: 0.875rem;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   margin: 0;
 }

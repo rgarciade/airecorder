@@ -7,27 +7,157 @@ html[data-font-size="medium"] { font-size: 16px; }
 html[data-font-size="large"] { font-size: 18px; }
 html[data-font-size="xlarge"] { font-size: 20px; }
 
+/* =============================================
+   SISTEMA DE TEMAS — Variables CSS
+   ============================================= */
+
 :root {
   font-family: "Plus Jakarta Sans", "Noto Sans", sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light;
-  color: #111827; /* Gray 900 */
-  background-color: #F8F9FB; /* Light gray background */
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Backgrounds */
+  --color-bg-primary:    #F8F9FB;
+  --color-bg-secondary:  #FFFFFF;
+  --color-bg-tertiary:   #F1F5F9;
+  --color-bg-hover:      #F1F5F9;
+  --color-bg-active:     #EFF6FF;
+  --color-bg-input:      #FFFFFF;
+  --color-bg-overlay:    rgba(0, 0, 0, 0.5);
+
+  /* Text */
+  --color-text-primary:   #111827;
+  --color-text-secondary: #475569;
+  --color-text-tertiary:  #6B7280;
+  --color-text-muted:     #9CA3AF;
+  --color-text-heading:   #0F172A;
+  --color-text-inverse:   #FFFFFF;
+
+  /* Borders */
+  --color-border-primary:   #E2E8F0;
+  --color-border-secondary: #E5E7EB;
+  --color-border-subtle:    #F3F4F6;
+
+  /* Brand / Primary */
+  --color-primary:       #3994EF;
+  --color-primary-hover: #2563EB;
+  --color-primary-light: rgba(57, 148, 239, 0.1);
+  --color-primary-bg:    #EFF6FF;
+
+  /* Semánticos */
+  --color-success:     #059669;
+  --color-success-bg:  #ECFDF5;
+  --color-success-text: #065F46;
+  --color-danger:      #EF4444;
+  --color-danger-hover: #DC2626;
+  --color-danger-bg:   #FEF2F2;
+  --color-danger-text: #991B1B;
+  --color-warning:     #F59E0B;
+  --color-warning-bg:  #FFFBEB;
+  --color-warning-text: #92400E;
+
+  /* Sombras */
+  --color-shadow:    rgba(0, 0, 0, 0.05);
+  --color-shadow-md: rgba(0, 0, 0, 0.10);
+  --color-shadow-lg: rgba(0, 0, 0, 0.15);
+
+  /* Componentes específicos */
+  --color-sidebar-bg:        #FFFFFF;
+  --color-sidebar-border:    #E2E8F0;
+  --color-sidebar-active-bg: #EFF6FF;
+  --color-sidebar-active-text: #2563EB;
+  --color-sidebar-hover-bg:  #F1F5F9;
+  --color-toggle-bg:         #CBD5E1;
+  --color-scrollbar-thumb:   #CBD5E1;
+  --color-scrollbar-hover:   #94A3B8;
+  --ollama-icon-filter:      none;
+
+  /* App globals */
+  color-scheme: light;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
 }
+
+/* =============================================
+   TEMA OSCURO
+   ============================================= */
+
+html[data-theme="dark"] {
+  /* Backgrounds */
+  --color-bg-primary:    #0F1419;
+  --color-bg-secondary:  #1A1F2E;
+  --color-bg-tertiary:   #232A3B;
+  --color-bg-hover:      #2A3142;
+  --color-bg-active:     #1E2A4A;
+  --color-bg-input:      #232A3B;
+  --color-bg-overlay:    rgba(0, 0, 0, 0.7);
+
+  /* Text */
+  --color-text-primary:   #E8EAED;
+  --color-text-secondary: #8B95A5;
+  --color-text-tertiary:  #6B7585;
+  --color-text-muted:     #5A6270;
+  --color-text-heading:   #F0F2F5;
+  --color-text-inverse:   #FFFFFF;
+
+  /* Borders */
+  --color-border-primary:   #2A3142;
+  --color-border-secondary: #232A3B;
+  --color-border-subtle:    #1E2535;
+
+  /* Brand / Primary — no cambian */
+  --color-primary:       #3994EF;
+  --color-primary-hover: #2563EB;
+  --color-primary-light: rgba(57, 148, 239, 0.15);
+  --color-primary-bg:    #1E2A4A;
+
+  /* Semánticos */
+  --color-success:     #10B981;
+  --color-success-bg:  #0D2818;
+  --color-success-text: #6EE7B7;
+  --color-danger:      #F87171;
+  --color-danger-hover: #EF4444;
+  --color-danger-bg:   #2D1215;
+  --color-danger-text: #FCA5A5;
+  --color-warning:     #FBBF24;
+  --color-warning-bg:  #2D2305;
+  --color-warning-text: #FDE68A;
+
+  /* Sombras */
+  --color-shadow:    rgba(0, 0, 0, 0.30);
+  --color-shadow-md: rgba(0, 0, 0, 0.40);
+  --color-shadow-lg: rgba(0, 0, 0, 0.50);
+
+  /* Componentes específicos */
+  --color-sidebar-bg:        #111827;
+  --color-sidebar-border:    #2A3142;
+  --color-sidebar-active-bg: #1E2A4A;
+  --color-sidebar-active-text: #3994EF;
+  --color-sidebar-hover-bg:  #2A3142;
+  --color-toggle-bg:         #3A4050;
+  --color-scrollbar-thumb:   #3A4050;
+  --color-scrollbar-hover:   #4A5060;
+  --ollama-icon-filter:      invert(1);
+
+  color-scheme: dark;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+}
+
+/* =============================================
+   BODY
+   ============================================= */
 
 body {
   margin: 0;
   display: flex;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #F8F9FB;
+  background-color: var(--color-bg-primary);
 }
 
 button {
@@ -37,6 +167,10 @@ button {
   font-family: inherit;
   padding: 0;
 }
+
+/* =============================================
+   SCROLLBAR
+   ============================================= */
 
 ::-webkit-scrollbar {
   width: 8px;
@@ -48,10 +182,10 @@ button {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: var(--color-scrollbar-thumb);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: var(--color-scrollbar-hover);
 }

@@ -28,7 +28,7 @@
 }
 
 .title {
-  color: #fff;
+  color: var(--color-text-heading);
   font-size: 2rem;
   margin: 0;
   font-weight: 700;
@@ -37,9 +37,9 @@
 }
 
 .refreshButton {
-  background: #472426;
-  color: #fff;
-  border: none;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-secondary);
   padding: 0.625rem 1.25rem;
   border-radius: 8px;
   cursor: pointer;
@@ -52,7 +52,7 @@
 }
 
 .refreshButton:hover {
-  background: #663336;
+  background: var(--color-bg-hover);
   transform: translateY(-1px);
 }
 
@@ -72,20 +72,20 @@
 .item {
   display: flex;
   align-items: center;
-  background: #221112;
+  background: var(--color-bg-secondary);
   border-radius: 12px;
   padding: 1.25rem 1.5rem;
   gap: 1rem;
-  border: 1px solid #472426;
+  border: 1px solid var(--color-border-secondary);
   width: 100%;
   transition: all 0.2s ease;
   cursor: pointer;
 }
 
 .item:hover {
-  border-color: #663336;
+  border-color: var(--color-border-primary);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px var(--color-shadow-md);
 }
 
 .icon {
@@ -102,7 +102,7 @@
 
 .info {
   flex: 1;
-  color: #fff;
+  color: var(--color-text-primary);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -117,14 +117,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
   letter-spacing: -0.01em;
-  color: #fff;
+  color: var(--color-text-heading);
 }
 
 .date {
   font-size: 0.875rem;
-  color: #8b5a5d;
+  color: var(--color-text-muted);
   font-weight: 500;
 }
+
 .projectBadge {
   font-size: 0.75rem;
   color: #fff;
@@ -164,24 +165,14 @@
   width: fit-content;
 }
 
-.statusRecorded {
-  background: rgba(234, 179, 8, 0.1);
-  color: #facc15;
-}
-
-.statusTranscribed {
-  background: rgba(34, 197, 94, 0.1);
-  color: #4ade80;
-}
-
-.statusAnalyzed {
-  background: rgba(168, 85, 247, 0.1);
-  color: #c084fc;
-}
+.statusRecorded  { background: rgba(234, 179, 8, 0.15); color: #facc15; }
+.statusTranscribed { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+.statusAnalyzed  { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
 
 .transcriptionBadge span {
   font-size: 1em;
 }
+
 .actions {
   display: flex;
   gap: 0.5rem;
@@ -212,29 +203,12 @@
   padding: 0 8px;
 }
 
-.play:hover {
-  background: rgba(37, 99, 235, 0.1);
-  transform: scale(1.05);
-}
-
-.delete:hover {
-  background: rgba(233, 41, 50, 0.1);
-  transform: scale(1.05);
-}
-
-.transcribe:hover {
-  background: rgba(247, 183, 49, 0.1);
-  transform: scale(1.05);
-}
-
-.play svg circle,
-.delete svg circle,
-.transcribe svg circle {
-  transition: all 0.2s ease;
-}
+.play:hover      { background: rgba(37, 99, 235, 0.1); transform: scale(1.05); }
+.delete:hover    { background: rgba(233, 41, 50, 0.1); transform: scale(1.05); }
+.transcribe:hover { background: rgba(247, 183, 49, 0.1); transform: scale(1.05); }
 
 .duration {
-  color: #8b5a5d;
+  color: var(--color-text-muted);
   font-size: 0.875rem;
   font-weight: 500;
   margin-left: 0.375rem;
@@ -248,45 +222,43 @@
   justify-content: center;
   min-height: 300px;
   text-align: center;
-  color: #8b5a5d;
+  color: var(--color-text-muted);
   padding: 3rem 2rem;
 }
 
 .loading .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #472426;
-  border-top: 3px solid #e92932;
+  border: 3px solid var(--color-border-secondary);
+  border-top: 3px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1.5rem;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
+  0%   { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 
 .loading p {
-  color: #fff;
+  color: var(--color-text-primary);
   font-size: 1rem;
   font-weight: 500;
 }
 
-.error {
-  color: #e92932;
-}
+.error { color: var(--color-danger); }
 
 .error p {
   margin-bottom: 1.5rem;
-  color: #e92932;
+  color: var(--color-danger);
   font-weight: 500;
 }
 
 .retryButton {
-  background: #472426;
-  color: #fff;
-  border: none;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-secondary);
   padding: 0.625rem 1.25rem;
   border-radius: 8px;
   cursor: pointer;
@@ -296,12 +268,12 @@
 }
 
 .retryButton:hover {
-  background: #663336;
+  background: var(--color-bg-hover);
   transform: translateY(-1px);
 }
 
 .noRecordings h3 {
-  color: #fff;
+  color: var(--color-text-heading);
   margin-bottom: 0.75rem;
   font-size: 1.5rem;
   font-weight: 600;
@@ -309,7 +281,7 @@
 
 .noRecordings p {
   max-width: 400px;
-  color: #8b5a5d;
+  color: var(--color-text-muted);
   font-size: 1rem;
 }
 
@@ -319,19 +291,19 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #1a0e0f;
+  background: var(--color-bg-primary);
 }
 
 .transcriptionHeader {
-  background: #2a1719;
+  background: var(--color-bg-secondary);
   padding: 1.5rem;
-  border-bottom: 1px solid #472426;
+  border-bottom: 1px solid var(--color-border-primary);
   flex-shrink: 0;
 }
 
 .backButton {
-  background: #472426;
-  color: #fff;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 8px;
@@ -342,11 +314,11 @@
 }
 
 .backButton:hover {
-  background: #663336;
+  background: var(--color-bg-hover);
 }
 
 .recordingTitle {
-  color: #fff;
+  color: var(--color-text-heading);
   font-size: 1.3rem;
   font-weight: 700;
   margin: 0 0 0.5rem 0;
@@ -359,27 +331,24 @@
 }
 
 .recordingDate {
-  color: #cbbebe;
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
 }
 
 .hasTranscription {
   font-size: 0.8rem;
-  color: #8cc8ff;
-  background: rgba(140, 200, 255, 0.1);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
   padding: 0.25rem 0.75rem;
   border-radius: 15px;
-  border: 1px solid rgba(140, 200, 255, 0.3);
+  border: 1px solid var(--color-primary-light);
 }
 
 /* Modal styles */
 .modalOverlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--color-bg-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -387,24 +356,24 @@
 }
 
 .modal {
-  background: #221112;
+  background: var(--color-bg-secondary);
   border-radius: 12px;
   padding: 2rem;
   max-width: 500px;
   width: 90%;
   margin: 0 1rem;
-  border: 1px solid #472426;
+  border: 1px solid var(--color-border-primary);
 }
 
 .modalTitle {
-  color: #fff;
+  color: var(--color-text-heading);
   font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 1rem;
 }
 
 .modalText {
-  color: #8b5a5d;
+  color: var(--color-text-secondary);
   font-size: 1rem;
   line-height: 1.6;
   margin-bottom: 1rem;
@@ -416,7 +385,7 @@
 
 .modalLabel {
   display: block;
-  color: #fff;
+  color: var(--color-text-primary);
   font-size: 0.875rem;
   margin-bottom: 0.5rem;
   font-weight: 500;
@@ -425,10 +394,10 @@
 .confirmInput {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid #472426;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
-  background: #331a1b;
-  color: #fff;
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
   font-size: 0.875rem;
   font-family: inherit;
   transition: border-color 0.2s;
@@ -436,11 +405,11 @@
 
 .confirmInput:focus {
   outline: none;
-  border-color: #e92932;
+  border-color: var(--color-danger);
 }
 
 .confirmInput::placeholder {
-  color: #8b5a5d;
+  color: var(--color-text-muted);
 }
 
 .modalButtons {
@@ -450,9 +419,9 @@
 }
 
 .cancelButton {
-  background: #472426;
-  color: #fff;
-  border: none;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-secondary);
   padding: 0.625rem 1.25rem;
   border-radius: 8px;
   cursor: pointer;
@@ -462,12 +431,12 @@
 }
 
 .cancelButton:hover {
-  background: #663336;
+  background: var(--color-bg-hover);
   transform: translateY(-1px);
 }
 
 .deleteButton {
-  background: #e92932;
+  background: var(--color-danger);
   color: #fff;
   border: none;
   padding: 0.625rem 1.25rem;
@@ -479,32 +448,25 @@
 }
 
 .deleteButton:hover:not(.disabled) {
-  background: #d41f27;
+  background: var(--color-danger-hover);
   transform: translateY(-1px);
 }
 
 .deleteButton.disabled {
-  background: #472426;
+  background: var(--color-text-muted);
   cursor: not-allowed;
   opacity: 0.5;
 }
 
-/* Scrollbar personalizada */
-.list::-webkit-scrollbar {
-  width: 8px;
-}
-
-.list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
+/* Scrollbar */
+.list::-webkit-scrollbar { width: 8px; }
+.list::-webkit-scrollbar-track { background: transparent; }
 .list::-webkit-scrollbar-thumb {
-  background: #472426;
+  background: var(--color-scrollbar-thumb);
   border-radius: 4px;
 }
-
 .list::-webkit-scrollbar-thumb:hover {
-  background: #663336;
+  background: var(--color-scrollbar-hover);
 }
 
 .transcribingState {
@@ -513,12 +475,10 @@
   gap: 0.5rem;
 }
 
-.spin {
-  animation: spin 1s linear infinite;
-}
+.spin { animation: spin 1s linear infinite; }
 
 .progressText {
-  color: #f7b731;
+  color: var(--color-warning);
   font-size: 0.75rem;
   max-width: 150px;
   white-space: nowrap;
@@ -533,25 +493,19 @@
     gap: 1rem;
     padding: 1rem;
   }
-  
   .actions {
     margin-left: 0;
     width: 100%;
     justify-content: flex-end;
   }
-  
   .listHeader {
     flex-direction: column;
     gap: 1rem;
     align-items: flex-start;
   }
-  
-  .title {
-    font-size: 1.5rem;
-  }
-  
+  .title { font-size: 1.5rem; }
   .refreshButton {
     width: 100%;
     justify-content: center;
   }
-} 
+}

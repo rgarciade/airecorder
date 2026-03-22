@@ -1,11 +1,11 @@
 .card {
-  background: white;
-  border-radius: 24px; /* Slightly reduced */
-  padding: 24px 32px; /* Reduced padding */
+  background: var(--color-bg-secondary);
+  border-radius: 24px;
+  padding: 24px 32px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 6px -1px var(--color-shadow);
   margin-bottom: 24px;
   flex-wrap: wrap;
   gap: 20px;
@@ -20,29 +20,29 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background-color: #EFF6FF;
+  background-color: var(--color-primary-bg);
   padding: 4px 10px;
   border-radius: 9999px;
-  color: #2563EB;
-  font-size: 0.7rem; /* Smaller */
+  color: var(--color-primary);
+  font-size: 0.7rem;
   font-weight: 700;
-  margin-bottom: 8px; /* Reduced margin */
+  margin-bottom: 8px;
   letter-spacing: 0.05em;
 }
 
 .title {
-  font-size: 1.75rem; /* Reduced from 2.5rem */
+  font-size: 1.75rem;
   font-weight: 700;
-  color: #111827;
-  margin: 0 0 8px 0; /* Reduced margin */
+  color: var(--color-text-heading);
+  margin: 0 0 8px 0;
   line-height: 1.1;
 }
 
 .description {
-  color: #6B7280;
-  font-size: 0.95rem; /* Reduced from 1.125rem */
+  color: var(--color-text-tertiary);
+  font-size: 0.95rem;
   line-height: 1.5;
-  margin: 0 0 20px 0; /* Reduced margin */
+  margin: 0 0 20px 0;
 }
 
 .controls {
@@ -54,23 +54,23 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #F3F4F6;
-  padding: 8px 16px; /* Reduced padding */
+  background-color: var(--color-bg-tertiary);
+  padding: 8px 16px;
   border-radius: 9999px;
-  color: #374151;
+  color: var(--color-text-secondary);
   font-weight: 500;
-  font-size: 0.85rem; /* Smaller font */
+  font-size: 0.85rem;
   transition: background 0.2s;
   border: none;
   cursor: pointer;
 }
 
 .action {
-  padding-left: 24px; /* Reduced */
+  padding-left: 24px;
 }
 
 .startButton {
-  width: 100px; /* Reduced from 140px */
+  width: 100px;
   height: 100px;
   border-radius: 50%;
   background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
@@ -91,14 +91,14 @@
 }
 
 .micIcon svg {
-  width: 24px; /* Smaller icon */
+  width: 24px;
   height: 24px;
 }
 
 .startText {
   color: white;
   font-weight: 700;
-  font-size: 0.75rem; /* Smaller text */
+  font-size: 0.75rem;
   letter-spacing: 0.1em;
 }
 

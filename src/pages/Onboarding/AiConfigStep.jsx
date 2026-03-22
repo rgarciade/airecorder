@@ -52,7 +52,7 @@ const AiConfigStep = ({
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+    <div className="flex flex-col h-screen bg-slate-50 dark:bg-surface-primary overflow-hidden">
       <div className="flex-1 max-w-6xl mx-auto w-full px-8 py-8 flex flex-col overflow-y-auto">
 
         {/* Step Progress */}
@@ -60,25 +60,25 @@ const AiConfigStep = ({
 
         {/* Header */}
         <div className="text-center mb-5">
-          <h1 className="text-3xl font-extrabold text-slate-900 mb-3">{t('onboarding.ai.title')}</h1>
-          <p className="text-slate-500 text-lg max-w-2xl mx-auto leading-relaxed">
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-content-primary mb-3">{t('onboarding.ai.title')}</h1>
+          <p className="text-slate-500 dark:text-content-secondary text-lg max-w-2xl mx-auto leading-relaxed">
             {t('onboarding.ai.subtitle')}
           </p>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex gap-1 p-1 bg-slate-100 rounded-xl mb-6 max-w-md mx-auto w-full">
+        <div className="flex gap-1 p-1 bg-slate-100 dark:bg-surface-tertiary rounded-xl mb-6 max-w-md mx-auto w-full">
           <button
             onClick={handleTabLocal}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-semibold text-sm transition-all
-              ${providerType === 'local' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              ${providerType === 'local' ? 'bg-white dark:bg-surface-secondary text-slate-900 dark:text-content-primary shadow-sm' : 'text-slate-500 dark:text-content-secondary hover:text-slate-700 dark:hover:text-content-primary'}`}
           >
             <FaServer size={13} /> {t('onboarding.ai.localTab')}
           </button>
           <button
             onClick={handleTabCloud}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-semibold text-sm transition-all
-              ${providerType === 'cloud' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              ${providerType === 'cloud' ? 'bg-white dark:bg-surface-secondary text-slate-900 dark:text-content-primary shadow-sm' : 'text-slate-500 dark:text-content-secondary hover:text-slate-700 dark:hover:text-content-primary'}`}
           >
             <MdCloud size={15} /> {t('onboarding.ai.cloudTab')}
             <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-bold leading-none">
@@ -93,10 +93,10 @@ const AiConfigStep = ({
 
             {/* Ollama */}
             <div
-              className={`relative bg-white border-2 rounded-2xl p-5 cursor-pointer transition-all flex flex-col h-full overflow-hidden
+              className={`relative bg-white dark:bg-surface-secondary border-2 rounded-2xl p-5 cursor-pointer transition-all flex flex-col h-full overflow-hidden
                 ${aiProvider === 'ollama'
                   ? 'border-blue-500 bg-blue-50/20 shadow-none ring-1 ring-blue-500/20'
-                  : 'border-slate-200 hover:border-blue-400 hover:shadow-lg'}`}
+                  : 'border-slate-200 dark:border-edge-primary hover:border-blue-400 hover:shadow-lg'}`}
               onClick={() => setAiProvider('ollama')}
             >
               {/* RECOMMENDED badge */}
@@ -104,14 +104,16 @@ const AiConfigStep = ({
                 {t('onboarding.ai.recommended')}
               </div>
 
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center text-xl">
-                    <FaRobot />
+              <div className="flex justify-between items-start mb-3 gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-10 h-10 rounded-xl border shadow-sm flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border-primary)' }}>
+                    <img src="https://ollama.com/public/ollama.png" alt="Ollama" width="24" height="24" className="rounded object-contain"
+                      style={{ filter: 'var(--ollama-icon-filter, none)' }} />
                   </div>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <h3 className="text-xl font-bold text-slate-900 leading-tight">Ollama (Local)</h3>
+                  <div className="min-w-0">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <h3 className="text-xl font-bold text-slate-900 dark:text-content-primary leading-tight">Ollama (Local)</h3>
                       <InfoTooltip
                         title={t('modelInfo.title')}
                         sections={[
@@ -132,23 +134,23 @@ const AiConfigStep = ({
                         ]}
                       />
                     </div>
-                    <p className="text-slate-500 text-sm">{t('onboarding.ai.ollama.subtitle')}</p>
+                    <p className="text-slate-500 dark:text-content-secondary text-sm">{t('onboarding.ai.ollama.subtitle')}</p>
                   </div>
                 </div>
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all mt-[17px]
-                  ${aiProvider === 'ollama' ? 'border-blue-500 bg-blue-500' : 'border-slate-300'}`}>
+                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 mt-6
+                  ${aiProvider === 'ollama' ? 'border-blue-500 bg-blue-500' : 'border-slate-300 dark:border-edge-primary'}`}>
                   <div className={`w-2.5 h-2.5 rounded-full bg-white transition-transform ${aiProvider === 'ollama' ? 'scale-100' : 'scale-0'}`}></div>
                 </div>
               </div>
 
-              <p className="text-slate-500 mb-2 leading-relaxed text-sm">{t('onboarding.ai.ollama.description')}</p>
+              <p className="text-slate-500 dark:text-content-secondary mb-2 leading-relaxed text-sm">{t('onboarding.ai.ollama.description')}</p>
 
               <ul className="flex flex-col gap-1.5 mb-4">
-                <li className="flex items-center gap-2 text-slate-600 text-xs">
+                <li className="flex items-center gap-2 text-slate-600 dark:text-content-secondary text-xs">
                   <FaCheckCircle className="text-blue-500 text-sm flex-shrink-0" />
                   <span>{t('onboarding.ai.ollama.private')}</span>
                 </li>
-                <li className="flex items-center gap-2 text-slate-600 text-xs">
+                <li className="flex items-center gap-2 text-slate-600 dark:text-content-secondary text-xs">
                   <FaCheckCircle className="text-blue-500 text-sm flex-shrink-0" />
                   <span>{t('onboarding.ai.ollama.noFees')}</span>
                 </li>
@@ -156,21 +158,21 @@ const AiConfigStep = ({
                   <FaCheckCircle className="text-emerald-500 text-sm flex-shrink-0" />
                   <span className="font-semibold text-emerald-700">{t('onboarding.ai.stable')}</span>
                 </li>
-                <li className="flex items-center gap-2 text-slate-600 text-xs">
+                <li className="flex items-center gap-2 text-slate-600 dark:text-content-secondary text-xs">
                   <FaExclamationTriangle className="text-orange-500 text-sm flex-shrink-0" />
                   <span>{t('onboarding.ai.ollama.ram')}</span>
                 </li>
               </ul>
 
               {/* Ollama config */}
-              <div className="mt-auto pt-4 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
-                <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">
+              <div className="mt-auto pt-4 border-t border-slate-100 dark:border-edge-primary" onClick={(e) => e.stopPropagation()}>
+                <label className="block text-xs font-bold text-slate-600 dark:text-content-secondary mb-2 uppercase tracking-wide">
                   {t('onboarding.ai.ollama.urlLabel')}
                 </label>
                 <div className="flex flex-wrap gap-2 mb-3">
                   <input
                     type="text"
-                    className="flex-1 p-2.5 border border-slate-300 rounded-lg text-sm font-mono bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 p-2.5 border border-slate-300 dark:border-edge-primary rounded-lg text-sm font-mono bg-slate-50 dark:bg-surface-tertiary text-slate-700 dark:text-content-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     value={ollamaHost}
                     onChange={(e) => setOllamaHost(e.target.value)}
                     placeholder="http://localhost:11434"
@@ -179,7 +181,7 @@ const AiConfigStep = ({
                   <button
                     className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors border
                       ${ollamaStatus === 'checking'
-                        ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                        ? 'bg-slate-100 dark:bg-surface-tertiary text-slate-400 dark:text-content-secondary border-slate-200 dark:border-edge-primary cursor-not-allowed'
                         : ollamaStatus === 'success'
                           ? 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-500 hover:text-white hover:border-blue-500'
                           : 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700 shadow-sm'}`}
@@ -210,11 +212,11 @@ const AiConfigStep = ({
                 {ollamaModels.length > 0 && (
                   <>
                     <div className="mt-3">
-                      <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">
+                      <label className="block text-xs font-bold text-slate-600 dark:text-content-secondary mb-2 uppercase tracking-wide">
                         {t('onboarding.ai.ollama.modelLabel')}
                       </label>
                       <select
-                        className="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full p-2.5 border border-slate-300 dark:border-edge-primary rounded-lg text-sm bg-slate-50 dark:bg-surface-tertiary text-slate-700 dark:text-content-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         value={selectedOllamaModel}
                         onChange={(e) => setSelectedOllamaModel(e.target.value)}
                       >
@@ -224,11 +226,11 @@ const AiConfigStep = ({
                       </select>
                     </div>
                     <div className="mt-3">
-                      <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">
+                      <label className="block text-xs font-bold text-slate-600 dark:text-content-secondary mb-2 uppercase tracking-wide">
                         {t('onboarding.ai.ollama.chatModelLabel')}
                       </label>
                       <select
-                        className="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full p-2.5 border border-slate-300 dark:border-edge-primary rounded-lg text-sm bg-slate-50 dark:bg-surface-tertiary text-slate-700 dark:text-content-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         value={selectedOllamaChatModel}
                         onChange={(e) => setSelectedOllamaChatModel(e.target.value)}
                       >
@@ -237,14 +239,14 @@ const AiConfigStep = ({
                           <option key={m} value={m}>{m}</option>
                         ))}
                       </select>
-                      <p className="text-xs text-slate-400 mt-1">{t('onboarding.ai.ollama.chatModelHelp')}</p>
+                      <p className="text-xs text-slate-400 dark:text-content-secondary mt-1">{t('onboarding.ai.ollama.chatModelHelp')}</p>
                     </div>
                     <div className="mt-3">
-                      <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">
+                      <label className="block text-xs font-bold text-slate-600 dark:text-content-secondary mb-2 uppercase tracking-wide">
                         {t('settings.fields.embeddingModel', { provider: 'Ollama' })}
                       </label>
                       <select
-                        className="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full p-2.5 border border-slate-300 dark:border-edge-primary rounded-lg text-sm bg-slate-50 dark:bg-surface-tertiary text-slate-700 dark:text-content-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         value={ollamaEmbeddingModel}
                         onChange={(e) => setOllamaEmbeddingModel(e.target.value)}
                       >
@@ -255,7 +257,7 @@ const AiConfigStep = ({
                             ))
                         }
                       </select>
-                      <p className="text-xs text-slate-400 mt-1">{t('settings.helpText.embeddingModel')}</p>
+                      <p className="text-xs text-slate-400 dark:text-content-secondary mt-1">{t('settings.helpText.embeddingModel')}</p>
                     </div>
                   </>
                 )}
@@ -264,25 +266,25 @@ const AiConfigStep = ({
 
             {/* LM Studio */}
             <div
-              className={`relative bg-white border-2 rounded-2xl p-5 cursor-pointer transition-all flex flex-col h-full overflow-hidden
+              className={`relative bg-white dark:bg-surface-secondary border-2 rounded-2xl p-5 cursor-pointer transition-all flex flex-col h-full overflow-hidden
                 ${aiProvider === 'lmstudio'
                   ? 'border-blue-500 bg-blue-50/20 shadow-none ring-1 ring-blue-500/20'
-                  : 'border-slate-200 hover:border-blue-400 hover:shadow-lg'}`}
+                  : 'border-slate-200 dark:border-edge-primary hover:border-blue-400 hover:shadow-lg'}`}
               onClick={() => setAiProvider('lmstudio')}
             >
-              {/* BETA badge */}
-              <div className="absolute top-0 right-0 bg-amber-100 text-amber-700 text-xs font-bold px-4 py-2 rounded-bl-2xl tracking-wider">
-                {t('onboarding.ai.betaBadge').toUpperCase()}
-              </div>
-
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center text-xl">
-                    <FaServer />
+              <div className="flex justify-between items-start mb-3 gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-surface-secondary border border-slate-200 dark:border-edge-primary shadow-sm flex items-center justify-center flex-shrink-0">
+                    <svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6">
+                      <rect width="36" height="36" rx="9" fill="#6D28D9"/>
+                      <rect x="7" y="9"  width="22" height="3.5" rx="1.75" fill="rgba(255,255,255,0.95)"/>
+                      <rect x="5" y="16" width="26" height="3.5" rx="1.75" fill="rgba(255,255,255,0.95)"/>
+                      <rect x="9" y="23" width="18" height="3.5" rx="1.75" fill="rgba(255,255,255,0.95)"/>
+                    </svg>
                   </div>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <h3 className="text-xl font-bold text-slate-900 leading-tight">LM Studio (Local)</h3>
+                  <div className="min-w-0">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <h3 className="text-xl font-bold text-slate-900 dark:text-content-primary leading-tight">LM Studio (Local)</h3>
                       <InfoTooltip
                         title={t('modelInfo.title')}
                         sections={[
@@ -303,58 +305,58 @@ const AiConfigStep = ({
                         ]}
                       />
                     </div>
-                    <p className="text-slate-500 text-sm">{t('onboarding.ai.lmstudio.subtitle')}</p>
+                    <p className="text-slate-500 dark:text-content-secondary text-sm">{t('onboarding.ai.lmstudio.subtitle')}</p>
                   </div>
                 </div>
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all mt-[17px]
-                  ${aiProvider === 'lmstudio' ? 'border-blue-500 bg-blue-500' : 'border-slate-300'}`}>
+                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 mt-6
+                  ${aiProvider === 'lmstudio' ? 'border-blue-500 bg-blue-500' : 'border-slate-300 dark:border-edge-primary'}`}>
                   <div className={`w-2.5 h-2.5 rounded-full bg-white transition-transform ${aiProvider === 'lmstudio' ? 'scale-100' : 'scale-0'}`}></div>
                 </div>
               </div>
 
-              <p className="text-slate-500 mb-2 leading-relaxed text-sm">{t('onboarding.ai.lmstudio.description')}</p>
+              <p className="text-slate-500 dark:text-content-secondary mb-2 leading-relaxed text-sm">{t('onboarding.ai.lmstudio.description')}</p>
 
               <ul className="flex flex-col gap-1.5 mb-4">
-                <li className="flex items-center gap-2 text-slate-600 text-xs">
+                <li className="flex items-center gap-2 text-slate-600 dark:text-content-secondary text-xs">
                   <FaCheckCircle className="text-blue-500 text-sm flex-shrink-0" />
                   <span>{t('onboarding.ai.lmstudio.private')}</span>
                 </li>
-                <li className="flex items-center gap-2 text-slate-600 text-xs">
+                <li className="flex items-center gap-2 text-slate-600 dark:text-content-secondary text-xs">
                   <FaCheckCircle className="text-blue-500 text-sm flex-shrink-0" />
                   <span>{t('onboarding.ai.lmstudio.compatible')}</span>
                 </li>
               </ul>
 
-              <div className="mt-auto pt-4 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
-                <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">
+              <div className="mt-auto pt-4 border-t border-slate-100 dark:border-edge-primary" onClick={(e) => e.stopPropagation()}>
+                <label className="block text-xs font-bold text-slate-600 dark:text-content-secondary mb-2 uppercase tracking-wide">
                   {t('onboarding.ai.lmstudio.urlLabel')}
                 </label>
                 <input
                   type="text"
-                  className="w-full p-2.5 border border-slate-300 rounded-lg text-sm font-mono bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2.5 border border-slate-300 dark:border-edge-primary rounded-lg text-sm font-mono bg-slate-50 dark:bg-surface-tertiary text-slate-700 dark:text-content-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value="http://localhost:1234/v1"
                   disabled
                   title="Configurable in settings later"
                 />
-                <p className="text-xs text-slate-400 mt-2">{t('onboarding.ai.lmstudio.urlNote')}</p>
+                <p className="text-xs text-slate-400 dark:text-content-secondary mt-2">{t('onboarding.ai.lmstudio.urlNote')}</p>
 
                 {/* Embedding model */}
                 <div className="mt-3">
-                  <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">
+                  <label className="block text-xs font-bold text-slate-600 dark:text-content-secondary mb-2 uppercase tracking-wide">
                     {t('settings.fields.embeddingModel', { provider: 'LM Studio' })}
                   </label>
                   <input
                     type="text"
-                    className="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full p-2.5 border border-slate-300 dark:border-edge-primary rounded-lg text-sm bg-slate-50 dark:bg-surface-tertiary text-slate-700 dark:text-content-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     value={lmStudioEmbeddingModel}
                     onChange={(e) => setLmStudioEmbeddingModel(e.target.value)}
                     placeholder="nomic-embed-text"
                   />
-                  <p className="text-xs text-slate-400 mt-1">{t('settings.helpText.embeddingModel')}</p>
+                  <p className="text-xs text-slate-400 dark:text-content-secondary mt-1">{t('settings.helpText.embeddingModel')}</p>
                 </div>
 
                 {aiProvider === 'lmstudio' && (
-                  <div className="mt-4 pt-3 border-t border-slate-100 text-emerald-600 text-xs flex items-center gap-2 font-medium">
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-edge-primary text-emerald-600 text-xs flex items-center gap-2 font-medium">
                     <FaCheckCircle /> ¡Todo listo! Haz clic en Siguiente para continuar
                   </div>
                 )}
@@ -368,9 +370,9 @@ const AiConfigStep = ({
           <div className="flex flex-col gap-5 mb-4">
 
             {/* Beta warning banner */}
-            <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
+            <div className="flex items-start gap-3 bg-amber-50 dark:bg-surface-tertiary border border-amber-200 dark:border-edge-primary rounded-xl px-5 py-4">
               <FaExclamationTriangle className="text-amber-500 text-lg flex-shrink-0 mt-0.5" />
-              <p className="text-amber-800 text-sm leading-relaxed">{t('onboarding.ai.betaWarning')}</p>
+              <p className="text-amber-800 dark:text-content-secondary text-sm leading-relaxed">{t('onboarding.ai.betaWarning')}</p>
             </div>
 
             {/* Cloud provider cards */}
@@ -378,10 +380,10 @@ const AiConfigStep = ({
 
               {/* Gemini */}
               <div
-                className={`relative bg-white border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col
+                className={`relative bg-white dark:bg-surface-secondary border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col
                   ${aiProvider === 'gemini'
                     ? 'border-indigo-500 bg-indigo-50/20 ring-1 ring-indigo-500/20'
-                    : 'border-slate-200 hover:border-indigo-400 hover:shadow-lg'}`}
+                    : 'border-slate-200 dark:border-edge-primary hover:border-indigo-400 hover:shadow-lg'}`}
                 onClick={() => setAiProvider('gemini')}
               >
                 <div className="absolute top-0 right-0 bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-bl-xl tracking-wider">
@@ -394,26 +396,26 @@ const AiConfigStep = ({
                       <MdAutoAwesome />
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900">Gemini</h3>
-                      <p className="text-slate-400 text-xs">Google AI</p>
+                      <h3 className="font-bold text-slate-900 dark:text-content-primary">Gemini</h3>
+                      <p className="text-slate-400 dark:text-content-secondary text-xs">Google AI</p>
                     </div>
                   </div>
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all mt-[5px]
-                    ${aiProvider === 'gemini' ? 'border-indigo-500 bg-indigo-500' : 'border-slate-300'}`}>
+                    ${aiProvider === 'gemini' ? 'border-indigo-500 bg-indigo-500' : 'border-slate-300 dark:border-edge-primary'}`}>
                     <div className={`w-2 h-2 rounded-full bg-white transition-transform ${aiProvider === 'gemini' ? 'scale-100' : 'scale-0'}`}></div>
                   </div>
                 </div>
 
-                <p className="text-slate-500 text-sm leading-relaxed mb-4">{t('onboarding.ai.gemini.description')}</p>
+                <p className="text-slate-500 dark:text-content-secondary text-sm leading-relaxed mb-4">{t('onboarding.ai.gemini.description')}</p>
 
                 {aiProvider === 'gemini' && (
-                  <div className="mt-auto pt-4 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
-                    <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">
+                  <div className="mt-auto pt-4 border-t border-slate-100 dark:border-edge-primary" onClick={(e) => e.stopPropagation()}>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-content-secondary mb-2 uppercase tracking-wide">
                       {t('onboarding.ai.gemini.apiKeyLabel')}
                     </label>
                     <input
                       type="password"
-                      className="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full p-2.5 border border-slate-300 dark:border-edge-primary rounded-lg text-sm bg-slate-50 dark:bg-surface-tertiary text-slate-700 dark:text-content-primary focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       value={geminiKey}
                       onChange={(e) => setGeminiKey(e.target.value)}
                       placeholder={t('onboarding.ai.apiKeyPlaceholder')}
@@ -424,10 +426,10 @@ const AiConfigStep = ({
 
               {/* Kimi */}
               <div
-                className={`relative bg-white border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col
+                className={`relative bg-white dark:bg-surface-secondary border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col
                   ${aiProvider === 'kimi'
                     ? 'border-teal-500 bg-teal-50/20 ring-1 ring-teal-500/20'
-                    : 'border-slate-200 hover:border-teal-400 hover:shadow-lg'}`}
+                    : 'border-slate-200 dark:border-edge-primary hover:border-teal-400 hover:shadow-lg'}`}
                 onClick={() => setAiProvider('kimi')}
               >
                 <div className="absolute top-0 right-0 bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-bl-xl tracking-wider">
@@ -440,26 +442,26 @@ const AiConfigStep = ({
                       <FaRobot />
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900">Kimi</h3>
-                      <p className="text-slate-400 text-xs">Moonshot AI</p>
+                      <h3 className="font-bold text-slate-900 dark:text-content-primary">Kimi</h3>
+                      <p className="text-slate-400 dark:text-content-secondary text-xs">Moonshot AI</p>
                     </div>
                   </div>
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all mt-[5px]
-                    ${aiProvider === 'kimi' ? 'border-teal-500 bg-teal-500' : 'border-slate-300'}`}>
+                    ${aiProvider === 'kimi' ? 'border-teal-500 bg-teal-500' : 'border-slate-300 dark:border-edge-primary'}`}>
                     <div className={`w-2 h-2 rounded-full bg-white transition-transform ${aiProvider === 'kimi' ? 'scale-100' : 'scale-0'}`}></div>
                   </div>
                 </div>
 
-                <p className="text-slate-500 text-sm leading-relaxed mb-4">{t('onboarding.ai.kimi.description')}</p>
+                <p className="text-slate-500 dark:text-content-secondary text-sm leading-relaxed mb-4">{t('onboarding.ai.kimi.description')}</p>
 
                 {aiProvider === 'kimi' && (
-                  <div className="mt-auto pt-4 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
-                    <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">
+                  <div className="mt-auto pt-4 border-t border-slate-100 dark:border-edge-primary" onClick={(e) => e.stopPropagation()}>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-content-secondary mb-2 uppercase tracking-wide">
                       {t('onboarding.ai.kimi.apiKeyLabel')}
                     </label>
                     <input
                       type="password"
-                      className="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className="w-full p-2.5 border border-slate-300 dark:border-edge-primary rounded-lg text-sm bg-slate-50 dark:bg-surface-tertiary text-slate-700 dark:text-content-primary focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                       value={kimiApiKey}
                       onChange={(e) => setKimiApiKey(e.target.value)}
                       placeholder={t('onboarding.ai.apiKeyPlaceholder')}
@@ -470,10 +472,10 @@ const AiConfigStep = ({
 
               {/* DeepSeek */}
               <div
-                className={`relative bg-white border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col
+                className={`relative bg-white dark:bg-surface-secondary border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col
                   ${aiProvider === 'deepseek'
                     ? 'border-violet-500 bg-violet-50/20 ring-1 ring-violet-500/20'
-                    : 'border-slate-200 hover:border-violet-400 hover:shadow-lg'}`}
+                    : 'border-slate-200 dark:border-edge-primary hover:border-violet-400 hover:shadow-lg'}`}
                 onClick={() => setAiProvider('deepseek')}
               >
                 <div className="absolute top-0 right-0 bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-bl-xl tracking-wider">
@@ -486,26 +488,26 @@ const AiConfigStep = ({
                       <FaBrain />
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900">DeepSeek</h3>
-                      <p className="text-slate-400 text-xs">DeepSeek AI</p>
+                      <h3 className="font-bold text-slate-900 dark:text-content-primary">DeepSeek</h3>
+                      <p className="text-slate-400 dark:text-content-secondary text-xs">DeepSeek AI</p>
                     </div>
                   </div>
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all mt-[5px]
-                    ${aiProvider === 'deepseek' ? 'border-violet-500 bg-violet-500' : 'border-slate-300'}`}>
+                    ${aiProvider === 'deepseek' ? 'border-violet-500 bg-violet-500' : 'border-slate-300 dark:border-edge-primary'}`}>
                     <div className={`w-2 h-2 rounded-full bg-white transition-transform ${aiProvider === 'deepseek' ? 'scale-100' : 'scale-0'}`}></div>
                   </div>
                 </div>
 
-                <p className="text-slate-500 text-sm leading-relaxed mb-4">{t('onboarding.ai.deepseek.description')}</p>
+                <p className="text-slate-500 dark:text-content-secondary text-sm leading-relaxed mb-4">{t('onboarding.ai.deepseek.description')}</p>
 
                 {aiProvider === 'deepseek' && (
-                  <div className="mt-auto pt-4 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
-                    <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">
+                  <div className="mt-auto pt-4 border-t border-slate-100 dark:border-edge-primary" onClick={(e) => e.stopPropagation()}>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-content-secondary mb-2 uppercase tracking-wide">
                       {t('onboarding.ai.deepseek.apiKeyLabel')}
                     </label>
                     <input
                       type="password"
-                      className="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                      className="w-full p-2.5 border border-slate-300 dark:border-edge-primary rounded-lg text-sm bg-slate-50 dark:bg-surface-tertiary text-slate-700 dark:text-content-primary focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                       value={deepseekApiKey}
                       onChange={(e) => setDeepseekApiKey(e.target.value)}
                       placeholder={t('onboarding.ai.apiKeyPlaceholder')}
@@ -531,7 +533,7 @@ const AiConfigStep = ({
               ⚠️ Introduce tu API Key para continuar
             </span>
           ) : (
-            <span className="text-sm text-slate-400 font-medium hidden sm:inline-block">
+            <span className="text-sm text-slate-400 dark:text-content-secondary font-medium hidden sm:inline-block">
               {t('onboarding.ai.canChange')}
             </span>
           )}
@@ -540,7 +542,7 @@ const AiConfigStep = ({
             disabled={!canProceed}
             className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-white transition-all shadow-md hover:shadow-lg
               ${!canProceed
-                ? 'bg-slate-300 cursor-not-allowed shadow-none'
+                ? 'bg-slate-300 dark:bg-surface-tertiary cursor-not-allowed shadow-none'
                 : 'bg-blue-600 hover:bg-blue-700 transform hover:-translate-y-0.5'}`}
           >
             {t('onboarding.ai.nextStep')} <FaArrowRight />
