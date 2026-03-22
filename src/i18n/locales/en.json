@@ -113,6 +113,7 @@
       "storage": "Storage",
       "transcription": "Transcription Engine",
       "appearance": "Interface Appearance",
+      "projects": "Projects",
       "audio": "Audio Settings",
       "system": "System Preferences",
       "permissions": "Permissions & Privacy",
@@ -120,8 +121,10 @@
     },
     "fields": {
       "language": "Language",
+      "theme": "App Theme",
       "uiLanguage": "Interface Language",
       "fontSize": "Font Size",
+      "recentMeetings": "Recent meetings in project summary",
       "microphone": "Default Microphone",
       "whisperModel": "Whisper Model Size",
       "cpuThreads": "CPU Threads for Transcription",
@@ -139,8 +142,10 @@
     },
     "helpText": {
       "transcriptionLanguage": "Language used for Whisper transcription.",
+      "theme": "Choose the visual theme: light, dark, or follow the system setting.",
       "uiLanguage": "Language in which the application is displayed.",
       "fontSize": "Adjusts the font size for chats, transcriptions and summaries.",
+      "recentMeetings": "How many recent recordings are shown in the project summary highlights.",
       "microphone": "Select the input device for your recordings.",
       "whisperModel": "Choose the default model for new transcriptions. Smaller models are faster but less accurate.",
       "cpuThreads": "More threads increase transcription speed but use more computer resources.",
@@ -152,6 +157,11 @@
       "contextLengthInput": "Leave empty to detect automatically on each generation, or enter the value manually.",
       "contextLengthOllama": "Find it by running: ollama show <model> --verbose (num_ctx field)",
       "contextLengthLmStudio": "Find it in LM Studio, under \"My Models\" → advanced options of the loaded model."
+    },
+    "themes": {
+      "system": "System (default)",
+      "light": "Light",
+      "dark": "Dark"
     },
     "fontSizes": {
       "small": "Small",
@@ -188,7 +198,8 @@
       "download": "Download",
       "checking": "Checking...",
       "cancel": "Cancel",
-      "detect": "Detect"
+      "detect": "Detect",
+      "inUse": "used"
     },
     "messages": {
       "saveSuccess": "Settings saved successfully",
@@ -427,7 +438,7 @@
       "aiInfo": "Meet Local AI",
       "ai": "AI Configuration",
       "permissions": "System Permissions",
-      "storage": "Storage",
+      "preferences": "Preferences",
       "finish": "All set"
     },
     "next": "Next",
@@ -534,7 +545,13 @@
       "enable": "Enable",
       "disable": "Disable",
       "finishBtn": "Finish Setup",
-      "grantRequired": "Please grant required permissions"
+      "grantRequired": "Please grant required permissions",
+      "notifications": "Notifications",
+      "theme": "Appearance",
+      "themeDesc": "Choose the visual theme of the app.",
+      "themeSystem": "System",
+      "themeLight": "Light",
+      "themeDark": "Dark"
     },
     "storage": {
       "title": "Configure Storage",

@@ -1,6 +1,6 @@
 .container {
   padding: 40px 32px;
-  background-color: #F9FAFB;
+  background-color: var(--color-bg-primary);
   min-height: 100vh;
   box-sizing: border-box;
   width: 100%;
@@ -26,13 +26,13 @@
 .titleGroup h1 {
   font-size: 2rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-heading);
   margin: 0 0 8px 0;
   letter-spacing: -0.02em;
 }
 
 .titleGroup p {
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   margin: 0;
   font-size: 1rem;
 }
@@ -53,25 +53,25 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   pointer-events: none;
 }
 
 .searchInput {
   padding: 10px 16px 10px 40px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 9999px;
-  background-color: white;
+  background-color: var(--color-bg-input);
   font-size: 0.875rem;
   width: 240px;
   outline: none;
   transition: all 0.2s;
-  color: #374151;
+  color: var(--color-text-secondary);
 }
 
 .searchInput:focus {
-  border-color: #3994EF;
-  box-shadow: 0 0 0 3px rgba(57, 148, 239, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 .filterBtn {
@@ -79,18 +79,18 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background-color: white;
-  border: 1px solid #E5E7EB;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 9999px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text-secondary);
   transition: all 0.2s;
 }
 
 .filterBtn:hover {
-  background-color: #F9FAFB;
-  border-color: #D1D5DB;
+  background-color: var(--color-bg-primary);
+  border-color: var(--color-border-secondary);
 }
 
 .createBtn {
@@ -98,7 +98,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background-color: #3994EF;
+  background-color: var(--color-primary);
   color: white;
   border-radius: 9999px;
   font-size: 0.875rem;
@@ -108,7 +108,7 @@
 }
 
 .createBtn:hover {
-  background-color: #2563EB;
+  background-color: var(--color-primary-hover);
   transform: translateY(-1px);
   box-shadow: 0 6px 8px -1px rgba(57, 148, 239, 0.4);
 }
@@ -125,7 +125,7 @@
 .sectionTitle {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-heading);
   margin-bottom: 24px;
 }
 
@@ -141,7 +141,7 @@
 }
 
 .viewAllLink {
-  color: #3994EF;
+  color: var(--color-primary);
   font-size: 0.875rem;
   font-weight: 600;
   text-decoration: none;
@@ -155,8 +155,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #F3F4F6;
-  border: 1px solid #E5E7EB;
+  background: var(--color-border-subtle);
+  border: 1px solid var(--color-border-secondary);
   padding: 6px 12px;
   border-radius: 6px;
   font-size: 0.875rem;
@@ -167,8 +167,8 @@
 }
 
 .closeViewAll:hover {
-  background: #E5E7EB;
-  color: #111827;
+  background: var(--color-border-secondary);
+  color: var(--color-text-heading);
 }
 
 .pagination {
@@ -187,28 +187,28 @@
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  border: 1px solid #E5E7EB;
-  background: white;
-  color: #374151;
+  border: 1px solid var(--color-border-secondary);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .pageBtn:hover:not(:disabled) {
-  border-color: #3994EF;
-  color: #3994EF;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .pageBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: #F9FAFB;
+  background: var(--color-bg-primary);
 }
 
 .pageInfo {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
 }
 
 /* Modals */
@@ -218,7 +218,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--color-bg-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -227,12 +227,12 @@
 }
 
 .modalContent {
-  background-color: white;
+  background-color: var(--color-bg-secondary);
   border-radius: 16px;
   padding: 32px;
   width: 100%;
   max-width: 480px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 25px -5px var(--color-shadow-md);
   animation: modalSlideUp 0.3s ease-out;
 }
 
@@ -244,7 +244,7 @@
 .modalTitle {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-heading);
   margin: 0 0 24px 0;
 }
 
@@ -263,17 +263,17 @@
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text-secondary);
   margin-bottom: 8px;
 }
 
 .input, .textarea {
   width: 100%;
   padding: 12px 16px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
   font-size: 0.95rem;
-  color: #111827;
+  color: var(--color-text-primary);
   outline: none;
   transition: border-color 0.2s;
   box-sizing: border-box;
@@ -284,8 +284,8 @@
 }
 
 .input:focus, .textarea:focus {
-  border-color: #3994EF;
-  box-shadow: 0 0 0 3px rgba(57, 148, 239, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 .buttonGroup {
@@ -297,23 +297,23 @@
 .cancelBtn {
   flex: 1;
   padding: 12px;
-  background-color: white;
-  border: 1px solid #E5E7EB;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
-  color: #374151;
+  color: var(--color-text-secondary);
   font-weight: 600;
   transition: all 0.2s;
 }
 
 .cancelBtn:hover {
-  background-color: #F9FAFB;
-  border-color: #D1D5DB;
+  background-color: var(--color-bg-primary);
+  border-color: var(--color-border-secondary);
 }
 
 .confirmBtn {
   flex: 1;
   padding: 12px;
-  background-color: #3994EF;
+  background-color: var(--color-primary);
   border: none;
   border-radius: 8px;
   color: white;
@@ -322,18 +322,18 @@
 }
 
 .confirmBtn:hover {
-  background-color: #2563EB;
+  background-color: var(--color-primary-hover);
 }
 
 .confirmBtn:disabled {
-  background-color: #9CA3AF;
+  background-color: var(--color-text-muted);
   cursor: not-allowed;
 }
 
 .destructiveBtn {
   flex: 1;
   padding: 12px;
-  background-color: #EF4444;
+  background-color: var(--color-danger);
   border: none;
   border-radius: 8px;
   color: white;
@@ -342,5 +342,5 @@
 }
 
 .destructiveBtn:hover {
-  background-color: #DC2626;
+  background-color: var(--color-danger-hover);
 }

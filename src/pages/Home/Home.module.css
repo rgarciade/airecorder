@@ -1,12 +1,11 @@
 .container {
-  padding: 40px 32px; /* Reducir padding lateral */
-  background-color: #F9FAFB;
+  padding: 40px 32px;
+  background-color: var(--color-bg-primary);
   min-height: 100vh;
   box-sizing: border-box;
   font-family: "Plus Jakarta Sans", "Noto Sans", sans-serif;
   max-width: 1200px;
   margin: 0;
-  /* width: 100%; eliminado para evitar forzar scroll */
 }
 
 .header {
@@ -19,14 +18,14 @@
 .greeting {
   font-size: 2.25rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-heading);
   margin: 0 0 8px 0;
   letter-spacing: -0.02em;
 }
 
 .subtitle {
   font-size: 1.125rem;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   margin: 0;
 }
 
@@ -37,39 +36,39 @@
 }
 
 .searchInput {
-  background: white;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 9999px;
   padding: 12px 24px;
   font-size: 0.875rem;
   width: 280px;
-  color: #374151;
+  color: var(--color-text-primary);
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .searchInput:focus {
-  border-color: #2563EB;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 .bellBtn {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: white;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .bellBtn:hover {
-  border-color: #D1D5DB;
-  color: #374151;
+  border-color: var(--color-border-primary);
+  color: var(--color-text-primary);
 }
 
 .sectionHeader {
@@ -82,12 +81,12 @@
 .sectionHeader h2 {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-heading);
   margin: 0;
 }
 
 .sectionHeader button {
-  color: #2563EB;
+  color: var(--color-primary);
   font-weight: 600;
   font-size: 0.875rem;
   background: none;
@@ -102,7 +101,7 @@
 }
 
 .noRecordingsMessage {
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   grid-column: 1 / -1;
   text-align: center;
   margin-top: 32px;
@@ -110,9 +109,9 @@
 }
 
 .permissionWarning {
-  background-color: #FEF2F2;
-  border: 1px solid #FCA5A5;
-  color: #B91C1C;
+  background-color: var(--color-danger-bg);
+  border: 1px solid var(--color-danger);
+  color: var(--color-danger-text);
   padding: 16px;
   border-radius: 12px;
   margin-bottom: 32px;
@@ -129,7 +128,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--color-bg-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -138,12 +137,12 @@
 }
 
 .modalContent {
-  background-color: white;
+  background-color: var(--color-bg-secondary);
   border-radius: 16px;
   padding: 32px;
   width: 100%;
   max-width: 480px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 25px -5px var(--color-shadow-md);
   animation: modalSlideUp 0.3s ease-out;
 }
 
@@ -155,12 +154,12 @@
 .modalTitle {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-heading);
   margin: 0 0 24px 0;
 }
 
 .modalText {
-  color: #4B5563;
+  color: var(--color-text-secondary);
   font-size: 0.95rem;
   line-height: 1.5;
   margin-bottom: 12px;
@@ -174,25 +173,26 @@
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text-secondary);
   margin-bottom: 8px;
 }
 
 .input {
   width: 100%;
   padding: 12px 16px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
   font-size: 0.95rem;
-  color: #111827;
+  color: var(--color-text-primary);
+  background: var(--color-bg-input);
   outline: none;
   transition: border-color 0.2s;
   box-sizing: border-box;
 }
 
 .input:focus {
-  border-color: #3994EF;
-  box-shadow: 0 0 0 3px rgba(57, 148, 239, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 .buttonGroup {
@@ -204,24 +204,24 @@
 .cancelBtn {
   flex: 1;
   padding: 12px;
-  background-color: white;
-  border: 1px solid #E5E7EB;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
-  color: #374151;
+  color: var(--color-text-secondary);
   font-weight: 600;
   transition: all 0.2s;
   cursor: pointer;
 }
 
 .cancelBtn:hover {
-  background-color: #F9FAFB;
-  border-color: #D1D5DB;
+  background-color: var(--color-bg-tertiary);
+  border-color: var(--color-border-primary);
 }
 
 .confirmBtn {
   flex: 1;
   padding: 12px;
-  background-color: #3994EF;
+  background-color: var(--color-primary);
   border: none;
   border-radius: 8px;
   color: white;
@@ -231,13 +231,14 @@
 }
 
 .confirmBtn:hover {
-  background-color: #2563EB;
+  background-color: var(--color-primary-hover);
 }
 
 .confirmBtn:disabled {
-  background-color: #9CA3AF;
+  background-color: var(--color-text-muted);
   cursor: not-allowed;
 }
+
 .pagination {
   display: flex;
   align-items: center;
@@ -254,26 +255,26 @@
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  border: 1px solid #E5E7EB;
-  background: white;
-  color: #374151;
+  border: 1px solid var(--color-border-secondary);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .pageBtn:hover:not(:disabled) {
-  border-color: #3994EF;
-  color: #3994EF;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .pageBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: #F9FAFB;
+  background: var(--color-bg-tertiary);
 }
 
 .pageInfo {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
 }

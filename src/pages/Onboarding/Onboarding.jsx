@@ -5,19 +5,20 @@ import styles from './Onboarding.module.css';
 import { FaMicrophone, FaCheckCircle, FaExclamationTriangle, FaRobot, FaServer, FaArrowRight, FaArrowLeft, FaWaveSquare, FaBrain, FaFolder, FaMagic, FaVolumeUp, FaBell, FaCheck } from 'react-icons/fa';
 import { getAvailableModels, checkOllamaAvailability } from '../../services/ai/ollamaProvider';
 import { updateSettings } from '../../services/settingsService';
+import { applyTheme } from '../../services/themeService';
 import PermissionsStep from './PermissionsStep';
 import ReadyStep from './ReadyStep';
 import AiConfigStep from './AiConfigStep';
-import StorageStep from './StorageStep';
+import PreferencesStep from './PreferencesStep';
 import LocalAiInfoStep from './LocalAiInfoStep';
 
 const STEPS = [
-  { id: 'welcome',     title: 'Welcome to AIRecorder' },
-  { id: 'aiInfo',      title: 'IA Local' },
-  { id: 'ai',          title: 'Configuración de IA' },
-  { id: 'permissions', title: 'Permisos del Sistema' },
-  { id: 'storage',     title: 'Almacenamiento' },
-  { id: 'finish',      title: 'Todo listo' }
+  { id: 'welcome' },
+  { id: 'aiInfo' },
+  { id: 'ai' },
+  { id: 'permissions' },
+  { id: 'preferences' },
+  { id: 'finish' },
 ];
 
 export default function Onboarding({ onComplete }) {
@@ -45,9 +46,14 @@ export default function Onboarding({ onComplete }) {
   const [lmStudioEmbeddingModel, setLmStudioEmbeddingModel] = useState('nomic-embed-text');
   const [ollamaStatus, setOllamaStatus] = useState('idle');
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState('system');
+  const [appVersion, setAppVersion] = useState('');
 
   useEffect(() => {
     checkPermissions();
+    window.electronAPI?.getAppVersion?.().then(r => {
+      if (r?.success) setAppVersion(r.version);
+    });
   }, []);
 
   const checkPermissions = async () => {
@@ -157,6 +163,7 @@ export default function Onboarding({ onComplete }) {
         kimiApiKey: aiProvider === 'kimi' ? kimiApiKey : undefined,
         deepseekApiKey: aiProvider === 'deepseek' ? deepseekApiKey : undefined,
         notificationsEnabled: notificationStatus === 'granted',
+        theme: selectedTheme,
         uiLanguage: i18n.language?.split('-')[0] || 'es',
         outputDirectory: outputDirectory || undefined,
         databasePath: databaseDirectory ? `${databaseDirectory}/recordings.db` : undefined
@@ -197,7 +204,7 @@ export default function Onboarding({ onComplete }) {
         </div>
         <div className={styles.aiPill}>
           <div className={styles.dot}></div>
-          AI POWERED V1.0
+          AI POWERED {appVersion ? `V${appVersion}` : ''}
         </div>
         <div className={styles.brandContainer}>
           <h2 className={styles.brandName}>AIRecorder</h2>
@@ -275,7 +282,7 @@ export default function Onboarding({ onComplete }) {
             t('onboarding.steps.aiInfo'),
             t('onboarding.steps.ai'),
             t('onboarding.steps.permissions'),
-            t('onboarding.steps.storage'),
+            t('onboarding.steps.preferences'),
             t('onboarding.steps.finish')
           ];
           return (
@@ -299,13 +306,14 @@ export default function Onboarding({ onComplete }) {
         onChange={(e) => i18n.changeLanguage(e.target.value)}
         style={{
           fontSize: '0.85rem',
-          border: '1px solid #e2e8f0',
+          border: '1px solid var(--color-border-primary)',
           borderRadius: '8px',
           padding: '6px 12px',
-          background: 'white',
-          color: '#374151',
+          background: 'var(--color-bg-secondary)',
+          color: 'var(--color-text-primary)',
           cursor: 'pointer',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+          boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+          outline: 'none',
         }}
       >
         <option value="es">🇪🇸 Español</option>
@@ -395,12 +403,14 @@ export default function Onboarding({ onComplete }) {
   if (currentStep === 4) return (
     <>
       {renderLangSelector()}
-      <StorageStep
+      <PreferencesStep
         t={t}
         outputDirectory={outputDirectory}
         setOutputDirectory={setOutputDirectory}
         databaseDirectory={databaseDirectory}
         setDatabaseDirectory={setDatabaseDirectory}
+        selectedTheme={selectedTheme}
+        onThemeChange={(th) => { setSelectedTheme(th); applyTheme(th); }}
         onBack={handleBack}
         onNext={handleNext}
         StepProgressComponent={renderStepProgress()}

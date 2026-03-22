@@ -22,7 +22,7 @@
 }
 
 .modal {
-  background: #ffffff;
+  background: var(--color-bg-secondary);
   border-radius: 16px;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.08);
   width: 100%;
@@ -37,7 +37,7 @@
   align-items: flex-start;
   gap: 12px;
   padding: 20px 20px 18px;
-  background: #fef2f2;
+  background: var(--color-danger-bg);
   border-bottom: 1px solid #fee2e2;
 }
 
@@ -51,7 +51,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #dc2626;
+  color: var(--color-danger-hover);
   margin-top: 1px;
 }
 
@@ -63,14 +63,14 @@
 .title {
   font-size: 1rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
   margin: 0 0 2px;
   line-height: 1.3;
 }
 
 .subtitle {
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: var(--color-text-muted);
   margin: 0;
 }
 
@@ -84,7 +84,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9ca3af;
+  color: var(--color-text-muted);
   cursor: pointer;
   transition: background 0.12s, color 0.12s;
   margin-top: -2px;
@@ -92,7 +92,7 @@
 
 .closeBtn:hover {
   background: #fee2e2;
-  color: #dc2626;
+  color: var(--color-danger-hover);
 }
 
 /* Body */
@@ -101,15 +101,15 @@
 }
 
 .messageBox {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 10px;
   padding: 14px 16px;
 }
 
 .message {
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--color-text-secondary);
   line-height: 1.55;
   margin: 0;
   word-break: break-word;
@@ -120,7 +120,7 @@
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  background: #fffbeb;
+  background: var(--color-warning-bg);
   border: 1px solid #fde68a;
   border-radius: 10px;
   padding: 12px 14px;
@@ -149,7 +149,7 @@
 
 .closeAction {
   padding: 8px 22px;
-  background: #3994ef;
+  background: var(--color-primary);
   color: #ffffff;
   font-size: 0.875rem;
   font-weight: 600;
@@ -160,5 +160,5 @@
 }
 
 .closeAction:hover {
-  background: #2563eb;
+  background: var(--color-primary-hover);
 }

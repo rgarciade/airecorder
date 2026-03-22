@@ -2,7 +2,7 @@
   display: flex;
   height: 100vh;
   width: 100%;
-  background-color: white;
+  background-color: var(--color-bg-secondary);
   color: #1f2937;
   overflow: hidden;
 }
@@ -10,13 +10,13 @@
 /* Left Panel - Graphic Side */
 .leftPanel {
   width: 38%;
-  background-color: #f8fafc;
+  background-color: var(--color-bg-primary);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
-  border-right: 1px solid #f3f4f6;
+  border-right: 1px solid var(--color-border-subtle);
   overflow: hidden;
 }
 
@@ -57,7 +57,7 @@
   height: 200px;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(241, 245, 249, 0.8) 100%);
   z-index: 5;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 30px var(--color-shadow);
 }
 
 .outerCircle2 {
@@ -72,12 +72,12 @@
   position: absolute;
   width: 40px;
   height: 40px;
-  background: white;
+  background: var(--color-bg-secondary);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px var(--color-shadow-md);
   z-index: 15;
 }
 
@@ -108,7 +108,7 @@
   gap: 0.5rem;
   padding: 0.5rem 1rem;
   background-color: #dbeafe;
-  color: #2563eb;
+  color: var(--color-primary-hover);
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 700;
@@ -119,7 +119,7 @@
 .dot {
   width: 8px;
   height: 8px;
-  background-color: #2563eb;
+  background-color: var(--color-primary-hover);
   border-radius: 50%;
 }
 
@@ -131,12 +131,12 @@
 .brandName {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--color-text-heading);
   margin: 0;
 }
 
 .brandSubtitle {
-  color: #64748b;
+  color: var(--color-text-tertiary);
   font-size: 0.9rem;
   margin-top: 0.25rem;
 }
@@ -161,7 +161,7 @@
 }
 
 .stepText {
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-size: 0.8rem;
   font-weight: 500;
 }
@@ -178,7 +178,7 @@
 .mainTitle {
   font-size: 2rem;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--color-text-heading);
   line-height: 1.2;
   margin-bottom: 0.75rem;
 }
@@ -188,7 +188,7 @@
 }
 
 .description {
-  color: #64748b;
+  color: var(--color-text-tertiary);
   font-size: 1rem;
   line-height: 1.5;
   margin-bottom: 2rem;
@@ -197,7 +197,7 @@
 .sectionLabel {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 1rem;
@@ -220,7 +220,7 @@
   min-width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: #f1f5f9;
+  background-color: var(--color-bg-tertiary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -230,26 +230,26 @@
 
 /* Specific icon colors based on the image */
 .expectItem:nth-child(2) .iconCircle {
-  color: #ef4444; /* Reddish for AI */
-  background-color: #fef2f2;
+  color: var(--color-danger); /* Reddish for AI */
+  background-color: var(--color-danger-bg);
 }
 
 .expectItem:nth-child(3) .iconCircle {
-  color: #64748b; /* Gray/Blue for Folder */
-  background-color: #f8fafc;
+  color: var(--color-text-tertiary); /* Gray/Blue for Folder */
+  background-color: var(--color-bg-primary);
 }
 
 .itemContent h3 {
   margin: 0 0 0.2rem 0;
   font-size: 1rem;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--color-text-heading);
 }
 
 .itemContent p {
   margin: 0;
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--color-text-tertiary);
   line-height: 1.4;
 }
 
@@ -259,13 +259,13 @@
   justify-content: space-between;
   align-items: center;
   padding-top: 1.5rem;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--color-bg-hover);
   margin-top: auto;
 }
 
 .termsText {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   max-width: 250px;
   line-height: 1.4;
 }
@@ -293,7 +293,7 @@
 }
 
 .setupButton:hover {
-  background-color: #2563eb;
+  background-color: var(--color-primary-hover);
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
 }
@@ -303,7 +303,7 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #f8fafc; /* light background */
+  background-color: var(--color-bg-primary);
   overflow-y: auto;
 }
 
@@ -325,12 +325,12 @@
 .aiTitle {
   font-size: 2rem;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--color-text-heading);
   margin-bottom: 0.5rem;
 }
 
 .aiSubtitle {
-  color: #64748b;
+  color: var(--color-text-tertiary);
   font-size: 1.1rem;
 }
 
@@ -342,8 +342,8 @@
 }
 
 .aiCard {
-  background-color: white;
-  border: 2px solid #e2e8f0;
+  background-color: var(--color-bg-secondary);
+  border: 2px solid var(--color-border-primary);
   border-radius: 1rem;
   padding: 2.3rem;
   cursor: pointer;
@@ -358,7 +358,7 @@
 
 .aiCard:hover {
   border-color: rgba(59, 130, 246, 0.5);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 30px var(--color-shadow);
 }
 
 .aiCard.selected {
@@ -372,7 +372,7 @@
   top: 0;
   right: 0;
   background-color: rgba(59, 130, 246, 0.1);
-  color: #2563eb;
+  color: var(--color-primary-hover);
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.5rem 1rem;
@@ -399,7 +399,7 @@
 }
 
 .iconCloud {
-  background-color: #eff6ff;
+  background-color: var(--color-primary-bg);
   color: #3b82f6;
 }
 
@@ -411,13 +411,13 @@
 .cardTitle h3 {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text-heading);
   margin: 0;
 }
 
 .cardTitle p {
   font-size: 0.9rem;
-  color: #64748b;
+  color: var(--color-text-tertiary);
   margin: 0;
 }
 
@@ -425,7 +425,7 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  border: 2px solid #cbd5e1;
+  border: 2px solid var(--color-scrollbar-thumb);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -453,7 +453,7 @@
 }
 
 .cardDescription {
-  color: #475569;
+  color: var(--color-text-secondary);
   font-size: 1rem;
   line-height: 1.5;
   margin-bottom: 1.5rem;
@@ -474,7 +474,7 @@
   align-items: center;
   gap: 0.75rem;
   font-size: 0.9rem;
-  color: #475569;
+  color: var(--color-text-secondary);
 }
 
 .featureIcon {
@@ -488,12 +488,12 @@
 
 .privacyBox {
   margin-top: auto;
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-primary);
   border-radius: 0.75rem;
   padding: 1rem;
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--color-text-tertiary);
 }
 
 .privacyTitle {
@@ -501,21 +501,21 @@
   align-items: center;
   gap: 0.5rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--color-text-secondary);
   margin-bottom: 0.25rem;
 }
 
 .localConfigModule {
   margin-top: auto;
   padding-top: 1.5rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--color-border-primary);
 }
 
 .configLabel {
   display: block;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--color-text-secondary);
   margin-bottom: 0.5rem;
 }
 
@@ -527,12 +527,12 @@
 .configInput {
   flex: 1;
   padding: 0.6rem;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--color-scrollbar-thumb);
   border-radius: 0.5rem;
   font-family: monospace;
   font-size: 0.85rem;
-  background-color: #f8fafc;
-  color: #334155;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-secondary);
 }
 
 .configInput:focus {
@@ -543,7 +543,7 @@
 
 .testButton {
   background-color: rgba(59, 130, 246, 0.1);
-  color: #2563eb;
+  color: var(--color-primary-hover);
   border: 1px solid rgba(59, 130, 246, 0.2);
   border-radius: 0.5rem;
   padding: 0 1rem;
@@ -565,9 +565,9 @@
 
 /* Common Footer in AI Step (Override or reuse) */
 .aiFooter {
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--color-border-primary);
   padding: 1.5rem 4rem;
-  background-color: white;
+  background-color: var(--color-bg-secondary);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -600,7 +600,7 @@
 .stepBar {
   height: 6px;
   width: 100%;
-  background-color: #e2e8f0; /* Default inactive gray/blue */
+  background-color: var(--color-border-primary); /* Default inactive gray/blue */
   border-radius: 999px;
   position: relative;
   overflow: hidden;
@@ -615,14 +615,6 @@
   background-color: #3b82f6;
 }
 
-/* Partial fill for active step if needed, but image shows full fill for active. 
-   If we want "in progress" look for current step, we can use a child element.
-   Based on image: 
-   - Step 1 & 2 are completed (Blue bar)
-   - Step 3 is "in progress" (Blue half, gray half) or just Active blue
-   - Step 4 is pending (Gray bar)
-*/
-
 .stepBarFill {
   height: 100%;
   background-color: #3b82f6;
@@ -635,7 +627,7 @@
   text-align: center;
   font-size: 0.72rem;
   font-weight: 600;
-  color: #94a3b8; /* Inactive color */
+  color: var(--color-text-muted); /* Inactive color */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -654,7 +646,7 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #f8fafc;
+  background-color: var(--color-bg-primary);
   overflow-y: auto;
 }
 
@@ -688,7 +680,7 @@
 .headerIconContainer {
   width: 64px;
   height: 64px;
-  background-color: white;
+  background-color: var(--color-bg-secondary);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -713,60 +705,60 @@
   gap: 1.25rem;
   padding: 1.5rem;
   border-radius: 1rem;
-  background-color: white;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  box-shadow: 0 4px 6px -1px var(--color-shadow);
   transition: all 0.2s ease;
 }
 
 .permissionItem:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-  border-color: #cbd5e1;
+  box-shadow: 0 10px 15px -3px var(--color-shadow);
+  border-color: var(--color-scrollbar-thumb);
 }
 
 /* Success State */
 .permissionItem.granted {
-  background-color: #ecfdf5; /* Light green background */
+  background-color: var(--color-success-bg); /* Light green background */
   border-color: #d1fae5;
 }
 
 .permissionItem.granted .permIcon {
   background-color: #d1fae5; /* Slightly darker green */
-  color: #059669; /* Dark green icon */
+  color: var(--color-success); /* Dark green icon */
 }
 
 .permissionItem.granted .permBadge {
   background-color: #d1fae5;
-  color: #065f46;
+  color: var(--color-success-text);
 }
 
 /* Required State */
 .permissionItem.required {
-  background-color: white;
-  border-color: #f1f5f9; /* Subtle border */
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); /* Ensure shadow makes it pop */
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-bg-hover); /* Subtle border */
+  box-shadow: 0 4px 6px -1px var(--color-shadow); /* Ensure shadow makes it pop */
 }
 
 .permissionItem.required .permIcon {
   background-color: #fee2e2;
-  color: #ef4444;
+  color: var(--color-danger);
 }
 
 .permissionItem.required .permBadge {
   background-color: #fee2e2;
-  color: #991b1b;
+  color: var(--color-danger-text);
 }
 
 /* Optional State */
 .permissionItem.optional {
-  background-color: white;
-  border-color: #f1f5f9;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-bg-hover);
+  box-shadow: 0 4px 6px -1px var(--color-shadow);
 }
 
 .permissionItem.optional .permIcon {
-  background-color: #eff6ff; /* Light blue */
+  background-color: var(--color-primary-bg); /* Light blue */
   color: #3b82f6; /* Blue icon */
 }
 
@@ -775,7 +767,7 @@
 .checkCircle {
   width: 40px;
   height: 40px;
-  background-color: #10b981; /* Solid green background */
+  background-color: var(--color-success); /* Solid green background */
   color: white; /* White checkmark */
   border-radius: 50%;
   display: flex;
@@ -802,40 +794,40 @@
 }
 
 .grantButton:hover {
-  background-color: #2563eb;
+  background-color: var(--color-primary-hover);
   transform: translateY(-1px);
 }
 
 .permissionItem.granted .permIcon {
-  background-color: #ecfdf5;
-  color: #059669;
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .permissionItem.granted .permBadge {
-  background-color: #ecfdf5;
-  color: #065f46;
+  background-color: var(--color-success-bg);
+  color: var(--color-success-text);
 }
 
 /* Required State */
 .permissionItem.required {
-  background-color: white;
+  background-color: var(--color-bg-secondary);
   border-color: #fee2e2; /* red-100 */
 }
 
 .permissionItem.required .permIcon {
-  background-color: #fef2f2;
-  color: #ef4444;
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 .permissionItem.required .permBadge {
-  background-color: #fef2f2;
-  color: #991b1b;
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger-text);
 }
 
 /* Optional State */
 .permissionItem.optional {
-  background-color: white;
-  border-color: #e2e8f0;
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-border-primary);
 }
 
 .permIcon {
@@ -847,15 +839,15 @@
   justify-content: center;
   font-size: 1.5rem;
   flex-shrink: 0;
-  background-color: #f1f5f9;
-  color: #64748b;
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-tertiary);
   transition: all 0.2s ease;
 }
 
 .permissionsFooter {
   padding: 1.5rem 4rem; /* Match AI footer padding */
-  background-color: white;
-  border-top: 1px solid #e2e8f0;
+  background-color: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-border-primary);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -868,7 +860,7 @@
 }
 
 .errorText {
-  color: #ef4444;
+  color: var(--color-danger);
   font-size: 0.75rem;
   margin-top: 0.25rem;
   font-weight: 500;
@@ -886,8 +878,8 @@
   flex-direction: column;
   height: 100vh;
   width: 100%;
-  background-color: #111827; /* Original dark bg */
-  color: #f3f4f6;
+  background-color: #111827; /* Original dark bg - intentional dark theme */
+  color: var(--color-border-subtle);
   align-items: center;
   justify-content: center;
   padding: 2rem;
@@ -912,9 +904,9 @@
 .stepsIndicator { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; }
 .permissionStatus { display: flex; align-items: center; gap: 1rem; padding: 1rem; background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; border: 1px solid #374151; }
 .statusIcon { font-size: 1.5rem; }
-.statusIcon.granted { color: #10b981; }
-.statusIcon.denied { color: #ef4444; }
-.statusIcon.prompt { color: #f59e0b; }
+.statusIcon.granted { color: var(--color-success); }
+.statusIcon.denied { color: var(--color-danger); }
+.statusIcon.prompt { color: var(--color-warning); }
 .aiOptions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .aiOption { padding: 1.5rem; border: 2px solid #374151; border-radius: 8px; cursor: pointer; text-align: center; }
 .aiOption.selected { border-color: #646cff; background-color: rgba(100, 108, 255, 0.1); }
@@ -924,8 +916,8 @@
 .footer { display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #374151; }
 .button { padding: 0.8rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; }
 .button.primary { background-color: #646cff; color: white; border: none; }
-.button.secondary { background-color: transparent; color: #9ca3af; border: 1px solid #374151; }
+.button.secondary { background-color: transparent; color: var(--color-text-muted); border: 1px solid #374151; }
 .checkButton { padding: 0.5rem 1rem; background-color: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; }
 .summaryItem { display: flex; justify-content: space-between; padding: 1rem; border-bottom: 1px solid #374151; }
-.summaryLabel { color: #9ca3af; }
-.summaryValue { font-weight: 600; color: #10b981; }
+.summaryLabel { color: var(--color-text-muted); }
+.summaryValue { font-weight: 600; color: var(--color-success); }
