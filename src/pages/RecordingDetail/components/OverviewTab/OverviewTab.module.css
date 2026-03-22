@@ -133,7 +133,7 @@
 
 .quickSummaryCard {
   background-color: var(--color-primary-bg); /* primary-50 */
-  border-color: #DBEAFE;
+  border-color: var(--color-primary-light);
 }
 
 .cardHeader {
@@ -153,7 +153,7 @@
 }
 
 .quickTitle {
-  color: #1E3A8A; /* primary-900 */
+  color: var(--color-primary);
 }
 
 .summaryText {
