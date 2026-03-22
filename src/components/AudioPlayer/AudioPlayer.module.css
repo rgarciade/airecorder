@@ -1,8 +1,8 @@
 .container {
   display: flex;
   flex-direction: column;
-  background-color: white;
-  border-top: 1px solid #E5E7EB;
+  background-color: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-border-secondary);
   padding: 16px 24px;
   gap: 12px;
 }
@@ -42,7 +42,7 @@
   height: 14px;
   width: 14px;
   border-radius: 50%;
-  background: #3994EF;
+  background: var(--color-primary);
   margin-top: -4px; /* Center thumb */
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
   transition: transform 0.1s;
@@ -75,14 +75,14 @@
   align-items: center;
   gap: 4px;
   padding-right: 8px;
-  border-right: 1px solid #E5E7EB;
+  border-right: 1px solid var(--color-border-secondary);
 }
 
 .muteBtn {
   background: none;
   border: 1px solid transparent;
   cursor: pointer;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   padding: 4px;
   border-radius: 4px;
   display: flex;
@@ -92,25 +92,25 @@
 }
 
 .muteBtn:hover {
-  background-color: #F3F4F6;
-  color: #111827;
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
 }
 
 .muteBtn.muted {
-  color: #EF4444;
-  background-color: #FEF2F2;
+  color: var(--color-danger);
+  background-color: var(--color-danger-bg);
 }
 
 .timeDisplay {
   font-family: monospace;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #3994EF;
+  color: var(--color-primary);
   min-width: auto;
 }
 
 .totalTime {
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   font-weight: 400;
 }
 
@@ -124,7 +124,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   padding: 8px;
   border-radius: 50%;
   display: flex;
@@ -134,19 +134,19 @@
 }
 
 .controlBtn:hover {
-  background-color: #F3F4F6;
-  color: #111827;
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
 }
 
 .playBtn {
-  background-color: #3994EF;
+  background-color: var(--color-primary);
   color: white;
   width: 48px;
   height: 48px;
 }
 
 .playBtn:hover {
-  background-color: #2563EB;
+  background-color: var(--color-primary-hover);
   color: white;
   transform: scale(1.05);
 }
@@ -170,18 +170,18 @@
 }
 
 .speedBtn:hover {
-  background-color: #F3F4F6;
+  background-color: var(--color-bg-tertiary);
 }
 
 .speedMenu {
   position: absolute;
   bottom: 100%;
   right: 0;
-  background-color: white;
-  border: 1px solid #E5E7EB;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
   padding: 4px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px -1px var(--color-shadow-md);
   margin-bottom: 8px;
   min-width: 80px;
   z-index: 50;
@@ -195,16 +195,16 @@
   background: none;
   border: none;
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--color-text-secondary);
   cursor: pointer;
   border-radius: 4px;
 }
 
 .speedOption:hover {
-  background-color: #F3F4F6;
+  background-color: var(--color-bg-tertiary);
 }
 
 .speedOption.active {
-  color: #3994EF;
-  background-color: #EFF6FF;
+  color: var(--color-primary);
+  background-color: var(--color-primary-bg);
 }

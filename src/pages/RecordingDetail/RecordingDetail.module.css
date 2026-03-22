@@ -2,15 +2,15 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #F9FAFB;
+  background-color: var(--color-bg-primary);
   overflow: hidden;
 }
 
 /* Header */
 .header {
   height: 64px;
-  background-color: white;
-  border-bottom: 1px solid #E5E7EB;
+  background-color: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-secondary);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -30,7 +30,7 @@
 .backButton {
   padding: 8px;
   border-radius: 50%;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   transition: background-color 0.2s;
   display: flex;
   align-items: center;
@@ -38,8 +38,8 @@
 }
 
 .backButton:hover {
-  background-color: #F3F4F6;
-  color: #374151;
+  background-color: var(--color-border-subtle);
+  color: var(--color-text-secondary);
 }
 
 .titleSection {
@@ -57,12 +57,12 @@
 .titleInput {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #111827;
-  border: 1px solid #3994EF;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-primary);
   border-radius: 4px;
   padding: 0 8px;
   outline: none;
-  background: white;
+  background: var(--color-bg-input);
   width: 300px;
 }
 
@@ -76,7 +76,7 @@
 .title {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -86,7 +86,7 @@
 
 .editTitleBtn {
   opacity: 1; /* Always visible */
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   padding: 4px;
   border-radius: 4px;
   transition: all 0.2s;
@@ -97,13 +97,13 @@
 }
 
 .editTitleBtn:hover {
-  background-color: #F3F4F6;
-  color: #374151;
+  background-color: var(--color-border-subtle);
+  color: var(--color-text-secondary);
 }
 
 .deleteBtn {
   opacity: 1; /* Always visible */
-  color: #EF4444; /* Red */
+  color: var(--color-danger); /* Red */
   padding: 4px;
   border-radius: 4px;
   transition: all 0.2s;
@@ -114,14 +114,14 @@
 }
 
 .deleteBtn:hover {
-  background-color: #FEF2F2;
-  color: #DC2626;
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger-hover);
 }
 
 /* Delete Modal Button */
 .deleteConfirmBtn {
   padding: 8px 16px;
-  background-color: #EF4444;
+  background-color: var(--color-danger);
   border: none;
   border-radius: 8px;
   color: white;
@@ -130,7 +130,7 @@
 }
 
 .deleteConfirmBtn:hover {
-  background-color: #DC2626;
+  background-color: var(--color-danger-hover);
 }
 
 .statusBadge {
@@ -150,7 +150,7 @@
   align-items: center;
   gap: 12px;
   font-size: 0.75rem;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   margin-top: 2px;
 }
 
@@ -169,7 +169,7 @@
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background-color: #CBD5E1;
+  background-color: var(--color-scrollbar-thumb);
 }
 
 .headerRight {
@@ -192,8 +192,8 @@
 }
 
 .regenerateBtn {
-  color: #3994EF;
-  background-color: #EFF6FF;
+  color: var(--color-primary);
+  background-color: var(--color-primary-bg);
   border: 1px solid #DBEAFE;
 }
 
@@ -202,39 +202,39 @@
 }
 
 .reTranscribeBtn {
-  background-color: #F3F4F6;
+  background-color: var(--color-bg-tertiary);
   color: #4B5563;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
 }
 
 .reTranscribeBtn:hover {
-  background-color: #E5E7EB;
-  color: #111827;
+  background-color: var(--color-border-secondary);
+  color: var(--color-text-primary);
 }
 
 .shareBtn {
-  color: #3994EF;
+  color: var(--color-primary);
   background-color: transparent;
 }
 
 .shareBtn:hover {
-  background-color: #EFF6FF;
+  background-color: var(--color-primary-bg);
 }
 
 .exportBtn {
   color: white;
-  background-color: #3994EF;
+  background-color: var(--color-primary);
   box-shadow: 0 4px 6px -1px rgba(57, 148, 239, 0.2);
 }
 
 .exportBtn:hover {
-  background-color: #2563EB;
+  background-color: var(--color-primary-hover);
 }
 
 /* Tabs */
 .tabsNav {
-  background-color: white;
-  border-bottom: 1px solid #E5E7EB;
+  background-color: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-secondary);
   padding: 0 24px;
   display: flex;
   gap: 32px;
@@ -246,19 +246,19 @@
   padding: 16px 4px;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   border-bottom: 2px solid transparent;
   transition: all 0.2s;
   cursor: pointer;
 }
 
 .tabButton:hover {
-  color: #374151;
+  color: var(--color-text-secondary);
 }
 
 .activeTab {
-  color: #3994EF;
-  border-bottom-color: #3994EF;
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
 }
 
 /* Main Content Area */
@@ -275,7 +275,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--color-bg-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -284,18 +284,18 @@
 }
 
 .modalContent {
-  background-color: white;
+  background-color: var(--color-bg-secondary);
   border-radius: 16px;
   padding: 32px;
   width: 100%;
   max-width: 500px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 25px -5px var(--color-shadow-md);
 }
 
 .modalTitle {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
   margin-bottom: 16px;
 }
 
@@ -321,7 +321,7 @@
 .modalLabel {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text-secondary);
 }
 
 .checkboxGroup {
@@ -340,7 +340,7 @@
 }
 
 .checkboxLabel input {
-  accent-color: #3994EF;
+  accent-color: var(--color-primary);
   width: 16px;
   height: 16px;
 }
@@ -348,17 +348,17 @@
 .select {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
   font-size: 0.9rem;
-  color: #111827;
+  color: var(--color-text-primary);
   outline: none;
-  background-color: #F9FAFB;
+  background-color: var(--color-bg-primary);
 }
 
 .select:focus {
-  border-color: #3994EF;
-  background-color: white;
+  border-color: var(--color-primary);
+  background-color: var(--color-bg-input);
 }
 
 .modalButtons {
@@ -369,17 +369,17 @@
 
 .cancelModalBtn {
   padding: 8px 16px;
-  background-color: white;
-  border: 1px solid #E5E7EB;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
-  color: #374151;
+  color: var(--color-text-secondary);
   font-weight: 600;
   cursor: pointer;
 }
 
 .confirmModalBtn {
   padding: 8px 16px;
-  background-color: #3994EF;
+  background-color: var(--color-primary);
   border: none;
   border-radius: 8px;
   color: white;

@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: #F9FAFB;
+  background: var(--color-bg-primary);
   font-family: "Plus Jakarta Sans", "Noto Sans", sans-serif;
 }
 
@@ -11,8 +11,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 24px;
-  border-bottom: 1px solid #E5E7EB;
-  background: #FFFFFF;
+  border-bottom: 1px solid var(--color-border-secondary);
+  background: var(--color-bg-secondary);
 }
 
 .headerRight {
@@ -32,21 +32,21 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: white;
-  color: #6B7280;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-tertiary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .backButton:hover {
-  background: #F3F4F6;
-  color: #374151;
+  background: var(--color-border-subtle);
+  color: var(--color-text-secondary);
 }
 
 .projectTitle {
-  color: #111827;
+  color: var(--color-text-primary);
   font-size: 20px;
   font-weight: 700;
   margin: 0;
@@ -58,8 +58,8 @@
   display: flex;
   gap: 32px;
   padding: 0 24px;
-  background: #FFFFFF;
-  border-bottom: 1px solid #E5E7EB;
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-secondary);
 }
 
 .tabButton {
@@ -70,7 +70,7 @@
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -98,12 +98,12 @@
 }
 
 .tabButton:hover {
-  color: #111827;
+  color: var(--color-text-primary);
 }
 
 .activeTab {
-  color: #3994EF;
-  border-bottom-color: #3994EF;
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
 }
 
 .mainContent {
@@ -134,22 +134,22 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 6px;
-  background: #F9FAFB;
-  color: #9CA3AF;
+  background: var(--color-bg-primary);
+  color: var(--color-text-muted);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .viewToggleBtn:hover {
-  background: #F3F4F6;
-  color: #374151;
+  background: var(--color-border-subtle);
+  color: var(--color-text-secondary);
 }
 
 .viewToggleActive {
-  background: #EFF6FF;
-  color: #3994EF;
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
   border-color: #93C5FD;
 }
 
@@ -191,21 +191,21 @@
   margin-bottom: 12px;
   padding: 12px 16px;
   background: #F8FAF9;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
   flex-shrink: 0;
 }
 
 .section {
-  background: #FFFFFF;
+  background: var(--color-bg-secondary);
   border-radius: 12px;
   padding: 20px;
-  border: 1px solid #E5E7EB;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--color-border-secondary);
+  box-shadow: 0 1px 3px var(--color-shadow);
 }
 
 .sectionTitle {
-  color: #111827;
+  color: var(--color-text-primary);
   font-size: 18px;
   font-weight: 700;
   margin: 0 0 16px 0;
@@ -223,20 +223,20 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px var(--color-shadow);
 }
 
 .chatTitle {
-  color: #111827;
+  color: var(--color-text-primary);
   font-size: 18px;
   font-weight: 700;
   margin: 0;
   padding: 20px 20px 16px 20px;
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid var(--color-border-secondary);
 }
 
 .chatHistory {
@@ -271,13 +271,13 @@
 }
 
 .message.asistente .messageAvatar {
-  background: #EFF6FF;
-  color: #3994EF;
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
 }
 
 .message.usuario .messageAvatar {
-  background: #F3F4F6;
-  color: #6B7280;
+  background: var(--color-border-subtle);
+  color: var(--color-text-tertiary);
 }
 
 .messageContent {
@@ -290,24 +290,24 @@
 }
 
 .messageText {
-  color: #111827;
+  color: var(--color-text-primary);
   font-size: 14px;
   line-height: 1.5;
-  background: #F9FAFB;
+  background: var(--color-bg-primary);
   padding: 12px 16px;
   border-radius: 12px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
   word-wrap: break-word;
 }
 
 .message.usuario .messageText {
-  background: #EFF6FF;
+  background: var(--color-primary-bg);
   border-color: #DBEAFE;
   color: #1E40AF;
 }
 
 .messageTime {
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   font-size: 11px;
   margin-top: 4px;
   font-weight: 500;
@@ -317,29 +317,29 @@
   display: flex;
   gap: 12px;
   padding: 16px 20px;
-  border-top: 1px solid #E5E7EB;
-  background: #FFFFFF;
+  border-top: 1px solid var(--color-border-secondary);
+  background: var(--color-bg-secondary);
 }
 
 .messageInput {
   flex: 1;
   padding: 12px 16px;
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
-  color: #111827;
+  color: var(--color-text-primary);
   font-size: 14px;
   outline: none;
   transition: all 0.2s;
 }
 
 .messageInput:focus {
-  border-color: #3994EF;
-  box-shadow: 0 0 0 2px rgba(57, 148, 239, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
 }
 
 .messageInput::placeholder {
-  color: #9CA3AF;
+  color: var(--color-text-muted);
 }
 
 .sendButton {
@@ -348,7 +348,7 @@
   justify-content: center;
   width: 44px;
   height: 44px;
-  background: #3994EF;
+  background: var(--color-primary);
   color: white;
   border: none;
   border-radius: 8px;
@@ -358,11 +358,11 @@
 }
 
 .sendButton:hover:not(:disabled) {
-  background: #2563EB;
+  background: var(--color-primary-hover);
 }
 
 .sendButton:disabled {
-  background: #E5E7EB;
+  background: var(--color-border-secondary);
   cursor: not-allowed;
 }
 
@@ -392,7 +392,7 @@
   flex-direction: column;
   gap: 4px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #F3F4F6;
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .detailItem:last-child {
@@ -401,7 +401,7 @@
 }
 
 .detailLabel {
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -409,7 +409,7 @@
 }
 
 .detailValue {
-  color: #111827;
+  color: var(--color-text-primary);
   font-size: 14px;
   font-weight: 500;
 }
@@ -421,15 +421,15 @@
   align-items: center;
   justify-content: center;
   height: 100vh;
-  color: #6B7280;
-  background: #F9FAFB;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-primary);
 }
 
 .spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid #E5E7EB;
-  border-top: 4px solid #3994EF;
+  border: 4px solid var(--color-border-secondary);
+  border-top: 4px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 16px;
@@ -442,7 +442,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--color-bg-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -451,18 +451,18 @@
 }
 
 .modal {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 16px;
   padding: 24px;
   max-width: 400px;
   width: 90%;
   margin: 16px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 25px -5px var(--color-shadow-md);
 }
 
 .modalTitle {
-  color: #111827;
+  color: var(--color-text-primary);
   font-size: 18px;
   font-weight: 700;
   margin: 0 0 16px 0;
@@ -475,10 +475,10 @@
 .modalInput {
   width: 100%;
   padding: 12px 16px;
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
-  color: #111827;
+  color: var(--color-text-primary);
   font-size: 14px;
   outline: none;
   transition: all 0.2s;
@@ -488,7 +488,7 @@
 .modalSubtitle {
   font-size: 13px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--color-text-tertiary);
   margin-bottom: 8px;
   display: block;
 }
@@ -496,7 +496,7 @@
 .recordingSelector {
   max-height: 200px;
   overflow-y: auto;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border-primary);
   border-radius: 6px;
   padding: 8px;
   display: flex;
@@ -545,9 +545,9 @@
 
 .modalCancelButton {
   padding: 10px 20px;
-  background: #FFFFFF;
-  color: #374151;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
@@ -556,12 +556,12 @@
 }
 
 .modalCancelButton:hover {
-  background: #F9FAFB;
+  background: var(--color-bg-primary);
 }
 
 .modalConfirmButton {
   padding: 10px 20px;
-  background: #3994EF;
+  background: var(--color-primary);
   color: white;
   border: none;
   border-radius: 8px;
@@ -572,11 +572,11 @@
 }
 
 .modalConfirmButton:hover:not(:disabled) {
-  background: #2563EB;
+  background: var(--color-primary-hover);
 }
 
 .modalConfirmButton:disabled {
-  background: #E5E7EB;
+  background: var(--color-border-secondary);
   cursor: not-allowed;
 }
 
@@ -586,17 +586,17 @@
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  
+
   .leftColumn,
   .centerColumn,
   .rightColumn {
     order: 0;
   }
-  
+
   .centerColumn {
     order: 1;
   }
-  
+
   .rightColumn {
     order: 2;
   }
@@ -606,24 +606,24 @@
   .header {
     padding: 12px 16px;
   }
-  
+
   .projectTitle {
     font-size: 18px;
   }
-  
+
   .mainContent {
     padding: 16px;
     gap: 16px;
   }
-  
+
   .section {
     padding: 16px;
   }
-  
+
   .chatHistory {
     padding: 12px 16px;
   }
-  
+
   .messageForm {
     padding: 12px 16px;
   }
@@ -639,12 +639,12 @@
 }
 
 .chatHistory::-webkit-scrollbar-thumb {
-  background: #D1D5DB;
+  background: var(--color-scrollbar-thumb);
   border-radius: 3px;
 }
 
 .chatHistory::-webkit-scrollbar-thumb:hover {
-  background: #9CA3AF;
+  background: var(--color-scrollbar-hover);
 }
 
 /* Chat Context Info */
@@ -653,7 +653,7 @@
   margin-bottom: 2px; /* Añadido margen inferior */
   padding: 10px 16px;
   background: #F8FAF9;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
 }
 
@@ -663,7 +663,7 @@
   gap: 6px;
   font-size: 11px;
   font-weight: 700;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 0; /* Cambiado a 0 por defecto */
@@ -676,7 +676,7 @@
 }
 
 .chatContextTitle:hover {
-  color: #374151;
+  color: var(--color-text-secondary);
 }
 
 .contextChevron {
@@ -729,9 +729,9 @@
   gap: 4px;
   padding: 3px 8px;
   background: none;
-  border: 1px solid #D1D5DB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 5px;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -740,9 +740,9 @@
 }
 
 .reindexButton:hover:not(:disabled) {
-  background: #F3F4F6;
-  color: #374151;
-  border-color: #9CA3AF;
+  background: var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  border-color: var(--color-text-muted);
 }
 
 .reindexButton:disabled {
@@ -778,9 +778,9 @@
   gap: 5px;
   padding: 5px 12px;
   background: none;
-  border: 1px solid #D1D5DB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 6px;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -789,9 +789,9 @@
 }
 
 .regenerateButton:hover:not(:disabled) {
-  background: #F3F4F6;
-  color: #374151;
-  border-color: #9CA3AF;
+  background: var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  border-color: var(--color-text-muted);
 }
 
 .regenerateButton:disabled {
@@ -813,7 +813,7 @@
 
 .highlightGroup {
   padding-bottom: 16px;
-  border-bottom: 1px solid #F3F4F6;
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .highlightGroup:last-child {
@@ -822,7 +822,7 @@
 }
 
 .highlightRecordingTitle {
-  color: #374151;
+  color: var(--color-text-secondary);
   font-size: 14px;
   font-weight: 600;
   margin: 0 0 12px 0;
@@ -849,11 +849,11 @@
   content: '•';
   position: absolute;
   left: 8px;
-  color: #3994EF;
+  color: var(--color-primary);
   font-weight: 700;
 }
 
 .highlightItem strong {
-  color: #111827;
+  color: var(--color-text-primary);
   font-weight: 600;
 }

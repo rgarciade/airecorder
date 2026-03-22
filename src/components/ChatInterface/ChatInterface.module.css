@@ -2,8 +2,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #F9FAFB;
-  border-left: 1px solid white;
+  background: var(--color-bg-primary);
+  border-left: 1px solid var(--color-bg-secondary);
 }
 
 .chatContainer {
@@ -19,8 +19,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 24px;
-  border-bottom: 1px solid #E5E7EB;
-  background-color: #F9FAFB; /* Fondo claro para integrarse */
+  border-bottom: 1px solid var(--color-border-secondary);
+  background-color: var(--color-bg-primary); /* Fondo claro para integrarse */
 }
 
 .chatHeaderLeft {
@@ -30,7 +30,7 @@
 }
 
 .headerIcon {
-  color: #3994EF; /* Azul primario */
+  color: var(--color-primary); /* Azul primario */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -39,7 +39,7 @@
 .headerTitle {
   font-size: 1rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
 }
 
 .chatHeaderRight {
@@ -52,7 +52,7 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   padding: 4px;
   border-radius: 4px;
   display: flex;
@@ -62,8 +62,8 @@
 }
 
 .optionsButton:hover {
-  color: #374151;
-  background-color: #E5E7EB;
+  color: var(--color-text-secondary);
+  background-color: var(--color-border-secondary);
 }
 
 .chatHistory {
@@ -82,7 +82,7 @@
   justify-content: center;
   padding: 40px 20px;
   text-align: center;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   height: 100%;
 }
 
@@ -93,14 +93,14 @@
 }
 
 .emptyText {
-  color: #374151;
+  color: var(--color-text-secondary);
   font-size: 16px;
   font-weight: 500;
   margin: 0 0 8px 0;
 }
 
 .emptySubtext {
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   font-size: 14px;
   margin: 0;
 }
@@ -130,13 +130,13 @@
 }
 
 .message.asistente .messageAvatar {
-  background: #3994EF;
+  background: var(--color-primary);
   color: white;
 }
 
 .message.usuario .messageAvatar {
-  background: #E5E7EB;
-  color: #374151;
+  background: var(--color-border-secondary);
+  color: var(--color-text-secondary);
   display: none; /* Ocultar avatar usuario según diseño común de chat moderno */
 }
 
@@ -157,7 +157,7 @@
   font-size: var(--app-font-size);
   line-height: 1.6;
   padding: 16px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 2px var(--color-shadow);
   position: relative;
   /* Prevent overflow */
   word-break: break-word;
@@ -165,21 +165,21 @@
 }
 
 .message.asistente .messageText {
-  background: white;
-  color: #374151;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 0 16px 16px 16px; /* Redondeado asimétrico */
 }
 
 .message.usuario .messageText {
-  background: #3994EF;
+  background: var(--color-primary);
   color: white;
   border: none;
   border-radius: 16px 0 16px 16px; /* Redondeado asimétrico */
 }
 
 .messageTime {
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   font-size: 0.7rem;
   padding: 0 4px;
 }
@@ -246,7 +246,7 @@
 
 .messageBold {
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
 }
 
 .message.usuario .messageItalic {
@@ -254,9 +254,9 @@
 }
 
 /* Headings */
-.messageHeading1 { font-size: 1.4em; font-weight: 700; margin: 16px 0 8px 0; color: #111827; }
-.messageHeading2 { font-size: 1.2em; font-weight: 700; margin: 12px 0 6px 0; color: #111827; }
-.messageHeading3 { font-size: 1.1em; font-weight: 600; margin: 10px 0 4px 0; color: #111827; }
+.messageHeading1 { font-size: 1.4em; font-weight: 700; margin: 16px 0 8px 0; color: var(--color-text-primary); }
+.messageHeading2 { font-size: 1.2em; font-weight: 700; margin: 12px 0 6px 0; color: var(--color-text-primary); }
+.messageHeading3 { font-size: 1.1em; font-weight: 600; margin: 10px 0 4px 0; color: var(--color-text-primary); }
 
 /* Code */
 .messageInlineCode {
@@ -274,8 +274,8 @@
 }
 
 .messageCodeBlock {
-  background-color: #1E293B;
-  color: #E2E8F0;
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-border-primary);
   padding: 12px;
   border-radius: 8px;
   overflow-x: auto;
@@ -283,7 +283,7 @@
   font-size: 0.85em;
   margin: 8px 0;
   white-space: pre-wrap; /* Wrap long lines in code blocks too? Usually scroll is better */
-  white-space: pre; 
+  white-space: pre;
 }
 
 /* Tables */
@@ -291,7 +291,7 @@
   overflow-x: auto;
   margin: 12px 0;
   border-radius: 8px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
 }
 
 .messageTable {
@@ -303,13 +303,13 @@
 .messageTable th, .messageTable td {
   padding: 8px 12px;
   text-align: left;
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid var(--color-border-secondary);
 }
 
 .messageTable th {
-  background-color: #F9FAFB;
+  background-color: var(--color-bg-primary);
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text-secondary);
 }
 
 /* Sugerencias (Píldoras) */
@@ -322,25 +322,25 @@
 
 .suggestionChip {
   padding: 6px 12px;
-  background-color: white;
-  border: 1px solid #E5E7EB;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 9999px;
   font-size: 0.75rem;
-  color: #3994EF;
+  color: var(--color-primary);
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s;
 }
 
 .suggestionChip:hover {
-  background-color: #EFF6FF;
-  border-color: #3994EF;
+  background-color: var(--color-primary-bg);
+  border-color: var(--color-primary);
 }
 
 /* Form Area */
 .messageForm {
   padding: 16px 24px;
-  background: #F9FAFB;
+  background: var(--color-bg-primary);
   position: sticky;
   bottom: 0;
 }
@@ -349,17 +349,17 @@
   display: flex;
   align-items: center; /* Alineación central vertical */
   gap: 8px;
-  background: white;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 24px; /* Más redondeado */
   padding: 6px 6px 6px 16px; /* Padding para el input y espacio para el botón */
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px var(--color-shadow);
   transition: all 0.2s;
 }
 
 .messageInputContainer:focus-within {
-  border-color: #E5E7EB;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  border-color: var(--color-border-secondary);
+  box-shadow: 0 2px 6px var(--color-shadow-md);
   outline: none;
 }
 
@@ -369,7 +369,7 @@
   background: transparent;
   padding: 8px 0;
   font-size: 0.95rem;
-  color: #111827;
+  color: var(--color-text-primary);
   outline: none;
   box-shadow: none; /* Asegurar que no haya sombras internas */
   resize: none;
@@ -385,7 +385,7 @@
 }
 
 .messageInput::placeholder {
-  color: #9CA3AF;
+  color: var(--color-text-muted);
 }
 
 .sendButton {
@@ -394,7 +394,7 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: #3994EF;
+  background: var(--color-primary);
   color: white;
   border: none;
   border-radius: 50%; /* Circular */
@@ -404,21 +404,21 @@
 }
 
 .sendButton:hover:not(:disabled) {
-  background: #2563EB;
+  background: var(--color-primary-hover);
 }
 
 .sendButton:disabled {
-  background: #E5E7EB;
+  background: var(--color-border-secondary);
   cursor: not-allowed;
 }
 
 .ollamaModelSelector {
   font-size: 0.75rem;
   padding: 4px 8px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 6px;
-  color: #6B7280;
-  background: #F9FAFB;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-primary);
   outline: none;
   max-width: 100px;
 }
@@ -433,19 +433,19 @@
   align-items: center;
   gap: 4px;
   padding: 3px 8px;
-  background: #F3F4F6;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 12px;
   font-size: 11px;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
 }
 
 .modelPillBtn:hover:not(:disabled) {
-  background: #E5E7EB;
+  background: var(--color-border-secondary);
 }
 
 .modelPillBtn:disabled {
@@ -462,7 +462,7 @@
 
 .chevron {
   font-size: 9px;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   flex-shrink: 0;
 }
 
@@ -470,8 +470,8 @@
   width: 10px;
   height: 10px;
   flex-shrink: 0;
-  border: 2px solid #E5E7EB;
-  border-top-color: #3994EF;
+  border: 2px solid var(--color-border-secondary);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -485,10 +485,10 @@
   position: absolute;
   top: calc(100% + 4px);
   right: 0;
-  background: #fff;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px var(--color-shadow-md);
   min-width: 160px;
   z-index: 100;
   overflow: hidden;
@@ -500,7 +500,7 @@
   padding: 8px 12px;
   text-align: left;
   font-size: 13px;
-  color: #374151;
+  color: var(--color-text-secondary);
   background: none;
   border: none;
   cursor: pointer;
@@ -508,12 +508,12 @@
 }
 
 .modelOption:hover {
-  background: #F9FAFB;
+  background: var(--color-bg-primary);
 }
 
 .modelOptionActive {
   font-weight: 700;
-  color: #3994EF;
+  color: var(--color-primary);
 }
 
 /* ── Barra de adjuntos activos (previews persistentes) ── */
@@ -528,7 +528,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: #EFF6FF;
+  background: var(--color-primary-bg);
   border: 1px solid #BFDBFE;
   border-radius: 20px;
   padding: 3px 8px 3px 7px;
@@ -559,7 +559,7 @@
 }
 
 .removeAttachmentBtn:hover {
-  color: #2563EB;
+  color: var(--color-primary-hover);
 }
 
 /* ── Botones de adjunto en el input ── */
@@ -576,7 +576,7 @@
   height: 32px;
   border: none;
   background: none;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   cursor: pointer;
   border-radius: 50%;
   transition: background 0.15s, color 0.15s;
@@ -585,8 +585,8 @@
 }
 
 .attachBtn:hover:not(:disabled) {
-  background: #F3F4F6;
-  color: #374151;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .attachBtn:disabled {
@@ -595,14 +595,14 @@
 }
 
 .attachBtnActive {
-  color: #3994EF !important;
+  color: var(--color-primary) !important;
 }
 
 .attachBadge {
   position: absolute;
   top: -2px;
   right: -2px;
-  background: #3994EF;
+  background: var(--color-primary);
   color: white;
   border-radius: 50%;
   width: 14px;
@@ -620,10 +620,10 @@
   position: absolute;
   bottom: calc(100% + 6px);
   left: 0;
-  background: white;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px var(--color-shadow-md);
   min-width: 150px;
   z-index: 100;
   overflow: hidden;
@@ -636,7 +636,7 @@
   width: 100%;
   padding: 9px 14px;
   font-size: 0.82rem;
-  color: #374151;
+  color: var(--color-text-secondary);
   background: none;
   border: none;
   cursor: pointer;
@@ -645,7 +645,7 @@
 }
 
 .plusMenuItem:hover {
-  background: #F3F4F6;
+  background: var(--color-bg-tertiary);
 }
 
 /* Picker de adjuntos del record */
@@ -653,10 +653,10 @@
   position: absolute;
   bottom: calc(100% + 6px);
   left: 0;
-  background: white;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 10px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  box-shadow: 0 4px 16px var(--color-shadow-md);
   min-width: 240px;
   max-width: 320px;
   z-index: 100;
@@ -667,7 +667,7 @@
   padding: 10px 14px 8px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -676,17 +676,17 @@
   width: 100%;
   padding: 6px 10px;
   font-size: 0.8rem;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 6px;
-  background-color: #F9FAFB;
-  color: #374151;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-secondary);
   outline: none;
   transition: border-color 0.2s;
   margin-bottom: 4px;
 }
 
 .attachmentSearchInput:focus {
-  border-color: #3994EF;
+  border-color: var(--color-primary);
 }
 
 .pickerList {
@@ -702,7 +702,7 @@
 .pickerGroupTitle {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   padding: 4px 14px;
   margin-top: 4px;
   text-transform: uppercase;
@@ -717,16 +717,16 @@
   padding: 8px 14px;
   cursor: pointer;
   font-size: 0.82rem;
-  color: #374151;
+  color: var(--color-text-secondary);
   transition: background 0.1s;
 }
 
 .pickerItem:hover {
-  background: #F9FAFB;
+  background: var(--color-bg-primary);
 }
 
 .pickerItemActive {
-  background: #EFF6FF;
+  background: var(--color-primary-bg);
   color: #1D4ED8;
 }
 
@@ -735,7 +735,7 @@
   height: 14px;
   flex-shrink: 0;
   cursor: pointer;
-  accent-color: #3994EF;
+  accent-color: var(--color-primary);
 }
 
 .pickerFilename {
@@ -750,8 +750,8 @@
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 2px solid #E5E7EB;
-  border-top-color: #6B7280;
+  border: 2px solid var(--color-border-secondary);
+  border-top-color: var(--color-text-tertiary);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }

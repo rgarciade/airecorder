@@ -11,7 +11,7 @@
 /* ── Columna ── */
 .column {
   background: #F8FAFC;
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--color-border-primary);
   border-radius: 12px;
   overflow: hidden;
   display: flex;
@@ -23,7 +23,7 @@
 /* Columna al recibir un drag */
 .colOver {
   border-color: #93C5FD !important;
-  background: #EFF6FF !important;
+  background: var(--color-primary-bg) !important;
 }
 
 .colHeader {
@@ -51,15 +51,15 @@
   padding: 0 6px;
 }
 
-/* Colores por columna */
+/* Colores por columna — kept as-is (kanban column colors) */
 .colBacklog .colHeader    { border-color: #94A3B8; color: #64748B; background: #F1F5F9; }
 .colBacklog .colCount     { background: #CBD5E1; color: #475569; }
 
-.colInProgress .colHeader { border-color: #60A5FA; color: #1D4ED8; background: #EFF6FF; }
+.colInProgress .colHeader { border-color: #60A5FA; color: #1D4ED8; background: var(--color-primary-bg); }
 .colInProgress .colCount  { background: #BFDBFE; color: #1E40AF; }
 
-.colBlocked .colHeader    { border-color: #F87171; color: #B91C1C; background: #FEF2F2; }
-.colBlocked .colCount     { background: #FECACA; color: #991B1B; }
+.colBlocked .colHeader    { border-color: #F87171; color: #B91C1C; background: var(--color-danger-bg); }
+.colBlocked .colCount     { background: #FECACA; color: var(--color-danger-text); }
 
 .colDone .colHeader       { border-color: #4ADE80; color: #15803D; background: #F0FDF4; }
 .colDone .colCount        { background: #BBF7D0; color: #166534; }
@@ -83,7 +83,7 @@
 
 .emptyCol {
   font-size: 12px;
-  color: #CBD5E1;
+  color: var(--color-scrollbar-thumb);
   text-align: center;
   padding: 16px 0;
   margin: 0;
@@ -99,8 +99,8 @@
 
 /* ── Card ── */
 .card {
-  background: white;
-  border: 1px solid #E2E8F0;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
   border-radius: 8px;
   padding: 10px 10px 8px;
   transition: box-shadow 0.15s, opacity 0.15s, border-color 0.15s;
@@ -108,8 +108,8 @@
 }
 
 .card:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  border-color: #CBD5E1;
+  box-shadow: 0 2px 8px var(--color-shadow-md);
+  border-color: var(--color-scrollbar-thumb);
 }
 
 /* Card fantasma — la original mientras se arrastra */
@@ -122,7 +122,7 @@
 
 /* Card flotante en el DragOverlay */
 .cardOverlay {
-  box-shadow: 0 8px 24px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.1) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18), 0 2px 8px var(--color-shadow-md) !important;
   border-color: #60A5FA !important;
   transform: rotate(1.5deg);
   opacity: 1 !important;
@@ -153,7 +153,7 @@
   height: 22px;
   flex-shrink: 0;
   border-radius: 5px;
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--color-border-primary);
   background: #F8FAFC;
   color: #94A3B8;
   cursor: pointer;
@@ -180,8 +180,8 @@
   font-size: 9px;
   font-weight: 600;
   color: #64748B;
-  background: #F1F5F9;
-  border: 1px solid #E2E8F0;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-primary);
   padding: 1px 5px;
   border-radius: 4px;
   cursor: pointer;
@@ -223,7 +223,7 @@
   width: 100%;
   padding: 8px 12px;
   border: none;
-  border-top: 1px solid #E2E8F0;
+  border-top: 1px solid var(--color-border-primary);
   background: transparent;
   color: #94A3B8;
   font-size: 12px;
@@ -234,7 +234,7 @@
 }
 
 .addCardBtn:hover {
-  background: #F1F5F9;
+  background: var(--color-bg-tertiary);
   color: #475569;
 }
 
@@ -250,7 +250,7 @@
 }
 
 .emptyIcon {
-  color: #CBD5E1;
+  color: var(--color-scrollbar-thumb);
 }
 
 .emptyTitle {
@@ -276,7 +276,7 @@
   padding: 9px 20px;
   border-radius: 8px;
   border: none;
-  background: #3994EF;
+  background: var(--color-primary);
   color: #fff;
   font-size: 0.85rem;
   font-weight: 600;
@@ -284,7 +284,7 @@
   transition: background 0.12s;
 }
 
-.emptyCreateBtn:hover { background: #2563EB; }
+.emptyCreateBtn:hover { background: var(--color-primary-hover); }
 
 /* ── Modal de creación de tarea ── */
 .createOverlay {
@@ -306,7 +306,7 @@
 }
 
 .createModal {
-  background: #ffffff;
+  background: var(--color-bg-secondary);
   border-radius: 16px;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2);
   width: 100%;
@@ -328,7 +328,7 @@
   align-items: flex-start;
   gap: 12px;
   padding: 20px 24px 16px;
-  border-bottom: 1px solid #F1F5F9;
+  border-bottom: 1px solid var(--color-bg-tertiary);
   flex-shrink: 0;
 }
 
@@ -343,7 +343,7 @@
 .createTitle {
   font-size: 1.05rem;
   font-weight: 700;
-  color: #0F172A;
+  color: var(--color-text-heading);
   line-height: 1.3;
 }
 
@@ -365,12 +365,12 @@
 .createStatusPill {
   padding: 4px 11px;
   border-radius: 9999px;
-  border: 1.5px solid #E2E8F0;
+  border: 1.5px solid var(--color-border-primary);
   font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.12s;
-  background: #F1F5F9;
+  background: var(--color-bg-tertiary);
   color: #64748B;
 }
 
@@ -389,14 +389,14 @@
   height: 32px;
   border-radius: 8px;
   border: none;
-  background: #F1F5F9;
+  background: var(--color-bg-tertiary);
   color: #64748B;
   cursor: pointer;
   transition: background 0.12s, color 0.12s;
   flex-shrink: 0;
 }
 
-.createCloseBtn:hover { background: #E2E8F0; color: #1E293B; }
+.createCloseBtn:hover { background: var(--color-border-primary); color: #1E293B; }
 
 /* Body del modal de creación */
 .createBody {
@@ -422,7 +422,7 @@
 }
 
 .createInput {
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--color-border-primary);
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 0.875rem;
@@ -435,13 +435,13 @@
 }
 
 .createInput:focus {
-  border-color: #3994EF;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(57, 148, 239, 0.12);
-  background: #fff;
+  background: var(--color-bg-secondary);
 }
 
 .createTextarea {
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--color-border-primary);
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 0.875rem;
@@ -458,9 +458,9 @@
 }
 
 .createTextarea:focus {
-  border-color: #3994EF;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(57, 148, 239, 0.12);
-  background: #fff;
+  background: var(--color-bg-secondary);
 }
 
 /* Layer selector en el modal de creación */
@@ -473,7 +473,7 @@
   flex: 1;
   padding: 6px 4px;
   border-radius: 7px;
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--color-border-primary);
   background: #F8FAFC;
   font-size: 0.8rem;
   font-weight: 600;
@@ -482,12 +482,12 @@
   transition: all 0.12s;
 }
 
-.createLayerBtn:hover { border-color: #CBD5E1; }
+.createLayerBtn:hover { border-color: var(--color-scrollbar-thumb); }
 .createLayerActive { color: #fff !important; border-color: transparent !important; }
 .layerFront.createLayerActive { background: #7C3AED; }
-.layerBack.createLayerActive  { background: #F59E0B; }
+.layerBack.createLayerActive  { background: var(--color-warning); }
 .layerFull.createLayerActive  { background: #10B981; }
-.layerGen.createLayerActive   { background: #3994EF; }
+.layerGen.createLayerActive   { background: var(--color-primary); }
 
 /* Footer del modal de creación */
 .createFooter {
@@ -496,14 +496,14 @@
   justify-content: flex-end;
   gap: 10px;
   padding: 14px 24px;
-  border-top: 1px solid #F1F5F9;
+  border-top: 1px solid var(--color-bg-tertiary);
   flex-shrink: 0;
 }
 
 .createCancelBtn {
   padding: 8px 16px;
   border-radius: 8px;
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--color-border-primary);
   background: #F8FAFC;
   color: #64748B;
   font-size: 0.85rem;
@@ -512,7 +512,7 @@
   transition: background 0.12s, border-color 0.12s;
 }
 
-.createCancelBtn:hover { background: #E2E8F0; }
+.createCancelBtn:hover { background: var(--color-border-primary); }
 
 .createSubmitBtn {
   display: flex;
@@ -521,7 +521,7 @@
   padding: 8px 18px;
   border-radius: 8px;
   border: none;
-  background: #3994EF;
+  background: var(--color-primary);
   color: #fff;
   font-size: 0.85rem;
   font-weight: 600;
@@ -529,5 +529,5 @@
   transition: background 0.12s;
 }
 
-.createSubmitBtn:hover:not(:disabled) { background: #2563EB; }
+.createSubmitBtn:hover:not(:disabled) { background: var(--color-primary-hover); }
 .createSubmitBtn:disabled { opacity: 0.45; cursor: not-allowed; }

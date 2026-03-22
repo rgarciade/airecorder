@@ -6,12 +6,13 @@ import { getAvailableModels, checkOllamaAvailability, checkModelSupportsStreamin
 import { getGeminiAvailableModels } from '../../services/ai/geminiProvider';
 import { getDeepseekAvailableModels, getKimiAvailableModels, getLMStudioModels } from '../../services/ai/providerRouter';
 import { checkLMStudioAvailability, getLMStudioModelInfo } from '../../services/ai/lmStudioProvider';
-import { 
+import {
   MdMic, MdClose, MdCloud, MdAutoAwesome, MdComputer, MdTerminal,
   MdFolder, MdVisibility, MdVisibilityOff, MdRefresh, MdInfo, MdCheck,
   MdTextFormat, MdTranslate, MdNotifications, MdSmartToy, MdSettings, MdSecurity,
-  MdSystemUpdate
+  MdSystemUpdate, MdLightMode, MdDarkMode, MdBrightness6, MdWork
 } from 'react-icons/md';
+import { applyTheme } from '../../services/themeService';
 import styles from './Settings.module.css';
 import InfoTooltip from '../../components/InfoTooltip/InfoTooltip';
 
@@ -44,6 +45,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
   const [selectedUiLanguage, setSelectedUiLanguage] = useState('es');
   const [selectedMicrophone, setSelectedMicrophone] = useState('');
   const [fontSize, setFontSize] = useState('medium');
+  const [theme, setTheme] = useState('system');
   const [projectHighlightsCount, setProjectHighlightsCount] = useState(2);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [whisperModel, setWhisperModel] = useState('small');
@@ -55,6 +57,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
   
   // Storage
   const [outputDirectory, setOutputDirectory] = useState('');
+  const [outputDirectorySize, setOutputDirectorySize] = useState(null); // GB | null
   const [databasePath, setDatabasePath] = useState('');
   const [dbMigrateModal, setDbMigrateModal] = useState(null); // { newPath } | null
   const [dbChangeError, setDbChangeError] = useState('');
@@ -172,6 +175,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         setSelectedUiLanguage(savedSettings.uiLanguage || 'es');
         setSelectedMicrophone(savedSettings.microphone || (systemMicrophones.length > 0 ? systemMicrophones[0].value : ''));
         setFontSize(savedSettings.fontSize || 'medium');
+        setTheme(savedSettings.theme || 'system');
         setProjectHighlightsCount(savedSettings.projectHighlightsCount || 2);
         setNotificationsEnabled(savedSettings.notificationsEnabled !== false); // Default true
         setWhisperModel(savedSettings.whisperModel || 'small');
@@ -218,7 +222,14 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         setOllamaEmbeddingModel(savedSettings.ollamaEmbeddingModel || 'nomic-embed-text');
         setOllamaModelSupportsStreaming(savedSettings.ollamaModelSupportsStreaming || false);
         if (savedSettings.ollamaHost) setOllamaHost(savedSettings.ollamaHost);
-        if (savedSettings.outputDirectory) setOutputDirectory(savedSettings.outputDirectory);
+        if (savedSettings.outputDirectory) {
+          setOutputDirectory(savedSettings.outputDirectory);
+          if (window.electronAPI?.getDirectorySize) {
+            window.electronAPI.getDirectorySize(savedSettings.outputDirectory).then(r => {
+              if (r?.success) setOutputDirectorySize(r.gb);
+            }).catch(() => {});
+          }
+        }
         if (savedSettings.databasePath) setDatabasePath(savedSettings.databasePath);
       }
       
@@ -520,6 +531,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         microphone: selectedMicrophone,
         notificationsEnabled: notificationsEnabled,
         fontSize: fontSize,
+        theme: theme,
         projectHighlightsCount: projectHighlightsCount,
         whisperModel: whisperModel,
         cpuThreads: cpuThreads,
@@ -568,11 +580,22 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
     setSelectedUiLanguage(lang);
   };
 
+  const handleThemeChange = (newTheme) => {
+    setTheme(newTheme);
+    applyTheme(newTheme);
+  };
+
   const handleChangeDirectory = async () => {
     if (window.electronAPI && window.electronAPI.selectDirectory) {
       const path = await window.electronAPI.selectDirectory();
       if (path) {
         setOutputDirectory(path);
+        setOutputDirectorySize(null);
+        if (window.electronAPI?.getDirectorySize) {
+          window.electronAPI.getDirectorySize(path).then(r => {
+            if (r?.success) setOutputDirectorySize(r.gb);
+          }).catch(() => {});
+        }
       }
     } else {
       alert(t('settings.misc.directoryNotSupported'));
@@ -739,7 +762,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         {t('settings.messages.serviceNotDetected', { host: ollamaHost })}
                       </p>
                     ) : (
-                      <p className={styles.helpText} style={{ color: '#059669' }}>
+                      <p className={styles.helpText} style={{ color: 'var(--color-success)' }}>
                         {t('settings.messages.serviceConnected')}
                       </p>
                     )}
@@ -759,13 +782,13 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       ))}
                     </select>
                     {isCheckingModel && (
-                      <p className={styles.helpText} style={{ color: '#0ea5e9', display: 'flex', alignItems: 'center' }}>
+                      <p className={styles.helpText} style={{ color: 'var(--color-primary)', display: 'flex', alignItems: 'center' }}>
                         <MdRefresh className={styles.spinner} style={{ marginRight: '4px' }} />
                         {t('settings.messages.verifyingModel')}
                       </p>
                     )}
                     {ollamaModel && !isCheckingModel && (
-                      <p className={styles.helpText} style={{ color: ollamaModelSupportsStreaming ? '#059669' : '#dc2626' }}>
+                      <p className={styles.helpText} style={{ color: ollamaModelSupportsStreaming ? 'var(--color-success)' : 'var(--color-danger)' }}>
                         {ollamaModelSupportsStreaming ? t('settings.messages.supportsStreaming') : t('settings.messages.noStreaming')}
                       </p>
                     )}
@@ -829,14 +852,14 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       </button>
                     </div>
                     {ollamaCtxStatus === 'success' && (
-                      <p className={styles.helpText} style={{ color: '#059669' }}>
+                      <p className={styles.helpText} style={{ color: 'var(--color-success)' }}>
                         {t('settings.messages.contextLengthDetected', { n: parseInt(ollamaContextLengthSaved).toLocaleString() })}
                       </p>
                     )}
                     {ollamaCtxStatus === 'error' && (
-                      <p className={styles.helpText} style={{ color: '#dc2626' }}>
+                      <p className={styles.helpText} style={{ color: 'var(--color-danger)' }}>
                         {t('settings.messages.contextLengthNotFound')}
-                        {' '}<span style={{ color: '#6B7280' }}>{t('settings.helpText.contextLengthOllama')}</span>
+                        {' '}<span style={{ color: 'var(--color-text-tertiary)' }}>{t('settings.helpText.contextLengthOllama')}</span>
                       </p>
                     )}
                     {!ollamaCtxStatus && (
@@ -914,7 +937,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         {t('settings.messages.serviceNotDetected', { host: lmStudioHost })}
                       </p>
                     ) : (
-                      <p className={styles.helpText} style={{ color: '#059669' }}>
+                      <p className={styles.helpText} style={{ color: 'var(--color-success)' }}>
                         {t('settings.messages.serviceConnected')}
                       </p>
                     )}
@@ -934,7 +957,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       ))}
                     </select>
                     {lmStudioAvailable && lmStudioModels.length === 0 && (
-                      <p className={styles.helpText} style={{ color: '#dc2626' }}>
+                      <p className={styles.helpText} style={{ color: 'var(--color-danger)' }}>
                         {t('settings.messages.modelError')}
                       </p>
                     )}
@@ -998,14 +1021,14 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       </button>
                     </div>
                     {lmStudioCtxStatus === 'success' && (
-                      <p className={styles.helpText} style={{ color: '#059669' }}>
+                      <p className={styles.helpText} style={{ color: 'var(--color-success)' }}>
                         {t('settings.messages.contextLengthDetected', { n: parseInt(lmStudioContextLengthSaved).toLocaleString() })}
                       </p>
                     )}
                     {lmStudioCtxStatus === 'error' && (
-                      <p className={styles.helpText} style={{ color: '#dc2626' }}>
+                      <p className={styles.helpText} style={{ color: 'var(--color-danger)' }}>
                         {t('settings.messages.contextLengthNotFound')}
-                        {' '}<span style={{ color: '#6B7280' }}>{t('settings.helpText.contextLengthLmStudio')}</span>
+                        {' '}<span style={{ color: 'var(--color-text-tertiary)' }}>{t('settings.helpText.contextLengthLmStudio')}</span>
                       </p>
                     )}
                     {!lmStudioCtxStatus && (
@@ -1257,7 +1280,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         </option>
                       ))}
                     </select>
-                    <p className={styles.helpText} style={{ color: '#059669' }}>
+                    <p className={styles.helpText} style={{ color: 'var(--color-success)' }}>
                       ✓ {deepseekModels.find(m => m.name === deepseekModel)?.description}
                     </p>
                   </div>
@@ -1320,7 +1343,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         </option>
                       ))}
                     </select>
-                    <p className={styles.helpText} style={{ color: '#059669' }}>
+                    <p className={styles.helpText} style={{ color: 'var(--color-success)' }}>
                       ✓ {kimiModels.find(m => m.name === kimiModel)?.description}
                     </p>
                   </div>
@@ -1351,8 +1374,13 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       {t('settings.buttons.change')}
                     </button>
                   </div>
+                  {outputDirectorySize != null && (
+                    <p className={styles.helpText} style={{ marginTop: '6px' }}>
+                      {`${(outputDirectorySize ?? 0).toFixed(3)} GB ${t('settings.buttons.inUse')}`}
+                    </p>
+                  )}
 
-                  <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #F1F5F9' }}>
+                  <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--color-border-subtle)' }}>
                     <label className={styles.label}>{t('settings.fields.databasePath')}</label>
                     <div className={styles.inputRow}>
                       <div className={`${styles.input} truncate bg-gray-50 text-gray-500`} title={databasePath}>
@@ -1376,23 +1404,23 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                   display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
                 }}>
                   <div style={{
-                    background: 'white', borderRadius: '16px', padding: '32px',
-                    maxWidth: '480px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
+                    background: 'var(--color-bg-secondary)', borderRadius: '16px', padding: '32px',
+                    maxWidth: '480px', width: '90%', boxShadow: '0 20px 60px var(--color-shadow-lg)'
                   }}>
-                    <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>
+                    <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text-heading)', marginBottom: '8px' }}>
                       {t('settings.misc.changeDbTitle')}
                     </h4>
-                    <p style={{ fontSize: '0.875rem', color: '#475569', marginBottom: '4px' }}>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
                       {t('settings.misc.changeDbNewPath')}
                     </p>
                     <code style={{
-                      display: 'block', background: '#F8FAFC', border: '1px solid #E2E8F0',
-                      borderRadius: '8px', padding: '8px 12px', fontSize: '0.8rem', color: '#334155',
+                      display: 'block', background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-primary)',
+                      borderRadius: '8px', padding: '8px 12px', fontSize: '0.8rem', color: 'var(--color-text-secondary)',
                       wordBreak: 'break-all', marginBottom: '16px'
                     }}>
                       {dbMigrateModal.newPath}
                     </code>
-                    <p style={{ fontSize: '0.875rem', color: '#475569', marginBottom: '16px' }}>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>
                       {t('settings.misc.changeDbAskMigrate')}
                     </p>
                     {dbChangeError && (
@@ -1486,6 +1514,41 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                 </div>
                 <div className={styles.card}>
                   <div className={styles.formGroup}>
+                    <label className={styles.label}>{t('settings.fields.theme')}</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {[
+                        { value: 'system', icon: <MdBrightness6 size={16} />, label: t('settings.themes.system') },
+                        { value: 'light',  icon: <MdLightMode size={16} />,  label: t('settings.themes.light') },
+                        { value: 'dark',   icon: <MdDarkMode size={16} />,   label: t('settings.themes.dark') },
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => handleThemeChange(opt.value)}
+                          style={{
+                            flex: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            border: `2px solid ${theme === opt.value ? 'var(--color-primary)' : 'var(--color-border-secondary)'}`,
+                            background: theme === opt.value ? 'var(--color-primary-bg)' : 'var(--color-bg-tertiary)',
+                            color: theme === opt.value ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                            fontWeight: theme === opt.value ? 600 : 400,
+                            fontSize: '0.8rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {opt.icon} {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className={styles.helpText}>{t('settings.helpText.theme')}</p>
+                  </div>
+                  <div className={styles.formGroup}>
                     <label className={styles.label}>{t('settings.fields.uiLanguage')}</label>
                     <select
                       className={styles.input}
@@ -1514,8 +1577,20 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       {t('settings.helpText.fontSize')}
                     </p>
                   </div>
+                </div>
+              </section>
+
+              {/* --- Projects Section --- */}
+              <section className={styles.section} id="projects-settings">
+                <div className={styles.sectionHeader}>
+                  <div className={styles.sectionTitleGroup}>
+                    <MdWork className={styles.sectionIcon} size={20} />
+                    <h3 className={styles.sectionTitle}>{t('settings.sections.projects')}</h3>
+                  </div>
+                </div>
+                <div className={styles.card}>
                   <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-                    <label className={styles.label}>Reuniones recientes en resumen de proyecto</label>
+                    <label className={styles.label}>{t('settings.fields.recentMeetings')}</label>
                     <input
                       type="number"
                       className={styles.input}
@@ -1525,9 +1600,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       onChange={(e) => setProjectHighlightsCount(Math.max(1, Math.min(10, parseInt(e.target.value) || 2)))}
                       style={{ width: '80px' }}
                     />
-                    <p className={styles.helpText}>
-                      Cuántas grabaciones recientes se muestran en los highlights del resumen de proyecto.
-                    </p>
+                    <p className={styles.helpText}>{t('settings.helpText.recentMeetings')}</p>
                   </div>
                 </div>
               </section>
@@ -1689,7 +1762,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       {updateInfo && (
                         <button
                           className={styles.checkBtn}
-                          style={{backgroundColor: '#10b981', color: '#fff', border: 'none'}}
+                          style={{backgroundColor: 'var(--color-success)', color: '#fff', border: 'none'}}
                           onClick={() => window.electronAPI?.openDownloadUrl?.(updateInfo.downloadUrl)}
                         >
                           {t('settings.buttons.download')}
@@ -1698,7 +1771,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       {import.meta.env.DEV && (
                         <button
                           className={styles.checkBtn}
-                          style={{backgroundColor: '#f59e0b', color: '#fff', border: 'none'}}
+                          style={{backgroundColor: 'var(--color-warning)', color: '#fff', border: 'none'}}
                           onClick={() => window.electronAPI?.testUpdateDialog?.()}
                         >
                           {t('settings.misc.updates.testDev')}

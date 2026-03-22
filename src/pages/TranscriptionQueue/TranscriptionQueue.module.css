@@ -2,8 +2,8 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #f6f7f8;
-  color: #1e293b;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-heading);
   font-family: 'Plus Jakarta Sans', sans-serif;
   overflow: hidden;
 }
@@ -11,14 +11,14 @@
 /* Navbar */
 .navbar {
   height: 80px;
-  background-color: white;
-  border-bottom: 1px solid #e2e8f0;
+  background-color: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-primary);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 32px;
   z-index: 20;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 2px var(--color-shadow);
   flex-shrink: 0;
 }
 
@@ -29,10 +29,10 @@
 }
 
 .navIcon {
-  background-color: rgba(57, 148, 239, 0.1);
+  background-color: var(--color-primary-light);
   padding: 8px;
   border-radius: 8px;
-  color: #3994ef;
+  color: var(--color-primary);
   display: flex;
   align-items: center;
 }
@@ -40,7 +40,7 @@
 .navTitle {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text-heading);
 }
 
 .navRight {
@@ -53,11 +53,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #f1f5f9;
+  background-color: var(--color-bg-tertiary);
   padding: 8px 16px;
   border-radius: 9999px;
   font-size: 0.875rem;
-  color: #64748b;
+  color: var(--color-text-tertiary);
 }
 
 .statusDot {
@@ -75,7 +75,7 @@
 }
 
 .newRecordingBtn {
-  background-color: #3994ef;
+  background-color: var(--color-primary);
   color: white;
   padding: 10px 20px;
   border-radius: 8px;
@@ -90,7 +90,7 @@
 }
 
 .newRecordingBtn:hover {
-  background-color: #2563eb;
+  background-color: var(--color-primary-hover);
 }
 
 /* Main Layout */
@@ -133,17 +133,17 @@
 .sectionTitle {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text-heading);
   margin-bottom: 4px;
 }
 
 .sectionSubtitle {
   font-size: 0.875rem;
-  color: #64748b;
+  color: var(--color-text-tertiary);
 }
 
 .historyBtn {
-  color: #3994ef;
+  color: var(--color-primary);
   font-size: 0.875rem;
   font-weight: 600;
   border: none;
@@ -153,11 +153,11 @@
 
 /* Active Task Card */
 .activeCard {
-  background-color: white;
+  background-color: var(--color-bg-secondary);
   border-radius: 16px;
   padding: 32px;
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
-  border: 1px solid #f1f5f9;
+  box-shadow: 0 4px 20px -2px var(--color-shadow);
+  border: 1px solid var(--color-bg-hover);
   margin-bottom: 32px;
   position: relative;
   overflow: hidden;
@@ -185,11 +185,11 @@
 }
 
 .progressBg {
-  stroke: #f1f5f9;
+  stroke: var(--color-bg-hover);
 }
 
 .progressFill {
-  stroke: #3994ef;
+  stroke: var(--color-primary);
   stroke-linecap: round;
   transition: stroke-dashoffset 1s ease-out;
 }
@@ -206,13 +206,13 @@
 .percent {
   font-size: 2.25rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text-heading);
 }
 
 .statusLabel {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-top: 4px;
@@ -230,8 +230,8 @@
 }
 
 .stepBadge {
-  background-color: rgba(57, 148, 239, 0.1);
-  color: #3994ef;
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
   padding: 4px 12px;
   border-radius: 9999px;
   font-size: 0.75rem;
@@ -240,8 +240,8 @@
 }
 
 .modelBadge {
-  background-color: #f1f5f9;
-  color: #475569;
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
   padding: 4px 12px;
   border-radius: 9999px;
   font-size: 0.75rem;
@@ -253,7 +253,7 @@
 
 .timeElapsed {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -262,7 +262,7 @@
 
 .timeRemaining {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -272,13 +272,13 @@
 .taskName {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text-heading);
   margin-bottom: 8px;
 }
 
 .taskStatus {
   font-size: 1.125rem;
-  color: #64748b;
+  color: var(--color-text-tertiary);
   margin-bottom: 24px;
 }
 
@@ -292,7 +292,7 @@
 
 .waveBar {
   width: 4px;
-  background-color: #3994ef;
+  background-color: var(--color-primary);
   border-radius: 9999px;
   height: 40%;
   animation: wave 1.2s ease-in-out infinite;
@@ -318,7 +318,7 @@
   border-radius: 8px;
   border: none;
   background: none;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
@@ -328,21 +328,21 @@
 
 .actionIconBtn:hover {
   background-color: rgba(57, 148, 239, 0.05);
-  color: #3994ef;
+  color: var(--color-primary);
 }
 
 .actionIconBtnDestructive:hover {
   background-color: rgba(239, 68, 68, 0.05);
-  color: #ef4444;
+  color: var(--color-danger);
 }
 
 .emptyQueue {
   padding: 48px;
   text-align: center;
-  color: #94a3b8;
-  background-color: white;
+  color: var(--color-text-muted);
+  background-color: var(--color-bg-secondary);
   border-radius: 16px;
-  border: 2px dashed #e2e8f0;
+  border: 2px dashed var(--color-border-primary);
   margin-bottom: 32px;
 }
 
@@ -365,7 +365,7 @@
 .listTitle {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text-heading);
   margin-bottom: 16px;
   display: flex;
   align-items: center;
@@ -374,8 +374,8 @@
 }
 
 .countBadge {
-  background-color: #e2e8f0;
-  color: #475569;
+  background-color: var(--color-border-primary);
+  color: var(--color-text-secondary);
   font-size: 0.75rem;
   padding: 2px 8px;
   border-radius: 9999px;
@@ -403,29 +403,29 @@
 }
 
 .queueList::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--color-scrollbar-thumb);
   border-radius: 3px;
 }
 
 .queueList::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--color-scrollbar-hover);
 }
 
 .queueItem {
-  background-color: white;
+  background-color: var(--color-bg-secondary);
   padding: 16px;
   border-radius: 12px;
-  border: 1px solid #f1f5f9;
+  border: 1px solid var(--color-bg-hover);
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 2px var(--color-shadow);
 }
 
 .itemIcon {
   width: 48px;
   height: 48px;
-  background-color: #eff6ff;
+  background-color: var(--color-primary-bg);
   color: #3b82f6;
   border-radius: 12px;
   display: flex;
@@ -440,7 +440,7 @@
 
 .itemName {
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text-heading);
   margin-bottom: 4px;
 }
 
@@ -449,7 +449,7 @@
   align-items: center;
   gap: 16px;
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--color-text-tertiary);
 }
 
 .metaLabel {
@@ -465,19 +465,19 @@
 }
 
 .waitingBadge {
-  background-color: #f1f5f9;
-  color: #64748b;
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-tertiary);
   padding: 4px 12px;
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 700;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border-primary);
 }
 
 .miniCancelBtn {
   background: transparent;
   border: none;
-  color: #9ca3af;
+  color: var(--color-text-muted);
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
@@ -488,15 +488,15 @@
 }
 
 .miniCancelBtn:hover {
-  color: #ef4444;
+  color: var(--color-danger);
   background-color: rgba(239, 68, 68, 0.1);
 }
 
 /* Sidebar Log */
 .logColumn {
   grid-column: span 3;
-  background-color: white;
-  border-left: 1px solid #e2e8f0;
+  background-color: var(--color-bg-secondary);
+  border-left: 1px solid var(--color-border-primary);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -505,7 +505,7 @@
 
 .logHeader {
   padding: 24px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--color-bg-hover);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -513,13 +513,13 @@
 
 .logTitle {
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text-heading);
 }
 
 .clearBtn {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #3994ef;
+  color: var(--color-primary);
   border: none;
   background: none;
   cursor: pointer;
@@ -535,7 +535,7 @@
 .timeline {
   position: relative;
   padding-left: 20px;
-  border-left: 1px solid #e2e8f0;
+  border-left: 1px solid var(--color-border-primary);
   display: flex;
   flex-direction: column;
   gap: 32px;
@@ -552,8 +552,8 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background-color: white;
-  border: 2px solid #e2e8f0;
+  background-color: var(--color-bg-secondary);
+  border: 2px solid var(--color-border-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -561,8 +561,8 @@
 }
 
 .dotSuccess { border-color: #22c55e; background-color: #22c55e; color: white; }
-.dotFailed { border-color: #ef4444; background-color: #ef4444; color: white; }
-.dotCancelled { border-color: #9ca3af; background-color: #9ca3af; color: white; }
+.dotFailed { border-color: var(--color-danger); background-color: var(--color-danger); color: white; }
+.dotCancelled { border-color: var(--color-text-muted); background-color: var(--color-text-muted); color: white; }
 
 .logDetails {
   display: flex;
@@ -573,23 +573,23 @@
 .logTime {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 .logText {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #334155;
+  color: var(--color-text-secondary);
   line-height: 1.4;
 }
 
 .highlightText {
-  color: #3994ef;
+  color: var(--color-primary);
   transition: all 0.2s;
 }
 
 .highlightText:hover {
-  color: #2563eb;
+  color: var(--color-primary-hover);
   text-decoration: underline;
 }
 
@@ -615,8 +615,8 @@
   font-size: 0.625rem;
   font-weight: 700;
   text-transform: uppercase;
-  color: #dc2626;
-  background-color: #fef2f2;
+  color: var(--color-danger-hover);
+  background-color: var(--color-danger-bg);
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -625,8 +625,8 @@
   font-size: 0.625rem;
   font-weight: 700;
   text-transform: uppercase;
-  color: #9ca3af;
-  background-color: #f3f4f6;
+  color: var(--color-text-muted);
+  background-color: var(--color-bg-tertiary);
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -634,8 +634,8 @@
 .historyModelBadge {
   font-size: 0.625rem;
   font-weight: 600;
-  color: #64748b;
-  background-color: #f1f5f9;
+  color: var(--color-text-tertiary);
+  background-color: var(--color-bg-tertiary);
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -643,8 +643,8 @@
 .durationBadge {
   font-size: 0.625rem;
   font-weight: 600;
-  color: #64748b;
-  background-color: #f1f5f9;
+  color: var(--color-text-tertiary);
+  background-color: var(--color-bg-tertiary);
   padding: 2px 8px;
   border-radius: 4px;
   display: flex;
@@ -663,7 +663,7 @@
 
 .emptyLog {
   text-align: center;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   padding: 24px 0;
   font-size: 0.875rem;
 }

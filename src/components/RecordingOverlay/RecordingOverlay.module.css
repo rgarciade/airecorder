@@ -4,7 +4,7 @@
   bottom: 24px;
   left: 24px;
   z-index: 10000;
-  
+
 }
 
 .container {
@@ -46,7 +46,7 @@
 .dot {
   width: 8px;
   height: 8px;
-  background-color: #EF4444;
+  background-color: var(--color-danger);
   border-radius: 50%;
   animation: pulse 1.5s infinite;
   margin-right: 12px;
@@ -64,7 +64,7 @@
 .capsuleLabel {
   font-size: 0.55rem;
   font-weight: 700;
-  color: #EF4444;
+  color: var(--color-danger);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -72,7 +72,7 @@
 .capsuleTime {
   font-family: monospace;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
   font-size: 0.85rem;
   line-height: 1.1;
 }
@@ -91,8 +91,8 @@
   height: 30px;
   border-radius: 50%;
   background-color: transparent;
-  color: #9CA3AF;
-  border: 1px solid #E5E7EB;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -103,8 +103,8 @@
 }
 
 .btnDiscardRound:hover {
-  background-color: #FEF2F2;
-  color: #EF4444;
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
   border-color: #FECACA;
 }
 
@@ -112,7 +112,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background-color: #EF4444;
+  background-color: var(--color-danger);
   color: white;
   border: none;
   display: flex;
@@ -124,7 +124,7 @@
 }
 
 .btnStopRound:hover {
-  background-color: #DC2626;
+  background-color: var(--color-danger-hover);
   transform: scale(1.05);
 }
 
@@ -133,8 +133,8 @@
   border-radius: 32px; /* Más redondeado */
   padding: 24px;
   width: 400px;
-  background: white;
-  border-color: #E5E7EB;
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border-secondary);
   cursor: default;
 }
 
@@ -158,7 +158,7 @@
 
 .recordingTitle {
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
   font-size: 1.1rem;
 }
 
@@ -169,8 +169,8 @@
 }
 
 .timerBadge {
-  background-color: #FEF2F2;
-  color: #B91C1C;
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger-hover);
   font-family: monospace;
   font-weight: 700;
   padding: 4px 8px;
@@ -179,7 +179,7 @@
 }
 
 .collapseBtn {
-  background: #F3F4F6;
+  background: var(--color-bg-tertiary);
   border: none;
   border-radius: 50%;
   width: 32px;
@@ -187,20 +187,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .collapseBtn:hover {
-  background-color: #E5E7EB;
-  color: #374151;
+  background-color: var(--color-border-secondary);
+  color: var(--color-text-secondary);
 }
 
 .statusLabel {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #EF4444;
+  color: var(--color-danger);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-top: -12px;
@@ -217,7 +217,7 @@
 
 .bar {
   width: 4px;
-  background-color: #2563EB;
+  background-color: var(--color-primary-hover);
   border-radius: 2px;
   animation: audioWave 1s infinite ease-in-out;
   min-height: 8px;
@@ -236,8 +236,8 @@
   justify-content: center;
   gap: 8px;
   padding: 12px;
-  background-color: white;
-  border: 1px solid #E5E7EB;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 9999px;
   color: #4B5563;
   font-weight: 600;
@@ -246,8 +246,8 @@
 }
 
 .btnCancel:hover {
-  background-color: #F9FAFB;
-  color: #111827;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
 }
 
 .btnStopSave {
@@ -257,7 +257,7 @@
   justify-content: center;
   gap: 8px;
   padding: 12px;
-  background-color: #2563EB;
+  background-color: var(--color-primary-hover);
   border: none;
   border-radius: 9999px;
   color: white;
@@ -286,7 +286,7 @@
 .modalOverlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.5);
+  background: var(--color-bg-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -295,7 +295,7 @@
 }
 
 .modal {
-  background: white;
+  background: var(--color-bg-secondary);
   border-radius: 20px;
   padding: 32px;
   width: 440px;
@@ -312,13 +312,13 @@
 .modal h3 {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-primary);
   margin-bottom: 24px;
   text-align: center;
 }
 
 .modal p {
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   text-align: center;
   margin-bottom: 24px;
 }
@@ -333,25 +333,25 @@
   display: block;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text-secondary);
   margin-bottom: 8px;
 }
 
 .input {
   width: 100%;
   padding: 12px 16px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 12px;
   font-size: 1rem;
-  color: #111827;
+  color: var(--color-text-primary);
   transition: all 0.2s;
-  background: #F9FAFB;
+  background: var(--color-bg-primary);
 }
 
 .input:focus {
   outline: none;
-  border-color: #2563EB;
-  background: white;
+  border-color: var(--color-primary-hover);
+  background: var(--color-bg-secondary);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
@@ -360,14 +360,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 12px;
-  background: #F9FAFB;
+  background: var(--color-bg-primary);
   min-height: 48px;
 }
 
 .projectNameDisplay {
-  color: #111827;
+  color: var(--color-text-primary);
   font-weight: 500;
   font-size: 0.95rem;
   white-space: nowrap;
@@ -377,8 +377,8 @@
 }
 
 .projectChangeButton {
-  background: white;
-  border: 1px solid #E5E7EB;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   color: #4B5563;
   font-size: 0.8rem;
   font-weight: 600;
@@ -390,9 +390,9 @@
 }
 
 .projectChangeButton:hover {
-  border-color: #D1D5DB;
-  background: #F3F4F6;
-  color: #111827;
+  border-color: var(--color-border-secondary);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
 }
 
 /* Modal Buttons */
@@ -406,7 +406,7 @@
 .saveButton {
   width: 100%;
   padding: 12px 24px;
-  background-color: #2563EB;
+  background-color: var(--color-primary-hover);
   color: white;
   border: none;
   border-radius: 12px;
@@ -425,8 +425,8 @@
 
 .cancelButton {
   padding: 12px 24px;
-  background-color: white;
-  border: 1px solid #E5E7EB;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
   color: #4B5563;
   border-radius: 12px;
   font-weight: 600;
@@ -435,14 +435,14 @@
 }
 
 .cancelButton:hover {
-  background-color: #F9FAFB;
-  color: #111827;
-  border-color: #D1D5DB;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-secondary);
 }
 
 .discardModalButton {
   padding: 12px 24px;
-  background-color: #EF4444;
+  background-color: var(--color-danger);
   color: white;
   border: none;
   border-radius: 12px;
@@ -452,15 +452,15 @@
 }
 
 .discardModalButton:hover {
-  background-color: #DC2626;
+  background-color: var(--color-danger-hover);
 }
 
 /* Spinner (Blue) */
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #E5E7EB;
-  border-top-color: #2563EB;
+  border: 3px solid var(--color-border-secondary);
+  border-top-color: var(--color-primary-hover);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 16px;

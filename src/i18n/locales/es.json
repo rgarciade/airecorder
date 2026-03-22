@@ -130,6 +130,7 @@
       "storage": "Almacenamiento",
       "transcription": "Motor de Transcripción",
       "appearance": "Apariencia de la Interfaz",
+      "projects": "Proyectos",
       "audio": "Ajustes de Audio",
       "system": "Preferencias del Sistema",
       "permissions": "Permisos y Privacidad",
@@ -137,8 +138,10 @@
     },
     "fields": {
       "language": "Idioma",
+      "theme": "Tema de la Aplicación",
       "uiLanguage": "Idioma de la Interfaz",
       "fontSize": "Tamaño de Fuente",
+      "recentMeetings": "Reuniones recientes en resumen de proyecto",
       "microphone": "Micrófono por Defecto",
       "whisperModel": "Tamaño del Modelo Whisper",
       "cpuThreads": "Hilos de CPU para Transcripción",
@@ -156,8 +159,10 @@
     },
     "helpText": {
       "transcriptionLanguage": "Idioma utilizado para la transcripción con Whisper.",
+      "theme": "Elige el tema visual de la interfaz: claro, oscuro o el del sistema.",
       "uiLanguage": "Idioma en el que se muestra la aplicación.",
       "fontSize": "Ajusta el tamaño de letra para los chats, transcripciones y resúmenes.",
+      "recentMeetings": "Cuántas grabaciones recientes se muestran en los highlights del resumen de proyecto.",
       "microphone": "Selecciona el dispositivo de entrada para tus grabaciones.",
       "whisperModel": "Elige el modelo por defecto para nuevas transcripciones. Los modelos pequeños son más rápidos pero menos precisos.",
       "cpuThreads": "Más hilos aumentan la velocidad de transcripción pero consumen más recursos del ordenador.",
@@ -169,6 +174,11 @@
       "contextLengthInput": "Deja vacío para detectarlo automáticamente en cada generación, o introduce el valor manualmente.",
       "contextLengthOllama": "Encuéntralo ejecutando: ollama show <modelo> --verbose (campo num_ctx)",
       "contextLengthLmStudio": "Encuéntralo en LM Studio, en la sección \"My Models\" → opciones avanzadas del modelo cargado."
+    },
+    "themes": {
+      "system": "Sistema (por defecto)",
+      "light": "Claro",
+      "dark": "Oscuro"
     },
     "fontSizes": {
       "small": "Pequeño",
@@ -205,7 +215,8 @@
       "download": "Descargar",
       "checking": "Comprobando...",
       "cancel": "Cancelar",
-      "detect": "Detectar"
+      "detect": "Detectar",
+      "inUse": "usados"
     },
     "messages": {
       "saveSuccess": "Ajustes guardados con éxito",
@@ -444,7 +455,7 @@
       "aiInfo": "Conoce la IA Local",
       "ai": "Configuración de IA",
       "permissions": "Permisos del Sistema",
-      "storage": "Almacenamiento",
+      "preferences": "Preferencias",
       "finish": "Todo listo"
     },
     "next": "Siguiente",
@@ -551,7 +562,13 @@
       "enable": "Activar",
       "disable": "Desactivar",
       "finishBtn": "Finalizar configuración",
-      "grantRequired": "Por favor, concede los permisos requeridos"
+      "grantRequired": "Por favor, concede los permisos requeridos",
+      "notifications": "Notificaciones",
+      "theme": "Apariencia",
+      "themeDesc": "Elige el tema visual de la aplicación.",
+      "themeSystem": "Sistema",
+      "themeLight": "Claro",
+      "themeDark": "Oscuro"
     },
     "storage": {
       "title": "Configura el almacenamiento",

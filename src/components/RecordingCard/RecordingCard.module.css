@@ -1,5 +1,5 @@
 .card {
-  background: white;
+  background: var(--color-bg-secondary);
   border-radius: 24px;
   padding: 24px;
   display: flex;
@@ -7,13 +7,13 @@
   gap: 16px;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  border: 1px solid #F3F4F6;
+  box-shadow: 0 4px 6px -1px var(--color-shadow);
+  border: 1px solid var(--color-border-subtle);
 }
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 15px -3px var(--color-shadow-md);
 }
 
 .header {
@@ -29,12 +29,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-/* Dynamic colors for icons could be added, using default blue for now */
-.icon {
-  background-color: #EFF6FF;
-  color: #2563EB;
+  background-color: var(--color-primary-bg);
+  color: var(--color-primary);
 }
 
 .iconTeams {
@@ -43,8 +39,8 @@
 }
 
 .iconUpload {
-  background-color: #ECFDF5;
-  color: #059669;
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .headerRight {
@@ -60,9 +56,9 @@
   height: 28px;
   padding: 0 10px;
   border-radius: 9999px;
-  background-color: #EFF6FF;
-  color: #3994EF;
-  border: 1px solid #DBEAFE;
+  background-color: var(--color-primary-bg);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary-light);
   cursor: pointer;
   transition: all 0.2s;
   font-size: 0.72rem;
@@ -71,24 +67,24 @@
 }
 
 .transcribeBtn:hover {
-  background-color: #3994EF;
+  background-color: var(--color-primary);
   color: white;
 }
 
 .duration {
-  background-color: #F3F4F6;
+  background-color: var(--color-bg-tertiary);
   padding: 4px 12px;
   border-radius: 9999px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text-secondary);
 }
 
 .title {
   margin: 0;
   font-size: 1.125rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text-heading);
   line-height: 1.4;
 }
 
@@ -104,7 +100,7 @@
 
 .date {
   font-size: 0.875rem;
-  color: #9CA3AF;
+  color: var(--color-text-muted);
 }
 
 .statusInfo {
@@ -117,7 +113,7 @@
 }
 
 .projectInfo {
-  background-color: #F9FAFB;
+  background-color: var(--color-bg-tertiary);
   border-radius: 16px;
   padding: 16px;
   margin-top: auto;
@@ -129,7 +125,7 @@
   gap: 6px;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #4B5563;
+  color: var(--color-text-secondary);
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -138,7 +134,7 @@
 .projectName {
   margin: 0;
   font-size: 0.875rem;
-  color: #3994EF;
+  color: var(--color-primary);
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;

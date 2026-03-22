@@ -3,11 +3,11 @@
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  background: #F9FAFB;
-  border-bottom: 1px solid #E5E7EB;
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border-secondary);
   font-size: 11px;
   font-weight: 500;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
 }
 
 /* Punto de estado */
@@ -24,21 +24,21 @@
 }
 
 .dotIndexing {
-  background: #f59e0b;
+  background: var(--color-warning);
   animation: pulse 1.2s ease-in-out infinite;
 }
 
 .dotActive {
-  background: #3994EF;
+  background: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(57, 148, 239, 0.2);
 }
 
 .dotSkipped {
-  background: #9CA3AF;
+  background: var(--color-text-muted);
 }
 
 .dotFull {
-  background: #6B7280;
+  background: var(--color-text-tertiary);
 }
 
 @keyframes pulse {
@@ -49,28 +49,28 @@
 /* Texto descriptivo */
 .label {
   flex: 1;
-  color: #374151;
+  color: var(--color-text-secondary);
 }
 
 .labelMuted {
-  color: #9CA3AF;
+  color: var(--color-text-muted);
 }
 
 /* Separador */
 .sep {
-  color: #D1D5DB;
+  color: var(--color-border-secondary);
 }
 
 /* Tokens */
 .tokens {
-  color: #9CA3AF;
+  color: var(--color-text-muted);
 }
 
 /* Barra de progreso de tokens */
 .bar {
   width: 64px;
   height: 4px;
-  background: #E5E7EB;
+  background: var(--color-border-secondary);
   border-radius: 2px;
   overflow: hidden;
   flex-shrink: 0;
@@ -83,8 +83,8 @@
 }
 
 .green  { background: #22c55e; }
-.yellow { background: #f59e0b; }
-.red    { background: #ef4444; }
+.yellow { background: var(--color-warning); }
+.red    { background: var(--color-danger); }
 
 /* Grupo de toggles (RAG/Completo + Auto/Detallado) */
 .togglesGroup {
@@ -98,7 +98,7 @@
 .contextToggle {
   position: relative;
   display: flex;
-  background: #E5E7EB;
+  background: var(--color-border-secondary);
   border-radius: 4px;
   padding: 2px;
   flex-shrink: 0;
@@ -114,7 +114,7 @@
 .modeToggle {
   position: relative;
   display: flex;
-  background: #E5E7EB;
+  background: var(--color-border-secondary);
   border-radius: 4px;
   padding: 2px;
   flex-shrink: 0;
@@ -122,7 +122,7 @@
 
 /* Aviso de límite de tokens superado */
 .tokenWarning {
-  color: #ef4444;
+  color: var(--color-danger);
   font-size: 10px;
   font-weight: 600;
   white-space: nowrap;
@@ -156,7 +156,7 @@
   border-radius: 3px;
   font-size: 10px;
   font-weight: 600;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   cursor: pointer;
   transition: color 0.2s;
   line-height: 1.6;
@@ -166,7 +166,7 @@
 }
 
 .modeBtn:hover {
-  color: #374151;
+  color: var(--color-text-secondary);
 }
 
 .modeBtn[data-tooltip]::after {
@@ -195,5 +195,5 @@
 }
 
 .modeBtnActive {
-  color: #374151;
+  color: var(--color-text-secondary);
 }

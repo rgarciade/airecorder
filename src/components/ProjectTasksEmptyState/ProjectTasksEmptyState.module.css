@@ -9,19 +9,19 @@
 }
 
 .emptyIcon {
-  color: #CBD5E1;
+  color: var(--color-scrollbar-thumb);
 }
 
 .emptyTitle {
   font-size: 1rem;
   font-weight: 700;
-  color: #64748B;
+  color: var(--color-text-tertiary);
   margin: 0;
 }
 
 .emptyHint {
   font-size: 0.85rem;
-  color: #94A3B8;
+  color: var(--color-text-muted);
   margin: 0;
   max-width: 400px;
   line-height: 1.5;
@@ -35,7 +35,7 @@
   padding: 9px 20px;
   border-radius: 8px;
   border: none;
-  background: #3994EF;
+  background: var(--color-primary);
   color: #fff;
   font-size: 0.85rem;
   font-weight: 600;
@@ -43,4 +43,4 @@
   transition: background 0.12s;
 }
 
-.emptyCreateBtn:hover { background: #2563EB; }
+.emptyCreateBtn:hover { background: var(--color-primary-hover); }

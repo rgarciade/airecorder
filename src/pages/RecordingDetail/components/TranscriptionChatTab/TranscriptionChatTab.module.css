@@ -3,26 +3,26 @@
   height: 100%;
   width: 100%;
   overflow: hidden;
-  background-color: #F9FAFB;
+  background-color: var(--color-bg-primary);
   max-width: 100%; /* Asegurar que no exceda el contenedor padre */
 }
 
 .transcriptionColumn {
   flex: 1; /* Cambiar a 1 para que tome el espacio disponible equitativamente antes de crecer */
   min-width: 0; /* Permitir que flexbox encoja este elemento por debajo de su contenido */
-  border-right: 1px solid #E5E7EB;
+  border-right: 1px solid var(--color-border-secondary);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background-color: white;
+  background-color: var(--color-bg-secondary);
 }
 
 .chatColumn {
   /* Width set inline */
-  flex-shrink: 0; 
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  background-color: #F9FAFB;
+  background-color: var(--color-bg-primary);
   position: relative; /* Add this so tooltip absolute positioning works correctly if bounded */
 }
 
@@ -30,15 +30,15 @@
   width: 4px;
   background-color: transparent;
   cursor: col-resize;
-  border-left: 1px solid #E5E7EB;
+  border-left: 1px solid var(--color-border-secondary);
   transition: background-color 0.2s;
   z-index: 10;
   flex-shrink: 0;
 }
 
 .resizer:hover, .resizing {
-  background-color: #3994EF;
-  border-left-color: #3994EF;
+  background-color: var(--color-primary);
+  border-left-color: var(--color-primary);
 }
 
 /* Responsive adjustment */
@@ -49,7 +49,7 @@
 /* Transcription Header (Search bar) */
 .transcriptionHeader {
   padding: 16px 24px;
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid var(--color-border-secondary);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -65,24 +65,24 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   pointer-events: none;
 }
 
 .searchInput {
   width: 100%;
   padding: 8px 16px 8px 36px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
-  background-color: #F9FAFB;
+  background-color: var(--color-bg-primary);
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--color-text-secondary);
   outline: none;
 }
 
 .searchInput:focus {
-  border-color: #3994EF;
-  background-color: white;
+  border-color: var(--color-primary);
+  background-color: var(--color-bg-secondary);
 }
 
 /* Search Controls inside Input */
@@ -99,7 +99,7 @@
 
 .matchCount {
   font-size: 0.75rem;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -110,7 +110,7 @@
   justify-content: center;
   padding: 2px;
   border-radius: 4px;
-  color: #6B7280;
+  color: var(--color-text-tertiary);
   cursor: pointer;
   border: none;
   background: transparent;
@@ -118,8 +118,8 @@
 }
 
 .navBtn:hover {
-  background-color: #E5E7EB;
-  color: #111827;
+  background-color: var(--color-border-secondary);
+  color: var(--color-text-primary);
 }
 
 .navBtn:disabled {
@@ -147,13 +147,13 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background-color: #F3F4F6;
+  background-color: var(--color-bg-tertiary);
   padding: 6px 12px;
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 600;
   color: #4B5563;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-border-secondary);
 }
 
 .viewerContainer {
