@@ -36,7 +36,8 @@ import {
   MdAccessTime,
   MdFolderOpen,
   MdTranslate,
-  MdSync
+  MdSync,
+  MdMoreVert
 } from 'react-icons/md';
 
 const whisperModels = [
@@ -152,6 +153,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [showTranscribeModal, setShowTranscribeModal] = useState(false);
   const [selectedWhisperModel, setSelectedWhisperModel] = useState('small');
   
+  // Actions dropdown
+  const [showActionsMenu, setShowActionsMenu] = useState(false);
+  const actionsMenuRef = useRef(null);
+
   // Export Modal
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportFormat, setExportFormat] = useState('pdf');
@@ -180,6 +185,17 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       setActiveTab('transcription');
     }
   }, [recording?.initialTimestamp]);
+
+  useEffect(() => {
+    if (!showActionsMenu) return;
+    const handleClickOutside = (e) => {
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(e.target)) {
+        setShowActionsMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showActionsMenu]);
 
   // 1. Load Initial Data (Transcription, AI Config, Project)
   useEffect(() => {
@@ -1453,41 +1469,52 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         </div>
         
         <div className={styles.headerRight}>
-          <button
-            className={`${styles.actionButton} ${styles.exportBtn}`}
-            onClick={() => setShowExportModal(true)}
-            title="Export Document"
-          >
-            <MdFileDownload size={18} />
-            Exportar
-          </button>
-          <button
-            className={`${styles.actionButton} ${styles.reTranscribeBtn}`}
-            onClick={handleReIndexRAG}
-            disabled={ragIndexed === false}
-            title={ragIndexed === true ? 'Actualizar contexto de búsqueda' : ragIndexed === false ? 'Preparando contexto...' : 'Preparar contexto de búsqueda'}
-          >
-            <MdSync size={18} className={ragIndexed === false ? styles.spinning : ''} />
-            {ragIndexed === false ? 'Preparando...' : 'Contexto'}
-          </button>
-          {localRecording?.transcriptionModel !== 'teams-import' && (
+          <div className={styles.actionsDropdown} ref={actionsMenuRef}>
             <button
-              className={`${styles.actionButton} ${styles.reTranscribeBtn}`}
-              onClick={handleReTranscribeClick}
-              title="Re-run Transcription"
+              className={`${styles.actionButton} ${styles.reTranscribeBtn} ${showActionsMenu ? styles.actionsMenuOpen : ''}`}
+              onClick={() => setShowActionsMenu(v => !v)}
+              title="Más acciones"
             >
-              <MdTranslate size={18} />
-              Transcribe
+              <MdMoreVert size={18} />
             </button>
-          )}
-          <button 
-            className={`${styles.actionButton} ${styles.regenerateBtn}`}
-            onClick={handleRegenerateClick}
-            disabled={isGeneratingAi}
-          >
-            <MdAutorenew size={18} className={isGeneratingAi ? "animate-spin" : ""} />
-            {isGeneratingAi ? 'Generating...' : 'Regenerate AI'}
-          </button>
+            {showActionsMenu && (
+              <div className={styles.actionsMenu}>
+                <button
+                  className={`${styles.actionsMenuItem} ${styles.actionsMenuItemPrimary}`}
+                  onClick={() => { setShowExportModal(true); setShowActionsMenu(false); }}
+                >
+                  <MdFileDownload size={16} />
+                  Exportar
+                </button>
+                <div className={styles.actionsMenuDivider} />
+                <button
+                  className={styles.actionsMenuItem}
+                  onClick={() => { handleRegenerateClick(); setShowActionsMenu(false); }}
+                  disabled={isGeneratingAi}
+                >
+                  <MdAutorenew size={16} className={isGeneratingAi ? "animate-spin" : ""} />
+                  {isGeneratingAi ? 'Generando...' : 'Regenerar IA'}
+                </button>
+                <button
+                  className={styles.actionsMenuItem}
+                  onClick={() => { handleReIndexRAG(); setShowActionsMenu(false); }}
+                  disabled={ragIndexed === false}
+                >
+                  <MdSync size={16} className={ragIndexed === false ? styles.spinning : ''} />
+                  {ragIndexed === false ? 'Preparando contexto...' : 'Actualizar contexto'}
+                </button>
+                {localRecording?.transcriptionModel !== 'teams-import' && (
+                  <button
+                    className={styles.actionsMenuItem}
+                    onClick={() => { handleReTranscribeClick(); setShowActionsMenu(false); }}
+                  >
+                    <MdTranslate size={16} />
+                    Re-transcribir
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
