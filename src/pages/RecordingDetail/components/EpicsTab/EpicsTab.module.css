@@ -144,7 +144,7 @@
 }
 
 .taskHeader:hover {
-  background-color: #FAFBFC;
+  background-color: var(--color-section-card-bg);
 }
 
 .taskHeaderLeft {
@@ -171,7 +171,7 @@
 .taskTitle {
   font-size: 14px;
   font-weight: 600;
-  color: #1F2937;
+  color: var(--color-text-primary);
   line-height: 1.4;
 }
 
@@ -203,18 +203,18 @@
 }
 
 .layer_frontend {
-  background-color: #DBEAFE;
-  color: #1D4ED8;
+  background-color: var(--color-layer-frontend-bg);
+  color: var(--color-layer-frontend-text);
 }
 
 .layer_backend {
-  background-color: #D1FAE5;
-  color: #065F46;
+  background-color: var(--color-success-bg);
+  color: var(--color-success-text);
 }
 
 .layer_fullstack {
-  background-color: #FEF3C7;
-  color: #92400E;
+  background-color: var(--color-layer-backend-bg);
+  color: var(--color-layer-backend-text);
 }
 
 /* AI badge */
@@ -250,21 +250,21 @@
 }
 
 .layerOpt_frontend.layerOptionActive {
-  background-color: #DBEAFE;
-  border-color: #93C5FD;
-  color: #1D4ED8;
+  background-color: var(--color-layer-frontend-bg);
+  border-color: var(--color-status-inprogress-border);
+  color: var(--color-layer-frontend-text);
 }
 
 .layerOpt_backend.layerOptionActive {
-  background-color: #D1FAE5;
-  border-color: #6EE7B7;
-  color: #065F46;
+  background-color: var(--color-success-bg);
+  border-color: var(--color-success);
+  color: var(--color-success-text);
 }
 
 .layerOpt_fullstack.layerOptionActive {
-  background-color: #FEF3C7;
-  border-color: #FCD34D;
-  color: #92400E;
+  background-color: var(--color-layer-backend-bg);
+  border-color: var(--color-warning);
+  color: var(--color-layer-backend-text);
 }
 
 .layerOpt_general.layerOptionActive {
@@ -384,7 +384,7 @@
 }
 
 .saveButton:hover:not(:disabled) {
-  background-color: #2b7dd4;
+  background-color: var(--color-primary-hover);
 }
 
 .saveButton:disabled {
@@ -397,8 +397,8 @@
   align-items: center;
   gap: 4px;
   padding: 7px 14px;
-  background-color: #EDE9FE;
-  color: #7C3AED;
+  background-color: var(--color-layer-fullstack-bg);
+  color: var(--color-layer-fullstack-text);
   border: none;
   border-radius: 6px;
   font-size: 13px;
@@ -408,7 +408,8 @@
 }
 
 .improveButton:hover:not(:disabled) {
-  background-color: #DDD6FE;
+  background-color: var(--color-layer-fullstack-text);
+  color: var(--color-bg-primary);
 }
 
 .improveButton:disabled {
@@ -480,8 +481,8 @@
 .improvePanel {
   margin-top: 12px;
   padding: 14px;
-  background: #F8F7FF;
-  border: 1px solid #EDE9FE;
+  background: var(--color-layer-fullstack-bg);
+  border: 1px solid var(--color-border-primary);
   border-radius: 8px;
 }
 
@@ -646,8 +647,8 @@
   display: inline-flex;
   align-items: center;
   padding: 1px 7px;
-  background-color: #D1FAE5;
-  color: #065F46;
+  background-color: var(--color-success-bg);
+  color: var(--color-success-text);
   border-radius: 10px;
   font-size: 10px;
   font-weight: 700;
@@ -658,12 +659,12 @@
 
 /* Selected task card state */
 .taskCard.selected {
-  border-color: #93C5FD;
-  background-color: #F0F7FF;
+  border-color: var(--color-status-inprogress-border);
+  background-color: var(--color-status-inprogress-bg);
 }
 
 .taskCard.selected .taskHeader:hover {
-  background-color: #E8F2FF;
+  background-color: var(--color-primary-bg);
 }
 
 /* Create form */
@@ -678,7 +679,7 @@
 .formTitle {
   font-size: 15px;
   font-weight: 600;
-  color: #1F2937;
+  color: var(--color-text-primary);
   margin: 0 0 4px 0;
 }
 
@@ -707,10 +708,10 @@
 }
 .statusBadge:hover { opacity: 0.75; }
 
-.status_backlog     { background: #f1f5f9; color: #64748b; border-color: #cbd5e1; }
-.status_in_progress { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
-.status_blocked     { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
-.status_done        { background: #dcfce7; color: #15803d; border-color: #86efac; }
+.status_backlog     { background: var(--color-status-backlog-bg);     color: var(--color-status-backlog-text);     border-color: var(--color-status-backlog-border); }
+.status_in_progress { background: var(--color-status-inprogress-bg);  color: var(--color-status-inprogress-text);  border-color: var(--color-status-inprogress-border); }
+.status_blocked     { background: var(--color-status-blocked-bg);     color: var(--color-status-blocked-text);     border-color: var(--color-status-blocked-border); }
+.status_done        { background: var(--color-status-done-bg);        color: var(--color-status-done-text);        border-color: var(--color-status-done-border); }
 
 /* Status mini-menu */
 .statusMenu {
@@ -741,8 +742,8 @@
   transition: background 0.1s;
   color: var(--color-text-secondary);
 }
-.statusMenuItem:hover { background: #f8fafc; }
-.statusMenuItem.menuItemActive { background: #f0f9ff; }
+.statusMenuItem:hover { background: var(--color-section-bg); }
+.statusMenuItem.menuItemActive { background: var(--color-primary-bg); }
 
 /* ── Recording origin badge ── */
 .recordingOriginBadge {
@@ -751,8 +752,8 @@
   gap: 4px;
   font-size: 10px;
   font-weight: 600;
-  color: #64748b;
-  background: #f1f5f9;
+  color: var(--color-text-tertiary);
+  background: var(--color-section-card-bg);
   border: 1px solid var(--color-border-primary);
   padding: 1px 7px;
   border-radius: 5px;
@@ -763,7 +764,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.recordingOriginBadge:hover { background: #e0f2fe; color: #0284c7; border-color: #bae6fd; }
+.recordingOriginBadge:hover { background: var(--color-status-inprogress-bg); color: var(--color-status-inprogress-text); border-color: var(--color-status-inprogress-border); }
 
 /* ── Expand (ampliar) button ── */
 .expandButton {
@@ -774,13 +775,13 @@
   height: 26px;
   border-radius: 6px;
   border: 1px solid var(--color-border-primary);
-  background: #f8fafc;
-  color: #94a3b8;
+  background: var(--color-section-bg);
+  color: var(--color-text-tertiary);
   cursor: pointer;
   transition: background 0.12s, color 0.12s, border-color 0.12s;
   flex-shrink: 0;
 }
-.expandButton:hover { background: #e0f2fe; color: #0284c7; border-color: #bae6fd; }
+.expandButton:hover { background: var(--color-status-inprogress-bg); color: var(--color-status-inprogress-text); border-color: var(--color-status-inprogress-border); }
 
 /* status badge container (relative for mini-menu) */
 .statusBadgeWrapper {
@@ -797,15 +798,15 @@
   font-size: 10px;
   font-weight: 700;
   cursor: pointer;
-  border: 1.5px solid #93C5FD;
+  border: 1.5px solid var(--color-status-inprogress-border);
   background: var(--color-primary-bg);
-  color: #1D4ED8;
+  color: var(--color-status-inprogress-text);
   transition: all 0.12s;
   white-space: nowrap;
 }
 .addToProjectBtn:hover {
-  background: #DBEAFE;
-  border-color: #60A5FA;
+  background: var(--color-status-inprogress-bg);
+  border-color: var(--color-primary);
 }
 
 /* ── Badge "en proyecto" ── */
@@ -818,14 +819,14 @@
   font-size: 10px;
   font-weight: 700;
   cursor: pointer;
-  border: 1.5px solid #86EFAC;
-  background: #DCFCE7;
-  color: #15803D;
+  border: 1.5px solid var(--color-status-done-border);
+  background: var(--color-status-done-bg);
+  color: var(--color-status-done-text);
   transition: all 0.12s;
   white-space: nowrap;
 }
 .inProjectBadge:hover {
-  background: #FEE2E2;
-  border-color: #FCA5A5;
-  color: #B91C1C;
+  background: var(--color-status-blocked-bg);
+  border-color: var(--color-status-blocked-border);
+  color: var(--color-status-blocked-text);
 }

@@ -1364,7 +1364,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                 <div className={styles.card}>
                   <label className={styles.label}>{t('settings.fields.outputDirectory')}</label>
                   <div className={styles.inputRow}>
-                    <div className={`${styles.input} truncate bg-gray-50 text-gray-500`} title={outputDirectory}>
+                    <div className={`${styles.input} truncate bg-gray-50 dark:bg-surface-tertiary text-gray-500 dark:text-content-secondary`} title={outputDirectory}>
                       {outputDirectory || t('settings.misc.default')}
                     </div>
                     <button
@@ -1383,7 +1383,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                   <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--color-border-subtle)' }}>
                     <label className={styles.label}>{t('settings.fields.databasePath')}</label>
                     <div className={styles.inputRow}>
-                      <div className={`${styles.input} truncate bg-gray-50 text-gray-500`} title={databasePath}>
+                      <div className={`${styles.input} truncate bg-gray-50 dark:bg-surface-tertiary text-gray-500 dark:text-content-secondary`} title={databasePath}>
                         {databasePath || t('settings.misc.default')}
                       </div>
                       <button

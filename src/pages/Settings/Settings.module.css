@@ -126,9 +126,9 @@
 }
 
 .lmStudioIcon {
-  background-color: #E0E7FF; /* indigo-100 */
-  color: #4F46E5; /* indigo-600 */
-  border: 1px solid #C7D2FE; /* indigo-200 */
+  background-color: var(--color-layer-frontend-bg);
+  color: var(--color-layer-frontend-text);
+  border: 1px solid var(--color-status-inprogress-border);
 }
 
 /* Sections */
@@ -168,9 +168,9 @@
 }
 
 .badgeActive {
-  background-color: #D1FAE5; /* emerald-100 */
-  color: var(--color-success); /* emerald-600 */
-  border-color: #A7F3D0; /* emerald-200 */
+  background-color: var(--color-success-bg);
+  color: var(--color-success-text);
+  border-color: var(--color-success);
 }
 
 .badgeInactive {

@@ -8,16 +8,16 @@
 }
 
 .container {
-  background: #FFF1F2;
-  border: 1px solid #FECACA;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-status-blocked-border);
   overflow: hidden;
   position: relative;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
 }
 
 .container {
-  background: #FFF1F2;
-  border: 1px solid #FECACA;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-status-blocked-border);
   overflow: hidden;
   position: relative;
 }
@@ -469,8 +469,8 @@
 .checkIcon {
   width: 48px;
   height: 48px;
-  background: #DEF7EC;
-  color: #03543F;
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
   border-radius: 50%;
   display: flex;
   align-items: center;

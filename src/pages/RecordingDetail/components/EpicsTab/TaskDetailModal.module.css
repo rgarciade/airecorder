@@ -87,16 +87,16 @@
   cursor: pointer;
   transition: all 0.12s;
   background: var(--color-bg-tertiary);
-  color: #64748b;
+  color: var(--color-text-tertiary);
   border-color: var(--color-border-primary);
 }
 
 .statusPill:hover { opacity: 0.85; }
 
-.statusPill.active_backlog     { background: #f1f5f9; color: #475569; border-color: #94a3b8; }
-.statusPill.active_in_progress { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
-.statusPill.active_blocked     { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
-.statusPill.active_done        { background: #dcfce7; color: #15803d; border-color: #86efac; }
+.statusPill.active_backlog     { background: var(--color-status-backlog-bg);     color: var(--color-status-backlog-text);     border-color: var(--color-status-backlog-border); }
+.statusPill.active_in_progress { background: var(--color-status-inprogress-bg);  color: var(--color-status-inprogress-text);  border-color: var(--color-status-inprogress-border); }
+.statusPill.active_blocked     { background: var(--color-status-blocked-bg);     color: var(--color-status-blocked-text);     border-color: var(--color-status-blocked-border); }
+.statusPill.active_done        { background: var(--color-status-done-bg);        color: var(--color-status-done-text);        border-color: var(--color-status-done-border); }
 
 /* Recording origin */
 .recordingBadge {
@@ -105,8 +105,8 @@
   gap: 5px;
   font-size: 0.73rem;
   font-weight: 600;
-  color: #64748b;
-  background: #f1f5f9;
+  color: var(--color-text-tertiary);
+  background: var(--color-section-card-bg);
   border: 1px solid var(--color-border-primary);
   padding: 3px 9px;
   border-radius: 6px;
@@ -119,9 +119,9 @@
 }
 
 .recordingBadge:hover {
-  background: #e0f2fe;
-  color: #0284c7;
-  border-color: #bae6fd;
+  background: var(--color-status-inprogress-bg);
+  color: var(--color-status-inprogress-text);
+  border-color: var(--color-status-inprogress-border);
 }
 
 .closeBtn {
@@ -133,7 +133,7 @@
   border-radius: 8px;
   border: none;
   background: var(--color-bg-tertiary);
-  color: #64748b;
+  color: var(--color-text-tertiary);
   cursor: pointer;
   transition: background 0.12s, color 0.12s;
   flex-shrink: 0;
@@ -169,7 +169,7 @@
 .fieldLabel {
   font-size: 0.7rem;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -180,7 +180,7 @@
   padding: 8px 12px;
   font-size: 0.875rem;
   color: var(--color-text-heading);
-  background: #f8fafc;
+  background: var(--color-section-bg);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
   width: 100%;
@@ -199,7 +199,7 @@
   padding: 8px 12px;
   font-size: 0.875rem;
   color: var(--color-text-heading);
-  background: #f8fafc;
+  background: var(--color-section-bg);
   outline: none;
   resize: vertical;
   font-family: inherit;
@@ -227,10 +227,10 @@
   padding: 6px 4px;
   border-radius: 7px;
   border: 1px solid var(--color-border-primary);
-  background: #f8fafc;
+  background: var(--color-section-bg);
   font-size: 0.8rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--color-text-tertiary);
   cursor: pointer;
   transition: all 0.12s;
 }
@@ -296,8 +296,8 @@
 }
 
 .commentItem {
-  background: #f8fafc;
-  border: 1px solid #e8ecf2;
+  background: var(--color-section-bg);
+  border: 1px solid var(--color-border-secondary);
   border-radius: 10px;
   padding: 10px 12px;
   display: flex;
@@ -313,7 +313,7 @@
 
 .commentDate {
   font-size: 0.68rem;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-weight: 500;
 }
 
@@ -332,11 +332,11 @@
   padding: 0;
 }
 
-.commentDeleteBtn:hover { background: #fee2e2; color: var(--color-danger); }
+.commentDeleteBtn:hover { background: var(--color-danger-bg); color: var(--color-danger); }
 
 .commentContent {
   font-size: 0.82rem;
-  color: #334155;
+  color: var(--color-text-secondary);
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
@@ -358,7 +358,7 @@
   padding: 8px 10px;
   font-size: 0.8rem;
   color: var(--color-text-heading);
-  background: #f8fafc;
+  background: var(--color-section-bg);
   font-family: inherit;
   line-height: 1.45;
   resize: none;
@@ -408,8 +408,8 @@
   gap: 5px;
   padding: 7px 14px;
   border-radius: 8px;
-  border: 1px solid #fecaca;
-  background: #fff5f5;
+  border: 1px solid var(--color-status-blocked-border);
+  background: var(--color-status-blocked-bg);
   color: var(--color-danger-hover);
   font-size: 0.82rem;
   font-weight: 600;
@@ -417,7 +417,7 @@
   transition: background 0.12s, border-color 0.12s;
 }
 
-.deleteButton:hover { background: #fee2e2; border-color: #fca5a5; }
+.deleteButton:hover { background: var(--color-danger-bg); border-color: var(--color-status-blocked-border); }
 
 .deleteConfirmText {
   font-size: 0.82rem;
@@ -443,8 +443,8 @@
   padding: 6px 12px;
   border-radius: 7px;
   border: 1px solid var(--color-border-primary);
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--color-section-bg);
+  color: var(--color-text-tertiary);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;

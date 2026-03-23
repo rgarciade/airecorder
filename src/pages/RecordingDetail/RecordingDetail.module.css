@@ -135,8 +135,8 @@
 
 .statusBadge {
   padding: 2px 8px;
-  background-color: #DCFCE7;
-  color: #15803D;
+  background-color: var(--color-status-done-bg);
+  color: var(--color-status-done-text);
   font-size: 0.625rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -194,11 +194,11 @@
 .regenerateBtn {
   color: var(--color-primary);
   background-color: var(--color-primary-bg);
-  border: 1px solid #DBEAFE;
+  border: 1px solid var(--color-status-inprogress-border);
 }
 
 .regenerateBtn:hover {
-  background-color: #DBEAFE;
+  background-color: var(--color-status-inprogress-bg);
 }
 
 .reTranscribeBtn {
@@ -363,7 +363,7 @@
 }
 
 .modalText {
-  color: #4B5563;
+  color: var(--color-text-secondary);
   margin-bottom: 24px;
   line-height: 1.5;
 }
@@ -398,7 +398,7 @@
   align-items: center;
   gap: 8px;
   font-size: 0.9rem;
-  color: #4B5563;
+  color: var(--color-text-secondary);
   cursor: pointer;
 }
 

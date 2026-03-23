@@ -166,7 +166,7 @@
 
 .message.asistente .messageText {
   background: var(--color-bg-secondary);
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
   border: 1px solid var(--color-border-secondary);
   border-radius: 0 16px 16px 16px; /* Redondeado asimétrico */
 }
@@ -260,7 +260,7 @@
 
 /* Code */
 .messageInlineCode {
-  background-color: rgba(0,0,0,0.06);
+  background-color: var(--color-bg-tertiary);
   padding: 2px 5px;
   border-radius: 4px;
   font-family: monospace;
@@ -275,7 +275,7 @@
 
 .messageCodeBlock {
   background-color: var(--color-bg-tertiary);
-  color: var(--color-border-primary);
+  color: var(--color-text-secondary);
   padding: 12px;
   border-radius: 8px;
   overflow-x: auto;

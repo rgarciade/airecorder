@@ -113,10 +113,10 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  background-color: #EEEEFF;
+  background-color: var(--color-layer-fullstack-bg);
   padding: 8px 16px;
   border-radius: 9999px;
-  color: #5C59C0;
+  color: var(--color-layer-fullstack-text);
   font-weight: 600;
   font-size: 0.85rem;
   transition: background 0.2s, box-shadow 0.2s;
@@ -126,6 +126,7 @@
 }
 
 .importButton:hover {
-  background-color: #E0E0FF;
+  background-color: var(--color-layer-fullstack-text);
+  color: var(--color-bg-primary);
   box-shadow: 0 2px 8px rgba(92, 89, 192, 0.2);
 }

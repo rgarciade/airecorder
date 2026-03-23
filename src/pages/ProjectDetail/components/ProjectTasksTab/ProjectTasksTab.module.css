@@ -161,9 +161,9 @@
 }
 
 .recordingBadge:hover {
-  background: #e0f2fe;
-  color: #0284c7;
-  border-color: #bae6fd;
+  background: var(--color-status-inprogress-bg);
+  color: var(--color-status-inprogress-text);
+  border-color: var(--color-status-inprogress-border);
 }
 
 /* Badges de capa e IA */
@@ -182,9 +182,9 @@
   letter-spacing: 0.02em;
 }
 
-.layer_frontend { background: #f3e8ff; color: #7c3aed; }
-.layer_backend  { background: #fef9c3; color: #a16207; }
-.layer_fullstack{ background: #dcfce7; color: #16a34a; }
+.layer_frontend { background: var(--color-layer-fullstack-bg); color: var(--color-layer-fullstack-text); }
+.layer_backend  { background: var(--color-layer-backend-bg);   color: var(--color-layer-backend-text); }
+.layer_fullstack{ background: var(--color-status-done-bg);     color: var(--color-status-done-text); }
 
 .aiBadge {
   display: flex;
@@ -225,8 +225,8 @@
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 0.875rem;
-  color: #1e293b;
-  background: #f8fafc;
+  color: var(--color-text-primary);
+  background: var(--color-section-bg);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
   width: 100%;
@@ -244,8 +244,8 @@
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 0.875rem;
-  color: #1e293b;
-  background: #f8fafc;
+  color: var(--color-text-primary);
+  background: var(--color-section-bg);
   outline: none;
   resize: vertical;
   font-family: inherit;
@@ -272,10 +272,10 @@
   padding: 6px 4px;
   border-radius: 7px;
   border: 1px solid var(--color-border-primary);
-  background: #f8fafc;
+  background: var(--color-section-bg);
   font-size: 0.8rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--color-text-tertiary);
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -333,7 +333,7 @@
   margin-left: auto;
 }
 
-.deleteButton:hover { background: #fee2e2; border-color: #fca5a5; }
+.deleteButton:hover { background: var(--color-status-blocked-bg); border-color: var(--color-status-blocked-border); }
 
 .deleteConfirm {
   display: flex;

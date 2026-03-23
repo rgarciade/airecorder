@@ -24,9 +24,9 @@
   justify-content: center;
 }
 
-.green  { background-color: #DCFCE7; color: #16A34A; }
-.purple { background-color: #F3E8FF; color: #9333EA; }
-.orange { background-color: #FFEDD5; color: #EA580C; }
+.green  { background-color: var(--color-status-done-bg);      color: var(--color-status-done-text); }
+.purple { background-color: var(--color-layer-fullstack-bg);  color: var(--color-layer-fullstack-text); }
+.orange { background-color: var(--color-warning-bg);          color: var(--color-warning-text); }
 
 .info {
   display: flex;
