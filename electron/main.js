@@ -34,6 +34,7 @@ const { registerAnalysisHandlers } = require('./ipc-handlers/analysis');
 const { registerProjectsHandlers } = require('./ipc-handlers/projects');
 const { registerRagHandlers } = require('./ipc-handlers/rag');
 const { registerIntegrationsHandlers } = require('./ipc-handlers/integrations');
+const { registerIntegrationsOAuthHandlers, handleOAuthCallback } = require('./ipc-handlers/integrations-oauth');
 const { registerDashboardHandlers } = require('./ipc-handlers/dashboard');
 const { registerExportHandlers } = require('./ipc-handlers/export');
 const { registerUpdateHandlers } = require('./ipc-handlers/updates');
@@ -106,6 +107,7 @@ function registerIpcHandlers() {
   registerProjectsHandlers();
   registerRagHandlers();
   registerIntegrationsHandlers();
+  registerIntegrationsOAuthHandlers();
   registerDashboardHandlers();
   registerExportHandlers();
   registerUpdateHandlers();
@@ -263,6 +265,9 @@ async function initApp() {
     }
   });
 
+  // Protocolo deep-link para callbacks OAuth (airecorder://...)
+  app.setAsDefaultProtocolClient('airecorder');
+
   // 7. Sincronizar sistema de archivos con base de datos
   const recordingsPath = await getRecordingsPath();
   transcriptionManager.setBasePath(recordingsPath);
@@ -302,4 +307,24 @@ app.on('activate', function () {
 // Cierre de la aplicación
 app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') app.quit();
+});
+
+// ── OAuth deep-link callbacks ──────────────────────────────────────────────────
+// macOS: el SO envía open-url cuando se abre un enlace airecorder://...
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  if (url.startsWith('airecorder://')) {
+    handleOAuthCallback(url).catch(err => console.error('[Main] OAuth callback error:', err));
+  }
+});
+
+// Windows/Linux: la segunda instancia recibe la URL como argumento
+app.on('second-instance', (event, argv) => {
+  const deepLink = argv.find(arg => arg.startsWith('airecorder://'));
+  if (deepLink) {
+    handleOAuthCallback(deepLink).catch(err => console.error('[Main] OAuth callback error:', err));
+  }
+  // Traer la ventana al frente
+  const win = BrowserWindow.getAllWindows()[0];
+  if (win) { if (win.isMinimized()) win.restore(); win.focus(); }
 });

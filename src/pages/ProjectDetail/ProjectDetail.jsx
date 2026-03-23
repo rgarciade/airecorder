@@ -22,6 +22,7 @@ import { getLMStudioModels } from '../../services/ai/lmStudioProvider';
 import { checkModelVisionSupport } from '../../services/ai/huggingFaceService';
 import chatPendingService from '../../services/chatPendingService';
 import { getAttachments } from '../../services/attachmentsService';
+import ChannelPickerModal from '../../components/ChannelPickerModal/ChannelPickerModal';
 
 const DEEPSEEK_CHAT_MODELS = [
   { value: 'deepseek-chat', label: 'DeepSeek Chat' },
@@ -92,6 +93,14 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [newChatName, setNewChatName] = useState('');
   const [selectedRecordingIds, setSelectedRecordingIds] = useState([]);
+
+  // Estados para canales vinculados por chat
+  const [showChannelPicker, setShowChannelPicker] = useState(false);
+  const [chatIntegrations, setChatIntegrations] = useState([]);
+  const [syncingChannelId, setSyncingChannelId] = useState(null);
+  const [oauthSettings, setOauthSettings] = useState({});
+  const [expandedChannelIds, setExpandedChannelIds] = useState(new Set());
+  const [channelMessages, setChannelMessages] = useState({}); // { [integrationId]: [{ text, speaker }] }
 
   // --- EFFECTS ---
   // Cargar configuración de IA al montar
@@ -275,6 +284,21 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
 
     loadAttachments();
   }, [activeChatId, chats, recordingSummaries]);
+
+  // Cargar integraciones de canales del chat activo
+  useEffect(() => {
+    if (!activeChatId) { setChatIntegrations([]); return; }
+    window.electronAPI.getChatIntegrations(activeChatId).then(list => setChatIntegrations(list || [])).catch(() => setChatIntegrations([]));
+  }, [activeChatId]);
+
+  // Cargar credenciales OAuth para el ChannelPickerModal
+  useEffect(() => {
+    getSettings().then(s => setOauthSettings({
+      googleChatClientId: s.googleChatClientId || '',
+      googleChatClientSecret: s.googleChatClientSecret || '',
+      teamsClientId: s.teamsClientId || ''
+    })).catch(() => {});
+  }, []);
 
   // --- HANDLERS ---
   const loadProjectTasks = async () => {
@@ -694,6 +718,63 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     );
   }
 
+  // Vincular canales desde el modal
+  const handleLinkChannels = async (channels) => {
+    for (const ch of channels) {
+      await window.electronAPI.linkChannelToChat({
+        projectId: project.id,
+        chatId: activeChatId,
+        connectionId: ch.connectionId,
+        channelId: ch.channelId,
+        channelName: ch.channelName,
+        dateFrom: ch.dateFrom,
+        dateTo: ch.dateTo
+      });
+    }
+    const list = await window.electronAPI.getChatIntegrations(activeChatId);
+    setChatIntegrations(list || []);
+  };
+
+  // Sincronizar un canal concreto
+  const handleSyncChannel = async (integration) => {
+    setSyncingChannelId(integration.id);
+    try {
+      await window.electronAPI.syncChatIntegrations({ chatId: activeChatId, projectId: project.id, settings: oauthSettings });
+      const list = await window.electronAPI.getChatIntegrations(activeChatId);
+      setChatIntegrations(list || []);
+    } finally {
+      setSyncingChannelId(null);
+    }
+  };
+
+  // Desvincular un canal
+  const handleUnlinkChannel = async (integrationId) => {
+    if (!window.confirm('¿Desvincular este canal?')) return;
+    await window.electronAPI.unlinkChannelFromChat(integrationId);
+    setChatIntegrations(prev => prev.filter(i => i.id !== integrationId));
+  };
+
+  // Expandir/colapsar vista de mensajes de un canal
+  const toggleChannelMessages = async (integration) => {
+    const id = integration.id;
+    const next = new Set(expandedChannelIds);
+    if (next.has(id)) {
+      next.delete(id);
+      setExpandedChannelIds(next);
+      return;
+    }
+    next.add(id);
+    setExpandedChannelIds(next);
+
+    // Cargar mensajes si tiene una grabación asociada
+    if (integration.recording_id && !channelMessages[id]) {
+      try {
+        const txt = await window.electronAPI.getTranscriptionTxt(integration.recording_id);
+        setChannelMessages(prev => ({ ...prev, [id]: txt || '' }));
+      } catch { /* ignore */ }
+    }
+  };
+
   const activeChat = chats.find(c => c.id === activeChatId);
 
   // Cómputo agregado del estado RAG para el chat activo
@@ -996,6 +1077,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                   recordAttachments={projectContextAttachments}
                   activeAttachments={activeProjectAttachments}
                   onActiveAttachmentsChange={setActiveProjectAttachments}
+                  onAddChannel={activeChatId ? () => setShowChannelPicker(true) : null}
                 />
               </div>
               {activeChat?.contexto && activeChat.contexto.length > 0 && (
@@ -1048,6 +1130,63 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
               )}
             </div>
 
+            {/* Canales vinculados al chat */}
+            {activeChatId && chatIntegrations.length > 0 && (
+              <div className={styles.chatContextInfo}>
+                <div className={styles.chatContextHeader}>
+                  <span className={styles.chatContextTitle} style={{ cursor: 'default' }}>
+                    <MdRefresh size={14} />
+                    <span>Canales vinculados ({chatIntegrations.length})</span>
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 0' }}>
+                  {chatIntegrations.map(integration => (
+                    <div key={integration.id} style={{ border: '1px solid var(--color-border)', borderRadius: 8, overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--color-surface-raised)' }}>
+                        <span style={{ flex: 1, fontSize: 13, color: 'var(--color-text-primary)', fontWeight: 500 }}>
+                          {integration.platform === 'google-chat' ? 'Google Chat' : 'Teams'} · {integration.channel_name || integration.channel_id}
+                        </span>
+                        {integration.last_sync_at && (
+                          <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>
+                            Última sync: {new Date(integration.last_sync_at).toLocaleDateString()}
+                          </span>
+                        )}
+                        <button
+                          className={styles.reindexButton}
+                          onClick={() => handleSyncChannel(integration)}
+                          disabled={syncingChannelId === integration.id}
+                          title="Sincronizar mensajes"
+                        >
+                          <MdRefresh size={13} className={syncingChannelId === integration.id ? styles.spinning : ''} />
+                          Sync
+                        </button>
+                        <button
+                          className={styles.reindexButton}
+                          onClick={() => toggleChannelMessages(integration)}
+                          title="Ver mensajes"
+                        >
+                          {expandedChannelIds.has(integration.id) ? '▲' : '▼'}
+                        </button>
+                        <button
+                          className={styles.reindexButton}
+                          onClick={() => handleUnlinkChannel(integration.id)}
+                          title="Desvincular"
+                          style={{ color: 'var(--color-error, #e53e3e)' }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      {expandedChannelIds.has(integration.id) && (
+                        <div style={{ padding: '10px 14px', maxHeight: 200, overflowY: 'auto', fontSize: 12, color: 'var(--color-text-secondary)', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                          {channelMessages[integration.id] || 'Sin mensajes sincronizados aún. Pulsa Sync para descargar.'}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Panel de Historial de Chats */}
             <div className={styles.rightColumn}>
               <ProjectChatPanel
@@ -1061,6 +1200,15 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
           </div>
         )}
       </div>
+
+      {/* Modal para vincular canal */}
+      {showChannelPicker && (
+        <ChannelPickerModal
+          onClose={() => setShowChannelPicker(false)}
+          onLink={handleLinkChannels}
+          settings={oauthSettings}
+        />
+      )}
 
       {/* Modal para nuevo chat */}
       {showNewChatModal && (

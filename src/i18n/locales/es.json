@@ -122,7 +122,8 @@
     "description": "Gestiona tus preferencias de aplicación y configuraciones de IA.",
     "tabs": {
       "agents": "Agentes de IA",
-      "general": "General"
+      "general": "General",
+      "integrations": "Integraciones"
     },
     "sections": {
       "localProviders": "Proveedores Locales",
@@ -276,6 +277,55 @@
     "uiLanguages": {
       "es": "Español",
       "en": "English"
+    },
+    "integrations": {
+      "title": "Plataformas de Chat",
+      "description": "Conecta tus cuentas para sincronizar conversaciones en tus proyectos.",
+      "connected": "Conectado",
+      "notConnected": "No conectado",
+      "connect": "Conectar",
+      "disconnect": "Desconectar",
+      "disconnectConfirm": "¿Desconectar esta cuenta? Se eliminarán también los canales vinculados.",
+      "connectedAs": "Conectado como {{name}}",
+      "clientId": "Client ID",
+      "clientSecret": "Client Secret",
+      "clientIdPlaceholder": "Introduce tu Client ID",
+      "clientSecretPlaceholder": "Introduce tu Client Secret",
+      "credentialsHelp": "Crea una app en la consola del proveedor para obtener estas credenciales.",
+      "platforms": {
+        "google-chat": {
+          "name": "Google Chat",
+          "description": "Sincroniza mensajes de tus espacios de Google Chat.",
+          "credentialsTitle": "Credenciales de Google Cloud",
+          "help": "Crea un proyecto en Google Cloud Console → APIs & Services → Credenciales → App de escritorio."
+        },
+        "teams": {
+          "name": "Microsoft Teams",
+          "description": "Sincroniza mensajes de canales de Teams.",
+          "credentialsTitle": "Credenciales de Azure",
+          "help": "Registra una app en Azure Portal → App registrations → tipo «Aplicación de escritorio»."
+        }
+      },
+      "errors": {
+        "missingCredentials": "Introduce las credenciales antes de conectar.",
+        "oauthFailed": "Error de autorización: {{error}}",
+        "connectionFailed": "No se pudo establecer la conexión."
+      },
+      "channelPicker": {
+        "title": "Vincular canal al chat",
+        "noConnections": "No hay cuentas conectadas. Ve a Ajustes → Integraciones para conectar una plataforma.",
+        "loadingChannels": "Cargando canales...",
+        "loadError": "Error al cargar canales",
+        "noChannels": "No se encontraron canales.",
+        "dateFrom": "Desde",
+        "dateTo": "Hasta",
+        "datePlaceholder": "Toda la historia",
+        "linkBtn": "Vincular seleccionados",
+        "linking": "Vinculando...",
+        "selectAtLeastOne": "Selecciona al menos un canal.",
+        "expand": "Ver canales",
+        "collapse": "Ocultar"
+      }
     }
   },
   "aiQueue": {
