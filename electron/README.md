@@ -137,6 +137,40 @@ Permite guardar `recordings.db` en un directorio personalizado (útil para disco
 
 **Importante:** `settings.json` NO se modifica si el disco no está disponible al arrancar. Cuando vuelve el disco y se reinicia la app, vuelve automáticamente a la ruta configurada.
 
+## Integraciones OAuth (Google Chat / Teams)
+
+### Tablas SQLite
+- **`platform_connections`** — almacena cuentas OAuth conectadas. Los tokens se cifran con `safeStorage` de Electron.
+- **`project_integrations`** — canales vinculados a un chat específico (`chat_id`), con `date_from` / `date_to` opcionales para filtrar el rango de mensajes, y `last_sync_at` para la sincronización incremental.
+
+### Flujo OAuth (Deep-link)
+1. `main.js` registra el protocolo `airecorder://` con `app.setAsDefaultProtocolClient`.
+2. El renderer llama a `startOAuthFlow({ platform, settings })` → abre el navegador en la URL de autorización.
+3. El proveedor redirige a `airecorder://google-chat-callback?code=...&state=...`.
+4. macOS dispara `app.on('open-url')`, Windows/Linux `app.on('second-instance')`. Ambos llaman a `handleOAuthCallback(url)`.
+5. Los tokens se intercambian, se cifran y se guardan en `platform_connections`.
+
+### Handlers IPC (`ipc-handlers/integrations-oauth.js`)
+| Canal IPC | Descripción |
+|-----------|-------------|
+| `start-oauth-flow` | Inicia flujo OAuth, abre navegador |
+| `get-platform-connections` | Lista cuentas conectadas (sin tokens) |
+| `disconnect-platform` | Elimina conexión y sus integraciones |
+| `get-available-channels` | Lista espacios/canales del proveedor |
+| `get-project-integrations` | Canales vinculados a un proyecto |
+| `get-chat-integrations` | Canales vinculados a un chat específico |
+| `link-channel-to-project` | Vincula canal a proyecto |
+| `link-channel-to-chat` | Vincula canal a un chat (con `chatId`, `dateFrom`, `dateTo`) |
+| `unlink-channel-from-project` | Desvincula canal de proyecto |
+| `unlink-channel-from-chat` | Desvincula canal de chat |
+| `sync-project-integrations` | Descarga mensajes nuevos de todos los canales del proyecto |
+| `sync-chat-integrations` | Descarga mensajes nuevos de los canales de un chat |
+
+### Sincronización incremental
+- Cada sync lee `last_sync_at` de la integración. Si es la primera vez, descarga todo (respetando `date_from` si se configuró).
+- Los mensajes se convierten a formato canónico de transcripción (`[H:MM:SS - H:MM:SS] emoji SPEAKER:\n   texto`) usando `chatSyncUtils.js`.
+- Se guardan como grabación (`recordings` table) con `transcription_model = 'gchat-sync' | 'teams-sync'`, y se vinculan al proyecto.
+
 ## 5. Protección de Código (Build de producción)
 
 El build de producción aplica 3 capas de protección:

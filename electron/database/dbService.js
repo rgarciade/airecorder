@@ -53,7 +53,19 @@ const {
   CREATE_TABLE_TASK_COMMENTS,
   INSERT_TASK_COMMENT,
   SELECT_TASK_COMMENTS,
-  DELETE_TASK_COMMENT
+  DELETE_TASK_COMMENT,
+  CREATE_TABLE_PLATFORM_CONNECTIONS,
+  CREATE_TABLE_PROJECT_INTEGRATIONS,
+  INSERT_PLATFORM_CONNECTION,
+  UPDATE_PLATFORM_CONNECTION_TOKENS,
+  SELECT_ALL_PLATFORM_CONNECTIONS,
+  SELECT_PLATFORM_CONNECTION_BY_ID,
+  DELETE_PLATFORM_CONNECTION,
+  INSERT_PROJECT_INTEGRATION,
+  UPDATE_PROJECT_INTEGRATION_SYNC,
+  SELECT_PROJECT_INTEGRATIONS,
+  SELECT_CHAT_INTEGRATIONS,
+  DELETE_PROJECT_INTEGRATION
 } = require('./queries');
 
 class DbService {
@@ -224,6 +236,29 @@ class DbService {
       }
 
       this.db.prepare(CREATE_TABLE_TASK_COMMENTS).run();
+      this.db.prepare(CREATE_TABLE_PLATFORM_CONNECTIONS).run();
+      this.db.prepare(CREATE_TABLE_PROJECT_INTEGRATIONS).run();
+
+      // Migración para añadir chat_id, date_from, date_to a project_integrations
+      try {
+        const piInfo = this.db.prepare("PRAGMA table_info(project_integrations)").all();
+        if (piInfo.length > 0) {
+          if (!piInfo.some(c => c.name === 'chat_id')) {
+            console.log('[DB] Añadiendo columna chat_id a project_integrations...');
+            this.db.prepare("ALTER TABLE project_integrations ADD COLUMN chat_id TEXT").run();
+          }
+          if (!piInfo.some(c => c.name === 'date_from')) {
+            console.log('[DB] Añadiendo columna date_from a project_integrations...');
+            this.db.prepare("ALTER TABLE project_integrations ADD COLUMN date_from TEXT").run();
+          }
+          if (!piInfo.some(c => c.name === 'date_to')) {
+            console.log('[DB] Añadiendo columna date_to a project_integrations...');
+            this.db.prepare("ALTER TABLE project_integrations ADD COLUMN date_to TEXT").run();
+          }
+        }
+      } catch (e) {
+        console.error('[DB] Error migrando project_integrations:', e);
+      }
 
       // Migración para añadir rag_status a recordings (para RAG)
       try {
@@ -622,6 +657,117 @@ class DbService {
     } catch (error) {
       console.error('[DB] Error getRagStatus:', error);
       return null;
+    }
+  }
+
+  // ========================================
+  // INTEGRACIONES EXTERNAS (OAuth)
+  // ========================================
+
+  savePlatformConnection(platform, accountName, accountId, accessTokenEncrypted, refreshTokenEncrypted, tokenExpiresAt, scopes) {
+    if (!this.db) return { success: false };
+    try {
+      const stmt = this.db.prepare(INSERT_PLATFORM_CONNECTION);
+      const info = stmt.run(platform, accountName, accountId, accessTokenEncrypted, refreshTokenEncrypted, tokenExpiresAt, JSON.stringify(scopes || []));
+      return { success: true, id: info.lastInsertRowid };
+    } catch (error) {
+      console.error('[DB] Error savePlatformConnection:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  updatePlatformConnectionTokens(id, accessTokenEncrypted, refreshTokenEncrypted, tokenExpiresAt) {
+    if (!this.db) return { success: false };
+    try {
+      this.db.prepare(UPDATE_PLATFORM_CONNECTION_TOKENS).run(accessTokenEncrypted, refreshTokenEncrypted, tokenExpiresAt, id);
+      return { success: true };
+    } catch (error) {
+      console.error('[DB] Error updatePlatformConnectionTokens:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  getAllPlatformConnections() {
+    if (!this.db) return [];
+    try {
+      return this.db.prepare(SELECT_ALL_PLATFORM_CONNECTIONS).all();
+    } catch (error) {
+      console.error('[DB] Error getAllPlatformConnections:', error);
+      return [];
+    }
+  }
+
+  getPlatformConnectionById(id) {
+    if (!this.db) return null;
+    try {
+      return this.db.prepare(SELECT_PLATFORM_CONNECTION_BY_ID).get(id);
+    } catch (error) {
+      console.error('[DB] Error getPlatformConnectionById:', error);
+      return null;
+    }
+  }
+
+  deletePlatformConnection(id) {
+    if (!this.db) return { success: false };
+    try {
+      this.db.prepare(DELETE_PLATFORM_CONNECTION).run(id);
+      return { success: true };
+    } catch (error) {
+      console.error('[DB] Error deletePlatformConnection:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  addProjectIntegration(projectId, connectionId, channelId, channelName, chatId = null, dateFrom = null, dateTo = null) {
+    if (!this.db) return { success: false };
+    try {
+      const info = this.db.prepare(INSERT_PROJECT_INTEGRATION).run(projectId, connectionId, channelId, channelName, chatId, dateFrom, dateTo);
+      return { success: true, id: info.lastInsertRowid };
+    } catch (error) {
+      console.error('[DB] Error addProjectIntegration:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  updateProjectIntegrationSync(id, recordingId, lastSyncAt) {
+    if (!this.db) return { success: false };
+    try {
+      this.db.prepare(UPDATE_PROJECT_INTEGRATION_SYNC).run(recordingId, lastSyncAt, id);
+      return { success: true };
+    } catch (error) {
+      console.error('[DB] Error updateProjectIntegrationSync:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  getProjectIntegrations(projectId) {
+    if (!this.db) return [];
+    try {
+      return this.db.prepare(SELECT_PROJECT_INTEGRATIONS).all(projectId);
+    } catch (error) {
+      console.error('[DB] Error getProjectIntegrations:', error);
+      return [];
+    }
+  }
+
+  deleteProjectIntegration(id) {
+    if (!this.db) return { success: false };
+    try {
+      this.db.prepare(DELETE_PROJECT_INTEGRATION).run(id);
+      return { success: true };
+    } catch (error) {
+      console.error('[DB] Error deleteProjectIntegration:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  getChatIntegrations(chatId) {
+    if (!this.db) return [];
+    try {
+      return this.db.prepare(SELECT_CHAT_INTEGRATIONS).all(chatId);
+    } catch (error) {
+      console.error('[DB] Error getChatIntegrations:', error);
+      return [];
     }
   }
 }
