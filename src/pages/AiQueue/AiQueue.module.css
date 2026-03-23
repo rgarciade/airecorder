@@ -133,9 +133,9 @@
   gap: 5px;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #7c3aed;
-  background: #f5f3ff;
-  border: 1px solid #ddd6fe;
+  color: var(--color-layer-fullstack-text);
+  background: var(--color-layer-fullstack-bg);
+  border: 1px solid var(--color-border-primary);
   padding: 5px 11px;
   border-radius: 9999px;
 }
@@ -147,8 +147,8 @@
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--color-danger-hover);
-  background: #fff5f5;
-  border: 1px solid #fecaca;
+  background: var(--color-danger-bg);
+  border: 1px solid var(--color-status-blocked-border);
   padding: 5px 13px;
   border-radius: 9999px;
 }
@@ -318,7 +318,7 @@
 }
 
 .historySubtaskRow td {
-  background-color: #fafafa;
+  background-color: var(--color-section-card-bg);
   font-size: 0.8125rem;
   color: var(--color-text-tertiary);
   border-bottom: 1px dashed var(--color-border-primary);
@@ -372,8 +372,8 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--color-status-done-bg);
+  color: var(--color-status-done-text);
   flex-shrink: 0;
 }
 
@@ -384,7 +384,7 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #fee2e2;
+  background: var(--color-status-blocked-bg);
   color: var(--color-danger-hover);
   flex-shrink: 0;
 }
@@ -401,9 +401,9 @@
   display: inline-block;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #16a34a;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  color: var(--color-status-done-text);
+  background: var(--color-status-done-bg);
+  border: 1px solid var(--color-status-done-border);
   padding: 3px 10px;
   border-radius: 9999px;
 }

@@ -85,8 +85,8 @@
   height: 18px;
   padding: 0 5px;
   border-radius: 9999px;
-  background: #e0f2fe;
-  color: #0284c7;
+  background: var(--color-status-inprogress-bg);
+  color: var(--color-status-inprogress-text);
   font-size: 0.6875rem;
   font-weight: 700;
   line-height: 1;
@@ -190,7 +190,7 @@
   margin-top: 12px;
   margin-bottom: 12px;
   padding: 12px 16px;
-  background: #F8FAF9;
+  background: var(--color-section-card-bg);
   border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
   flex-shrink: 0;
@@ -515,7 +515,7 @@
 }
 
 .recordingOption:hover {
-  background: #f8fafc;
+  background: var(--color-section-bg);
 }
 
 .recordingOption input {
@@ -652,7 +652,7 @@
   margin-top: 2px;
   margin-bottom: 2px; /* Añadido margen inferior */
   padding: 10px 16px;
-  background: #F8FAF9;
+  background: var(--color-section-card-bg);
   border: 1px solid var(--color-border-secondary);
   border-radius: 8px;
 }
@@ -763,8 +763,8 @@
 }
 
 .aiBadge {
-  background-color: #EEF2FF;
-  color: #6366F1;
+  background-color: var(--color-layer-frontend-bg);
+  color: var(--color-layer-frontend-text);
   font-size: 0.625rem;
   padding: 1px 6px;
   border-radius: 4px;

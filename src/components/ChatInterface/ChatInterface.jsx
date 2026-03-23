@@ -287,7 +287,7 @@ export default function ChatInterface({
         const time = parts.slice(2).join(':');
         return (
           <button
-            className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-1 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 rounded text-xs font-medium transition-colors cursor-pointer border border-blue-200"
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-1 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 dark:bg-brand-bg dark:hover:bg-brand dark:text-brand dark:hover:text-white dark:border-brand-light rounded text-xs font-medium transition-colors cursor-pointer border border-blue-200"
             onClick={(e) => {
               e.preventDefault();
               if (onNavigateToRecording) {
@@ -300,7 +300,7 @@ export default function ChatInterface({
           </button>
         );
       }
-      return <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{children}</a>;
+      return <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 dark:text-brand hover:underline">{children}</a>;
     },
     ul: ({ children }) => <ul className={styles.messageList}>{children}</ul>,
     ol: ({ children }) => <ol className={styles.messageList} style={{ listStyleType: 'decimal' }}>{children}</ol>,
@@ -318,11 +318,11 @@ export default function ChatInterface({
     h5: ({ children }) => <h5 className={styles.messageHeading3}>{children}</h5>,
     h6: ({ children }) => <h6 className={styles.messageHeading3}>{children}</h6>,
     blockquote: ({ children }) => (
-      <blockquote className="border-l-4 border-gray-300 pl-4 my-2 italic text-gray-600">
+      <blockquote className="border-l-4 border-gray-300 dark:border-edge-primary pl-4 my-2 italic text-gray-600 dark:text-content-secondary">
         {children}
       </blockquote>
     ),
-    hr: () => <hr className="border-t border-gray-300 my-4" />,
+    hr: () => <hr className="border-t border-gray-300 dark:border-edge-primary my-4" />,
     table: ({ children }) => (
       <div className={styles.messageTableWrapper}>
         <table className={styles.messageTable}>{children}</table>
@@ -388,11 +388,11 @@ export default function ChatInterface({
 
               {showOptions && (
                 <div
-                  className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-50 overflow-hidden"
+                  className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-surface-secondary rounded-lg shadow-lg border border-gray-100 dark:border-edge-primary z-50 overflow-hidden"
                   style={{ minWidth: '150px' }}
                 >
                   <button
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-[var(--color-danger)] hover:bg-red-50 dark:hover:bg-[var(--color-danger-bg)] flex items-center gap-2 transition-colors"
                     onClick={() => {
                       if (onResetChat) onResetChat();
                       setShowOptions(false);
@@ -468,9 +468,9 @@ export default function ChatInterface({
               </div>
               <div className={styles.messageContent}>
                 <div className={`${styles.messageText} flex items-center gap-2`}>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
+                  <div className="w-2 h-2 bg-gray-400 dark:bg-content-muted rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-gray-400 dark:bg-content-muted rounded-full animate-bounce delay-100"></div>
+                  <div className="w-2 h-2 bg-gray-400 dark:bg-content-muted rounded-full animate-bounce delay-200"></div>
                 </div>
               </div>
             </div>
@@ -584,7 +584,7 @@ export default function ChatInterface({
                         );
 
                         if (filteredAttachments.length === 0) {
-                          return <div className="text-xs text-gray-500 text-center py-2">No se encontraron archivos</div>;
+                          return <div className="text-xs text-gray-500 dark:text-content-muted text-center py-2">No se encontraron archivos</div>;
                         }
 
                         const hasGroups = filteredAttachments.some(att => att.recordingTitle);
@@ -671,7 +671,7 @@ export default function ChatInterface({
               <MdSend size={18} />
             </button>
           </div>
-          <div className="text-center mt-2 text-[10px] text-gray-400">
+          <div className="text-center mt-2 text-[10px] text-gray-400 dark:text-content-muted">
             AI can make mistakes. Please verify important details.
           </div>
         </form>

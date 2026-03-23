@@ -45,8 +45,8 @@
   flex-shrink: 0;
   width: 40px;
   height: 40px;
-  background: #fee2e2;
-  border: 1.5px solid #fca5a5;
+  background: var(--color-status-blocked-bg);
+  border: 1.5px solid var(--color-status-blocked-border);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -91,7 +91,7 @@
 }
 
 .closeBtn:hover {
-  background: #fee2e2;
+  background: var(--color-status-blocked-bg);
   color: var(--color-danger-hover);
 }
 

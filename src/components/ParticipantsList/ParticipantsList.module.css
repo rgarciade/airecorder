@@ -156,12 +156,12 @@
 }
 
 .aiBadge {
-  background-color: #EEF2FF;
-  color: #6366F1;
+  background-color: var(--color-layer-frontend-bg);
+  color: var(--color-layer-frontend-text);
   font-size: 0.625rem;
   padding: 1px 4px;
   border-radius: 4px;
-  border: 1px solid #C7D2FE;
+  border: 1px solid var(--color-status-inprogress-border);
   font-weight: 600;
 }
 

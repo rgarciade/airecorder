@@ -76,6 +76,32 @@ html[data-font-size="xlarge"] { font-size: 20px; }
   --color-scrollbar-hover:   #94A3B8;
   --ollama-icon-filter:      none;
 
+  /* Status pill colors */
+  --color-status-backlog-bg:          #F1F5F9;
+  --color-status-backlog-text:        #475569;
+  --color-status-backlog-border:      #94A3B8;
+  --color-status-inprogress-bg:       #DBEAFE;
+  --color-status-inprogress-text:     #1D4ED8;
+  --color-status-inprogress-border:   #93C5FD;
+  --color-status-blocked-bg:          #FEE2E2;
+  --color-status-blocked-text:        #B91C1C;
+  --color-status-blocked-border:      #FCA5A5;
+  --color-status-done-bg:             #DCFCE7;
+  --color-status-done-text:           #15803D;
+  --color-status-done-border:         #86EFAC;
+
+  /* Layer badge colors */
+  --color-layer-frontend-bg:          #DBEAFE;
+  --color-layer-frontend-text:        #1D4ED8;
+  --color-layer-backend-bg:           #FEF3C7;
+  --color-layer-backend-text:         #92400E;
+  --color-layer-fullstack-bg:         #F3E8FF;
+  --color-layer-fullstack-text:       #6D28D9;
+
+  /* Subtle section backgrounds (reemplaza #F8FAFC, #FAFBFC hardcodeados) */
+  --color-section-bg:                 #F8FAFC;
+  --color-section-card-bg:            #FAFBFC;
+
   /* App globals */
   color-scheme: light;
   color: var(--color-text-primary);
@@ -98,9 +124,9 @@ html[data-theme="dark"] {
 
   /* Text */
   --color-text-primary:   #E8EAED;
-  --color-text-secondary: #8B95A5;
-  --color-text-tertiary:  #6B7585;
-  --color-text-muted:     #5A6270;
+  --color-text-secondary: #e9eaec;
+  --color-text-tertiary:  #fbfbfb;
+  --color-text-muted:     #6B7A8D;
   --color-text-heading:   #F0F2F5;
   --color-text-inverse:   #FFFFFF;
 
@@ -142,6 +168,32 @@ html[data-theme="dark"] {
   --color-scrollbar-thumb:   #3A4050;
   --color-scrollbar-hover:   #4A5060;
   --ollama-icon-filter:      invert(1);
+
+  /* Status pill colors — dark */
+  --color-status-backlog-bg:          #1E2535;
+  --color-status-backlog-text:        #94A3B8;
+  --color-status-backlog-border:      #3A4558;
+  --color-status-inprogress-bg:       #172554;
+  --color-status-inprogress-text:     #93C5FD;
+  --color-status-inprogress-border:   #1E40AF;
+  --color-status-blocked-bg:          #2D1215;
+  --color-status-blocked-text:        #FCA5A5;
+  --color-status-blocked-border:      #7F1D1D;
+  --color-status-done-bg:             #052E16;
+  --color-status-done-text:           #86EFAC;
+  --color-status-done-border:         #166534;
+
+  /* Layer badge colors — dark */
+  --color-layer-frontend-bg:          #172554;
+  --color-layer-frontend-text:        #93C5FD;
+  --color-layer-backend-bg:           #2D2305;
+  --color-layer-backend-text:         #FDE68A;
+  --color-layer-fullstack-bg:         #1F1547;
+  --color-layer-fullstack-text:       #C4B5FD;
+
+  /* Subtle section backgrounds — dark */
+  --color-section-bg:                 #1A202E;
+  --color-section-card-bg:            #1E2535;
 
   color-scheme: dark;
   color: var(--color-text-primary);

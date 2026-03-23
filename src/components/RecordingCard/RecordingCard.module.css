@@ -34,8 +34,8 @@
 }
 
 .iconTeams {
-  background-color: #EEEEFF;
-  color: #5C59C0;
+  background-color: var(--color-layer-fullstack-bg);
+  color: var(--color-layer-fullstack-text);
 }
 
 .iconUpload {
