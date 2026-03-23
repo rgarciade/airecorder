@@ -56,6 +56,7 @@ export const getSettings = async () => {
       ollamaRagModel: '', // Modelo de CHAT específico para RAG (ej: deepseek-r1)
       ollamaEmbeddingModel: 'nomic-embed-text', // Modelo de EMBEDDINGS para RAG
       ollamaHost: 'http://localhost:11434',
+      ollamaWolMac: '', // Dirección MAC para Wake-on-LAN (opcional)
       ollamaModelSupportsStreaming: false,
       ollamaContextLength: null, // Ventana de contexto en tokens (null = detectar en cada generación)
       // LM Studio
@@ -63,6 +64,7 @@ export const getSettings = async () => {
       lmStudioRagModel: '', // Modelo de CHAT específico para RAG
       lmStudioEmbeddingModel: '', // Modelo de EMBEDDINGS para RAG
       lmStudioHost: 'http://localhost:1234/v1',
+      lmStudioWolMac: '', // Dirección MAC para Wake-on-LAN (opcional)
       lmStudioContextLength: null, // Ventana de contexto en tokens (null = detectar en cada generación)
       aiProvider: 'ollama', // Cambiado a ollama por defecto según petición
       projectHighlightsCount: 2,

@@ -155,7 +155,8 @@
       "chatModel": "Modelo de Chat (opcional)",
       "embeddingModel": "Modelo de Embeddings ({{provider}})",
       "databasePath": "Directorio de la Base de Datos",
-      "contextLength": "Ventana de Contexto (tokens)"
+      "contextLength": "Ventana de Contexto (tokens)",
+      "wolMac": "MAC del servidor (Wake-on-LAN)"
     },
     "helpText": {
       "transcriptionLanguage": "Idioma utilizado para la transcripción con Whisper.",
@@ -173,7 +174,8 @@
       "databasePath": "Cambia dónde se guarda la base de datos. Se recomienda usar la ruta por defecto.",
       "contextLengthInput": "Deja vacío para detectarlo automáticamente en cada generación, o introduce el valor manualmente.",
       "contextLengthOllama": "Encuéntralo ejecutando: ollama show <modelo> --verbose (campo num_ctx)",
-      "contextLengthLmStudio": "Encuéntralo en LM Studio, en la sección \"My Models\" → opciones avanzadas del modelo cargado."
+      "contextLengthLmStudio": "Encuéntralo en LM Studio, en la sección \"My Models\" → opciones avanzadas del modelo cargado.",
+      "wolMac": "Dirección MAC del equipo remoto para enviar paquete mágico WOL. Déjalo vacío si no necesitas Wake-on-LAN."
     },
     "themes": {
       "system": "Sistema (por defecto)",
@@ -216,7 +218,8 @@
       "checking": "Comprobando...",
       "cancel": "Cancelar",
       "detect": "Detectar",
-      "inUse": "usados"
+      "inUse": "usados",
+      "wakeServer": "Despertar servidor"
     },
     "messages": {
       "saveSuccess": "Ajustes guardados con éxito",
@@ -235,7 +238,12 @@
       "contextLength": "Ventana de contexto: {{n}} tokens",
       "configureInOllama": "configurable en Ollama",
       "contextLengthDetected": "✓ {{n}} tokens detectados automáticamente",
-      "contextLengthNotFound": "No se pudo detectar automáticamente."
+      "contextLengthNotFound": "No se pudo detectar automáticamente.",
+      "wolSent": "Paquete WOL enviado. Esperando respuesta del servidor...",
+      "wolSuccess": "✓ Servidor despertado y conectado correctamente",
+      "wolTimeout": "Paquete WOL enviado, pero el servidor aún no responde. Puede tardar más en arrancar.",
+      "wolFailed": "Error al enviar el paquete WOL. Verifica la configuración de red.",
+      "wolInvalid": "Dirección MAC inválida. Formato esperado: AA:BB:CC:DD:EE:FF"
     },
     "misc": {
       "default": "Por defecto",

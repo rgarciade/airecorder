@@ -96,6 +96,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
   const [ollamaEmbeddingModels, setOllamaEmbeddingModels] = useState([]);
   const [ollamaAvailable, setOllamaAvailable] = useState(false);
   const [ollamaHost, setOllamaHost] = useState('http://localhost:11434');
+  const [ollamaWolMac, setOllamaWolMac] = useState('');
   const [ollamaModelSupportsStreaming, setOllamaModelSupportsStreaming] = useState(false);
   const [isCheckingModel, setIsCheckingModel] = useState(false);
 
@@ -107,7 +108,12 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
   const [lmStudioChatModels, setLmStudioChatModels] = useState([]);
   const [lmStudioEmbeddingModels, setLmStudioEmbeddingModels] = useState([]);
   const [lmStudioHost, setLmStudioHost] = useState('http://localhost:1234/v1');
+  const [lmStudioWolMac, setLmStudioWolMac] = useState('');
   const [lmStudioAvailable, setLmStudioAvailable] = useState(false);
+
+  // Wake-on-LAN
+  const [wolSending, setWolSending] = useState(null); // 'ollama' | 'lmstudio' | null
+  const [wolStatus, setWolStatus] = useState({}); // { ollama: 'sent'|'success'|'timeout'|'failed'|'invalid', lmstudio: ... }
 
   // Context length guardado en settings (persiste, se usa para evitar llamadas a API)
   const [ollamaContextLengthSaved, setOllamaContextLengthSaved] = useState('');
@@ -208,6 +214,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         
         // LM Studio
         setLmStudioHost(savedSettings.lmStudioHost || 'http://localhost:1234/v1');
+        setLmStudioWolMac(savedSettings.lmStudioWolMac || '');
         setLmStudioModel(savedSettings.lmStudioModel || '');
         setLmStudioRagModel(savedSettings.lmStudioRagModel || '');
         setLmStudioEmbeddingModel(savedSettings.lmStudioEmbeddingModel || '');
@@ -222,6 +229,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         setOllamaEmbeddingModel(savedSettings.ollamaEmbeddingModel || 'nomic-embed-text');
         setOllamaModelSupportsStreaming(savedSettings.ollamaModelSupportsStreaming || false);
         if (savedSettings.ollamaHost) setOllamaHost(savedSettings.ollamaHost);
+        setOllamaWolMac(savedSettings.ollamaWolMac || '');
         if (savedSettings.outputDirectory) {
           setOutputDirectory(savedSettings.outputDirectory);
           if (window.electronAPI?.getDirectorySize) {
@@ -268,6 +276,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
     const host = hostToCheck || ollamaHost;
     const isAvailable = await checkOllamaAvailability(host);
     setOllamaAvailable(isAvailable);
+    if (!isAvailable) return false;
     if (isAvailable) {
       try {
         const models = await getAvailableModels(host);
@@ -312,6 +321,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
       setOllamaModels([]);
       setOllamaEmbeddingModels([]);
     }
+    return isAvailable;
   };
 
   const checkLMStudioConnection = async (hostToCheck, savedChatModel = null, savedEmbeddingModel = null) => {
@@ -355,6 +365,33 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
       setLmStudioModels([]);
       setLmStudioChatModels([]);
       setLmStudioEmbeddingModels([]);
+    }
+    return isAvailable;
+  };
+
+  const handleWakeOnLan = async (provider) => {
+    const mac = provider === 'ollama' ? ollamaWolMac : lmStudioWolMac;
+    const macRegex = /^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$/;
+    if (!macRegex.test(mac)) {
+      setWolStatus(prev => ({ ...prev, [provider]: 'invalid' }));
+      return;
+    }
+    setWolSending(provider);
+    setWolStatus(prev => ({ ...prev, [provider]: null }));
+    try {
+      const result = await window.electronAPI.sendWakeOnLan(mac);
+      if (!result.success) throw new Error(result.error);
+      setWolStatus(prev => ({ ...prev, [provider]: 'sent' }));
+      await new Promise(r => setTimeout(r, 8000));
+      const host = provider === 'ollama' ? ollamaHost : lmStudioHost;
+      const available = provider === 'ollama'
+        ? await checkOllamaConnection(host)
+        : await checkLMStudioConnection(host);
+      setWolStatus(prev => ({ ...prev, [provider]: available ? 'success' : 'timeout' }));
+    } catch {
+      setWolStatus(prev => ({ ...prev, [provider]: 'failed' }));
+    } finally {
+      setWolSending(null);
     }
   };
 
@@ -549,6 +586,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         kimiModel: kimiModel,
         // LM Studio
         lmStudioHost: lmStudioHost,
+        lmStudioWolMac: lmStudioWolMac,
         lmStudioModel: lmStudioModel,
         lmStudioRagModel: lmStudioRagModel,
         lmStudioEmbeddingModel: lmStudioEmbeddingModel,
@@ -558,6 +596,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         ollamaRagModel: ollamaRagModel,
         ollamaEmbeddingModel: ollamaEmbeddingModel,
         ollamaHost: ollamaHost,
+        ollamaWolMac: ollamaWolMac,
         ollamaModelSupportsStreaming: ollamaModelSupportsStreaming,
         ollamaContextLength: ollamaContextLengthSaved ? parseInt(ollamaContextLengthSaved) : null,
         // LM Studio (context length)
@@ -769,6 +808,39 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                   </div>
 
                   <div className={styles.formGroup}>
+                    <label className={styles.label}>{t('settings.fields.wolMac')}</label>
+                    <div className={styles.inputRow}>
+                      <input
+                        type="text"
+                        className={styles.input}
+                        value={ollamaWolMac}
+                        onChange={(e) => setOllamaWolMac(e.target.value)}
+                        placeholder="AA:BB:CC:DD:EE:FF"
+                        disabled={aiProvider !== 'ollama'}
+                      />
+                      {ollamaWolMac && !ollamaAvailable && (
+                        <button
+                          className={styles.checkBtn}
+                          onClick={() => handleWakeOnLan('ollama')}
+                          disabled={wolSending === 'ollama'}
+                        >
+                          {wolSending === 'ollama'
+                            ? <MdRefresh size={18} className={styles.spinner} />
+                            : <MdComputer size={18} />}
+                          {t('settings.buttons.wakeServer')}
+                        </button>
+                      )}
+                    </div>
+                    {wolStatus.ollama && (
+                      <p className={wolStatus.ollama === 'success' ? styles.helpText : styles.errorText}
+                         style={wolStatus.ollama === 'success' ? { color: 'var(--color-success)' } : undefined}>
+                        {t(`settings.messages.wol${wolStatus.ollama.charAt(0).toUpperCase()}${wolStatus.ollama.slice(1)}`)}
+                      </p>
+                    )}
+                    <p className={styles.helpText}>{t('settings.helpText.wolMac')}</p>
+                  </div>
+
+                  <div className={styles.formGroup}>
                     <label className={styles.label}>{t('settings.fields.generalModel')}</label>
                     <select
                       className={styles.input}
@@ -941,6 +1013,39 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                         {t('settings.messages.serviceConnected')}
                       </p>
                     )}
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>{t('settings.fields.wolMac')}</label>
+                    <div className={styles.inputRow}>
+                      <input
+                        type="text"
+                        className={styles.input}
+                        value={lmStudioWolMac}
+                        onChange={(e) => setLmStudioWolMac(e.target.value)}
+                        placeholder="AA:BB:CC:DD:EE:FF"
+                        disabled={aiProvider !== 'lmstudio'}
+                      />
+                      {lmStudioWolMac && !lmStudioAvailable && (
+                        <button
+                          className={styles.checkBtn}
+                          onClick={() => handleWakeOnLan('lmstudio')}
+                          disabled={wolSending === 'lmstudio'}
+                        >
+                          {wolSending === 'lmstudio'
+                            ? <MdRefresh size={18} className={styles.spinner} />
+                            : <MdComputer size={18} />}
+                          {t('settings.buttons.wakeServer')}
+                        </button>
+                      )}
+                    </div>
+                    {wolStatus.lmstudio && (
+                      <p className={wolStatus.lmstudio === 'success' ? styles.helpText : styles.errorText}
+                         style={wolStatus.lmstudio === 'success' ? { color: 'var(--color-success)' } : undefined}>
+                        {t(`settings.messages.wol${wolStatus.lmstudio.charAt(0).toUpperCase()}${wolStatus.lmstudio.slice(1)}`)}
+                      </p>
+                    )}
+                    <p className={styles.helpText}>{t('settings.helpText.wolMac')}</p>
                   </div>
 
                   <div className={styles.formGroup}>

@@ -138,7 +138,8 @@
       "chatModel": "Chat Model (optional)",
       "embeddingModel": "Embedding Model ({{provider}})",
       "databasePath": "Database Directory",
-      "contextLength": "Context Window (tokens)"
+      "contextLength": "Context Window (tokens)",
+      "wolMac": "Server MAC (Wake-on-LAN)"
     },
     "helpText": {
       "transcriptionLanguage": "Language used for Whisper transcription.",
@@ -156,7 +157,8 @@
       "databasePath": "Change where the database is stored. Default location is recommended.",
       "contextLengthInput": "Leave empty to detect automatically on each generation, or enter the value manually.",
       "contextLengthOllama": "Find it by running: ollama show <model> --verbose (num_ctx field)",
-      "contextLengthLmStudio": "Find it in LM Studio, under \"My Models\" → advanced options of the loaded model."
+      "contextLengthLmStudio": "Find it in LM Studio, under \"My Models\" → advanced options of the loaded model.",
+      "wolMac": "Remote machine MAC address for WOL magic packet. Leave empty if you don't need Wake-on-LAN."
     },
     "themes": {
       "system": "System (default)",
@@ -199,7 +201,8 @@
       "checking": "Checking...",
       "cancel": "Cancel",
       "detect": "Detect",
-      "inUse": "used"
+      "inUse": "used",
+      "wakeServer": "Wake up server"
     },
     "messages": {
       "saveSuccess": "Settings saved successfully",
@@ -218,7 +221,12 @@
       "contextLength": "Context window: {{n}} tokens",
       "configureInOllama": "configurable in Ollama",
       "contextLengthDetected": "✓ {{n}} tokens detected automatically",
-      "contextLengthNotFound": "Could not detect automatically."
+      "contextLengthNotFound": "Could not detect automatically.",
+      "wolSent": "WOL packet sent. Waiting for server response...",
+      "wolSuccess": "✓ Server woke up and connected successfully",
+      "wolTimeout": "WOL packet sent, but the server is not responding yet. It may take longer to boot.",
+      "wolFailed": "Failed to send WOL packet. Check your network configuration.",
+      "wolInvalid": "Invalid MAC address. Expected format: AA:BB:CC:DD:EE:FF"
     },
     "misc": {
       "default": "Default",
