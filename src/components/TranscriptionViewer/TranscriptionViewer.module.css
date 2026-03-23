@@ -63,7 +63,7 @@
 
 /* Active Segment Highlight */
 .activeSegment {
-  background-color: #F0F9FF; /* Light blue background */
+  background-color: var(--color-primary-bg);
   border-left-color: var(--color-primary);
 }
 
@@ -100,14 +100,14 @@
 }
 
 .activeTimestamp {
-  background-color: #DBEAFE; /* Blue-100 */
-  color: #1D4ED8; /* Blue-700 */
+  background-color: var(--color-primary-bg);
+  color: var(--color-primary);
   font-weight: 600;
 }
 
 /* Search Highlighting */
 .highlight {
-  background-color: #FEF9C3; /* Yellow-100 */
+  background-color: rgba(253, 224, 71, 0.25);
   color: var(--color-text-primary);
   padding: 0 2px;
   border-radius: 2px;
@@ -156,8 +156,7 @@
 }
 
 .system .messageText {
-  /* background-color: var(--color-primary-bg); */ /* Removed bg */
-  color: #1E40AF;
+  color: var(--color-primary);
   padding: 0;
   border-radius: 0;
   text-align: right;
