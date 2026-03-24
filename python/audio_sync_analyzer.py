@@ -97,9 +97,9 @@ class AudioSyncAnalyzer:
         print("🔄 Convirtiendo a arrays numpy...")
         
         try:
-            temp_sys = "/tmp/temp_sys.wav"
+            temp_sys = os.path.join(tempfile.gettempdir(), "temp_sys.wav")
             if mic_exists and self.mic_audio is not None:
-                temp_mic = "/tmp/temp_mic.wav"
+                temp_mic = os.path.join(tempfile.gettempdir(), "temp_mic.wav")
                 self.mic_audio.export(temp_mic, format="wav")
                 self.mic_data, _ = librosa.load(temp_mic, sr=SAMPLE_RATE)
                 os.remove(temp_mic)

@@ -57,3 +57,4 @@ electron-obfuscated/services/sentryService.js
 electron-obfuscated/services/transcriptionManager.js
 electron-obfuscated/services/updateChecker.js
 electron-obfuscated/utils/paths.js
+package-lock.json
