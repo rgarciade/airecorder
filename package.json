@@ -10,17 +10,21 @@
     "preview": "vite preview",
     "electron:dev": "cross-env NODE_ENV=development electron .",
     "python:build": "bash scripts/build-python.sh",
+    "python:build:win": "powershell -ExecutionPolicy Bypass -File scripts/build-python.ps1",
     "obfuscate:electron": "node scripts/obfuscate-electron.js",
     "clean:obfuscated": "rm -rf electron-obfuscated",
     "electron:build": "npm run python:build && vite build && npm run obfuscate:electron && electron-builder --mac && npm run clean:obfuscated",
+    "electron:build:win": "npm run python:build:win && vite build && npm run obfuscate:electron && electron-builder --win && npm run clean:obfuscated",
     "electron:build:js": "vite build && npm run obfuscate:electron && electron-builder --mac && npm run clean:obfuscated",
     "electron:build:dir": "npm run python:build && vite build && npm run obfuscate:electron && electron-builder --mac --dir && npm run clean:obfuscated",
     "reset:onboarding": "node scripts/reset-onboarding.js",
-    "rebuild": "electron-rebuild --arch=arm64"
+    "rebuild": "electron-rebuild --arch=arm64",
+    "rebuild:win": "electron-rebuild --arch=x64"
   },
   "build": {
     "appId": "com.airecorder.app",
     "productName": "AIRecorder",
+    "npmRebuild": false,
     "directories": {
       "output": "dist-electron"
     },
@@ -56,7 +60,7 @@
         }
       ],
       "category": "public.app-category.productivity",
-      "icon": "build/icon.icns",
+      "icon": "build/icons/mac/icon.icns",
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
       "extendInfo": {
@@ -65,6 +69,23 @@
         "NSNetworkVolumesUsageDescription": "AIRecorder necesita acceso a volúmenes de red para guardar y leer bases de datos y grabaciones.",
         "NSRemovableVolumesUsageDescription": "AIRecorder necesita acceso a volúmenes extraíbles para guardar y leer bases de datos y grabaciones."
       }
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icons/win/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icons/win/icon.ico",
+      "uninstallerIcon": "build/icons/win/icon.ico"
     }
   },
   "description": "AI-powered audio recorder and transcription tool",
