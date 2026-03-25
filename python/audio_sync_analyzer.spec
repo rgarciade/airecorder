@@ -9,7 +9,15 @@ import os
 block_cipher = None
 
 # Localizar site-packages del venv para incluir assets explícitamente
-_venv_site = os.path.join(os.path.dirname(SPECPATH), 'venv', 'lib', 'python3.13', 'site-packages')
+# En Windows: venv/Lib/site-packages (sin subcarpeta de versión)
+# En Mac/Linux: venv/lib/pythonX.Y/site-packages
+import sys, platform as _platform
+_is_windows = _platform.system() == 'Windows'
+_venv_root = os.path.join(os.path.dirname(SPECPATH), 'venv')
+if _platform.system() == 'Windows':
+    _venv_site = os.path.join(_venv_root, 'Lib', 'site-packages')
+else:
+    _venv_site = os.path.join(_venv_root, 'lib', f'python{sys.version_info.major}.{sys.version_info.minor}', 'site-packages')
 _fw_assets = os.path.join(_venv_site, 'faster_whisper', 'assets')
 
 a = Analysis(
@@ -81,7 +89,7 @@ exe = EXE(
     name='audio_sync_analyzer',
     debug=False,
     bootloader_ignore_signals=False,
-    strip=True,
+    strip=not _is_windows,
     upx=False,
     console=True,
     target_arch=None,
@@ -91,7 +99,7 @@ coll = COLLECT(
     exe,
     a.binaries,
     a.datas,
-    strip=True,
+    strip=not _is_windows,
     upx=False,
     name='audio_sync_analyzer',
 )

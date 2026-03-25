@@ -66,11 +66,13 @@ class UpdateChecker {
           return null;
         }
 
+        const downloadUrl = this._getPlatformDownloadUrl(release);
+
         const updateInfo = {
           currentVersion,
           latestVersion,
           releaseNotes: release.body || '',
-          downloadUrl: release.html_url,
+          downloadUrl,
           publishedAt: release.published_at,
         };
 
@@ -93,6 +95,20 @@ class UpdateChecker {
       if (!silent) throw error;
       return null;
     }
+  }
+
+  _getPlatformDownloadUrl(release) {
+    const assets = release.assets || [];
+    const platform = process.platform;
+
+    let asset;
+    if (platform === 'darwin') {
+      asset = assets.find((a) => a.name.endsWith('.dmg'));
+    } else if (platform === 'win32') {
+      asset = assets.find((a) => a.name.endsWith('.exe'));
+    }
+
+    return asset ? asset.browser_download_url : release.html_url;
   }
 
   _fetchLatestRelease() {
@@ -146,13 +162,9 @@ class UpdateChecker {
     const targetWindow = this.mainWindow || BrowserWindow.getAllWindows()[0];
     if (!targetWindow) return;
 
-    const { response } = await dialog.showMessageBox(targetWindow, {
-      type: 'info',
-      title: 'Actualización disponible',
-      message: `¡Hay una nueva versión de AIRecorder disponible! (v${updateInfo.latestVersion})`,
-      detail: `Versión actual: v${updateInfo.currentVersion}
-
-⚠️ La app está en desarrollo preliminar y aún no está firmada. Sigue estos pasos para actualizar correctamente:
+    const isMac = process.platform === 'darwin';
+    const platformDetail = isMac
+      ? `⚠️ La app está en desarrollo preliminar y aún no está firmada. Sigue estos pasos para actualizar correctamente:
 
 1. 🗑️  Arrastra la app actual a la Papelera sin miedo — tus datos NO se borran, se guardan en una carpeta aparte y se mantienen intactos.
 
@@ -163,7 +175,22 @@ class UpdateChecker {
    → Desmarca AIRecorder, cierra Ajustes, vuelve a abrirlos y vuelve a marcarlo.
 
 4. 🖥️  Si al abrir la app aparece un aviso de seguridad, ejecuta este comando en la Terminal:
-   xattr -cr /Applications/AIRecorder.app
+   xattr -cr /Applications/AIRecorder.app`
+      : `⚠️ La app está en desarrollo preliminar y aún no está firmada. Sigue estos pasos para actualizar correctamente:
+
+1. 📥  Descarga el instalador (.exe) de la nueva versión.
+
+2. 🔄  Ejecuta el instalador — desinstalará la versión anterior automáticamente e instalará la nueva.
+
+3. 🔐  Si Windows muestra un aviso de seguridad ("Windows protegió tu equipo"), haz clic en "Más información" y luego en "Ejecutar de todas formas".`;
+
+    const { response } = await dialog.showMessageBox(targetWindow, {
+      type: 'info',
+      title: 'Actualización disponible',
+      message: `¡Hay una nueva versión de AIRecorder disponible! (v${updateInfo.latestVersion})`,
+      detail: `Versión actual: v${updateInfo.currentVersion}
+
+${platformDetail}
 
 ────────────────────────────
 Novedades de v${updateInfo.latestVersion}:
