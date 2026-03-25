@@ -8,11 +8,12 @@ Documento rápido para hacer releases y distribuciones de AIRecorder.
 
 ```
 [ ] Actualizar version en package.json
-[ ] npm run electron:build (construir DMG)
+[ ] npm run electron:build        (macOS → DMG arm64)
+[ ] npm run electron:build:win    (Windows → NSIS .exe x64)
 [ ] git tag vX.X.X
 [ ] git push origin vX.X.X
-[ ] Crear GitHub Release con el DMG
-[ ] Verificar que la app detecta la nueva versión
+[ ] Crear GitHub Release subiendo AMBOS archivos (.dmg y .exe)
+[ ] Verificar que la app detecta la nueva versión (Mac → link al DMG, Win → link al EXE)
 ```
 
 ---
@@ -40,21 +41,29 @@ nano package.json
 
 ---
 
-### 2️⃣ Construir el DMG
+### 2️⃣ Construir los instaladores
 
+#### macOS (desde Mac)
 ```bash
 npm run electron:build
 ```
+**Salida:** `dist-electron/AIRecorder-X.X.X-arm64.dmg`
+
+#### Windows (desde Windows, en Git Bash o PowerShell)
+```bash
+npm run electron:build:win
+```
+**Salida:** `dist-electron/AIRecorder Setup X.X.X.exe`
+
+> **Requisito previo Windows:** necesitas `build/icons/win/icon.ico` (ya generado).
 
 **Tiempo esperado:** 5-15 minutos (depende del PC)
 
-**Salida esperada:**
-- Archivo: `dist-electron/AIRecorder-0.0.2-arm64.dmg`
-- Si hay errores en `better-sqlite3`, ejecuta:
-  ```bash
-  npm run rebuild
-  npm run electron:build
-  ```
+Si hay errores en `better-sqlite3`:
+```bash
+npm run rebuild
+npm run electron:build      # o electron:build:win
+```
 
 ---
 
@@ -84,9 +93,10 @@ gh --version
 # Autentica con GitHub (si es primera vez)
 gh auth login
 
-# Crea la release con el DMG
+# Crea la release con ambos instaladores
 gh release create v0.0.2 \
   dist-electron/AIRecorder-0.0.2-arm64.dmg \
+  "dist-electron/AIRecorder Setup 0.0.2.exe" \
   --title "AIRecorder v0.0.2" \
   --notes "
 ## ✨ Nuevas Características

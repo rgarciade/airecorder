@@ -1,148 +1,152 @@
-# 🎙️ AIRecorder
+<div align="center">
+  <img src="build/icon.png" alt="AIRecorder" width="120" />
 
-Una aplicación de escritorio para macOS (Electron + React + Python) para grabar audio con transcripción y análisis impulsados por IA. 
-Graba audio de doble canal (micrófono + sistema), transcribe mediante OpenAI Whisper (Python), y proporciona resúmenes/chat por IA mediante múltiples proveedores locales y en la nube (Gemini, Ollama, etc.).
+  <h1>AIRecorder</h1>
 
-## 📁 Navegación de Documentación (Para IAs y Desarrolladores)
+  <p>Desktop audio recorder with AI-powered transcription, summaries, and chat</p>
 
-Este proyecto utiliza un modelo de **Documentación por Proximidad**. Si vas a trabajar en un área específica, lee el README correspondiente a esa carpeta:
-
-*   🤖 **Lógica de IA y Prompts:** Lee `src/services/ai/README.md`
-*   🖥️ **Lógica Principal, IPC y Base de Datos (SQLite):** Lee `electron/README.md`
-*   📜 **Reglas Generales y Comandos:** Lee `AGENTS.md` (o `CLAUDE.md`)
-
----
-
-## 🐍 Pipeline de Audio y Transcripción (Python)
-
-Esta sección documenta el funcionamiento del backend de procesamiento de audio escrito en Python y cómo se comunica con Electron.
-
-### Arquitectura de Audio
-
-1.  **Archivos:** 
-    *   `python/audio_sync_analyzer.py`: Se encarga de procesar los audios (recortar, emparejar canales). Utiliza `librosa` para calcular el desfase (correlación cruzada) entre la pista del micrófono y la de sistema, y `whisper` para transcribir.
-    *   `python/audio_stream_daemon.py`: (Uso en experimentación/streaming, revisar el código fuente para estado actual).
-
-2.  **Gestor de Colas (Electron):**
-    *   `electron/transcriptionManager.js` controla la ejecución.
-    *   Mantiene una tabla SQLite `transcription_queue` (estado `pending`, `processing`, `completed`, `failed`).
-    *   Se asegura de que **solo haya una transcripción activa a la vez** (`this.activeTask`).
-
-### Comunicación Python <-> Electron (El patrón de Progreso)
-
-Dado que la transcripción es un proceso pesado, Python informa al proceso de Node/Electron de su progreso imprimiendo cadenas formateadas en su salida estándar (`stdout`).
-
-*   **Comando de ejecución:** Electron lanza Python mediante `child_process.spawn`:
-    `python python/audio_sync_analyzer.py --basename <carpeta_del_audio> --model <modelo_whisper>`
-*   **Reporte de Progreso:** Dentro de Python, cada cierto tiempo se imprime:
-    `PROGRESS:15` (o el porcentaje correspondiente).
-*   **Análisis (Parsing):** `transcriptionManager.js` captura el evento `.on('data', ...)` del proceso, busca la cadena `PROGRESS:XX`, actualiza la base de datos y emite un evento al frontend para actualizar la barra de progreso en React.
-
-### Dependencias y Entorno
-El código de Python requiere ejecutarse dentro de un entorno virtual que contenga `whisper`, `librosa`, `pydub`, `ffmpeg` (en sistema) y `torch`.
-*   **Aviso para Agentes de IA:** Los scripts de Python pueden tener rutas hardcodeadas (como la ruta al ejecutable de `python` dentro de `venv/`). **Consérvalas a menos que el usuario pida explícitamente refactorizar la portabilidad.**
+  ![Version](https://img.shields.io/badge/version-0.3.2-blue?style=flat-square)
+  ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey?style=flat-square)
+  ![Electron](https://img.shields.io/badge/Electron-31-47848F?style=flat-square&logo=electron)
+  ![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)
+  ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python)
+  ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
+</div>
 
 ---
 
-## 🚀 Construcción y Distribución
+## What is AIRecorder?
 
-### Versiones y Releases
+AIRecorder captures both your **microphone** and **system audio** simultaneously, transcribes them with [OpenAI Whisper](https://github.com/openai/whisper), and lets you chat with the content using your AI provider of choice — all running locally or via cloud APIs.
 
-La app usa un **sistema de actualizaciones manual** (sin firma de Apple Developer). Las actualizaciones se distribuyen mediante **GitHub Releases**.
+Perfect for meetings, interviews, lectures, and any audio you need to revisit.
 
-#### Versión Actual
-- **Ubicación:** `package.json` → campo `"version"`
-- **Formato:** Semántico (ej. `0.0.1`, `1.0.0`, `1.2.3`)
-- **Sincronización:** La app consulta automáticamente `https://api.github.com/repos/rgarciade/airecorder/releases/latest` cada 4 horas
+## Features
 
-### Construir el DMG para macOS
+- **Dual-channel recording** — captures microphone and system audio as separate tracks
+- **AI transcription** — powered by [faster-whisper](https://github.com/SYSTRAN/faster-whisper), runs locally with no data sent to the cloud
+- **Multiple AI providers** — Gemini, Ollama, LM Studio, DeepSeek, Kimi
+- **Chat with recordings** — ask questions about any transcription
+- **Projects** — group recordings, generate summaries, timelines and task suggestions
+- **Transcription queue** — processes recordings one at a time in the background
+- **Multi-language UI** — Spanish and English support via i18next
 
-**Prerequisitos:**
-- Node.js v20+
-- Python 3.10+ con `venv` activado y dependencias instaladas
-- Xcode (para firmar código, aunque no sea obligatorio)
+## Tech Stack
 
-**Comando:**
+| Layer | Technology |
+|-------|-----------|
+| Desktop shell | Electron 31 |
+| Frontend | React 18 + Vite + TailwindCSS |
+| Database | SQLite via better-sqlite3 |
+| Transcription | Python 3 + faster-whisper |
+| AI chat | Gemini / Ollama / LM Studio / DeepSeek / Kimi |
+| State management | Redux Toolkit |
+
+## Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) v20+
+- [Python](https://www.python.org/) 3.10+
+
+### Installation
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/rgarciade/airecorder.git
+cd airecorder
+
+# 2. Install Node dependencies
+npm install
+
+# 3. Rebuild native modules for Electron
+npm rebuild better-sqlite3 --runtime=electron --target=31.7.7 --dist-url=https://electronjs.org/headers --build-from-source
+
+# 4. Install Python dependencies
+pip install -r requirements.txt
+```
+
+### Run in development
+
+```bash
+npm run dev
+```
+
+This starts Vite (port 5173) and Electron concurrently. Hot reload is enabled for the React frontend.
+
+## Project Structure
+
+```
+airecorder/
+├── electron/               # Main process (Node.js / Electron)
+│   ├── ipc-handlers/       # IPC communication handlers
+│   ├── services/           # Transcription queue, audio, update checker
+│   └── database/           # SQLite schema, queries, migrations
+├── src/                    # Renderer process (React)
+│   ├── pages/              # Full-page views (Home, Projects, Settings…)
+│   ├── components/         # Reusable UI components
+│   └── services/           # Audio capture, AI providers, Redux store
+├── python/                 # Audio processing & transcription backend
+│   └── audio_sync_analyzer.py
+├── scripts/                # Build utilities (obfuscation, ASAR protection…)
+└── requirements.txt        # Python dependencies
+```
+
+> Each major folder has its own `README.md` with in-depth documentation.
+
+## Building for Production
+
+### macOS (DMG)
+
 ```bash
 npm run electron:build
 ```
 
-**Qué hace:**
-1. Compila el código Python con PyInstaller (`npm run python:build`)
-2. Construye el frontend React (`vite build`)
-3. Ofusca el código Electron (`npm run obfuscate:electron`)
-4. Genera el DMG con electron-builder
-5. Aplica protección ASAR con asarmor (dificulta la extracción)
-6. Limpia carpetas temporales
+Outputs `dist-electron/AIRecorder-<version>-arm64.dmg`.
 
-**Salida:**
-- `dist-electron/AIRecorder-0.0.1-arm64.dmg` (ajusta versión según tu `package.json`)
+The build pipeline:
+1. Compiles Python with PyInstaller
+2. Builds the React frontend with Vite
+3. Obfuscates Electron source
+4. Packages with electron-builder
+5. Applies ASAR protection
 
-### Crear una Release en GitHub
+### Windows
 
-#### Paso 1: Preparar la versión
+Windows builds are not yet automated. Run the app in development mode with `npm run dev`.
+
+## Contributing
+
+Contributions are welcome! Here is how to get started:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Make your changes and commit: `git commit -m 'feat: add my feature'`
+4. Push to your branch: `git push origin feature/my-feature`
+5. Open a Pull Request
+
+### Commit convention
+
+This project follows [Conventional Commits](https://www.conventionalcommits.org/):
+
+| Prefix | Use for |
+|--------|---------|
+| `feat:` | New features |
+| `fix:` | Bug fixes |
+| `chore:` | Maintenance, dependencies |
+| `docs:` | Documentation changes |
+| `refactor:` | Code refactoring |
+
+### Running the Python script manually
+
 ```bash
-# Edita package.json
-nano package.json
-# Cambia "version" de "0.0.1" a "0.0.2" (o la versión deseada)
+python python/audio_sync_analyzer.py \
+  --basename <recording-folder-name> \
+  --base_dir <path-to-recordings> \
+  --model small \
+  --threads 4
 ```
 
-#### Paso 2: Construir el DMG
-```bash
-npm run electron:build
-```
+## License
 
-#### Paso 3: Crear tag en Git
-```bash
-git tag v0.0.2  # Usa la misma versión que en package.json
-git push origin v0.0.2
-```
-
-#### Paso 4: Crear Release en GitHub (opción A: CLI)
-```bash
-# Instala gh (GitHub CLI) si no lo tienes:
-# brew install gh
-
-# Crear release con el DMG adjunto
-gh release create v0.0.2 \
-  "dist-electron/AIRecorder-0.0.2-arm64.dmg" \
-  --title "AIRecorder v0.0.2" \
-  --notes "Descripción de cambios y nuevas funciones"
-```
-
-#### Paso 4: Crear Release en GitHub (opción B: Web)
-1. Ve a https://github.com/rgarciade/airecorder/releases/new
-2. Click en "Draft a new release"
-3. Tag: `v0.0.2`
-4. Title: `AIRecorder v0.0.2`
-5. Description: Detalla los cambios (qué se mejoró, qué se corrigió)
-6. Adjunta el DMG: Arrastra `dist-electron/AIRecorder-0.0.2-arm64.dmg` al campo de assets
-7. Click "Publish release"
-
-### Cómo actualizarán los usuarios
-
-1. La app arranca y tras 5 segundos verifica automáticamente si hay una versión más nueva en GitHub
-2. Si existe una versión más reciente (ej. app tiene v0.0.1, release es v0.0.2):
-   - Muestra un diálogo nativo: *"¡Hay una nueva versión de AIRecorder disponible! v0.0.2"*
-   - Usuario puede hacer click en "Descargar" → abre el navegador con el DMG de descarga
-   - Usuario descarga el DMG, lo abre y arrastra la app a Aplicaciones
-3. Los usuarios también pueden verificar manualmente: **Settings → General → "Buscar actualizaciones"**
-
-### Protección de Código
-
-La construcción aplica **3 capas de protección** automáticamente:
-
-1. **Ofuscación JavaScript** (`scripts/obfuscate-electron.js`)
-   - Copia `electron/` → `electron-obfuscated/`
-   - Aplica ofuscación con control flow flattening, string array encoding, dead code injection
-   - Solo se ejecuta en build, no afecta desarrollo
-
-2. **Protección ASAR** (`scripts/protect-asar.js`)
-   - Hook post-build que aplica `asarmor` al archivo `.asar`
-   - Hace que `npx @electron/asar extract` sea mucho más difícil
-   - Añade bloat ficticio (datos basura) que ralentiza intentos de extracción
-
-3. **Minificación Frontend**
-   - Vite minifica React en producción automáticamente
-
-**Nota:** La protección es pragmática, no perfecta. Un usuario determinado siempre puede des-ofuscar el código. El objetivo es **elevar el esfuerzo requerido** para copiar la app.
+MIT © [Raul Garcia](https://github.com/rgarciade)

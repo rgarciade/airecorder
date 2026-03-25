@@ -171,6 +171,11 @@ export default function Onboarding({ onComplete }) {
 
       await updateSettings(settingsToSave);
 
+      if (databaseDirectory && window.electronAPI?.changeDbPath) {
+        const newDbPath = `${databaseDirectory}/recordings.db`;
+        await window.electronAPI.changeDbPath(newDbPath, false);
+      }
+
       if (import.meta.env.VITE_SENTRY_DSN) {
         if (window.electronAPI?.sentryLogInfo) {
           window.electronAPI.sentryLogInfo('Usuario ha completado el Onboarding (Primera vez)');

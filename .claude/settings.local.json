@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(cmd /c \"set NODE_ENV=development && npm run dev\")",
+      "Bash(npx concurrently:*)",
+      "Bash(npx electron-rebuild:*)",
+      "Bash(./node_modules/.bin/electron-rebuild -f -w better-sqlite3)",
+      "Bash(npm rebuild:*)",
+      "Bash(pip install:*)",
+      "Bash(npx electron-icon-builder:*)"
+    ]
+  }
+}
