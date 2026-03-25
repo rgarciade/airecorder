@@ -226,6 +226,7 @@ class TranscriptionManager {
         // Entorno para el proceso Python
         const spawnEnv = { ...process.env };
         spawnEnv.PYTHONUNBUFFERED = '1'; // Forzar stdout sin buffer (garantiza flush inmediato)
+        spawnEnv.PYTHONIOENCODING = 'utf-8'; // Forzar UTF-8 en Windows (evita error con emojis)
         if (ffmpegPath) {
             spawnEnv.FFMPEG_PATH = ffmpegPath;
             // Añadir directorio de ffmpeg al PATH para que pydub lo encuentre vía which()
