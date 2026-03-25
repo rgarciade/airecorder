@@ -1,6 +1,6 @@
 {
-  "version": "0.3.2",
-  "releaseDate": "2026-03-19",
+  "version": "0.4.1",
+  "releaseDate": "2026-03-25",
   "i18n": {
     "es": {
       "modalTitle": "Novedades de esta versión",
@@ -12,9 +12,9 @@
       "pageSubheading": "Todos los cambios y mejoras de cada versión",
       "pageVersionLabel": "Versión",
       "pageReleaseDateLabel": "Fecha de lanzamiento",
-      "releaseTitle": "Correcciones críticas de estabilidad",
+      "releaseTitle": "Versión para Windows y Mejoras de IA",
       "releaseDateFormatted": "Marzo 2026",
-      "catNew": "Correcciones y mejoras"
+      "catNew": "Nuevas funciones"
     },
     "en": {
       "modalTitle": "What's New",
@@ -26,46 +26,58 @@
       "pageSubheading": "All changes and improvements for each version",
       "pageVersionLabel": "Version",
       "pageReleaseDateLabel": "Release date",
-      "releaseTitle": "Critical Stability Fixes",
+      "releaseTitle": "Windows Version & AI Enhancements",
       "releaseDateFormatted": "March 2026",
-      "catNew": "Fixes & improvements"
+      "catNew": "New Features"
     }
   },
   "changes": [
     {
-      "id": "transcription-crash-fix",
-      "icon": "💥",
+      "id": "windows-version",
+      "icon": "💻",
       "es": {
-        "title": "Corrección de crash al transcribir",
-        "desc": "Se corrige un crash crítico en la versión compilada que bloqueaba la aplicación durante la transcripción. Era causado por una recursión infinita entre el handler de stderr de Python y el sistema de telemetría Sentry."
+        "title": "Versión para Windows",
+        "desc": "¡AIRecorder ahora es compatible con Windows! Se ha creado una build específica para Windows (x64) y se han realizado los ajustes de compatibilidad necesarios. La web ahora muestra el botón de descarga correcto según tu sistema operativo."
       },
       "en": {
-        "title": "Transcription Crash Fix",
-        "desc": "Fixed a critical crash in the compiled app that would freeze the application during transcription, caused by an infinite recursion between the Python stderr handler and the Sentry telemetry system."
+        "title": "Windows Version",
+        "desc": "AIRecorder is now compatible with Windows! A specific build for Windows (x64) has been created, and necessary compatibility adjustments have been made. The website now displays the correct download button based on your operating system."
       }
     },
     {
-      "id": "markdown-export",
-      "icon": "📄",
+      "id": "dark-mode",
+      "icon": "🌙",
       "es": {
-        "title": "Exportación mejorada con soporte Markdown",
-        "desc": "La exportación a PDF y DOCX ahora renderiza correctamente el formato Markdown del resumen: negritas, cursivas, listas y encabezados."
+        "title": "Modo Oscuro Completo y Mejoras de UI",
+        "desc": "Se ha implementado un modo oscuro completo en toda la aplicación para una mejor experiencia visual en condiciones de poca luz. Además, se han realizado varias mejoras de contraste y estilos."
       },
       "en": {
-        "title": "Export with Markdown Support",
-        "desc": "Export to PDF and DOCX now correctly renders Markdown formatting from the summary: bold, italic, lists and headings."
+        "title": "Full Dark Mode & UI Improvements",
+        "desc": "A full dark mode has been implemented throughout the application for a better visual experience in low-light conditions. Additionally, several contrast and style improvements have been made."
       }
     },
     {
-      "id": "local-model-compat",
+      "id": "ai-chat-improvements",
+      "icon": "🧠",
+      "es": {
+        "title": "Mejoras en el Chat con IA",
+        "desc": "Ahora puedes navegar directamente a un momento específico de la transcripción desde un mensaje del chat. También se ha añadido un interruptor para alternar entre el modo RAG (búsqueda semántica) y el modo \"Completo\" que usa la transcripción entera como contexto."
+      },
+      "en": {
+        "title": "AI Chat Improvements",
+        "desc": "You can now navigate directly to a specific moment in the transcription from a chat message. A toggle has also been added to switch between RAG mode (semantic search) and \"Full\" mode, which uses the entire transcript as context."
+      }
+    },
+    {
+      "id": "reasoning-models-support",
       "icon": "🤖",
       "es": {
-        "title": "Mejor compatibilidad con modelos locales",
-        "desc": "Se mejora la generación de resúmenes, participantes y tareas con modelos locales (Ollama/LM Studio), concatenando correctamente el system prompt para modelos que no soportan el campo de sistema separado."
+        "title": "Soporte para Modelos de Razonamiento Avanzado",
+        "desc": "Se ha mejorado el soporte para modelos de IA avanzados (Reasoning models), permitiendo análisis más profundos y respuestas más coherentes en tareas complejas. La re-indexación de la base de datos vectorial es ahora automática al cambiar de modelo."
       },
       "en": {
-        "title": "Better Local Model Compatibility",
-        "desc": "Improved summary, participants and tasks generation with local models (Ollama/LM Studio) by correctly concatenating the system prompt for models that don't support a separate system field."
+        "title": "Advanced Reasoning Models Support",
+        "desc": "Enhanced support for advanced AI models (Reasoning models), enabling deeper analysis and more coherent responses in complex tasks. Vector database re-indexing is now automatic when changing models."
       }
     }
   ]

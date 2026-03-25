@@ -677,6 +677,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
               <MdSettings className={styles.tabIcon} />
               {t('settings.tabs.general')}
             </button>
+            {/*
             <button
               className={`${styles.tab} ${activeTab === 'integrations' ? styles.tabActive : ''}`}
               onClick={() => setActiveTab('integrations')}
@@ -684,6 +685,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
               <MdLink className={styles.tabIcon} />
               {t('settings.tabs.integrations')}
             </button>
+            */}
           </div>
 
           {activeTab === 'integrations' ? (
