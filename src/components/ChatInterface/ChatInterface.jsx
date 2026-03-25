@@ -5,7 +5,7 @@ import styles from './ChatInterface.module.css';
 import {
   MdSend, MdPerson, MdSmartToy, MdDeleteOutline, MdMoreHoriz,
   MdAdd, MdAttachFile, MdClose, MdImage, MdPictureAsPdf, MdDescription, MdInsertDriveFile, MdTableChart,
-  MdVisibility, MdVisibilityOff
+  MdVisibility, MdVisibilityOff, MdLink
 } from 'react-icons/md';
 
 function AttachmentTypeIcon({ type, size = 14 }) {
@@ -42,6 +42,7 @@ export default function ChatInterface({
   activeAttachments = [],
   onActiveAttachmentsChange,
   allowNewAttachments = true,
+  onAddChannel = null,
 }) {
   const [newMessage, setNewMessage] = useState('');
   const [showOptions, setShowOptions] = useState(false);
@@ -545,6 +546,19 @@ export default function ChatInterface({
                   </div>
                 )}
               </div>
+            )}
+
+            {/* Botón vincular canal externo */}
+            {onAddChannel && (
+              <button
+                type="button"
+                className={styles.attachBtn}
+                onClick={onAddChannel}
+                disabled={isLoading}
+                title="Vincular canal"
+              >
+                <MdLink size={17} />
+              </button>
             )}
 
             {/* Botón adjuntar (seleccionar de los adjuntos del record) */}
