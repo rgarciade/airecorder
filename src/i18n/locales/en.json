@@ -105,7 +105,8 @@
     "description": "Manage your app preferences and AI configurations.",
     "tabs": {
       "agents": "AI Agents",
-      "general": "General"
+      "general": "General",
+      "integrations": "Integrations"
     },
     "sections": {
       "localProviders": "Local Providers",
@@ -259,6 +260,55 @@
     "uiLanguages": {
       "es": "Español",
       "en": "English"
+    },
+    "integrations": {
+      "title": "Chat Platforms",
+      "description": "Connect your accounts to sync conversations into your projects.",
+      "connected": "Connected",
+      "notConnected": "Not connected",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "disconnectConfirm": "Disconnect this account? Linked channels will also be removed.",
+      "connectedAs": "Connected as {{name}}",
+      "clientId": "Client ID",
+      "clientSecret": "Client Secret",
+      "clientIdPlaceholder": "Enter your Client ID",
+      "clientSecretPlaceholder": "Enter your Client Secret",
+      "credentialsHelp": "Create an app in the provider console to get these credentials.",
+      "platforms": {
+        "google-chat": {
+          "name": "Google Chat",
+          "description": "Sync messages from your Google Chat spaces.",
+          "credentialsTitle": "Google Cloud Credentials",
+          "help": "Create a project in Google Cloud Console → APIs & Services → Credentials → Desktop app."
+        },
+        "teams": {
+          "name": "Microsoft Teams",
+          "description": "Sync messages from Teams channels.",
+          "credentialsTitle": "Azure Credentials",
+          "help": "Register an app in Azure Portal → App registrations → type «Desktop application»."
+        }
+      },
+      "errors": {
+        "missingCredentials": "Enter credentials before connecting.",
+        "oauthFailed": "Authorization error: {{error}}",
+        "connectionFailed": "Could not establish the connection."
+      },
+      "channelPicker": {
+        "title": "Link channel to chat",
+        "noConnections": "No connected accounts. Go to Settings → Integrations to connect a platform.",
+        "loadingChannels": "Loading channels...",
+        "loadError": "Error loading channels",
+        "noChannels": "No channels found.",
+        "dateFrom": "From",
+        "dateTo": "To",
+        "datePlaceholder": "All history",
+        "linkBtn": "Link selected",
+        "linking": "Linking...",
+        "selectAtLeastOne": "Select at least one channel.",
+        "expand": "Show channels",
+        "collapse": "Hide"
+      }
     }
   },
   "aiQueue": {

@@ -180,6 +180,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   sentryLogInfo: (message, context) => ipcRenderer.invoke('sentry-log-info', message, context),
   sentryLogError: (errorInfo, context) => ipcRenderer.invoke('sentry-log-error', errorInfo, context),
 
+  // Integraciones OAuth (Google Chat, Teams)
+  startOAuthFlow: (params) => ipcRenderer.invoke('start-oauth-flow', params),
+  getPlatformConnections: () => ipcRenderer.invoke('get-platform-connections'),
+  disconnectPlatform: (connectionId) => ipcRenderer.invoke('disconnect-platform', connectionId),
+  getAvailableChannels: (params) => ipcRenderer.invoke('get-available-channels', params),
+  getProjectIntegrations: (projectId) => ipcRenderer.invoke('get-project-integrations', projectId),
+  linkChannelToProject: (params) => ipcRenderer.invoke('link-channel-to-project', params),
+  unlinkChannelFromProject: (integrationId) => ipcRenderer.invoke('unlink-channel-from-project', integrationId),
+  syncProjectIntegrations: (params) => ipcRenderer.invoke('sync-project-integrations', params),
+  getChatIntegrations: (chatId) => ipcRenderer.invoke('get-chat-integrations', chatId),
+  linkChannelToChat: (params) => ipcRenderer.invoke('link-channel-to-chat', params),
+  unlinkChannelFromChat: (integrationId) => ipcRenderer.invoke('unlink-channel-from-chat', integrationId),
+  syncChatIntegrations: (params) => ipcRenderer.invoke('sync-chat-integrations', params),
+
   // Base de datos — ruta configurable
   changeDbPath: (newPath, migrate) => ipcRenderer.invoke('change-db-path', { newPath, migrate }),
   getDbStatus: () => ipcRenderer.invoke('get-db-status'),
