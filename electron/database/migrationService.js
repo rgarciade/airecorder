@@ -11,39 +11,53 @@ class MigrationService {
   /**
    * Obtiene la duración de un archivo de audio usando ffprobe/ffmpeg
    */
+  /**
+   * Parsea un string HH:MM:SS.cs a segundos
+   */
+  parseDuration(hours, minutes, seconds, centiseconds) {
+    return (parseInt(hours, 10) * 3600) + (parseInt(minutes, 10) * 60) + parseInt(seconds, 10) + (parseInt(centiseconds, 10) / 100);
+  }
+
   async getAudioDuration(filePath) {
+    // Intento 1: metadata rápida con ffmpeg -i
     try {
-      // Usamos ffmpeg -i para obtener metadata. La salida va a stderr.
-      // Greppeamos "Duration: HH:MM:SS.ms"
       const command = `"${ffmpegPath}" -i "${filePath}" 2>&1 | grep "Duration"`;
       const { stdout } = await execPromise(command);
-      
+
       const match = stdout.match(/Duration: (\d{2}):(\d{2}):(\d{2})\.(\d{2})/);
       if (match) {
-        const hours = parseInt(match[1], 10);
-        const minutes = parseInt(match[2], 10);
-        const seconds = parseInt(match[3], 10);
-        const centiseconds = parseInt(match[4], 10);
-        
-        return (hours * 3600) + (minutes * 60) + seconds + (centiseconds / 100);
+        return this.parseDuration(match[1], match[2], match[3], match[4]);
       }
-      return 0;
     } catch (error) {
-      // ffmpeg devuelve código de error si no hay output file, pero stderr tiene la info
-      // Si el error contiene la duración, la parseamos de ahí
       if (error.stdout) {
-         const match = error.stdout.match(/Duration: (\d{2}):(\d{2}):(\d{2})\.(\d{2})/);
-         if (match) {
-            const hours = parseInt(match[1], 10);
-            const minutes = parseInt(match[2], 10);
-            const seconds = parseInt(match[3], 10);
-            const centiseconds = parseInt(match[4], 10);
-            return (hours * 3600) + (minutes * 60) + seconds + (centiseconds / 100);
-         }
+        const match = error.stdout.match(/Duration: (\d{2}):(\d{2}):(\d{2})\.(\d{2})/);
+        if (match) {
+          return this.parseDuration(match[1], match[2], match[3], match[4]);
+        }
       }
-      console.warn(`[Migration] No se pudo obtener duración para ${path.basename(filePath)}`);
-      return 0;
     }
+
+    // Intento 2: para .webm (MediaRecorder) que reportan Duration: N/A,
+    // decodificar el archivo y extraer el último time= del progreso
+    try {
+      const command = `"${ffmpegPath}" -i "${filePath}" -f null - 2>&1 | grep -o "time=[0-9:.]*" | tail -1`;
+      const { stdout } = await execPromise(command, { timeout: 120000 });
+
+      const match = stdout.match(/time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})/);
+      if (match) {
+        return this.parseDuration(match[1], match[2], match[3], match[4]);
+      }
+    } catch (error) {
+      if (error.stdout) {
+        const match = error.stdout.match(/time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})/);
+        if (match) {
+          return this.parseDuration(match[1], match[2], match[3], match[4]);
+        }
+      }
+    }
+
+    console.warn(`[Migration] No se pudo obtener duración para ${path.basename(filePath)}`);
+    return 0;
   }
 
   /**
