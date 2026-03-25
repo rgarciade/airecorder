@@ -1077,7 +1077,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                   recordAttachments={projectContextAttachments}
                   activeAttachments={activeProjectAttachments}
                   onActiveAttachmentsChange={setActiveProjectAttachments}
-                  onAddChannel={activeChatId ? () => setShowChannelPicker(true) : null}
+                  /* onAddChannel={activeChatId ? () => setShowChannelPicker(true) : null} */
                 />
               </div>
               {activeChat?.contexto && activeChat.contexto.length > 0 && (
@@ -1131,6 +1131,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
             </div>
 
             {/* Canales vinculados al chat */}
+            {/*
             {activeChatId && chatIntegrations.length > 0 && (
               <div className={styles.chatContextInfo}>
                 <div className={styles.chatContextHeader}>
@@ -1186,6 +1187,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                 </div>
               </div>
             )}
+            */}
 
             {/* Panel de Historial de Chats */}
             <div className={styles.rightColumn}>

@@ -34,6 +34,7 @@ const AudioPlayer = forwardRef(({
   const sysHowl = useRef(null);
   const progressInterval = useRef(null);
   const isSeekingRef = useRef(false); // Evita que onseek sobreescriba el currentTime durante seekTo
+  const currentTimeRef = useRef(0); // Referencia sincrónica para recuperar el seek tras play()
 
   // Internal duration state
   const [loadedDuration, setLoadedDuration] = useState(0);
@@ -63,13 +64,20 @@ const AudioPlayer = forwardRef(({
         },
         onplay: () => {
           setIsPlaying(true);
+          
+          let t = micHowl.current.seek();
+          t = typeof t === 'number' ? t : 0;
+          
+          // Workaround for HTML5 Audio resetting seek position on play if seeked while paused
+          const expectedTime = currentTimeRef.current;
+          if (Math.abs(t - expectedTime) > 0.5) {
+             micHowl.current.seek(expectedTime);
+             t = expectedTime;
+          }
+
           startProgressLoop();
           // Sync and play system audio
           if (sysHowl.current) {
-            const currentSeek = micHowl.current.seek();
-            // Ensure seek returns number
-            const t = typeof currentSeek === 'number' ? currentSeek : 0;
-            
             // Only sync if significant drift or stopped
             if (!sysHowl.current.playing() || Math.abs(sysHowl.current.seek() - t) > 0.2) {
                sysHowl.current.seek(t);
@@ -100,6 +108,7 @@ const AudioPlayer = forwardRef(({
            const t = typeof seekVal === 'number' ? seekVal : 0;
            sysHowl.current?.seek(t);
            setCurrentTime(t); // Update UI immediately
+           currentTimeRef.current = t;
          },
         onloaderror: (id, error) => {
           console.error('Error loading microphone audio:', error);
@@ -148,10 +157,11 @@ const AudioPlayer = forwardRef(({
   };
 
   const updateProgress = () => {
-    if (micHowl.current && micHowl.current.playing()) {
+    if (micHowl.current && micHowl.current.playing() && !isSeekingRef.current) {
       const seek = micHowl.current.seek();
       const time = typeof seek === 'number' ? seek : 0;
       setCurrentTime(time);
+      currentTimeRef.current = time;
       if (onTimeUpdate) onTimeUpdate(time);
     }
     progressInterval.current = requestAnimationFrame(updateProgress);
@@ -171,6 +181,7 @@ const AudioPlayer = forwardRef(({
   const handleSeekChange = (e) => {
     const newTime = parseFloat(e.target.value);
     setCurrentTime(newTime);
+    currentTimeRef.current = newTime;
     
     if (micHowl.current) {
       micHowl.current.seek(newTime);
@@ -183,6 +194,7 @@ const AudioPlayer = forwardRef(({
   const handleSkip = (seconds) => {
     const newTime = Math.min(Math.max(currentTime + seconds, 0), effectiveDuration);
     setCurrentTime(newTime);
+    currentTimeRef.current = newTime;
     if (micHowl.current) {
       micHowl.current.seek(newTime);
     }
@@ -202,6 +214,7 @@ const AudioPlayer = forwardRef(({
       const newTime = Math.min(Math.max(time, 0), effectiveDuration);
       isSeekingRef.current = true;
       setCurrentTime(newTime);
+      currentTimeRef.current = newTime;
       if (micHowl.current) {
         micHowl.current.seek(newTime);
         if (!isPlaying) {

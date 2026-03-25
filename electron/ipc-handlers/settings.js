@@ -28,6 +28,13 @@ module.exports.registerSettingsHandlers = () => {
     try {
       await fs.promises.writeFile(settingsPath, JSON.stringify(settings, null, 2));
       notificationService.updateSettings(settings); // Actualizar servicio en vivo
+      
+      // Actualizar la ruta base del transcriptionManager al vuelo
+      const { getRecordingsPath } = require('../utils/paths');
+      const transcriptionManager = require('../services/transcriptionManager');
+      const newPath = await getRecordingsPath();
+      transcriptionManager.setBasePath(newPath);
+      
       return { success: true };
     } catch (error) {
       console.error('Error saving settings:', error);
