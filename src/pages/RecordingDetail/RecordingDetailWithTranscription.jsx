@@ -1133,6 +1133,90 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
   };
 
+  // --- SPEAKER UPDATE HANDLER ---
+
+  const handleSpeakerUpdate = async (speakerNamesMap, updatedSegments) => {
+    if (!recording?.id) return;
+
+    // 1. Guardar transcripción actualizada en disco y actualizar estado React
+    try {
+      await recordingsService.updateTranscriptionSpeakers(recording.id, updatedSegments);
+      setTranscription(prev => prev ? { ...prev, segments: updatedSegments } : prev);
+    } catch (e) {
+      console.error('[SpeakerUpdate] Error guardando transcripción:', e);
+    }
+
+    // 2. Sincronizar participants con los speakers únicos del transcript
+    const AVATAR_COLORS = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#14b8a6'];
+    const uniqueSpeakers = [...new Set(updatedSegments.map(s => s.speaker))];
+
+    // Determinar qué speakers son del canal mic (para rol "Usuario")
+    const micSpeakers = new Set(
+      updatedSegments.filter(s => s.source === 'micrófono').map(s => s.speaker)
+    );
+
+    let updatedParticipants = [...participants];
+
+    for (const speakerName of uniqueSpeakers) {
+      // Buscar por nombre exacto ya existente
+      const exists = updatedParticipants.find(
+        p => p.name.toLowerCase() === speakerName.toLowerCase()
+      );
+      if (exists) continue;
+
+      // Buscar si había un participant con un nombre genérico del mismo speaker
+      // (USUARIO, INTERLOCUTOR-N) — se identifica por fromDiarization
+      const genericNames = Object.entries(speakerNamesMap)
+        .filter(([orig, display]) => display === speakerName)
+        .map(([orig]) => orig);
+
+      const existingGeneric = updatedParticipants.find(
+        p => p.fromDiarization && genericNames.includes(p._originalSpeaker)
+      );
+
+      if (existingGeneric) {
+        // Actualizar nombre del participant genérico existente
+        updatedParticipants = updatedParticipants.map(p =>
+          p.id === existingGeneric.id
+            ? { ...p, name: speakerName, createdByAi: false }
+            : p
+        );
+      } else {
+        // Crear nuevo participant
+        const colorIdx = updatedParticipants.length % AVATAR_COLORS.length;
+        updatedParticipants.push({
+          id: Date.now() + Math.random(),
+          name: speakerName,
+          role: micSpeakers.has(speakerName) ? 'Usuario' : 'Participante',
+          createdByAi: false,
+          fromDiarization: true,
+          _originalSpeaker: speakerName,
+          avatar_color: AVATAR_COLORS[colorIdx],
+        });
+      }
+    }
+
+    // Eliminar participants genéricos que ya no existen en el transcript
+    // (p.ej. INTERLOCUTOR-1 renombrado a "Juan" ya no debe aparecer como INTERLOCUTOR-1)
+    const genericToRemove = updatedParticipants.filter(p => {
+      if (!p.fromDiarization) return false;
+      const isGeneric = /^(USUARIO|INTERLOCUTOR(-\d+)?)$/i.test(p.name);
+      const stillExists = uniqueSpeakers.includes(p.name);
+      return isGeneric && !stillExists;
+    });
+    if (genericToRemove.length > 0) {
+      const removeIds = new Set(genericToRemove.map(p => p.id));
+      updatedParticipants = updatedParticipants.filter(p => !removeIds.has(p.id));
+    }
+
+    setParticipants(updatedParticipants);
+    try {
+      await recordingsService.saveParticipants(recording.id, updatedParticipants);
+    } catch (e) {
+      console.error('[SpeakerUpdate] Error guardando participants:', e);
+    }
+  };
+
   // --- TASK SUGGESTION HANDLERS ---
 
   const handleGenerateTasks = async () => {
@@ -1569,6 +1653,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             transcriptionLoading={transcriptionLoading}
             transcriptionError={transcriptionError}
             transcriptionModel={localRecording.transcriptionModel}
+            onSpeakerUpdate={handleSpeakerUpdate}
             audioUrls={audioUrls}
             duration={localRecording.duration}
             transcriptionDuration={transcriptionDuration}

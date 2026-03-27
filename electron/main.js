@@ -15,6 +15,9 @@ const sentryService = require('./services/sentryService');
 // Inicializar servicio de telemetría y errores
 sentryService.init();
 
+// Detectar si se debe iniciar grabación automáticamente
+const shouldAutoRecord = process.argv.includes('--auto-record');
+
 // Servicios de arranque
 const dbService = require('./database/dbService');
 const migrationService = require('./database/migrationService');
@@ -40,6 +43,7 @@ const { registerExportHandlers } = require('./ipc-handlers/export');
 const { registerUpdateHandlers } = require('./ipc-handlers/updates');
 const { registerSystemHandlers } = require('./ipc-handlers/system');
 const { registerAttachmentsHandlers } = require('./ipc-handlers/attachments');
+const { registerDiarizationHandlers } = require('./ipc-handlers/diarization');
 
 // ========================================
 // 1.5 REDIRIGIR LOGS DEL MAIN AL RENDERER (DevTools)
@@ -100,6 +104,7 @@ function registerIpcHandlers() {
   console.log('[Main] Registrando módulos de IPC Handlers...');
   registerSystemHandlers();
   registerSettingsHandlers();
+  registerDiarizationHandlers();
   registerAudioHandlers();
   registerTranscriptionHandlers();
   registerRecordingsHandlers();
@@ -169,6 +174,16 @@ function createWindow() {
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
+
+  // Auto-iniciar grabación si se pasó el flag --auto-record
+  mainWindow.webContents.on('did-finish-load', () => {
+    if (shouldAutoRecord) {
+      console.log('[Main] Auto-iniciando grabación por flag --auto-record');
+      setTimeout(() => {
+        mainWindow.webContents.send('auto-start-recording');
+      }, 1000);
+    }
+  });
 }
 
 

@@ -220,6 +220,10 @@ module.exports = {
     SELECT * FROM transcription_queue WHERE id = ?;
   `,
 
+  UPDATE_TASK_DIARIZATION: `
+    UPDATE transcription_queue SET diarization_applied = ? WHERE id = ?;
+  `,
+
   // ========================================
   // CHATS DE PROYECTO
   // ========================================

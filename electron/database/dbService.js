@@ -133,6 +133,10 @@ class DbService {
           console.log('[DB] Añadiendo columna started_at a la tabla transcription_queue...');
           this.db.prepare("ALTER TABLE transcription_queue ADD COLUMN started_at DATETIME").run();
         }
+        if (!tableInfo.some(c => c.name === 'diarization_applied')) {
+          console.log('[DB] Añadiendo columna diarization_applied a la tabla transcription_queue...');
+          this.db.prepare("ALTER TABLE transcription_queue ADD COLUMN diarization_applied INTEGER").run();
+        }
       } catch (e) {
         console.error('[DB] Error migrando queue:', e);
       }
@@ -560,6 +564,12 @@ class DbService {
     if (!this.db) return null;
     const { GET_TASK_BY_ID } = require('./queries');
     return this.db.prepare(GET_TASK_BY_ID).get(id);
+  }
+
+  updateTaskDiarization(id, applied) {
+    if (!this.db) return;
+    const { UPDATE_TASK_DIARIZATION } = require('./queries');
+    this.db.prepare(UPDATE_TASK_DIARIZATION).run(applied ? 1 : 0, id);
   }
 
   // SUGERENCIAS DE TAREAS

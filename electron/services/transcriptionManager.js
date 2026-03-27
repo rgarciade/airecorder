@@ -4,6 +4,7 @@ const fs = require('fs');
 const { app } = require('electron');
 const dbService = require('../database/dbService');
 const notificationService = require('./notificationService');
+const diarizationInstaller = require('./diarizationInstaller');
 
 class TranscriptionManager {
   constructor() {
@@ -143,6 +144,19 @@ class TranscriptionManager {
         let ffmpegPath = null;
         let ffprobePath = null;
 
+        // ── Archivos de log de depuración (se pisan en cada transcripción) ──
+        const projectRoot = path.join(__dirname, '..', '..');
+        const pythonLogPath = path.join(projectRoot, 'transcription_python.log');
+        const nodeLogPath   = path.join(projectRoot, 'transcription_node.log');
+        const pythonLog = fs.createWriteStream(pythonLogPath, { flags: 'w' });
+        const nodeLog   = fs.createWriteStream(nodeLogPath,   { flags: 'w' });
+        const logNode = (msg) => {
+            const line = `[${new Date().toISOString()}] ${msg}\n`;
+            process.stdout.write(line);
+            nodeLog.write(line);
+        };
+        // ────────────────────────────────────────────────────────────────────
+
         if (isDev) {
             // DESARROLLO: usar venv local + script .py directamente
             const pythonPath = '/Users/raul.garciad/Proyectos/personal/airecorder/venv/bin/python';
@@ -240,12 +254,41 @@ class TranscriptionManager {
         // HF_HOME NO se sobreescribe: faster_whisper usa ~/.cache/huggingface (estándar)
         // donde el modelo ya está cacheado tras la primera descarga.
 
+        // ── Diarización en paralelo con Whisper ───────────────────────────────
+        // Arrancamos pyannote ANTES de lanzar Whisper; ambos solo leen el audio.
+        // Diarizamos micrófono Y sistema por separado para detectar todos los interlocutores.
+        let diarizationPromise = null;
+        try {
+            const settingsForDiar = this._readSettings();
+            logNode(`[Manager] Settings diarización — enabled:${settingsForDiar.diarizationEnabled}, hfToken:${settingsForDiar.hfToken ? '***' + settingsForDiar.hfToken.slice(-4) : 'VACÍO'}, envInstalled:${diarizationInstaller.isEnvInstalled()}`);
+            if (settingsForDiar.diarizationEnabled && diarizationInstaller.isEnvInstalled()) {
+                const micPath = this._findAudioFile(folderName, 'microphone');
+                const sysPath = this._findAudioFile(folderName, 'system');
+                const hfToken = settingsForDiar.hfToken || null;
+                logNode(`[Manager] Archivos audio — mic:${micPath ?? 'NO ENCONTRADO'}, sys:${sysPath ?? 'NO ENCONTRADO'}`);
+                logNode(`[Manager] hfToken pasado a runDiarization: ${hfToken ? '***' + hfToken.slice(-4) : 'null'}`);
+                const runDiar = (p, label) => p
+                    ? diarizationInstaller.runDiarization(p, hfToken, (phase) => logNode(`[Diarization:${label}] ${phase}`))
+                    : Promise.resolve(null);
+                if (micPath || sysPath) {
+                    logNode(`[Manager] Iniciando diarización en paralelo — mic:${!!micPath} sys:${!!sysPath}`);
+                    diarizationPromise = Promise.all([runDiar(micPath, 'mic'), runDiar(sysPath, 'sys')]);
+                }
+            } else {
+                logNode(`[Manager] Diarización OMITIDA — enabled:${settingsForDiar.diarizationEnabled}, envInstalled:${diarizationInstaller.isEnvInstalled()}`);
+            }
+        } catch (diarStartErr) {
+            logNode(`[Manager] Error arrancando diarización paralela: ${diarStartErr.message}`);
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         this.process = spawn(executablePath, args, { env: spawnEnv });
 
         this.process.stdout.on('data', (data) => {
             const message = data.toString().trim();
+            pythonLog.write(`[stdout] ${message}\n`);
             console.log(`[Transcription ${task.id}]: ${message}`);
-            
+
             // Leer progreso exacto dictado por Python
             const progressMatch = message.match(/PROGRESS:\s*(\d+)/);
             if (progressMatch) {
@@ -254,13 +297,14 @@ class TranscriptionManager {
                 if (percent < 20) step = 'preparing';
                 else if (percent < 95) step = 'transcribing';
                 else step = 'saving';
-                
+
                 this.updateProgress(percent, step);
             }
         });
 
         this.process.stderr.on('data', (data) => {
             const msg = data.toString().trim();
+            pythonLog.write(`[stderr] ${msg}\n`);
             // Los warnings de Python (matplotlib, etc.) no son errores fatales de la app.
             // Usamos console.warn para evitar que lleguen a Sentry vía el override de console.error.
             if (msg.toLowerCase().includes('warning') || msg.toLowerCase().includes('userwarning')) {
@@ -271,33 +315,78 @@ class TranscriptionManager {
         });
 
         this.process.on('close', (code) => {
+            pythonLog.write(`[exit] código: ${code}\n`);
+            pythonLog.end();
+            logNode(`[Manager] Proceso Python terminó con código: ${code}`);
             console.log(`[Manager] Proceso Python terminó con código: ${code}`);
             this.process = null;
             if (code === 0) {
-                dbService.updateStatus(folderName, 'transcribed');
-                // Resetear estado RAG para que se re-indexe con la nueva transcripción
-                dbService.updateRagStatus(folderName, null);
-                if (task.model) {
-                    dbService.updateTranscriptionModel(folderName, task.model);
-                }
+                (async () => {
+                    dbService.updateStatus(folderName, 'transcribed');
+                    // Resetear estado RAG para que se re-indexe con la nueva transcripción
+                    dbService.updateRagStatus(folderName, null);
+                    if (task.model) {
+                        dbService.updateTranscriptionModel(folderName, task.model);
+                    }
 
-                // Intentar actualizar duración si es 0
-                this.updateDurationIfNeeded(folderName);
+                    // Intentar actualizar duración si es 0
+                    this.updateDurationIfNeeded(folderName);
 
-                // Notificar al usuario
-                notificationService.show(
-                  'Transcripción Completada',
-                  `La transcripción de "${folderName}" ha finalizado.`,
-                  { type: 'transcription-complete', recordingId: folderName }
-                );
+                    // ── Esperar diarización paralela ───────────────────────
+                    if (diarizationPromise) {
+                        try {
+                            this.updateProgress(97, 'diarizing');
+                            const [micResult, sysResult] = await diarizationPromise;
+                            logNode(`[Manager] micResult: ${JSON.stringify(micResult)?.slice(0, 200)}`);
+                            logNode(`[Manager] sysResult: ${JSON.stringify(sysResult)?.slice(0, 200)}`);
+                            const micSegs = (!micResult?.error && micResult?.segments?.length > 0) ? micResult.segments : null;
+                            const sysSegs = (!sysResult?.error && sysResult?.segments?.length > 0) ? sysResult.segments : null;
+                            if (micSegs || sysSegs) {
+                                this._applyDiarizationToTranscript(folderName, micSegs, sysSegs);
+                                dbService.updateTaskDiarization(this.activeTask.id, true);
+                                const micSpeakerCount = micSegs ? new Set(micSegs.map(s => s.speaker)).size : 0;
+                                const sysSpeakerCount = sysSegs ? new Set(sysSegs.map(s => s.speaker)).size : 0;
+                                logNode(`[Manager] Diarización aplicada — mic:${micSegs?.length ?? 0} seg (${micSpeakerCount} speakers), sys:${sysSegs?.length ?? 0} seg (${sysSpeakerCount} speakers)`);
+                                console.log(`[Manager] Diarización aplicada — mic:${micSegs?.length ?? 0} seg (${micSpeakerCount} speakers), sys:${sysSegs?.length ?? 0} seg (${sysSpeakerCount} speakers)`);
+                            } else {
+                                dbService.updateTaskDiarization(this.activeTask.id, false);
+                                const err = micResult?.error || sysResult?.error || 'sin segmentos';
+                                logNode(`[Manager] Diarización sin resultados: ${err}`);
+                                console.warn('[Manager] Diarización sin resultados:', err);
+                            }
+                        } catch (diarErr) {
+                            logNode(`[Manager] Error en diarización: ${diarErr.message}`);
+                            console.warn('[Manager] Error en diarización (no fatal):', diarErr.message);
+                        }
+                    } else {
+                        logNode('[Manager] diarizationPromise era null — diarización no se ejecutó');
+                    }
+                    // ──────────────────────────────────────────────────────
 
-                resolve();
+                    nodeLog.end();
+
+                    // Notificar al usuario
+                    notificationService.show(
+                      'Transcripción Completada',
+                      `La transcripción de "${folderName}" ha finalizado.`,
+                      { type: 'transcription-complete', recordingId: folderName }
+                    );
+
+                    resolve();
+                })().catch(err => {
+                    logNode(`[Manager] Error inesperado en post-procesado: ${err.message}`);
+                    console.error('[Manager] Error inesperado en post-procesado:', err);
+                    nodeLog.end();
+                    resolve(); // No bloquear la cola por errores de post-procesado
+                });
             } else {
+                logNode(`[Manager] Transcripción FALLIDA (código ${code}) para: ${folderName}`);
                 console.error(`[Manager] Transcripción FALLIDA (código ${code}) para: ${folderName}`);
+                nodeLog.end();
                 reject(new Error(`Process exited with code ${code}`));
             }
         });
-        
+
         this.process.on('error', (err) => {
             this.process = null;
             reject(err);
@@ -340,6 +429,189 @@ class TranscriptionManager {
           dbService.updateTask(this.activeTask.id, 'processing', step, percent);
           this.notifyUpdate();
       }
+  }
+
+  _readSettings() {
+      try {
+          const { settingsPath } = require('../utils/paths');
+          if (fs.existsSync(settingsPath)) {
+              return JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+          }
+      } catch (_) {}
+      return {};
+  }
+
+  _findAudioFile(folderName, type) {
+      if (!this.basePath) return null;
+      const dir = path.join(this.basePath, folderName);
+      const extensions = ['wav', 'mp3', 'm4a', 'webm', 'ogg', 'flac', 'aac'];
+      for (const ext of extensions) {
+          const candidate = path.join(dir, `${folderName}-${type}.${ext}`);
+          if (fs.existsSync(candidate)) return candidate;
+      }
+      return null;
+  }
+
+  _findMicAudioFile(folderName) {
+      return this._findAudioFile(folderName, 'microphone');
+  }
+
+  _assignSpeakersToTranscript(segments, diarSegments, sourceFilter, speakerPrefix) {
+      const prefix = speakerPrefix || '';
+      return segments.map(seg => {
+          if (sourceFilter && seg.source !== sourceFilter) return seg;
+
+          // 1. Buscar el segmento de diarización con mayor overlap temporal
+          let bestSpeaker = null;
+          let bestOverlap = 0;
+          for (const d of diarSegments) {
+              const overlap = Math.max(0, Math.min(seg.end, d.end) - Math.max(seg.start, d.start));
+              if (overlap > bestOverlap) {
+                  bestOverlap = overlap;
+                  bestSpeaker = prefix + d.speaker;
+              }
+          }
+          if (bestSpeaker) return { ...seg, speaker: bestSpeaker };
+
+          // 2. Fallback: si el segmento cae en un hueco entre dos segmentos de diarización
+          //    (habla rápida → segmentos Whisper cortos sin overlap), asignar el más cercano.
+          const segMid = (seg.start + seg.end) / 2;
+          let nearestSpeaker = null;
+          let nearestDist = Infinity;
+          for (const d of diarSegments) {
+              const dMid = (d.start + d.end) / 2;
+              const dist = Math.abs(segMid - dMid);
+              if (dist < nearestDist) {
+                  nearestDist = dist;
+                  nearestSpeaker = prefix + d.speaker;
+              }
+          }
+          // Solo aplicar si el segmento está dentro de una ventana razonable (5s)
+          if (nearestSpeaker && nearestDist < 5) {
+              return { ...seg, speaker: nearestSpeaker };
+          }
+
+          return seg;
+      });
+  }
+
+  _applyDiarizationToTranscript(folderName, micDiarSegments, sysDiarSegments) {
+      if (!this.basePath) return;
+      const jsonPath = path.join(this.basePath, folderName, 'analysis', 'transcripcion_combinada.json');
+      if (!fs.existsSync(jsonPath)) return;
+      try {
+          const data = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+
+          // 1. Asignar speakers raw de pyannote por overlap temporal
+          const applyBoth = (segs) => {
+              let result = segs;
+              if (micDiarSegments?.length) {
+                  result = this._assignSpeakersToTranscript(result, micDiarSegments, 'micrófono', 'MIC_');
+              }
+              if (sysDiarSegments?.length) {
+                  result = this._assignSpeakersToTranscript(result, sysDiarSegments, 'sistema', 'SYS_');
+              }
+              return result;
+          };
+
+          if (Array.isArray(data.segments)) {
+              data.segments = applyBoth(data.segments);
+          }
+
+          // 2. Mapear labels raw → legibles (USUARIO, INTERLOCUTOR-N)
+          const speakerMap = {};
+          // Mic: todos → USUARIO (el micrófono captura al usuario local)
+          const micRawSpeakers = [...new Set(
+              (data.segments || [])
+                  .filter(s => s.source === 'micrófono' && s.speaker?.startsWith('MIC_'))
+                  .map(s => s.speaker)
+          )];
+          for (const raw of micRawSpeakers) {
+              speakerMap[raw] = 'USUARIO';
+          }
+          // Sistema: cada speaker distinto → INTERLOCUTOR-N
+          const sysRawSpeakers = [...new Set(
+              (data.segments || [])
+                  .filter(s => s.source === 'sistema' && s.speaker?.startsWith('SYS_'))
+                  .map(s => s.speaker)
+          )].sort();
+          sysRawSpeakers.forEach((raw, i) => {
+              speakerMap[raw] = sysRawSpeakers.length === 1
+                  ? 'INTERLOCUTOR'
+                  : `INTERLOCUTOR-${i + 1}`;
+          });
+
+          // 3. Reemplazar labels raw por legibles en todos los segmentos
+          if (Array.isArray(data.segments)) {
+              data.segments = data.segments.map(seg => {
+                  if (seg.speaker && speakerMap[seg.speaker]) {
+                      return { ...seg, speaker: speakerMap[seg.speaker] };
+                  }
+                  return seg;
+              });
+          }
+
+          // 4. Actualizar metadata
+          const sysSpeakers = [...new Set(
+              (data.segments || []).filter(s => s.source === 'sistema').map(s => s.speaker)
+          )].sort();
+          const allSpeakers = [...new Set(
+              (data.segments || []).map(s => s.speaker)
+          )].sort();
+
+          data.diarization_applied = true;
+          data.diarization_speakers = allSpeakers;
+          if (data.metadata) {
+              data.metadata.diarization_method = 'pyannote-3.1';
+              data.metadata.detected_speakers = sysSpeakers;
+          }
+
+          // 5. Guardar JSON
+          fs.writeFileSync(jsonPath, JSON.stringify(data, null, 2), 'utf8');
+
+          // 6. Regenerar .txt con los speakers correctos
+          this._regenerateTranscriptTxt(folderName, data);
+      } catch (e) {
+          console.error('[Manager] Error aplicando diarización al JSON:', e.message);
+      }
+  }
+
+  _regenerateTranscriptTxt(folderName, data) {
+      const txtPath = path.join(this.basePath, folderName, 'analysis', 'transcripcion_combinada.txt');
+      const segments = data.segments || [];
+      const micSegs = segments.filter(s => s.source === 'micrófono');
+      const sysSegs = segments.filter(s => s.source === 'sistema');
+      const sysSpeakers = [...new Set(sysSegs.map(s => s.speaker))].sort();
+
+      const formatTime = (seconds) => {
+          const h = Math.floor(seconds / 3600);
+          const m = Math.floor((seconds % 3600) / 60);
+          const s = Math.floor(seconds % 60);
+          return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      };
+
+      let txt = 'TRANSCRIPCIÓN COMBINADA DE AUDIO DUAL\n';
+      txt += '='.repeat(60) + '\n';
+      txt += '🗣️  Diarización: pyannote speaker-diarization-3.1\n\n';
+      if (micSegs.length > 0) {
+          txt += `🎤 Usuario: ${micSegs.length} segmentos\n`;
+      }
+      txt += `🔊 Sistema: ${sysSegs.length} segmentos\n`;
+      txt += `👥 Interlocutores detectados: ${sysSpeakers.length} en canal sistema`;
+      txt += ` (${sysSpeakers.join(', ')})\n`;
+      txt += `📝 Total: ${segments.length} segmentos únicos\n\n`;
+      txt += 'TIMELINE:\n';
+      txt += '-'.repeat(40) + '\n\n';
+
+      for (const seg of segments) {
+          const start = formatTime(seg.start);
+          const end = formatTime(seg.end);
+          const emoji = seg.emoji || (seg.source === 'micrófono' ? '🎤' : '🔊');
+          txt += `[${start} - ${end}] ${emoji} ${seg.speaker}:\n`;
+          txt += `   ${seg.text}\n\n`;
+      }
+
+      fs.writeFileSync(txtPath, txt, 'utf8');
   }
 
   cancelTask(taskIdOrRecordingId) {

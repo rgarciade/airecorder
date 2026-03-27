@@ -11,6 +11,7 @@ import ReadyStep from './ReadyStep';
 import AiConfigStep from './AiConfigStep';
 import PreferencesStep from './PreferencesStep';
 import LocalAiInfoStep from './LocalAiInfoStep';
+import DiarizationStep from './DiarizationStep';
 
 const STEPS = [
   { id: 'welcome' },
@@ -18,6 +19,7 @@ const STEPS = [
   { id: 'ai' },
   { id: 'permissions' },
   { id: 'preferences' },
+  { id: 'diarization' },
   { id: 'finish' },
 ];
 
@@ -48,6 +50,10 @@ export default function Onboarding({ onComplete }) {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState('system');
   const [appVersion, setAppVersion] = useState('');
+
+  // Diarización
+  const [hfToken, setHfToken] = useState('');
+  const [diarizationEnabled, setDiarizationEnabled] = useState(false);
 
   useEffect(() => {
     checkPermissions();
@@ -165,6 +171,8 @@ export default function Onboarding({ onComplete }) {
         notificationsEnabled: notificationStatus === 'granted',
         theme: selectedTheme,
         uiLanguage: i18n.language?.split('-')[0] || 'es',
+        hfToken: hfToken || undefined,
+        diarizationEnabled: diarizationEnabled,
         outputDirectory: outputDirectory || undefined,
         databasePath: databaseDirectory ? `${databaseDirectory}/recordings.db` : undefined
       };
@@ -288,6 +296,7 @@ export default function Onboarding({ onComplete }) {
             t('onboarding.steps.ai'),
             t('onboarding.steps.permissions'),
             t('onboarding.steps.preferences'),
+            t('onboarding.steps.diarization'),
             t('onboarding.steps.finish')
           ];
           return (
@@ -426,10 +435,28 @@ export default function Onboarding({ onComplete }) {
   if (currentStep === 5) return (
     <>
       {renderLangSelector()}
+      <DiarizationStep
+        t={t}
+        hfToken={hfToken}
+        setHfToken={setHfToken}
+        diarizationEnabled={diarizationEnabled}
+        setDiarizationEnabled={setDiarizationEnabled}
+        onBack={handleBack}
+        onNext={handleNext}
+        StepProgressComponent={renderStepProgress()}
+      />
+    </>
+  );
+
+  if (currentStep === 6) return (
+    <>
+      {renderLangSelector()}
       <ReadyStep
         t={t}
         aiProvider={aiProvider}
         modelName={getModelName()}
+        whisperModel="small"
+        diarizationEnabled={diarizationEnabled}
         onComplete={saveAndClose}
         StepProgressComponent={renderStepProgress()}
       />

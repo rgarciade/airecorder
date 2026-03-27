@@ -1,15 +1,37 @@
-import React from 'react';
-import { FaCheckCircle, FaMicrophone, FaRobot, FaServer, FaRocket } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaCheckCircle, FaMicrophone, FaRobot, FaRocket, FaDownload } from 'react-icons/fa';
 import { MdCloud } from 'react-icons/md';
+
+const IS_WIN = navigator.userAgent.includes('Windows');
+const DIAR_ENV_SIZE = IS_WIN ? '~1.2 GB' : '~1.9 GB';
+
+const WHISPER_SIZES = {
+  tiny: '~75 MB',
+  base: '~142 MB',
+  small: '~244 MB',
+  medium: '~769 MB',
+  large: '~1.5 GB',
+};
 
 const ReadyStep = ({
   t,
   aiProvider,
   modelName,
+  whisperModel,
+  diarizationEnabled,
   onComplete,
   StepProgressComponent
 }) => {
   const isLocal = aiProvider === 'ollama' || aiProvider === 'lmstudio';
+  const [diarEnvStatus, setDiarEnvStatus] = useState(null);
+
+  useEffect(() => {
+    if (diarizationEnabled) {
+      window.electronAPI?.getDiarizationEnvStatus?.().then(r => {
+        if (r?.success) setDiarEnvStatus(r);
+      });
+    }
+  }, [diarizationEnabled]);
 
   const providerLabel = {
     ollama: 'Ollama (Local)',
@@ -19,8 +41,33 @@ const ReadyStep = ({
     deepseek: 'DeepSeek',
   }[aiProvider] || aiProvider;
 
-  // Solo Ollama tiene un modelo seleccionado con nombre significativo
   const showModelName = aiProvider === 'ollama' && modelName;
+
+  const model = whisperModel || 'small';
+  const pendingDownloads = [
+    {
+      name: `Whisper ${model}`,
+      size: WHISPER_SIZES[model] || '~244 MB',
+      when: t('onboarding.finish.whenFirstTranscription'),
+    },
+  ];
+
+  if (diarizationEnabled) {
+    if (!diarEnvStatus?.installed) {
+      pendingDownloads.push({
+        name: 'PyTorch + pyannote.audio',
+        size: DIAR_ENV_SIZE,
+        when: t('onboarding.finish.whenDiarInstall'),
+      });
+    }
+    if (!diarEnvStatus?.modelCached) {
+      pendingDownloads.push({
+        name: 'pyannote/speaker-diarization-3.1',
+        size: '~200 MB',
+        when: t('onboarding.finish.whenFirstDiar'),
+      });
+    }
+  }
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 dark:bg-surface-primary overflow-y-auto">
@@ -40,7 +87,7 @@ const ReadyStep = ({
         </div>
 
         {/* Configuration Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl mb-8">
 
           {/* Audio Status */}
           <div className="bg-white dark:bg-surface-secondary border border-slate-200 dark:border-edge-primary rounded-2xl p-6 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-shadow">
@@ -70,6 +117,35 @@ const ReadyStep = ({
             </span>
           </div>
 
+        </div>
+
+        {/* Pending Downloads */}
+        <div className="w-full max-w-3xl mb-10">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700/40 rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <FaDownload className="text-blue-500 dark:text-blue-400" size={14} />
+              <p className="text-sm font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wide">
+                {t('onboarding.finish.pendingDownloads')}
+              </p>
+            </div>
+            <div className="rounded-xl overflow-hidden border border-blue-200 dark:border-blue-700/40 text-sm">
+              {pendingDownloads.map((item, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center justify-between px-3 py-2.5 bg-white dark:bg-surface-secondary gap-3${i > 0 ? ' border-t border-blue-100 dark:border-edge-primary' : ''}`}
+                >
+                  <span className="text-slate-700 dark:text-content-primary font-medium truncate">{item.name}</span>
+                  <div className="text-right flex-shrink-0">
+                    <span className="font-mono text-blue-600 dark:text-blue-400 font-semibold">{item.size}</span>
+                    <p className="text-xs text-slate-400 dark:text-content-secondary">{item.when}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-2.5">
+              {t('onboarding.finish.pendingDownloadsNote')}
+            </p>
+          </div>
         </div>
 
         {/* Launch Button */}

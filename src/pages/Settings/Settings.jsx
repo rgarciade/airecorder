@@ -10,7 +10,7 @@ import {
   MdMic, MdClose, MdCloud, MdAutoAwesome, MdComputer, MdTerminal,
   MdFolder, MdVisibility, MdVisibilityOff, MdRefresh, MdInfo, MdCheck,
   MdTextFormat, MdTranslate, MdNotifications, MdSmartToy, MdSettings, MdSecurity,
-  MdSystemUpdate, MdLightMode, MdDarkMode, MdBrightness6, MdWork
+  MdSystemUpdate, MdLightMode, MdDarkMode, MdBrightness6, MdWork, MdRecordVoiceOver
 } from 'react-icons/md';
 import { applyTheme } from '../../services/themeService';
 import styles from './Settings.module.css';
@@ -119,6 +119,18 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
   const [lmStudioCtxStatus, setLmStudioCtxStatus] = useState(null); // null | 'success' | 'error'
   const [isDetectingLmCtx, setIsDetectingLmCtx] = useState(false);
 
+  // Diarización (pyannote)
+  const [hfToken, setHfToken] = useState('');
+  const [diarizationEnabled, setDiarizationEnabled] = useState(false);
+  const [showHfToken, setShowHfToken] = useState(false);
+  const [pyannoteModelCached, setPyannoteModelCached] = useState(null); // null | true | false
+  const [diarizationEnvStatus, setDiarizationEnvStatus] = useState(null); // null | { installed, modelCached, envSizeBytes, modelSizeBytes }
+  const [diarizationInstalling, setDiarizationInstalling] = useState(false);
+  const [diarizationInstallError, setDiarizationInstallError] = useState('');
+  const [modelDownloading, setModelDownloading] = useState(false);
+  const [modelDownloadError, setModelDownloadError] = useState('');
+  const [confirmUninstall, setConfirmUninstall] = useState(null); // null | 'env' | 'model'
+
   // UI State
   const [activeTab, setActiveTab] = useState(initialTab); // 'general' | 'agents'
   const [showApiKey, setShowApiKey] = useState(false);
@@ -181,7 +193,17 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         setProjectHighlightsCount(savedSettings.projectHighlightsCount || 2);
         setNotificationsEnabled(savedSettings.notificationsEnabled !== false); // Default true
         setWhisperModel(savedSettings.whisperModel || 'small');
-        
+        setHfToken(savedSettings.hfToken || '');
+        setDiarizationEnabled(savedSettings.diarizationEnabled || false);
+
+        // Estado completo del entorno de diarización
+        window.electronAPI?.getDiarizationEnvStatus?.().then(r => {
+          if (r?.success) {
+            setDiarizationEnvStatus(r);
+            setPyannoteModelCached(r.modelCached);
+          }
+        });
+
         try {
           const sysInfo = await window.electronAPI.getSystemInfo();
           if (sysInfo && sysInfo.cpuCores) {
@@ -565,7 +587,10 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         // LM Studio (context length)
         lmStudioContextLength: lmStudioContextLengthSaved ? parseInt(lmStudioContextLengthSaved) : null,
         outputDirectory: outputDirectory,
-        databasePath: databasePath || undefined
+        databasePath: databasePath || undefined,
+        // Diarización
+        hfToken: hfToken,
+        diarizationEnabled: diarizationEnabled
       });
       setSaveMessage(t('settings.messages.saveSuccess'));
       if (onSettingsSaved) onSettingsSaved();
@@ -637,6 +662,57 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
     // If I click 'gemini' (active), typically in radio groups you can't deselect.
     // I'll stick to: clicking forces selection.
     setAiProvider(provider);
+  };
+
+  const refreshDiarizationStatus = async () => {
+    const r = await window.electronAPI?.getDiarizationEnvStatus?.();
+    if (r?.success) {
+      setDiarizationEnvStatus(r);
+      setPyannoteModelCached(r.modelCached);
+    }
+  };
+
+  const handleInstallDiarizationEnv = async () => {
+    setDiarizationInstalling(true);
+    setDiarizationInstallError('');
+    const r = await window.electronAPI?.installDiarizationEnv?.();
+    setDiarizationInstalling(false);
+    if (!r?.success) {
+      setDiarizationInstallError(r?.error || 'Error desconocido');
+    }
+    await refreshDiarizationStatus();
+  };
+
+  const handleDownloadModel = async () => {
+    setModelDownloading(true);
+    setModelDownloadError('');
+    const r = await window.electronAPI?.downloadPyannoteModel?.(hfToken || null);
+    setModelDownloading(false);
+    if (!r?.success) {
+      setModelDownloadError(r?.error || 'Error desconocido');
+    }
+    await refreshDiarizationStatus();
+  };
+
+  const handleUninstall = async (target) => {
+    setConfirmUninstall(null);
+    if (target === 'env') {
+      await window.electronAPI?.uninstallDiarizationEnv?.();
+      if (diarizationEnabled) {
+        setDiarizationEnabled(false);
+        await updateSettings({ diarizationEnabled: false });
+      }
+    } else if (target === 'model') {
+      await window.electronAPI?.deletePyannoteModelCache?.();
+    }
+    await refreshDiarizationStatus();
+  };
+
+  const formatBytes = (bytes) => {
+    if (!bytes || bytes === 0) return '0 MB';
+    const gb = bytes / 1e9;
+    if (gb >= 0.1) return `${gb.toFixed(1)} GB`;
+    return `${Math.round(bytes / 1e6)} MB`;
   };
 
   return (
@@ -1513,6 +1589,217 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                     <p className={styles.helpText}>
                       {t('settings.helpText.cpuThreads')}
                     </p>
+                  </div>
+                </div>
+              </section>
+
+              {/* Diarización (pyannote speaker diarization) */}
+              <section className={styles.section}>
+                <div className={styles.sectionHeader}>
+                  <div className={styles.sectionTitleGroup}>
+                    <MdRecordVoiceOver className={styles.sectionIcon} size={20} />
+                    <h3 className={styles.sectionTitle}>{t('settings.sections.diarization')}</h3>
+                  </div>
+                  <span className={`${styles.badge} ${diarizationEnabled ? styles.badgeActive : styles.badgeInactive}`}>
+                    {diarizationEnabled ? t('settings.diarization.active') : t('settings.diarization.inactive')}
+                  </span>
+                </div>
+                <div className={styles.card}>
+                  {/* Toggle activar/desactivar */}
+                  <div className={styles.formGroup}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div>
+                        <label className={styles.label}>{t('settings.diarization.enableLabel')}</label>
+                        <p className={styles.helpText} style={{ marginTop: 2 }}>
+                          {t('settings.diarization.description')}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setDiarizationEnabled(v => !v)}
+                        style={{
+                          width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
+                          background: diarizationEnabled ? 'var(--color-primary)' : 'var(--color-border-primary)',
+                          position: 'relative', flexShrink: 0, transition: 'background 0.2s'
+                        }}
+                      >
+                        <span style={{
+                          position: 'absolute', top: 3, left: diarizationEnabled ? 23 : 3,
+                          width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                          transition: 'left 0.2s', display: 'block'
+                        }} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Estado del entorno de diarización */}
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>{t('settings.diarization.envLabel')}</label>
+                    {diarizationEnvStatus?.installed ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 12px', borderRadius: 8, background: 'var(--color-success-bg, #f0fdf4)', border: '1px solid var(--color-success-border, #bbf7d0)' }}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--color-success-text, #166534)' }}>
+                          ✅ {t('settings.diarization.envInstalled')} — {formatBytes(diarizationEnvStatus.envSizeBytes)}
+                        </span>
+                        {confirmUninstall === 'env' ? (
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button type="button" onClick={() => handleUninstall('env')} style={{ fontSize: '0.75rem', padding: '3px 10px', borderRadius: 6, background: '#ef4444', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+                              {t('settings.diarization.confirmUninstall')}
+                            </button>
+                            <button type="button" onClick={() => setConfirmUninstall(null)} style={{ fontSize: '0.75rem', padding: '3px 10px', borderRadius: 6, background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-primary)', cursor: 'pointer' }}>
+                              {t('settings.diarization.cancel')}
+                            </button>
+                          </div>
+                        ) : (
+                          <button type="button" onClick={() => setConfirmUninstall('env')} className={styles.dangerBtn}>
+                            {t('settings.diarization.uninstallEnv')}
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px', borderRadius: 8, background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-primary)' }}>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+                          {t('settings.diarization.envNotInstalled')}<br />
+                          <span style={{ color: 'var(--color-text-tertiary)' }}>
+                            {window.navigator?.platform?.includes('Win')
+                              ? t('settings.diarization.downloadSizeWin')
+                              : t('settings.diarization.downloadSizeMac')}
+                          </span>
+                        </div>
+                        {diarizationInstallError && (
+                          <p style={{ fontSize: '0.8rem', color: '#ef4444', margin: 0 }}>{diarizationInstallError}</p>
+                        )}
+                        <button
+                          type="button"
+                          onClick={handleInstallDiarizationEnv}
+                          disabled={diarizationInstalling}
+                          className={styles.primaryBtn}
+                          style={{ alignSelf: 'flex-start' }}
+                        >
+                          {diarizationInstalling ? t('settings.diarization.installing') : t('settings.diarization.installBtn')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Estado del modelo en cache */}
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>{t('settings.diarization.modelLabel')}</label>
+                    {diarizationEnvStatus?.modelCached ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 12px', borderRadius: 8, background: 'var(--color-success-bg, #f0fdf4)', border: '1px solid var(--color-success-border, #bbf7d0)' }}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--color-success-text, #166534)' }}>
+                          ✅ {t('settings.diarization.modelCached')} — {formatBytes(diarizationEnvStatus.modelSizeBytes)}
+                        </span>
+                        {confirmUninstall === 'model' ? (
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button type="button" onClick={() => handleUninstall('model')} style={{ fontSize: '0.75rem', padding: '3px 10px', borderRadius: 6, background: '#ef4444', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+                              {t('settings.diarization.confirmUninstall')}
+                            </button>
+                            <button type="button" onClick={() => setConfirmUninstall(null)} style={{ fontSize: '0.75rem', padding: '3px 10px', borderRadius: 6, background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-primary)', cursor: 'pointer' }}>
+                              {t('settings.diarization.cancel')}
+                            </button>
+                          </div>
+                        ) : (
+                          <button type="button" onClick={() => setConfirmUninstall('model')} className={styles.dangerBtn}>
+                            {t('settings.diarization.deleteModel')}
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px', borderRadius: 8, background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-primary)' }}>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+                          {t('settings.diarization.modelNotCachedShort')}<br />
+                          <span style={{ color: 'var(--color-text-tertiary)' }}>{t('settings.diarization.modelDownloadSize')}</span>
+                        </div>
+                        {modelDownloadError && (
+                          <p style={{ fontSize: '0.8rem', color: '#ef4444', margin: 0 }}>{modelDownloadError}</p>
+                        )}
+                        {diarizationEnvStatus?.installed && (
+                          <button
+                            type="button"
+                            onClick={handleDownloadModel}
+                            disabled={modelDownloading}
+                            className={styles.primaryBtn}
+                            style={{ alignSelf: 'flex-start' }}
+                          >
+                            {modelDownloading ? t('settings.diarization.modelDownloading') : t('settings.diarization.modelDownloadBtn')}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Token de HuggingFace */}
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>{t('settings.diarization.hfTokenLabel')}</label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        className={styles.input}
+                        type={showHfToken ? 'text' : 'password'}
+                        placeholder={t('settings.diarization.hfTokenPlaceholder')}
+                        value={hfToken}
+                        onChange={(e) => setHfToken(e.target.value)}
+                        style={{ paddingRight: 40 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowHfToken(v => !v)}
+                        style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center' }}
+                      >
+                        {showHfToken ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
+                      </button>
+                    </div>
+                    <p className={styles.helpText}>{t('settings.diarization.hfTokenHelp')}</p>
+                  </div>
+
+                  {/* Guía paso a paso */}
+                  <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                    <label className={styles.label}>{t('settings.diarization.stepsTitle')}</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 6 }}>
+                      {[
+                        { label: t('settings.diarization.step1'), link: 'https://huggingface.co/join', linkText: 'huggingface.co/join' },
+                        {
+                          label: t('settings.diarization.step2'),
+                          link: 'https://huggingface.co/pyannote/speaker-diarization-3.1', linkText: t('settings.diarization.step2Link'),
+                          link2: 'https://huggingface.co/pyannote/segmentation-3.0', linkText2: t('settings.diarization.step2bLink'),
+                          label2: t('settings.diarization.step2b'),
+                          link3: 'https://huggingface.co/pyannote/speaker-diarization-community-1', linkText3: t('settings.diarization.step2cLink'),
+                          label3: t('settings.diarization.step2c'),
+                        },
+                        { label: t('settings.diarization.step3'), link: 'https://huggingface.co/settings/tokens/new?tokenType=read', linkText: 'huggingface.co/settings/tokens', note: t('settings.diarization.step3Note') },
+                        { label: t('settings.diarization.step4'), link: null },
+                      ].map((step, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: '0.875rem' }}>
+                          <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--color-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
+                          <span style={{ color: 'var(--color-text-secondary)' }}>
+                            {step.label}{' '}
+                            {step.link && (
+                              <button type="button" onClick={() => window.electronAPI?.openExternal(step.link)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', padding: 0, fontWeight: 600 }}>
+                                {step.linkText}
+                              </button>
+                            )}
+                            {step.link2 && (
+                              <>{' '}{step.label2}{' '}
+                                <button type="button" onClick={() => window.electronAPI?.openExternal(step.link2)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', padding: 0, fontWeight: 600 }}>
+                                  {step.linkText2}
+                                </button>
+                              </>
+                            )}
+                            {step.link3 && (
+                              <>{' '}{step.label3}{' '}
+                                <button type="button" onClick={() => window.electronAPI?.openExternal(step.link3)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', padding: 0, fontWeight: 600 }}>
+                                  {step.linkText3}
+                                </button>
+                              </>
+                            )}
+                            {step.note && (
+                              <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-tertiary)', marginTop: 2 }}>
+                                ℹ️ {step.note}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </section>

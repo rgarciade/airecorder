@@ -640,6 +640,24 @@
   border-radius: 4px;
 }
 
+.diarizationBadge {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #7c3aed;
+  background-color: #f5f3ff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.diarizationBadgeDark {
+  color: #a78bfa;
+  background-color: #2e1065;
+}
+
 .durationBadge {
   font-size: 0.625rem;
   font-weight: 600;

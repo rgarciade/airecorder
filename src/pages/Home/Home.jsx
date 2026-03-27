@@ -45,7 +45,23 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
     loadDashboardStats();
     checkPermissions();
     loadSettingsInfo();
-  }, [refreshTrigger]); 
+  }, [refreshTrigger]);
+
+  // Escuchar evento de auto-inicio de grabación desde parámetro --auto-record
+  useEffect(() => {
+    if (window.electronAPI?.onAutoStartRecording) {
+      window.electronAPI.onAutoStartRecording(() => {
+        console.log('[Home] Auto-starting recording from command line...');
+        if (!isRecording) {
+          handleStart();
+        }
+      });
+    }
+
+    return () => {
+      window.electronAPI?.offAutoStartRecording?.();
+    };
+  }, [isRecording]); 
   
   const loadDashboardStats = async () => {
     if (window.electronAPI?.getDashboardStats) {

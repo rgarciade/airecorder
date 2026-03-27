@@ -43,8 +43,23 @@ SAMPLE_RATE = 22050  # Frecuencia de muestreo para análisis
 CHUNK_SIZE_MS = 1000  # Tamaño de chunks en milisegundos
 WHISPER_MODEL = "large"  # Opciones: tiny, base, small, medium, large
 
+# ---------------------------------------------------------------------------
+# Diarización con pyannote.audio
+# ---------------------------------------------------------------------------
+# Se intenta importar pyannote al inicio. Si no está instalado, la
+# diarización se desactiva automáticamente y se usa el fallback heurístico.
+# ---------------------------------------------------------------------------
+_PYANNOTE_AVAILABLE = False
+try:
+    from pyannote.audio import Pipeline as PyannotePipeline
+    _PYANNOTE_AVAILABLE = True
+    print("INIT:pyannote_ok", flush=True)
+except ImportError:
+    print("INIT:pyannote_not_available (pip install pyannote.audio)", flush=True)
+
+
 class AudioSyncAnalyzer:
-    def __init__(self, mic_file, system_file, output_dir):
+    def __init__(self, mic_file, system_file, output_dir, hf_token=None):
         self.mic_file = mic_file
         self.system_file = system_file
         self.output_dir = output_dir
@@ -53,7 +68,112 @@ class AudioSyncAnalyzer:
         self.mic_data = None
         self.system_data = None
         self.whisper_model = None
+        # --- pyannote ---
+        self.hf_token = hf_token
+        self.diarization_pipeline = None
         
+    # ------------------------------------------------------------------
+    # Pyannote: verificar si el modelo está en cache local
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _check_pyannote_cache():
+        """Verificar si el modelo pyannote ya está descargado en cache local.
+        Si está en cache, se puede cargar sin token de HuggingFace."""
+        import pathlib
+        home = pathlib.Path.home()
+        candidates = [
+            home / '.cache' / 'huggingface' / 'hub' / 'models--pyannote--speaker-diarization-3.1',
+            home / '.cache' / 'torch' / 'pyannote' / 'speaker-diarization-3.1',
+        ]
+        return any(p.exists() for p in candidates)
+
+    # ------------------------------------------------------------------
+    # Pyannote: carga del pipeline de diarización
+    # ------------------------------------------------------------------
+    def load_diarization_pipeline(self):
+        """Cargar el pipeline de pyannote para speaker diarization.
+        Si el modelo ya está en cache local, no necesita token de HuggingFace."""
+        if not _PYANNOTE_AVAILABLE:
+            print("⚠️  pyannote.audio no instalado – se usará fallback heurístico", flush=True)
+            return False
+
+        model_cached = self._check_pyannote_cache()
+
+        if not self.hf_token and not model_cached:
+            print("⚠️  Sin --hf_token y modelo no en cache – diarización desactivada", flush=True)
+            return False
+
+        if model_cached and not self.hf_token:
+            print("✅ Modelo pyannote encontrado en cache local – cargando sin token", flush=True)
+        else:
+            print("🗣️  Cargando pipeline de diarización (pyannote)...", flush=True)
+
+        try:
+            kwargs = {"pretrained_model_name_or_path": "pyannote/speaker-diarization-3.1"}
+            if self.hf_token:
+                kwargs["use_auth_token"] = self.hf_token
+            self.diarization_pipeline = PyannotePipeline.from_pretrained(**kwargs)
+            print("✅ Pipeline de diarización cargado correctamente", flush=True)
+            return True
+        except Exception as e:
+            print(f"⚠️  Error cargando pipeline pyannote: {e}", flush=True)
+            print("    Se usará fallback heurístico", flush=True)
+            return False
+
+    # ------------------------------------------------------------------
+    # Pyannote: ejecutar diarización sobre un archivo WAV
+    # ------------------------------------------------------------------
+    def run_diarization(self, wav_path, min_speakers=1, max_speakers=6):
+        """Ejecutar diarización y devolver lista de (start, end, speaker)"""
+        if self.diarization_pipeline is None:
+            return None
+
+        print(f"🗣️  Ejecutando diarización sobre: {os.path.basename(wav_path)}", flush=True)
+        try:
+            diarization = self.diarization_pipeline(
+                wav_path,
+                min_speakers=min_speakers,
+                max_speakers=max_speakers,
+            )
+            segments = []
+            for turn, _, speaker in diarization.itertracks(yield_label=True):
+                segments.append({
+                    'start': turn.start,
+                    'end': turn.end,
+                    'speaker': speaker,
+                })
+            speakers_found = set(s['speaker'] for s in segments)
+            print(f"✅ Diarización completada: {len(segments)} segmentos, "
+                  f"{len(speakers_found)} hablantes detectados ({', '.join(sorted(speakers_found))})",
+                  flush=True)
+            return segments
+        except Exception as e:
+            print(f"⚠️  Error en diarización: {e}", flush=True)
+            return None
+
+    # ------------------------------------------------------------------
+    # Asignar speaker de pyannote a segmentos de Whisper
+    # ------------------------------------------------------------------
+    @staticmethod
+    def assign_speakers_to_whisper(whisper_segments, diarization_segments):
+        """Para cada segmento de Whisper, encontrar el speaker de pyannote con
+        mayor solapamiento temporal."""
+        if not diarization_segments:
+            return whisper_segments
+
+        for seg in whisper_segments:
+            best_speaker = None
+            best_overlap = 0.0
+            for d in diarization_segments:
+                overlap_start = max(seg['start'], d['start'])
+                overlap_end = min(seg['end'], d['end'])
+                overlap = max(0.0, overlap_end - overlap_start)
+                if overlap > best_overlap:
+                    best_overlap = overlap
+                    best_speaker = d['speaker']
+            seg['speaker'] = best_speaker or 'UNKNOWN'
+        return whisper_segments
+
     def load_whisper_model(self):
         """Cargar el modelo Whisper para transcripción"""
         print(f"🤖 Cargando modelo Whisper '{WHISPER_MODEL}' con {CPU_THREADS} hilos...", flush=True)
@@ -213,17 +333,14 @@ class AudioSyncAnalyzer:
         
         # Ajustar por lag si es necesario
         if lag_seconds > 0:
-            # Sistema adelantado, recortar inicio del sistema
             lag_ms = int(lag_seconds * 1000)
             system_adjusted = self.system_audio[lag_ms:]
             mic_adjusted = self.mic_audio
         elif lag_seconds < 0:
-            # Micrófono adelantado, recortar inicio del micrófono
             lag_ms = int(abs(lag_seconds) * 1000)
             mic_adjusted = self.mic_audio[lag_ms:]
             system_adjusted = self.system_audio
         else:
-            # Sin ajuste necesario
             mic_adjusted = self.mic_audio
             system_adjusted = self.system_audio
         
@@ -242,12 +359,10 @@ class AudioSyncAnalyzer:
             mic_chunk = mic_adjusted[start_ms:end_ms]
             sys_chunk = system_adjusted[start_ms:end_ms]
             
-            # Calcular RMS de cada chunk
             mic_rms = mic_chunk.rms
             sys_rms = sys_chunk.rms
             
-            # Detectar actividad (no silencio)
-            mic_active = mic_rms > 100  # Umbral ajustable
+            mic_active = mic_rms > 100
             sys_active = sys_rms > 100
             
             chunk_info = {
@@ -279,14 +394,12 @@ class AudioSyncAnalyzer:
             raise
 
     def transcribe_audio_files(self, lag_seconds=0, mic_exists=True):
-        """Transcribir ambos archivos de audio usando Whisper con parámetros avanzados para evitar repeticiones y falsos positivos por música"""
+        """Transcribir ambos archivos de audio usando Whisper con parámetros avanzados"""
         print("\n🎙️ TRANSCRIBIENDO ARCHIVOS DE AUDIO")
         print("=" * 50)
         
-        # Crear el directorio de salida
         os.makedirs(self.output_dir, exist_ok=True)
         
-        # Preparar archivos temporales WAV para Whisper
         temp_sys_wav = os.path.join(self.output_dir, "temp_sys.wav")
         temp_mic_wav = os.path.join(self.output_dir, "temp_mic.wav") if mic_exists else None
         
@@ -309,8 +422,14 @@ class AudioSyncAnalyzer:
                     system_adjusted = self.system_audio
                 system_adjusted.export(temp_sys_wav, format="wav")
             
-            # Configurar beam size dinámicamente según el modelo
             dynamic_beam_size = 5 if WHISPER_MODEL in ['tiny', 'base'] else (2 if WHISPER_MODEL == 'small' else 1)
+
+            # -------------------------------------------------------
+            # Diarización con pyannote ANTES de transcribir
+            # -------------------------------------------------------
+            sys_diarization = None
+            if self.diarization_pipeline is not None and os.path.exists(temp_sys_wav):
+                sys_diarization = self.run_diarization(temp_sys_wav)
 
             # Transcribir micrófono
             mic_result = None
@@ -320,8 +439,8 @@ class AudioSyncAnalyzer:
                     temp_mic_wav,
                     word_timestamps=True,
                     language=TRANSCRIPTION_LANGUAGE,
-                    no_speech_threshold=0.7,  # Más estricto para ignorar música
-                    condition_on_previous_text=False,  # Evita repeticiones
+                    no_speech_threshold=0.7,
+                    condition_on_previous_text=False,
                     beam_size=dynamic_beam_size,
                     vad_filter=True,
                     vad_parameters=dict(min_silence_duration_ms=500)
@@ -330,7 +449,6 @@ class AudioSyncAnalyzer:
                 mic_segments = []
                 for segment in segments:
                     mic_segments.append({'start': segment.start, 'end': segment.end, 'text': segment.text})
-                    # Progreso: 10% base + hasta 45% (total 55%)
                     if info.duration > 0:
                         current_progress = int(10 + (segment.end / info.duration) * 45)
                         print(f"PROGRESS:{min(55, current_progress)}", flush=True)
@@ -357,8 +475,6 @@ class AudioSyncAnalyzer:
                 )
                 
                 sys_segments = []
-                # Si no hay micro, el sistema asume todo el progreso del 10% al 95% (85% total)
-                # Si hay micro, asume del 55% al 95% (40% total)
                 base_progress = 55 if mic_exists else 10
                 progress_weight = 40 if mic_exists else 85
                 
@@ -367,10 +483,14 @@ class AudioSyncAnalyzer:
                     if info.duration > 0:
                         current_progress = int(base_progress + (segment.end / info.duration) * progress_weight)
                         print(f"PROGRESS:{min(95, current_progress)}", flush=True)
-                
+
+                # -------------------------------------------------------
+                # Guardar la diarización para aplicarla después de fusionar
+                # -------------------------------------------------------
                 sys_result = {
                     'text': ' '.join(s['text'] for s in sys_segments),
-                    'segments': sys_segments
+                    'segments': sys_segments,
+                    'diarization': sys_diarization,  # guardar para referencia
                 }
             print("PROGRESS:95", flush=True)
             
@@ -393,14 +513,16 @@ class AudioSyncAnalyzer:
             return None, None
     
     def merge_close_segments(self, segments, min_gap_seconds=1.2):
-        """Unir segmentos que estén muy cerca temporalmente para crear bloques más grandes"""
+        """Unir segmentos que estén muy cerca temporalmente para crear bloques más grandes.
+        Solo une segmentos del mismo source."""
         if not segments:
             return segments
         merged = []
         current = segments[0].copy()
         for next_seg in segments[1:]:
             gap = next_seg['start'] - current['end']
-            if gap <= min_gap_seconds and next_seg['source'] == current['source']:
+            same_source = next_seg.get('source') == current.get('source')
+            if gap <= min_gap_seconds and same_source:
                 current['end'] = next_seg['end']
                 current['text'] += ' ' + next_seg['text'].strip()
             else:
@@ -410,14 +532,24 @@ class AudioSyncAnalyzer:
         return merged
 
     def combine_transcriptions(self, mic_result, sys_result, mic_exists=True):
-        """Combinar las transcripciones eliminando duplicados y mejorando la detección de interlocutores"""
+        """Combinar las transcripciones usando diarización de pyannote cuando
+        esté disponible, o fallback heurístico si no."""
         print("\n📝 COMBINANDO TRANSCRIPCIONES")
         print("=" * 50)
         if not sys_result:
             print("❌ No hay transcripción de sistema para combinar")
             return
+
+        # ¿Tenemos diarización de pyannote?
+        has_diarization = sys_result.get('diarization') is not None
+        if has_diarization:
+            print("🗣️  Usando diarización de pyannote para identificar interlocutores")
+        else:
+            print("⚠️  Sin diarización – usando fallback heurístico")
+
         def clean_text(text):
             return text.strip().lower().replace("  ", " ") if text else ""
+
         def texts_similar(text1, text2, threshold=0.8):
             if not text1 or not text2:
                 return False
@@ -430,27 +562,33 @@ class AudioSyncAnalyzer:
             intersection = len(words1 & words2)
             union = len(words1 | words2)
             return intersection / union > threshold if union > 0 else False
+
+        # --- Debug ---
         debug_file = os.path.join(self.output_dir, "debug_segmentos.txt")
         with open(debug_file, 'w', encoding='utf-8') as dbg:
             dbg.write("SEGMENTOS ORIGINALES DE WHISPER\n")
-            dbg.write("="*60 + "\n\n")
+            dbg.write("=" * 60 + "\n\n")
             if mic_exists and mic_result:
                 dbg.write("MICRÓFONO:\n")
                 for i, seg in enumerate(mic_result.get('segments', []), 1):
                     dbg.write(f"[{i}] {seg['start']:.2f}-{seg['end']:.2f}: {seg['text'].strip()}\n")
             dbg.write("\nSISTEMA:\n")
             for i, seg in enumerate(sys_result.get('segments', []), 1):
-                dbg.write(f"[{i}] {seg['start']:.2f}-{seg['end']:.2f}: {seg['text'].strip()}\n")
+                speaker_tag = seg.get('speaker', '?')
+                dbg.write(f"[{i}] {seg['start']:.2f}-{seg['end']:.2f} [{speaker_tag}]: {seg['text'].strip()}\n")
         print(f"🪪 Segmentos originales guardados en: {debug_file}")
+
         all_segments = []
         processed_texts = set()
+
+        # --- Segmentos de micrófono → USUARIO ---
         if mic_exists and mic_result:
             mic_segments_raw = []
             for segment in mic_result.get('segments', []):
                 text = segment['text'].strip()
                 if text and len(text) > 3:
-                    clean_text_key = clean_text(text)
-                    if clean_text_key not in processed_texts:
+                    clean_key = clean_text(text)
+                    if clean_key not in processed_texts:
                         mic_segments_raw.append({
                             'start': segment['start'],
                             'end': segment['end'],
@@ -459,65 +597,63 @@ class AudioSyncAnalyzer:
                             'emoji': '🎤',
                             'speaker': 'USUARIO'
                         })
-                        processed_texts.add(clean_text_key)
+                        processed_texts.add(clean_key)
             mic_segments_merged = self.merge_close_segments(mic_segments_raw, min_gap_seconds=1.2)
             all_segments.extend(mic_segments_merged)
+
+        # --- Segmentos de sistema ---
         sys_segments_raw = []
+
         for segment in sys_result.get('segments', []):
             text = segment['text'].strip()
             if not text or len(text) <= 3:
                 continue
-            clean_text_key = clean_text(text)
-            if clean_text_key in processed_texts:
+            clean_key = clean_text(text)
+            if clean_key in processed_texts:
                 continue
+
             sys_segments_raw.append({
                 'start': segment['start'],
                 'end': segment['end'],
                 'text': text,
                 'source': 'sistema',
                 'emoji': '🔊',
-                'speaker': 'SISTEMA'
             })
-            processed_texts.add(clean_text_key)
+            processed_texts.add(clean_key)
+
+        # 1. Hacemos el proceso que antes funcionaba: merge por tiempo (gap < 0.5s)
         sys_segments_merged = self.merge_close_segments(sys_segments_raw, min_gap_seconds=0.5)
-        current_speaker_id = 1
-        last_text = ""
-        speaker_texts = {}
-        for segment in sys_segments_merged:
-            text = segment['text'].strip()
-            if texts_similar(text, last_text):
-                continue
-            is_new_speaker = False
-            if len(speaker_texts) > 0:
-                best_match_speaker = None
-                best_similarity = 0
-                for speaker_id, speaker_text_list in speaker_texts.items():
-                    for prev_text in speaker_text_list[-3:]:
-                        if texts_similar(text, prev_text, threshold=0.6):
-                            if texts_similar(text, prev_text, threshold=0.6) > best_similarity:
-                                best_match_speaker = speaker_id
-                                best_similarity = texts_similar(text, prev_text, threshold=0.6)
-                if best_match_speaker:
-                    current_speaker_id = best_match_speaker
-                else:
-                    current_speaker_id = len(speaker_texts) + 1
-                    is_new_speaker = True
-            else:
-                speaker_texts[current_speaker_id] = []
-            if current_speaker_id not in speaker_texts:
-                speaker_texts[current_speaker_id] = []
-            speaker_texts[current_speaker_id].append(text)
-            speaker_label = f"INTERLOCUTOR-{current_speaker_id}"
-            if is_new_speaker:
-                speaker_label += " (NUEVO)"
-            segment['speaker'] = speaker_label
-            all_segments.append(segment)
-            last_text = text
+
+        # 2. Posteriormente sobre esos fragmentos sacar las huellas (asignar diarización)
+        speaker_label_map = {}
+        speaker_counter = 0
+
+        if has_diarization:
+            sys_diarization = sys_result['diarization']
+            sys_segments_merged = self.assign_speakers_to_whisper(sys_segments_merged, sys_diarization)
+            print("✅ Speakers asignados a los segmentos fusionados del sistema", flush=True)
+
+            for segment in sys_segments_merged:
+                raw_speaker = segment.get('speaker', 'UNKNOWN')
+                if raw_speaker not in speaker_label_map and raw_speaker != 'UNKNOWN':
+                    speaker_counter += 1
+                    speaker_label_map[raw_speaker] = f"INTERLOCUTOR-{speaker_counter}"
+                
+                segment['speaker'] = speaker_label_map.get(raw_speaker, "SISTEMA")
+        else:
+            for segment in sys_segments_merged:
+                segment['speaker'] = "SISTEMA"
+
+        all_segments.extend(sys_segments_merged)
+
+        # --- Ordenar cronológicamente ---
         all_segments.sort(key=lambda x: x['start'])
+
+        # --- Eliminar duplicados cercanos ---
         filtered_segments = []
         for i, segment in enumerate(all_segments):
             is_duplicate = False
-            for j in range(max(0, i-2), i):
+            for j in range(max(0, i - 2), i):
                 prev_seg = filtered_segments[j] if j < len(filtered_segments) else None
                 if prev_seg and abs(segment['start'] - prev_seg['start']) < 1.0:
                     if texts_similar(segment['text'], prev_seg['text'], threshold=0.7):
@@ -526,15 +662,27 @@ class AudioSyncAnalyzer:
             if not is_duplicate:
                 filtered_segments.append(segment)
         all_segments = filtered_segments
+
+        # --- Contar speakers únicos en sistema ---
+        sys_speakers = set(s['speaker'] for s in all_segments if s['source'] == 'sistema')
+
+        # --- Guardar TXT ---
         output_file = os.path.join(self.output_dir, "transcripcion_combinada.txt")
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("TRANSCRIPCIÓN COMBINADA DE AUDIO DUAL\n")
-            f.write("=" * 60 + "\n\n")
+            f.write("=" * 60 + "\n")
+            if has_diarization:
+                f.write("🗣️  Diarización: pyannote speaker-diarization-3.1\n")
+            else:
+                f.write("⚠️  Diarización: fallback heurístico\n")
+            f.write("\n")
             if mic_exists and mic_result:
                 f.write(f"🎤 Usuario: {len([s for s in all_segments if s['source'] == 'micrófono'])} segmentos\n")
             f.write(f"🔊 Sistema: {len([s for s in all_segments if s['source'] == 'sistema'])} segmentos\n")
-            f.write(f"👥 Interlocutores detectados: {len(speaker_texts)} en canal sistema\n")
-            f.write(f"📝 Total: {len(all_segments)} segmentos únicos\n\n")
+            f.write(f"👥 Interlocutores detectados: {len(sys_speakers)} en canal sistema")
+            if has_diarization:
+                f.write(f" ({', '.join(sorted(sys_speakers))})")
+            f.write(f"\n📝 Total: {len(all_segments)} segmentos únicos\n\n")
             f.write("TIMELINE:\n")
             f.write("-" * 40 + "\n\n")
             for segment in all_segments:
@@ -543,26 +691,33 @@ class AudioSyncAnalyzer:
                 f.write(f"[{start_time} - {end_time}] {segment['emoji']} {segment['speaker']}:\n")
                 f.write(f"   {segment['text']}\n\n")
         print(f"✅ Transcripción combinada guardada en: {output_file}")
+
+        # --- Guardar JSON ---
         json_file = os.path.join(self.output_dir, "transcripcion_combinada.json")
         with open(json_file, 'w', encoding='utf-8') as f:
             json.dump({
                 'metadata': {
+                    'diarization_method': 'pyannote-3.1' if has_diarization else 'heuristic',
                     'total_segments': len(all_segments),
                     'microphone_segments': len([s for s in all_segments if s['source'] == 'micrófono']) if mic_exists and mic_result else 0,
                     'system_segments': len([s for s in all_segments if s['source'] == 'sistema']),
-                    'detected_speakers': len(speaker_texts),
+                    'detected_speakers': sorted(list(sys_speakers)),
                     'total_duration': max([s['end'] for s in all_segments]) if all_segments else 0
                 },
                 'segments': all_segments
             }, f, ensure_ascii=False, indent=2)
         print(f"✅ Metadatos JSON guardados en: {json_file}")
+
+        # --- Estadísticas ---
         mic_segments = [s for s in all_segments if s['source'] == 'micrófono'] if mic_exists and mic_result else []
-        sys_segments = [s for s in all_segments if s['source'] == 'sistema']
+        sys_segs = [s for s in all_segments if s['source'] == 'sistema']
         print(f"\n📊 ESTADÍSTICAS DE TRANSCRIPCIÓN:")
         if mic_exists and mic_result:
             print(f"   🎤 Segmentos de usuario: {len(mic_segments)}")
-        print(f"   🔊 Segmentos de sistema: {len(sys_segments)}")
-        print(f"   👥 Interlocutores detectados: {len(speaker_texts)}")
+        print(f"   🔊 Segmentos de sistema: {len(sys_segs)}")
+        print(f"   👥 Interlocutores detectados: {len(sys_speakers)}")
+        if has_diarization:
+            print(f"   🏷️  Speakers: {', '.join(sorted(sys_speakers))}")
         print(f"   📝 Total de segmentos únicos: {len(all_segments)}")
         if all_segments:
             total_duration = max([s['end'] for s in all_segments])
@@ -570,7 +725,6 @@ class AudioSyncAnalyzer:
     
     def generate_activity_report(self, chunks_info, mic_exists=True):
         """Generar un reporte de actividad de los chunks sincronizados"""
-        import os
         os.makedirs(self.output_dir, exist_ok=True)
         report_file = os.path.join(self.output_dir, 'activity_report.txt')
         sys_active_chunks = sum(1 for c in chunks_info if c['sys_active'])
@@ -590,10 +744,8 @@ class AudioSyncAnalyzer:
         print("\n📈 CREANDO VISUALIZACIÓN")
         print("=" * 50)
         
-        # Crear el directorio de salida
         os.makedirs(self.output_dir, exist_ok=True)
         
-        # Tomar muestra para visualización (primeros 60 segundos)
         if self.system_data is None:
             return
 
@@ -606,19 +758,16 @@ class AudioSyncAnalyzer:
         time_axis = np.linspace(0, sample_duration / SAMPLE_RATE, sample_duration)
         sys_sample = self.system_data[:sample_duration]
         
-        # Crear la figura
         plt.figure(figsize=(15, 5 if not mic_exists else 8))
         
         if mic_exists and self.mic_data is not None:
             mic_sample = self.mic_data[:sample_duration]
-            # Subplot micrófono
             plt.subplot(2, 1, 1)
             plt.plot(time_axis, mic_sample, alpha=0.7, color='blue')
             plt.title('🎙️ Señal de Micrófono')
             plt.ylabel('Amplitud')
             plt.grid(True, alpha=0.3)
             
-            # Subplot sistema
             plt.subplot(2, 1, 2)
             plt.plot(time_axis, sys_sample, alpha=0.7, color='red')
             plt.title('🔊 Señal de Sistema')
@@ -634,7 +783,6 @@ class AudioSyncAnalyzer:
         
         plt.tight_layout()
         
-        # Guardar
         output_file = os.path.join(self.output_dir, "waveforms.png")
         plt.savefig(output_file, dpi=300, bbox_inches='tight')
         plt.close()
@@ -656,9 +804,14 @@ class AudioSyncAnalyzer:
         if not sys_exists:
             print(f"❌ No se encuentra archivo de sistema: {self.system_file}")
             return False
+
         # Cargar modelo Whisper
         if not self.load_whisper_model():
             return False
+
+        # Cargar pipeline de diarización (si hay token)
+        self.load_diarization_pipeline()
+
         print("PROGRESS:5", flush=True)
         # Ejecutar pasos del análisis
         if not self.load_audio_files(mic_exists=mic_exists):
@@ -672,10 +825,9 @@ class AudioSyncAnalyzer:
         chunks_info = self.create_synchronized_chunks(lag_seconds, mic_exists=mic_exists)
         self.generate_activity_report(chunks_info, mic_exists=mic_exists)
         self.create_waveform_visualization(mic_exists=mic_exists)
-        # NUEVA FUNCIONALIDAD: Transcripción y combinación
         print("PROGRESS:20", flush=True)
         mic_result, sys_result = self.transcribe_audio_files(lag_seconds, mic_exists=mic_exists)
-        if sys_result:  # Solo combinar si hay sistema
+        if sys_result:
             self.combine_transcriptions(mic_result, sys_result, mic_exists=mic_exists)
         print(f"\n🎉 ANÁLISIS COMPLETADO")
         print(f"📁 Archivos de salida en: {self.output_dir}")
@@ -692,6 +844,10 @@ def parse_args():
     parser.add_argument('--threads', type=int, default=4, help='Hilos de CPU a utilizar')
     parser.add_argument('--ffmpeg', type=str, default=None, help='Ruta al binario de ffmpeg (para modo bundled)')
     parser.add_argument('--ffprobe', type=str, default=None, help='Ruta al binario de ffprobe (para modo bundled)')
+    # --- Nuevo: token de HuggingFace para pyannote ---
+    parser.add_argument('--hf_token', type=str, default=None,
+                        help='Token de HuggingFace para pyannote speaker-diarization '
+                             '(obtener en https://hf.co/settings/tokens)')
     return parser.parse_args()
 
 def main():
@@ -711,14 +867,11 @@ def main():
         AudioSegment.ffprobe = args.ffprobe
         print(f"ffprobe configurado: {args.ffprobe}", flush=True)
 
-    # Usar el directorio base proporcionado o el default
     base_dir = args.base_dir if args.base_dir else BASE_DIR
     
-    # Configurar modelo globalmente
     global WHISPER_MODEL
     WHISPER_MODEL = args.model
     
-    # Configurar idioma globalmente (si se necesita en otros métodos)
     global TRANSCRIPTION_LANGUAGE
     TRANSCRIPTION_LANGUAGE = args.language
     
@@ -727,6 +880,10 @@ def main():
     
     print(f"🎵 AUDIO SYNC ANALYZER & TRANSCRIBER")
     print(f"Modelo: {WHISPER_MODEL} | Idioma: {TRANSCRIPTION_LANGUAGE} | Hilos: {CPU_THREADS} | Directorio: {base_dir}")
+    if args.hf_token:
+        print(f"🗣️  Diarización: pyannote habilitado")
+    else:
+        print(f"⚠️  Diarización: deshabilitada (usa --hf_token para activar)")
     print("=" * 60)
 
     basename = args.basename
@@ -741,7 +898,7 @@ def main():
     system_file = sys_files[0] if sys_files else os.path.join(base_dir, basename, f"{basename}-system.webm")
     output_dir = os.path.join(base_dir, basename, "analysis")
 
-    analyzer = AudioSyncAnalyzer(mic_file, system_file, output_dir)
+    analyzer = AudioSyncAnalyzer(mic_file, system_file, output_dir, hf_token=args.hf_token)
     success = analyzer.run_full_analysis()
 
     if success:
@@ -756,7 +913,6 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         import traceback
-        # Escribir a stderr para que aparezca en rojo en la consola de Electron
         sys.stderr.write(f"FATAL_ERROR: {e}\n")
         sys.stderr.write(traceback.format_exc())
         sys.stderr.flush()

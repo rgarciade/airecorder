@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/raul.garciad/Proyectos/personal/airecorder/python -name *.txt -o -name *.cfg -o -name *.toml)"
+    ]
+  }
+}

@@ -127,6 +127,64 @@ module.exports.registerRecordingsHandlers = () => {
     }
   });
 
+  // Actualizar los nombres de speakers en transcripcion_combinada.json y regenerar el .txt
+  ipcMain.handle('update-transcription-speakers', async (event, recordingId, updatedSegments) => {
+    try {
+      const folderName = await getFolderPathFromId(recordingId);
+      const baseOutputDir = await getRecordingsPath();
+      const analysisDir = path.join(baseOutputDir, folderName, 'analysis');
+      const jsonPath = path.join(analysisDir, 'transcripcion_combinada.json');
+
+      if (!fs.existsSync(jsonPath)) {
+        return { success: false, error: 'Transcripción no encontrada' };
+      }
+
+      const data = JSON.parse(await fs.promises.readFile(jsonPath, 'utf8'));
+      data.segments = updatedSegments;
+
+      // Actualizar detected_speakers en metadata
+      const sysSpeakers = [...new Set(
+        updatedSegments.filter(s => s.source === 'sistema').map(s => s.speaker)
+      )].sort();
+      if (data.metadata) {
+        data.metadata.detected_speakers = sysSpeakers;
+      }
+      data.diarization_speakers = [...new Set(updatedSegments.map(s => s.speaker))].sort();
+
+      await fs.promises.writeFile(jsonPath, JSON.stringify(data, null, 2), 'utf8');
+
+      // Regenerar .txt
+      const txtPath = path.join(analysisDir, 'transcripcion_combinada.txt');
+      const micSegs = updatedSegments.filter(s => s.source === 'micrófono');
+      const sysSegs = updatedSegments.filter(s => s.source === 'sistema');
+      const sysSpeakersUniq = [...new Set(sysSegs.map(s => s.speaker))].sort();
+
+      const fmtTime = (sec) => {
+        const h = Math.floor(sec / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        const s = Math.floor(sec % 60);
+        return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      };
+
+      let txt = 'TRANSCRIPCIÓN COMBINADA DE AUDIO DUAL\n' + '='.repeat(60) + '\n';
+      txt += `🗣️  Diarización: ${data.metadata?.diarization_method || 'pyannote-3.1'}\n\n`;
+      if (micSegs.length) txt += `🎤 Usuario: ${micSegs.length} segmentos\n`;
+      txt += `🔊 Sistema: ${sysSegs.length} segmentos\n`;
+      txt += `👥 Interlocutores: ${sysSpeakersUniq.length} (${sysSpeakersUniq.join(', ')})\n`;
+      txt += `📝 Total: ${updatedSegments.length} segmentos\n\nTIMELINE:\n${'-'.repeat(40)}\n\n`;
+      for (const seg of updatedSegments) {
+        const emoji = seg.emoji || (seg.source === 'micrófono' ? '🎤' : '🔊');
+        txt += `[${fmtTime(seg.start)} - ${fmtTime(seg.end)}] ${emoji} ${seg.speaker}:\n   ${seg.text}\n\n`;
+      }
+      await fs.promises.writeFile(txtPath, txt, 'utf8');
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error actualizando speakers:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // Obtener transcripción de una grabación específica (texto plano)
   ipcMain.handle('get-transcription-txt', async (event, recordingId) => {
     try {

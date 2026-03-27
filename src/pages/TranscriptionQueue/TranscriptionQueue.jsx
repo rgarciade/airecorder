@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import styles from './TranscriptionQueue.module.css';
 import {
   MdGraphicEq, MdAdd, MdSchedule, MdClose,
-  MdMic, MdVideoCameraFront, MdAudiotrack, MdCheck, MdUpload
+  MdMic, MdVideoCameraFront, MdAudiotrack, MdCheck, MdUpload, MdRecordVoiceOver
 } from 'react-icons/md';
 
 export default function TranscriptionQueue({ onBack, queueState, onNavigateToRecording }) {
@@ -54,12 +54,13 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
 
   const getStepNumber = (step) => {
     switch (step) {
-      case 'queued': return '0/4';
-      case 'preparing': return '1/4';
-      case 'transcribing': return '2/4';
-      case 'analyzing': return '3/4';
-      case 'saving': return '4/4';
-      default: return '1/4';
+      case 'queued': return '0/5';
+      case 'preparing': return '1/5';
+      case 'transcribing': return '2/5';
+      case 'analyzing': return '3/5';
+      case 'saving': return '4/5';
+      case 'diarizing': return '5/5';
+      default: return '1/5';
     }
   };
 
@@ -70,6 +71,7 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
       case 'transcribing': return t('transcriptionQueue.steps.transcribing');
       case 'analyzing': return t('transcriptionQueue.steps.analyzing');
       case 'saving': return t('transcriptionQueue.steps.saving');
+      case 'diarizing': return t('transcriptionQueue.steps.diarizing');
       default: return t('transcriptionQueue.steps.processing');
     }
   };
@@ -298,6 +300,16 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
                       <span className={styles.historyModelBadge}>
                         {item.model || 'default'}
                       </span>
+                      {item.diarization_applied === 1 && (
+                        <span className={styles.diarizationBadge}>
+                          <MdRecordVoiceOver size={9} /> PyTorch
+                        </span>
+                      )}
+                      {item.diarization_applied === 0 && (
+                        <span className={styles.historyModelBadge} title={t('transcriptionQueue.diarizationFailed')}>
+                          🗣️ —
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

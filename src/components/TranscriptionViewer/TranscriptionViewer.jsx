@@ -1,96 +1,212 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { MdEdit, MdCheck } from 'react-icons/md';
 import styles from './TranscriptionViewer.module.css';
 
 /**
- * Componente para mostrar transcripciones en formato de conversación
- * Micrófono a la izquierda, Sistema a la derecha
+ * Formatea segundos a H:MM:SS (o MM:SS si < 1 hora)
  */
-export default function TranscriptionViewer({ 
-  transcription, 
-  loading = false, 
+function formatTimestamp(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) {
+    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+/**
+ * Componente para mostrar transcripciones en formato de conversación.
+ * El lado (izquierda/derecha) se asigna por orden de aparición del speaker,
+ * no por canal de audio.
+ */
+export default function TranscriptionViewer({
+  transcription,
+  loading = false,
   error = null,
   searchTerm = '',
   currentMatchIndex = 0,
   onMatchesFound = () => {},
-  currentTime = -1, // Optional: if provided, highlights the active segment
-  onSeek = () => {} // Optional: callback when a segment/timestamp is clicked
+  currentTime = -1,
+  onSeek = () => {},
+  onSpeakerUpdate = null, // (speakerNames: Map, updatedSegments: Array) => void
 }) {
   const activeHighlightRef = useRef(null);
   const activeSegmentRef = useRef(null);
   const scrollContainerRef = useRef(null);
+  const inputRef = useRef(null);
+
   const [userIsScrolling, setUserIsScrolling] = useState(false);
+  // { originalName -> displayName } — empieza como identidad
+  const [speakerNames, setSpeakerNames] = useState({});
+  // qué speaker está siendo editado ahora mismo
+  const [editingSpeaker, setEditingSpeaker] = useState(null);
+  const [editValue, setEditValue] = useState('');
+
+  // Inicializar speakerNames cuando cargue la transcripción
+  useEffect(() => {
+    if (!transcription?.segments) return;
+    const initial = {};
+    for (const seg of transcription.segments) {
+      if (seg.speaker && !(seg.speaker in initial)) {
+        initial[seg.speaker] = seg.speaker;
+      }
+    }
+    setSpeakerNames(initial);
+  }, [transcription]);
+
+  // Asignar lado fijo por speaker:
+  // - El primer speaker del micrófono siempre va a la izquierda (es el "yo" del usuario)
+  // - El resto se asignan por orden de primera aparición a partir de ahí
+  const speakerSideMap = useMemo(() => {
+    if (!transcription?.segments) return {};
+    const map = {};
+    let idx = 0;
+
+    // Prioridad: el primer speaker del canal micrófono → izquierda
+    const firstMicSeg = transcription.segments.find(s => s.source === 'micrófono' && s.speaker);
+    if (firstMicSeg) {
+      map[firstMicSeg.speaker] = 'left';
+      idx = 1;
+    }
+
+    // Resto por orden de primera aparición
+    for (const seg of transcription.segments) {
+      if (seg.speaker && !(seg.speaker in map)) {
+        map[seg.speaker] = idx % 2 === 0 ? 'left' : 'right';
+        idx++;
+      }
+    }
+    return map;
+  }, [transcription]);
+
+  // Segmentos con nombres de speaker aplicados
+  const segments = useMemo(() => {
+    if (!transcription?.segments) return [];
+    return transcription.segments.map(seg => ({
+      ...seg,
+      speaker: speakerNames[seg.speaker] ?? seg.speaker,
+      _originalSpeaker: seg.speaker,
+    }));
+  }, [transcription, speakerNames]);
 
   // Calcular coincidencias de búsqueda
   const matches = useMemo(() => {
-    if (!transcription?.segments || !searchTerm || searchTerm.trim() === '') return [];
-    
+    if (!segments.length || !searchTerm || searchTerm.trim() === '') return [];
     const allMatches = [];
     const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(escapedTerm, 'gi');
-
-    transcription.segments.forEach((segment, segIdx) => {
+    segments.forEach((segment, segIdx) => {
       let match;
       while ((match = regex.exec(segment.text)) !== null) {
         allMatches.push({
           segmentIndex: segIdx,
           startIndex: match.index,
           endIndex: match.index + match[0].length,
-          text: match[0]
+          text: match[0],
         });
       }
     });
     return allMatches;
-  }, [transcription, searchTerm]);
+  }, [segments, searchTerm]);
 
-  // Determine active segment index based on currentTime
+  // Índice del segmento activo según currentTime
   const activeSegmentIndex = useMemo(() => {
-    if (currentTime < 0 || !transcription?.segments) return -1;
-    
-    // Use a simple loop for better performance than findIndex if called often
-    for (let i = 0; i < transcription.segments.length; i++) {
-      const seg = transcription.segments[i];
+    if (currentTime < 0 || !segments.length) return -1;
+    for (let i = 0; i < segments.length; i++) {
+      const seg = segments[i];
       const start = Number(seg.start);
-      // If we are before this segment, then the PREVIOUS one was the active one? 
-      // No, we are looking for the segment containing currentTime.
-      
-      const nextSeg = transcription.segments[i + 1];
-      const end = nextSeg ? Number(nextSeg.start) : (Number(seg.end) || start + 10); // Default duration 10s if last
-      
-      if (currentTime >= start && currentTime < end) {
-        return i;
-      }
+      const nextSeg = segments[i + 1];
+      const end = nextSeg ? Number(nextSeg.start) : (Number(seg.end) || start + 10);
+      if (currentTime >= start && currentTime < end) return i;
     }
     return -1;
-  }, [currentTime, transcription]);
+  }, [currentTime, segments]);
 
-  // Notificar al padre sobre el número de coincidencias
-  useEffect(() => {
-    onMatchesFound(matches.length);
-  }, [matches.length, onMatchesFound]);
+  useEffect(() => { onMatchesFound(matches.length); }, [matches.length, onMatchesFound]);
 
-  // Scroll a la coincidencia de búsqueda activa
   useEffect(() => {
     if (matches.length > 0 && activeHighlightRef.current) {
-      activeHighlightRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-      });
+      activeHighlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [currentMatchIndex, matches]);
 
-  // Scroll to active segment during playback (auto-scroll)
   useEffect(() => {
     if (activeSegmentIndex !== -1 && activeSegmentRef.current && !userIsScrolling) {
-       activeSegmentRef.current.scrollIntoView({
-         behavior: 'smooth',
-         block: 'start'
-       });
+      activeSegmentRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [activeSegmentIndex, userIsScrolling]);
 
-  // Detect user scroll to pause auto-scroll temporarily (simple version: click to re-enable?)
-  // For now, simpler approach: if user clicks a segment, we assume they want to go there.
-  // We won't implement complex "stop auto-scroll on wheel" unless requested.
+  // Auto-focus al entrar en modo edición
+  useEffect(() => {
+    if (editingSpeaker && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editingSpeaker]);
+
+  // ── Edición de speakers ────────────────────────────────────────────────────
+
+  const startEditing = useCallback((originalName) => {
+    setEditingSpeaker(originalName);
+    setEditValue(speakerNames[originalName] ?? originalName);
+  }, [speakerNames]);
+
+  const confirmEdit = useCallback(() => {
+    if (!editingSpeaker) return;
+    const trimmed = editValue.trim();
+    if (!trimmed) { setEditingSpeaker(null); return; }
+
+    const newNames = { ...speakerNames, [editingSpeaker]: trimmed };
+    setSpeakerNames(newNames);
+    setEditingSpeaker(null);
+
+    if (onSpeakerUpdate && transcription?.segments) {
+      const updatedSegments = transcription.segments.map(seg => ({
+        ...seg,
+        speaker: newNames[seg.speaker] ?? seg.speaker,
+      }));
+      onSpeakerUpdate(newNames, updatedSegments);
+    }
+  }, [editingSpeaker, editValue, speakerNames, onSpeakerUpdate, transcription]);
+
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === 'Enter') confirmEdit();
+    if (e.key === 'Escape') setEditingSpeaker(null);
+  }, [confirmEdit]);
+
+  // ── Búsqueda ───────────────────────────────────────────────────────────────
+
+  const renderHighlightedText = (text, segIdx) => {
+    if (!searchTerm || searchTerm.trim() === '') return text;
+    const segmentMatches = matches
+      .map((m, i) => ({ ...m, globalIndex: i }))
+      .filter(m => m.segmentIndex === segIdx);
+    if (segmentMatches.length === 0) return text;
+
+    const parts = [];
+    let lastIndex = 0;
+    segmentMatches.forEach((match) => {
+      if (match.startIndex > lastIndex) {
+        parts.push(text.substring(lastIndex, match.startIndex));
+      }
+      const isActive = match.globalIndex === currentMatchIndex;
+      parts.push(
+        <span
+          key={`match-${match.globalIndex}`}
+          className={`${styles.highlight} ${isActive ? styles.activeHighlight : ''}`}
+          ref={isActive ? activeHighlightRef : null}
+        >
+          {text.substring(match.startIndex, match.endIndex)}
+        </span>
+      );
+      lastIndex = match.endIndex;
+    });
+    if (lastIndex < text.length) parts.push(text.substring(lastIndex));
+    return parts;
+  };
+
+  // ── Estados de carga/error ─────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -114,7 +230,7 @@ export default function TranscriptionViewer({
     );
   }
 
-  if (!transcription || !transcription.segments || transcription.segments.length === 0) {
+  if (!transcription || !segments.length) {
     return (
       <div className={styles.container}>
         <div className={styles.noTranscription}>
@@ -126,93 +242,70 @@ export default function TranscriptionViewer({
     );
   }
 
-  const { segments } = transcription;
-
-  // Helper para normalizar el origen del audio
-  const isMicrophone = (source) => {
-    if (!source) return false;
-    return source.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === 'microfono';
-  };
-
-  const getSourceClass = (source) => {
-    return isMicrophone(source) ? styles.microphone : styles.system;
-  };
-
-  const handleSegmentClick = (startTime) => {
-    onSeek(startTime);
-    setUserIsScrolling(false); // Re-enable auto-scroll on click
-  };
-
-  // Función para renderizar texto con resaltado
-  const renderHighlightedText = (text, segIdx) => {
-    if (!searchTerm || searchTerm.trim() === '') return text;
-
-    // Filtrar coincidencias para este segmento
-    const segmentMatches = matches
-      .map((m, i) => ({ ...m, globalIndex: i }))
-      .filter(m => m.segmentIndex === segIdx);
-
-    if (segmentMatches.length === 0) return text;
-
-    const parts = [];
-    let lastIndex = 0;
-
-    segmentMatches.forEach((match) => {
-      // Texto antes de la coincidencia
-      if (match.startIndex > lastIndex) {
-        parts.push(text.substring(lastIndex, match.startIndex));
-      }
-      
-      const isActive = match.globalIndex === currentMatchIndex;
-      
-      // Coincidencia resaltada
-      parts.push(
-        <span 
-          key={`match-${match.globalIndex}`}
-          className={`${styles.highlight} ${isActive ? styles.activeHighlight : ''}`}
-          ref={isActive ? activeHighlightRef : null}
-        >
-          {text.substring(match.startIndex, match.endIndex)}
-        </span>
-      );
-      
-      lastIndex = match.endIndex;
-    });
-
-    // Texto restante
-    if (lastIndex < text.length) {
-      parts.push(text.substring(lastIndex));
-    }
-
-    return parts;
-  };
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className={styles.container}>
-      {/* Header removed as requested, keeping container */}
-      
       <div className={styles.conversation} ref={scrollContainerRef}>
         {segments.map((segment, index) => {
           const isActive = index === activeSegmentIndex;
+          const side = speakerSideMap[segment._originalSpeaker] ?? 'left';
+          const isEditing = editingSpeaker === segment._originalSpeaker;
+
           return (
-            <div 
-              key={`${segment.start}-${segment.source}-${index}`}
-              className={`${styles.message} ${getSourceClass(segment.source)} ${isActive ? styles.activeSegment : ''}`}
+            <div
+              key={`${segment.start}-${segment._originalSpeaker}-${index}`}
+              className={`${styles.message} ${styles[side]} ${isActive ? styles.activeSegment : ''}`}
               ref={isActive ? activeSegmentRef : null}
-              onClick={() => handleSegmentClick(segment.start)}
             >
               <div className={styles.messageHeader}>
-                <span className={styles.speaker}>
-                  {segment.speaker}
+                {/* Speaker editable */}
+                <span className={styles.speakerWrapper}>
+                  {isEditing ? (
+                    <span className={styles.speakerEditGroup}>
+                      <input
+                        ref={inputRef}
+                        className={styles.speakerInput}
+                        value={editValue}
+                        onChange={e => setEditValue(e.target.value)}
+                        onBlur={confirmEdit}
+                        onKeyDown={handleKeyDown}
+                        onClick={e => e.stopPropagation()}
+                      />
+                      <button
+                        className={styles.speakerConfirmBtn}
+                        onMouseDown={e => { e.preventDefault(); confirmEdit(); }}
+                        title="Confirmar"
+                      >
+                        <MdCheck size={13} />
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      className={styles.speakerBtn}
+                      onClick={e => { e.stopPropagation(); startEditing(segment._originalSpeaker); }}
+                      title="Click para renombrar"
+                    >
+                      <span className={styles.speakerName}>{segment.speaker}</span>
+                      <MdEdit size={11} className={styles.editIcon} />
+                    </button>
+                  )}
                 </span>
-                <span 
+
+                {/* Timestamp */}
+                <span
                   className={`${styles.timestamp} ${isActive ? styles.activeTimestamp : ''}`}
-                  title="Click to seek"
+                  onClick={e => { e.stopPropagation(); onSeek(segment.start); setUserIsScrolling(false); }}
+                  title="Click para ir a este momento"
                 >
                   {formatTimestamp(segment.start)}
                 </span>
               </div>
-              <div className={styles.messageText}>
+
+              <div
+                className={styles.messageText}
+                onClick={() => { onSeek(segment.start); setUserIsScrolling(false); }}
+              >
                 {renderHighlightedText(segment.text, index)}
               </div>
             </div>
@@ -221,13 +314,4 @@ export default function TranscriptionViewer({
       </div>
     </div>
   );
-}
-
-/**
- * Formatea un timestamp en segundos a formato MM:SS
- */
-function formatTimestamp(seconds) {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
 }

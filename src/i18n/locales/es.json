@@ -130,6 +130,7 @@
       "cloudProviders": "Proveedores en la Nube",
       "storage": "Almacenamiento",
       "transcription": "Motor de Transcripción",
+      "diarization": "Identificación de Hablantes (Diarización)",
       "appearance": "Apariencia de la Interfaz",
       "projects": "Proyectos",
       "audio": "Ajustes de Audio",
@@ -237,6 +238,44 @@
       "configureInOllama": "configurable en Ollama",
       "contextLengthDetected": "✓ {{n}} tokens detectados automáticamente",
       "contextLengthNotFound": "No se pudo detectar automáticamente."
+    },
+    "diarization": {
+      "active": "Activa",
+      "inactive": "Inactiva",
+      "enableLabel": "Activar identificación de hablantes",
+      "description": "Identifica quién habla en cada momento de la grabación usando pyannote. Requiere un token gratuito de HuggingFace solo para la primera descarga del modelo (~500MB). Después funciona completamente sin conexión.",
+      "hfTokenLabel": "Token de HuggingFace",
+      "hfTokenPlaceholder": "hf_...",
+      "hfTokenHelp": "Solo necesario para descargar el modelo la primera vez. Una vez descargado (~500MB), la diarización funciona sin internet ni token.",
+      "modelCached": "Modelo descargado y listo para usar sin conexión",
+      "modelNotCached": "El modelo se descargará en la primera transcripción (~500MB, solo una vez)",
+      "modelNotCachedShort": "Modelo no descargado",
+      "modelDownloadSize": "~200 MB — solo se descarga una vez",
+      "modelDownloadBtn": "Descargar modelo ahora",
+      "modelDownloading": "Descargando...",
+      "envLabel": "Entorno de diarización (PyTorch + pyannote)",
+      "envInstalled": "Instalado",
+      "envNotInstalled": "No instalado. Se necesita para usar la diarización.",
+      "downloadSizeMac": "Descarga única: ~1.9 GB",
+      "downloadSizeWin": "Descarga única: ~1.2 GB (CPU-only)",
+      "installBtn": "Instalar componentes",
+      "installing": "Instalando...",
+      "uninstallEnv": "Desinstalar",
+      "modelLabel": "Modelo de hablantes (pyannote/speaker-diarization-3.1)",
+      "deleteModel": "Eliminar modelo",
+      "confirmUninstall": "Confirmar eliminación",
+      "cancel": "Cancelar",
+      "stepsTitle": "Cómo configurarlo",
+      "step1": "Crea una cuenta gratuita en",
+      "step2": "Acepta las licencias de los tres modelos (obligatorio):",
+      "step2Link": "speaker-diarization-3.1",
+      "step2b": ",",
+      "step2bLink": "segmentation-3.0",
+      "step2c": "y también",
+      "step2cLink": "speaker-diarization-community-1",
+      "step3": "Crea un token de tipo «Read» en",
+      "step3Note": "Tipo: Read — sin permisos adicionales necesarios",
+      "step4": "Pega el token aquí y guarda los ajustes"
     },
     "misc": {
       "default": "Por defecto",
@@ -496,8 +535,10 @@
       "transcribing": "Transcribiendo con Whisper (2/2)...",
       "analyzing": "Analizando con IA...",
       "saving": "Guardando resultados...",
+      "diarizing": "Identificando hablantes con PyTorch...",
       "processing": "Procesando..."
-    }
+    },
+    "diarizationFailed": "La identificación de hablantes no pudo completarse"
   },
   "onboarding": {
     "steps": {
@@ -506,6 +547,7 @@
       "ai": "Configuración de IA",
       "permissions": "Permisos del Sistema",
       "preferences": "Preferencias",
+      "diarization": "Hablantes",
       "finish": "Todo listo"
     },
     "next": "Siguiente",
@@ -521,7 +563,12 @@
       "aiCloud": "IA Cloud",
       "active": "Activo",
       "launchBtn": "Iniciar AIRecorder",
-      "changeNote": "Puedes cambiar estos ajustes más tarde en el menú de preferencias."
+      "changeNote": "Puedes cambiar estos ajustes más tarde en el menú de preferencias.",
+      "pendingDownloads": "Descargas pendientes",
+      "pendingDownloadsNote": "Estas descargas se realizarán automáticamente cuando sean necesarias. No requieren ninguna acción adicional.",
+      "whenFirstTranscription": "En la primera transcripción",
+      "whenDiarInstall": "Al instalar el entorno de diarización",
+      "whenFirstDiar": "En la primera identificación de hablantes"
     },
     "skip": "Omitir",
     "welcome": {
@@ -633,6 +680,19 @@
     },
     "footer": {
       "back": "Atrás"
+    },
+    "diarization": {
+      "title": "Identificación de Hablantes",
+      "subtitle": "Detecta automáticamente quién habla en cada momento de tus grabaciones.",
+      "illustration": "Ejemplo de transcripción con hablantes identificados",
+      "optional": "Opcional — puedes configurarlo más tarde en Ajustes",
+      "skipBtn": "Saltar",
+      "nextBtn": "Siguiente paso",
+      "willDownload": "Qué se descargará",
+      "whenInstall": "Al instalar ahora",
+      "whenFirst": "En la primera transcripción",
+      "total": "Total estimado",
+      "installNote": "La instalación requiere conexión a internet. Puede tardar varios minutos según tu velocidad."
     },
     "aiInfo": {
       "title": "El poder de la IA en tu equipo",

@@ -78,6 +78,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   updateLastQuestionHistory: (recordingId, qa) => ipcRenderer.invoke('update-last-question-history', recordingId, qa),
   getQuestionHistory: (recordingId) => ipcRenderer.invoke('get-question-history', recordingId),
   clearQuestionHistory: (recordingId) => ipcRenderer.invoke('clear-question-history', recordingId),
+  // Actualizar speakers en la transcripción
+  updateTranscriptionSpeakers: (recordingId, updatedSegments) => ipcRenderer.invoke('update-transcription-speakers', recordingId, updatedSegments),
   // Guardar y leer participantes
   saveParticipants: (recordingId, participants) => ipcRenderer.invoke('save-participants', recordingId, participants),
   getParticipants: (recordingId) => ipcRenderer.invoke('get-participants', recordingId),
@@ -205,6 +207,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readAttachmentContent: (recordingId, filename) => ipcRenderer.invoke('read-attachment-content', recordingId, filename),
   getAttachmentThumbnail: (recordingId, filename) => ipcRenderer.invoke('get-attachment-thumbnail', recordingId, filename),
 
+  // Verificar si el modelo pyannote está en cache local
+  checkPyannoteCache: () => ipcRenderer.invoke('check-pyannote-cache'),
+
+  // Diarización — entorno dedicado
+  getDiarizationEnvStatus: () => ipcRenderer.invoke('get-diarization-env-status'),
+  installDiarizationEnv: () => ipcRenderer.invoke('install-diarization-env'),
+  cancelDiarizationInstall: () => ipcRenderer.invoke('cancel-diarization-install'),
+  uninstallDiarizationEnv: () => ipcRenderer.invoke('uninstall-diarization-env'),
+  deletePyannoteModelCache: () => ipcRenderer.invoke('delete-pyannote-model-cache'),
+  downloadPyannoteModel: (hfToken) => ipcRenderer.invoke('download-pyannote-model', hfToken),
+  onDiarizationInstallProgress: (cb) => ipcRenderer.on('diarization-install-progress', (_e, v) => cb(v)),
+  offDiarizationInstallProgress: () => ipcRenderer.removeAllListeners('diarization-install-progress'),
+
   // Abrir URLs en el navegador predeterminado del sistema
   openExternal: (url) => shell.openExternal(url),
+
+  // Auto-start recording desde parámetro de línea de comandos
+  onAutoStartRecording: (callback) => ipcRenderer.on('auto-start-recording', () => callback()),
+  offAutoStartRecording: () => ipcRenderer.removeAllListeners('auto-start-recording'),
 }); 

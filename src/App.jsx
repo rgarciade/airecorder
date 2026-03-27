@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
+import { addDownload, updateDownload } from './store/downloadsSlice'
+import DownloadManager from './components/DownloadManager/DownloadManager'
 import i18n from './i18n/index.js'
 import WhatsNewModal from './components/WhatsNewModal/WhatsNewModal'
 import Home from './pages/Home/Home'
@@ -18,6 +20,7 @@ import styles from './App.module.css'
 import './App.css'
 
 export default function App() {
+  const dispatch = useDispatch()
   const [currentView, setCurrentView] = useState('loading') // Cambiado inicial a loading
   const [selectedRecording, setSelectedRecording] = useState(null)
   const [selectedProjectId, setSelectedProjectId] = useState(null)
@@ -46,6 +49,37 @@ export default function App() {
         }
       });
     }
+
+    // Listener de progreso de instalación de diarización → Redux
+    if (window.electronAPI?.onDiarizationInstallProgress) {
+      window.electronAPI.onDiarizationInstallProgress((data) => {
+        if (data.phase === 'done' || data.phase === 'error') {
+          dispatch(updateDownload({
+            id: 'diarization-env',
+            phase: data.phase,
+            percent: data.percent ?? 100,
+            detail: data.detail ?? '',
+            status: data.phase === 'done' ? 'done' : 'error',
+          }));
+        } else {
+          dispatch(addDownload({
+            id: 'diarization-env',
+            name: 'Entorno de diarización',
+            cancellable: true,
+          }));
+          dispatch(updateDownload({
+            id: 'diarization-env',
+            phase: data.phase,
+            percent: data.percent ?? 0,
+            detail: data.detail ?? '',
+          }));
+        }
+      });
+    }
+
+    return () => {
+      window.electronAPI?.offDiarizationInstallProgress?.();
+    };
 
     // Listen for notification clicks
     if (window.electronAPI?.onNotificationClick) {
@@ -340,6 +374,9 @@ export default function App() {
         )}
       </div>
       
+      {/* Gestor de descargas flotante */}
+      {currentView !== 'onboarding' && <DownloadManager />}
+
       {/* Mostrar RecordingOverlay cuando está grabando */}
       {isRecording && currentView !== 'onboarding' && (
         <RecordingOverlay

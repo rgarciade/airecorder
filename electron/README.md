@@ -47,6 +47,33 @@ La captura de audio del sistema usa el paquete `electron-audio-loopback` (requie
 
 **Entitlements macOS:** Se requiere `NSAudioCaptureUsageDescription` en `Info.plist` y el entitlement `com.apple.security.device.audio-input` (configurados en `build/entitlements.mac.plist` y `package.json`).
 
+### Auto-inicio de Grabación por Línea de Comandos (`--auto-record`)
+
+Permite iniciar la grabación automáticamente al lanzar la aplicación mediante un parámetro de línea de comandos.
+
+**Uso:**
+```bash
+# macOS
+open -a AIRecorder --args --auto-record
+
+# Con osascript
+osascript -e 'do shell script "open -a AIRecorder --args --auto-record"'
+```
+
+**Flujo:**
+1. `main.js` detecta `process.argv.includes('--auto-record')` al inicio.
+2. Tras `did-finish-load`, envía el evento IPC `auto-start-recording` al renderer.
+3. `preload.js` expone `onAutoStartRecording(callback)` y `offAutoStartRecording()`.
+4. El componente `Home.jsx` escucha el evento y ejecuta `handleStart()` (misma lógica que el botón de grabar).
+
+**Métodos expuestos en `preload.js`:**
+| Método | Descripción |
+|--------|-------------|
+| `onAutoStartRecording(cb)` | Listener para iniciar grabación automáticamente |
+| `offAutoStartRecording()` | Eliminar listeners de auto-start |
+
+**Limitación:** La grabación del sistema requiere selección de fuente de pantalla. Si el usuario cancela, se inicia solo la grabación del micrófono.
+
 ## 3. Bases de Datos (`/database`)
 
 ### SQLite (`dbService.js`)

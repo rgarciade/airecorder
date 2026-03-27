@@ -115,6 +115,21 @@ module.exports.registerSettingsHandlers = () => {
     }
   });
 
+  // Verificar si el modelo pyannote ya está descargado en cache local
+  ipcMain.handle('check-pyannote-cache', () => {
+    try {
+      const homeDir = os.homedir();
+      const possiblePaths = [
+        path.join(homeDir, '.cache', 'huggingface', 'hub', 'models--pyannote--speaker-diarization-3.1'),
+        path.join(homeDir, '.cache', 'torch', 'pyannote', 'speaker-diarization-3.1'),
+      ];
+      const cached = possiblePaths.some(p => fs.existsSync(p));
+      return { success: true, cached };
+    } catch (err) {
+      return { success: false, cached: false, error: err.message };
+    }
+  });
+
   // Calcular tamaño de una carpeta (recursivo)
   ipcMain.handle('get-directory-size', async (event, dirPath) => {
     try {

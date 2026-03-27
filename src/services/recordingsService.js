@@ -317,6 +317,20 @@ class RecordingsService {
   /**
    * Guarda los participantes de la reunión
    */
+  /**
+   * Actualiza los nombres de speakers en la transcripción (JSON + TXT)
+   */
+  async updateTranscriptionSpeakers(recordingId, updatedSegments) {
+    try {
+      if (!window.electronAPI?.updateTranscriptionSpeakers) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.updateTranscriptionSpeakers(recordingId, updatedSegments);
+      return result.success;
+    } catch (error) {
+      console.error('Error actualizando speakers:', error);
+      return false;
+    }
+  }
+
   async saveParticipants(recordingId, participants) {
     try {
       if (!window.electronAPI?.saveParticipants) throw new Error('API de Electron no disponible');

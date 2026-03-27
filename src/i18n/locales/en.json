@@ -113,6 +113,7 @@
       "cloudProviders": "Cloud Providers",
       "storage": "Storage",
       "transcription": "Transcription Engine",
+      "diarization": "Speaker Identification (Diarization)",
       "appearance": "Interface Appearance",
       "projects": "Projects",
       "audio": "Audio Settings",
@@ -220,6 +221,44 @@
       "configureInOllama": "configurable in Ollama",
       "contextLengthDetected": "✓ {{n}} tokens detected automatically",
       "contextLengthNotFound": "Could not detect automatically."
+    },
+    "diarization": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "enableLabel": "Enable speaker identification",
+      "description": "Identifies who speaks at each moment using pyannote. Requires a free HuggingFace token only for the first model download (~500MB). Afterwards it works completely offline.",
+      "hfTokenLabel": "HuggingFace Token",
+      "hfTokenPlaceholder": "hf_...",
+      "hfTokenHelp": "Only needed to download the model the first time. Once downloaded (~500MB), diarization works without internet or token.",
+      "modelCached": "Model downloaded and ready to use offline",
+      "modelNotCached": "The model will be downloaded on the first transcription (~500MB, one time only)",
+      "modelNotCachedShort": "Model not downloaded",
+      "modelDownloadSize": "~200 MB — downloaded only once",
+      "modelDownloadBtn": "Download model now",
+      "modelDownloading": "Downloading...",
+      "envLabel": "Diarization environment (PyTorch + pyannote)",
+      "envInstalled": "Installed",
+      "envNotInstalled": "Not installed. Required to use diarization.",
+      "downloadSizeMac": "One-time download: ~1.9 GB",
+      "downloadSizeWin": "One-time download: ~1.2 GB (CPU-only)",
+      "installBtn": "Install components",
+      "installing": "Installing...",
+      "uninstallEnv": "Uninstall",
+      "modelLabel": "Speaker model (pyannote/speaker-diarization-3.1)",
+      "deleteModel": "Delete model",
+      "confirmUninstall": "Confirm deletion",
+      "cancel": "Cancel",
+      "stepsTitle": "How to set it up",
+      "step1": "Create a free account at",
+      "step2": "Accept the licenses of all three models (required):",
+      "step2Link": "speaker-diarization-3.1",
+      "step2b": ",",
+      "step2bLink": "segmentation-3.0",
+      "step2c": "and also",
+      "step2cLink": "speaker-diarization-community-1",
+      "step3": "Create a «Read» token at",
+      "step3Note": "Type: Read — no additional permissions needed",
+      "step4": "Paste the token here and save settings"
     },
     "misc": {
       "default": "Default",
@@ -479,8 +518,10 @@
       "transcribing": "Transcribing with Whisper (2/2)...",
       "analyzing": "Analyzing with AI...",
       "saving": "Saving results...",
+      "diarizing": "Identifying speakers with PyTorch...",
       "processing": "Processing..."
-    }
+    },
+    "diarizationFailed": "Speaker identification could not be completed"
   },
   "onboarding": {
     "steps": {
@@ -489,6 +530,7 @@
       "ai": "AI Configuration",
       "permissions": "System Permissions",
       "preferences": "Preferences",
+      "diarization": "Speakers",
       "finish": "All set"
     },
     "next": "Next",
@@ -504,7 +546,12 @@
       "aiCloud": "Cloud AI",
       "active": "Active",
       "launchBtn": "Launch AIRecorder",
-      "changeNote": "You can change these settings later in the preferences menu."
+      "changeNote": "You can change these settings later in the preferences menu.",
+      "pendingDownloads": "Pending downloads",
+      "pendingDownloadsNote": "These downloads will happen automatically when needed. No additional action required.",
+      "whenFirstTranscription": "On first transcription",
+      "whenDiarInstall": "When installing diarization environment",
+      "whenFirstDiar": "On first speaker identification"
     },
     "skip": "Skip",
     "welcome": {
@@ -616,6 +663,19 @@
     },
     "footer": {
       "back": "Back"
+    },
+    "diarization": {
+      "title": "Speaker Identification",
+      "subtitle": "Automatically detect who speaks at each moment in your recordings.",
+      "illustration": "Example transcript with identified speakers",
+      "optional": "Optional — you can set this up later in Settings",
+      "skipBtn": "Skip",
+      "nextBtn": "Next step",
+      "willDownload": "What will be downloaded",
+      "whenInstall": "When installing now",
+      "whenFirst": "On first transcription",
+      "total": "Estimated total",
+      "installNote": "Installation requires an internet connection. It may take several minutes depending on your speed."
     },
     "aiInfo": {
       "title": "The power of AI on your machine",

@@ -25,6 +25,7 @@ export default function TranscriptionChatTab({
   transcriptionDuration,
   initialSeekSeconds = null,
   onInitialSeekDone = null,
+  onSpeakerUpdate = null,
 }) {
   const [chatWidth, setChatWidth] = useState(550);
   const [isDragging, setIsDragging] = useState(false);
@@ -159,15 +160,16 @@ export default function TranscriptionChatTab({
           </div>
         </div>
         <div className={styles.viewerContainer}>
-          <TranscriptionViewer 
-            transcription={transcription} 
-            loading={transcriptionLoading} 
-            error={transcriptionError} 
+          <TranscriptionViewer
+            transcription={transcription}
+            loading={transcriptionLoading}
+            error={transcriptionError}
             searchTerm={searchTerm}
             currentMatchIndex={currentMatchIndex}
             onMatchesFound={setTotalMatches}
             currentTime={currentTime}
             onSeek={handleSeek}
+            onSpeakerUpdate={onSpeakerUpdate}
           />
         </div>
         {audioUrls && (audioUrls.mic || audioUrls.sys) && (
