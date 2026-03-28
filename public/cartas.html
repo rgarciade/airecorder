@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Baraja Española</title>
+  <style>
+    /* ===== VARIABLES (paleta del proyecto en modo oscuro) ===== */
+    :root {
+      --color-bg-primary:    #0F1419;
+      --color-bg-secondary:  #1A1F2E;
+      --color-bg-tertiary:   #232A3B;
+      --color-border-primary:#2A3142;
+      --color-text-primary:  #E8EAED;
+      --color-text-secondary:#94A3B8;
+      --color-text-heading:  #F0F2F5;
+      --color-primary:       #3994EF;
+      --color-primary-hover: #2563EB;
+      --color-shadow-lg:     rgba(0,0,0,0.5);
+      --palo-color:          #3994EF;
+    }
+
+    /* ===== RESET ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ===== BODY / LAYOUT ===== */
+    body {
+      min-height: 100vh;
+      background: var(--color-bg-primary);
+      color: var(--color-text-primary);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 2rem;
+      height: 64px;
+      background: var(--color-bg-secondary);
+      border-bottom: 1px solid var(--color-border-primary);
+      flex-shrink: 0;
+    }
+
+    .logo {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--color-text-heading);
+      letter-spacing: -0.02em;
+    }
+
+    .contador-badge {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      line-height: 1.1;
+    }
+
+    #contador {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--color-primary);
+      transition: color 0.3s;
+    }
+
+    .contador-label {
+      font-size: 0.7rem;
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ===== MAIN ===== */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+      padding: 2rem 1rem;
+    }
+
+    /* ===== CARTA WRAPPER (perspectiva 3D) ===== */
+    .carta-wrapper {
+      perspective: 1000px;
+      width: 220px;
+      height: 320px;
+    }
+
+    /* ===== CARTA ===== */
+    #carta {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      border-radius: 16px;
+      background: var(--color-bg-secondary);
+      border: 2px solid var(--palo-color);
+      box-shadow:
+        0 8px 32px var(--color-shadow-lg),
+        0 0 0 1px color-mix(in srgb, var(--palo-color) 40%, transparent),
+        0 0 28px -4px var(--palo-color);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: var(--palo-color);
+      cursor: default;
+      user-select: none;
+      transition: border-color 0.4s, box-shadow 0.4s;
+    }
+
+    /* ===== ANIMACIÓN FLIP ===== */
+    @keyframes voltear {
+      0%   { transform: rotateY(0deg);    opacity: 1;   }
+      45%  { transform: rotateY(90deg);   opacity: 0.1; }
+      55%  { transform: rotateY(-90deg);  opacity: 0.1; }
+      100% { transform: rotateY(0deg);    opacity: 1;   }
+    }
+
+    #carta.flip {
+      animation: voltear 0.5s ease-in-out;
+    }
+
+    /* ===== INTERIOR DE LA CARTA ===== */
+    .carta-esquina {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      line-height: 1;
+      gap: 2px;
+    }
+
+    .carta-esquina.bottom-right {
+      align-self: flex-end;
+      transform: rotate(180deg);
+    }
+
+    .carta-num {
+      font-size: 1.8rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .carta-emoji-small {
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+
+    .carta-centro {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .carta-emoji-grande {
+      font-size: 4rem;
+      filter: drop-shadow(0 2px 10px var(--palo-color));
+      line-height: 1;
+    }
+
+    .carta-nombre {
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .carta-palo-nombre {
+      font-size: 0.75rem;
+      opacity: 0.6;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    /* Estado inicial (dorso) */
+    .carta-dorso {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 6rem;
+      opacity: 0.15;
+    }
+
+    /* ===== BARRA DE PROGRESO ===== */
+    .progreso-wrapper {
+      width: 100%;
+      max-width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .progreso-barra {
+      height: 6px;
+      border-radius: 3px;
+      background: var(--color-bg-tertiary);
+      overflow: hidden;
+    }
+
+    .progreso-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--color-primary), var(--color-primary-hover));
+      transition: width 0.4s ease;
+    }
+
+    .progreso-texto {
+      font-size: 0.72rem;
+      color: var(--color-text-secondary);
+      text-align: right;
+    }
+
+    /* ===== CONTROLES ===== */
+    .controles {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      padding: 0.7rem 1.8rem;
+      border-radius: 50px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s;
+      outline: none;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #3994EF, #2563EB);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(57, 148, 239, 0.35);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      box-shadow: 0 6px 20px rgba(57, 148, 239, 0.5);
+    }
+
+    .btn-secondary {
+      background: var(--color-bg-tertiary);
+      color: var(--color-text-primary);
+      border: 1px solid var(--color-border-primary);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--color-border-primary);
+    }
+
+    /* ===== MENSAJE VACÍO ===== */
+    .mensaje-vacio {
+      font-size: 0.85rem;
+      color: var(--color-text-secondary);
+      text-align: center;
+      padding: 0.5rem 1rem;
+      background: var(--color-bg-tertiary);
+      border-radius: 8px;
+      border: 1px solid var(--color-border-primary);
+    }
+
+    .hidden { display: none; }
+
+    /* ===== LEYENDA DE PALOS ===== */
+    .leyenda {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .leyenda-item {
+      padding: 0.25rem 0.7rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: color-mix(in srgb, var(--c) 12%, var(--color-bg-secondary));
+      color: var(--c);
+      border: 1px solid color-mix(in srgb, var(--c) 35%, transparent);
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 480px) {
+      .carta-wrapper { width: 180px; height: 260px; }
+      .carta-num { font-size: 1.4rem; }
+      .carta-emoji-grande { font-size: 3rem; }
+      .carta-nombre { font-size: 1.05rem; }
+      .header { padding: 0 1rem; }
+      .logo { font-size: 1rem; }
+      #contador { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <h1 class="logo">🃏 Baraja Española</h1>
+    <div class="contador-badge">
+      <span id="contador">40</span>
+      <span class="contador-label">cartas restantes</span>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- Carta -->
+    <div class="carta-wrapper">
+      <div id="carta">
+        <div class="carta-dorso">🂠</div>
+      </div>
+    </div>
+
+    <!-- Mensaje mazo vacío -->
+    <p id="mensaje-vacio" class="mensaje-vacio hidden">
+      ¡Mazo vacío! Pulsa Reiniciar para volver a empezar.
+    </p>
+
+    <!-- Barra de progreso -->
+    <div class="progreso-wrapper">
+      <div class="progreso-barra">
+        <div id="progreso-fill" class="progreso-fill" style="width:100%"></div>
+      </div>
+      <span class="progreso-texto">
+        <span id="contador-usado">0</span> / 40 sacadas
+      </span>
+    </div>
+
+    <!-- Botones -->
+    <div class="controles">
+      <button id="btn-sacar" class="btn btn-primary" onclick="sacarCarta()">
+        Sacar carta
+      </button>
+      <button class="btn btn-secondary" onclick="reiniciar()">
+        Reiniciar
+      </button>
+    </div>
+
+    <!-- Leyenda de palos -->
+    <div class="leyenda">
+      <span class="leyenda-item" style="--c:#D4A017">🪙 Oros</span>
+      <span class="leyenda-item" style="--c:#C0392B">🏆 Copas</span>
+      <span class="leyenda-item" style="--c:#4A7FC1">⚔️ Espadas</span>
+      <span class="leyenda-item" style="--c:#3A8A4A">🪵 Bastos</span>
+    </div>
+
+  </main>
+
+  <script>
+    // ===== DEFINICIÓN DE LA BARAJA =====
+    const PALOS = [
+      { id: 'oros',    nombre: 'Oros',    emoji: '🪙', color: '#D4A017' },
+      { id: 'copas',   nombre: 'Copas',   emoji: '🏆', color: '#C0392B' },
+      { id: 'espadas', nombre: 'Espadas', emoji: '⚔️',  color: '#4A7FC1' },
+      { id: 'bastos',  nombre: 'Bastos',  emoji: '🪵', color: '#3A8A4A' },
+    ];
+
+    // La baraja española de 40 cartas no tiene 8 ni 9
+    const VALORES = [
+      { num: 1,  nombre: 'As'      },
+      { num: 2,  nombre: 'Dos'     },
+      { num: 3,  nombre: 'Tres'    },
+      { num: 4,  nombre: 'Cuatro'  },
+      { num: 5,  nombre: 'Cinco'   },
+      { num: 6,  nombre: 'Seis'    },
+      { num: 7,  nombre: 'Siete'   },
+      { num: 10, nombre: 'Sota'    },
+      { num: 11, nombre: 'Caballo' },
+      { num: 12, nombre: 'Rey'     },
+    ];
+
+    // ===== ESTADO =====
+    let mazo = [];
+    let cartaActual = null;
+
+    // ===== FUNCIONES =====
+    function crearMazo() {
+      const nuevaMazo = [];
+      for (const palo of PALOS) {
+        for (const valor of VALORES) {
+          nuevaMazo.push({ num: valor.num, nombre: valor.nombre, palo });
+        }
+      }
+      return nuevaMazo;
+    }
+
+    function sacarCarta() {
+      if (mazo.length === 0) return;
+
+      // Extraer carta en posición aleatoria (verdadera aleatoriedad, no solo el final)
+      const idx = Math.floor(Math.random() * mazo.length);
+      cartaActual = mazo.splice(idx, 1)[0];
+
+      // Reiniciar animación de volteo
+      const el = document.getElementById('carta');
+      el.classList.remove('flip');
+      void el.offsetWidth; // forzar reflow para reiniciar la animación
+      el.classList.add('flip');
+
+      renderCarta();
+      actualizarContador();
+      actualizarBotones();
+    }
+
+    function reiniciar() {
+      mazo = crearMazo();
+      cartaActual = null;
+      renderCarta();
+      actualizarContador();
+      actualizarBotones();
+    }
+
+    function renderCarta() {
+      const el = document.getElementById('carta');
+
+      if (!cartaActual) {
+        el.style.setProperty('--palo-color', '#3994EF');
+        el.innerHTML = '<div class="carta-dorso">🂠</div>';
+        return;
+      }
+
+      el.style.setProperty('--palo-color', cartaActual.palo.color);
+      el.innerHTML = `
+        <div class="carta-esquina">
+          <span class="carta-num">${cartaActual.num}</span>
+          <span class="carta-emoji-small">${cartaActual.palo.emoji}</span>
+        </div>
+        <div class="carta-centro">
+          <div class="carta-emoji-grande">${cartaActual.palo.emoji}</div>
+          <div class="carta-nombre">${cartaActual.nombre}</div>
+          <div class="carta-palo-nombre">${cartaActual.palo.nombre}</div>
+        </div>
+        <div class="carta-esquina bottom-right">
+          <span class="carta-num">${cartaActual.num}</span>
+          <span class="carta-emoji-small">${cartaActual.palo.emoji}</span>
+        </div>
+      `;
+    }
+
+    function actualizarContador() {
+      const restantes = mazo.length;
+      const usadas = 40 - restantes;
+
+      document.getElementById('contador').textContent = restantes;
+      document.getElementById('contador-usado').textContent = usadas;
+      document.getElementById('progreso-fill').style.width = (restantes / 40 * 100) + '%';
+
+      const msgVacio = document.getElementById('mensaje-vacio');
+      if (restantes === 0) {
+        msgVacio.classList.remove('hidden');
+      } else {
+        msgVacio.classList.add('hidden');
+      }
+    }
+
+    function actualizarBotones() {
+      const btn = document.getElementById('btn-sacar');
+      btn.disabled = mazo.length === 0;
+      btn.textContent = mazo.length === 0 ? 'Mazo vacío' : 'Sacar carta';
+    }
+
+    // ===== INICIALIZAR =====
+    reiniciar();
+  </script>
+
+</body>
+</html>
