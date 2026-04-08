@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import i18n from './i18n/index.js'
-import recordingAiService from './services/recordingAiService';
+import useAutoAnalyze from './hooks/useAutoAnalyze'
+import useAppearance from './hooks/useAppearance'
+import useDatabaseStatus from './hooks/useDatabaseStatus'
+import useQueueManager from './hooks/useQueueManager'
+import useNotificationHandler from './hooks/useNotificationHandler'
 import WhatsNewModal from './components/WhatsNewModal/WhatsNewModal'
 import Home from './pages/Home/Home'
 import RecordingDetailWithTranscription from './pages/RecordingDetail/RecordingDetailWithTranscription';
@@ -26,101 +30,22 @@ export default function App() {
   const [currentRecorder, setCurrentRecorder] = useState(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0) // Trigger para refrescar Home
   const [appSettings, setAppSettings] = useState(null)
-  const [queueCount, setQueueCount] = useState(0)
-  const [queueState, setQueueState] = useState({ active: [], history: [] })
   const [settingsInitialTab, setSettingsInitialTab] = useState('agents')
-  const [dbFallbackBanner, setDbFallbackBanner] = useState(false)
   const [showWhatsNew, setShowWhatsNew] = useState(false)
   const { isRecording } = useSelector((state) => state.recording)
 
+  // Hooks de lógica desacoplada
+  useAutoAnalyze();
+  useAppearance(appSettings);
+  const { queueCount, queueState, loadQueueData } = useQueueManager();
+  const { dbFallbackBanner } = useDatabaseStatus();
+  useNotificationHandler((recordingId) => {
+    handleNavigateToRecording(recordingId);
+  });
+
   useEffect(() => {
     loadAppSettings();
-    loadQueueData();
-    checkDbStatus();
-
-    if (window.electronAPI?.onQueueUpdate) {
-      window.electronAPI.onQueueUpdate((data) => {
-        if (data) {
-          updateQueueState(data);
-        } else {
-          loadQueueData();
-        }
-      });
-    }
-
-    // Listen for notification clicks
-    if (window.electronAPI?.onNotificationClick) {
-      window.electronAPI.onNotificationClick((payload) => {
-        console.log('Notification clicked:', payload);
-        if (payload && payload.recordingId) {
-          handleNavigateToRecording(payload.recordingId);
-        }
-      });
-    }
-
-    // Auto-análisis IA al terminar transcripción
-    let cleanupAutoAnalyze;
-    if (window.electronAPI?.onAutoAnalyze) {
-      cleanupAutoAnalyze = window.electronAPI.onAutoAnalyze(async (recordingId) => {
-        console.log('[App] Auto-análisis IA para grabación:', recordingId);
-        try {
-          await recordingAiService.generateRecordingSummary(recordingId);
-          await recordingAiService.extractParticipants(recordingId);
-        } catch (err) {
-          console.error('[App] Error en auto-análisis IA:', err);
-        }
-      });
-    }
-
-    return () => {
-      if (cleanupAutoAnalyze) cleanupAutoAnalyze();
-    };
   }, []);
-
-  useEffect(() => {
-    if (appSettings?.fontSize) {
-      document.documentElement.setAttribute('data-font-size', appSettings.fontSize);
-    } else {
-      document.documentElement.setAttribute('data-font-size', 'medium');
-    }
-  }, [appSettings?.fontSize]);
-
-  useEffect(() => {
-    applyTheme(appSettings?.theme || 'system');
-  }, [appSettings?.theme]);
-
-  const checkDbStatus = async () => {
-    try {
-      if (window.electronAPI?.getDbStatus) {
-        const status = await window.electronAPI.getDbStatus();
-        if (status?.usingFallback) {
-          setDbFallbackBanner(true);
-        }
-      }
-    } catch (err) {
-      console.error('Error consultando estado de BD:', err);
-    }
-  };
-
-  const loadQueueData = async () => {
-    try {
-      if (window.electronAPI?.getTranscriptionQueue) {
-        const result = await window.electronAPI.getTranscriptionQueue();
-        if (result.success) {
-          updateQueueState(result);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading queue data:', error);
-    }
-  };
-
-  const updateQueueState = (data) => {
-    setQueueState(data);
-    if (data && data.active) {
-      setQueueCount(data.active.length);
-    }
-  };
 
   const loadAppSettings = async () => {
     try {
