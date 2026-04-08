@@ -116,6 +116,8 @@
     "saving": "Guardando archivos...",
     "stopping": "Deteniendo grabación...",
     "saveAndExit": "Guardar y Salir",
+    "mute": "Silenciar",
+    "unmute": "Activar micro",
     "extraInstructions": "Instrucciones y Contexto (opcional)",
     "extraInstructionsPlaceholder": "Ej: Reunión de planificación del sprint con el equipo frontend. Foco en decisiones técnicas y asignación de tareas..."
   },
