@@ -1781,7 +1781,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                            }}
                          />
                          {att.filename}
-                         <span style={{ color: '#9CA3AF', fontSize: '0.75rem', marginLeft: 4 }}>
+                         <span style={{ color: 'var(--color-text-tertiary)', fontSize: '0.75rem', marginLeft: 4 }}>
                            ({att.type})
                          </span>
                        </label>

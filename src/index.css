@@ -33,7 +33,7 @@ html[data-font-size="xlarge"] { font-size: 20px; }
   --color-text-primary:   #111827;
   --color-text-secondary: #475569;
   --color-text-tertiary:  #6B7280;
-  --color-text-muted:     #9CA3AF;
+  --color-text-muted:     #697281;
   --color-text-heading:   #0F172A;
   --color-text-inverse:   #FFFFFF;
 
@@ -43,9 +43,9 @@ html[data-font-size="xlarge"] { font-size: 20px; }
   --color-border-subtle:    #F3F4F6;
 
   /* Brand / Primary */
-  --color-primary:       #3994EF;
-  --color-primary-hover: #2563EB;
-  --color-primary-light: rgba(57, 148, 239, 0.1);
+  --color-primary:       #1275D9;
+  --color-primary-hover: #0E5EAD;
+  --color-primary-light: rgba(18, 117, 217, 0.1);
   --color-primary-bg:    #EFF6FF;
 
   /* Semánticos */
@@ -114,19 +114,19 @@ html[data-font-size="xlarge"] { font-size: 20px; }
 
 html[data-theme="dark"] {
   /* Backgrounds */
-  --color-bg-primary:    #0F1419;
-  --color-bg-secondary:  #1A1F2E;
-  --color-bg-tertiary:   #232A3B;
-  --color-bg-hover:      #2A3142;
+  --color-bg-primary:    #12161E;
+  --color-bg-secondary:  #1C212E;
+  --color-bg-tertiary:   #252C3A;
+  --color-bg-hover:      #2E3646;
   --color-bg-active:     #1E2A4A;
-  --color-bg-input:      #232A3B;
+  --color-bg-input:      #1C212E;
   --color-bg-overlay:    rgba(0, 0, 0, 0.7);
 
   /* Text */
   --color-text-primary:   #E8EAED;
   --color-text-secondary: #e9eaec;
   --color-text-tertiary:  #fbfbfb;
-  --color-text-muted:     #6B7A8D;
+  --color-text-muted:     #748599;
   --color-text-heading:   #F0F2F5;
   --color-text-inverse:   #FFFFFF;
 
@@ -136,9 +136,9 @@ html[data-theme="dark"] {
   --color-border-subtle:    #1E2535;
 
   /* Brand / Primary — no cambian */
-  --color-primary:       #3994EF;
+  --color-primary:       #3E97EF;
   --color-primary-hover: #2563EB;
-  --color-primary-light: rgba(57, 148, 239, 0.15);
+  --color-primary-light: rgba(62, 151, 239, 0.15);
   --color-primary-bg:    #1E2A4A;
 
   /* Semánticos */
@@ -159,14 +159,14 @@ html[data-theme="dark"] {
   --color-shadow-lg: rgba(0, 0, 0, 0.50);
 
   /* Componentes específicos */
-  --color-sidebar-bg:        #111827;
-  --color-sidebar-border:    #2A3142;
-  --color-sidebar-active-bg: #1E2A4A;
-  --color-sidebar-active-text: #3994EF;
-  --color-sidebar-hover-bg:  #2A3142;
-  --color-toggle-bg:         #3A4050;
-  --color-scrollbar-thumb:   #3A4050;
-  --color-scrollbar-hover:   #4A5060;
+  --color-sidebar-bg:        #181C28;
+  --color-sidebar-border:    #252C3A;
+  --color-sidebar-active-bg: #2E3646;
+  --color-sidebar-active-text: #3E97EF;
+  --color-sidebar-hover-bg:  #252C3A;
+  --color-toggle-bg:         #252C3A;
+  --color-scrollbar-thumb:   #252C3A;
+  --color-scrollbar-hover:   #2E3646;
   --ollama-icon-filter:      invert(1);
 
   /* Status pill colors — dark */
