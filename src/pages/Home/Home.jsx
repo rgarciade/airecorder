@@ -212,8 +212,8 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
 
     return () => {
       clearTimeout(reloadTimeoutRef.current);
-      cleanupQueueUpdate?.();
-      cleanupAutoAnalyze?.();
+      if (typeof cleanupQueueUpdate === 'function') cleanupQueueUpdate();
+      if (typeof cleanupAutoAnalyze === 'function') cleanupAutoAnalyze();
     };
   }, [syncQueueState, scheduleReload]);
 
