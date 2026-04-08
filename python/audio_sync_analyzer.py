@@ -70,7 +70,7 @@ class AudioSyncAnalyzer:
             print(f"❌ Error cargando modelo Whisper: {e}")
             return False
         
-    def load_audio_files(self, mic_exists=True):
+    def load_audio_files(self, mic_exists=True, sys_exists=True):
         """Cargar los archivos de audio usando pydub"""
         print("🎵 Cargando archivos de audio...", flush=True)
         
@@ -82,9 +82,12 @@ class AudioSyncAnalyzer:
             else:
                 self.mic_audio = None
             
-            self.system_audio = AudioSegment.from_file(self.system_file)
-            print(f"📁 Sistema: {len(self.system_audio)/1000:.2f} segundos")
-            print(f"📊 Sample rate sistema: {self.system_audio.frame_rate} Hz")
+            if sys_exists:
+                self.system_audio = AudioSegment.from_file(self.system_file)
+                print(f"📁 Sistema: {len(self.system_audio)/1000:.2f} segundos")
+                print(f"📊 Sample rate sistema: {self.system_audio.frame_rate} Hz")
+            else:
+                self.system_audio = None
             
             return True
             
@@ -92,12 +95,11 @@ class AudioSyncAnalyzer:
             print(f"❌ Error cargando archivos: {e}")
             return False
     
-    def convert_to_numpy(self, mic_exists=True):
+    def convert_to_numpy(self, mic_exists=True, sys_exists=True):
         """Convertir audio a arrays numpy usando librosa para análisis avanzado"""
         print("🔄 Convirtiendo a arrays numpy...")
         
         try:
-            temp_sys = os.path.join(tempfile.gettempdir(), "temp_sys.wav")
             if mic_exists and self.mic_audio is not None:
                 temp_mic = os.path.join(tempfile.gettempdir(), "temp_mic.wav")
                 self.mic_audio.export(temp_mic, format="wav")
@@ -106,14 +108,20 @@ class AudioSyncAnalyzer:
             else:
                 self.mic_data = None
             
-            if self.system_audio is not None:
+            if sys_exists and self.system_audio is not None:
+                temp_sys = os.path.join(tempfile.gettempdir(), "temp_sys.wav")
                 self.system_audio.export(temp_sys, format="wav")
                 self.system_data, _ = librosa.load(temp_sys, sr=SAMPLE_RATE)
                 os.remove(temp_sys)
+            else:
+                self.system_data = None
             
             if mic_exists and self.mic_data is not None:
-                print(f"✅ Arrays creados - Mic: {len(self.mic_data)} samples, Sistema: {len(self.system_data)} samples")
-            else:
+                if sys_exists and self.system_data is not None:
+                    print(f"✅ Arrays creados - Mic: {len(self.mic_data)} samples, Sistema: {len(self.system_data)} samples")
+                else:
+                    print(f"✅ Array creado - Solo micrófono: {len(self.mic_data)} samples")
+            elif sys_exists and self.system_data is not None:
                 print(f"✅ Array creado - Solo sistema: {len(self.system_data)} samples")
             
             return True
@@ -122,28 +130,32 @@ class AudioSyncAnalyzer:
             print(f"❌ Error en conversión: {e}")
             return False
     
-    def analyze_audio_properties(self, mic_exists=True):
+    def analyze_audio_properties(self, mic_exists=True, sys_exists=True):
         """Analizar propiedades básicas de los audios"""
         print("\n📊 ANÁLISIS DE PROPIEDADES")
         print("=" * 50)
         
-        if self.system_data is not None:
+        sys_duration = 0
+        mic_duration = 0
+
+        if sys_exists and self.system_data is not None:
             sys_duration = len(self.system_data) / SAMPLE_RATE
             print(f"⏱️  Duración sistema: {sys_duration:.2f} segundos")
-            
-            if mic_exists and self.mic_data is not None:
-                mic_duration = len(self.mic_data) / SAMPLE_RATE
-                print(f"⏱️  Duración micrófono: {mic_duration:.2f} segundos")
-                print(f"⚖️  Diferencia: {abs(mic_duration - sys_duration):.2f} segundos")
-                mic_rms = np.sqrt(np.mean(self.mic_data**2))
-                print(f"🔊 RMS micrófono: {mic_rms:.4f}")
-                mic_silence = np.sum(np.abs(self.mic_data) < 0.01) / len(self.mic_data) * 100
-                print(f"🔇 Silencio micrófono: {mic_silence:.1f}%")
-            
             sys_rms = np.sqrt(np.mean(self.system_data**2))
             print(f"🔊 RMS sistema: {sys_rms:.4f}")
             sys_silence = np.sum(np.abs(self.system_data) < 0.01) / len(self.system_data) * 100
             print(f"🔇 Silencio sistema: {sys_silence:.1f}%")
+            
+        if mic_exists and self.mic_data is not None:
+            mic_duration = len(self.mic_data) / SAMPLE_RATE
+            print(f"⏱️  Duración micrófono: {mic_duration:.2f} segundos")
+            mic_rms = np.sqrt(np.mean(self.mic_data**2))
+            print(f"🔊 RMS micrófono: {mic_rms:.4f}")
+            mic_silence = np.sum(np.abs(self.mic_data) < 0.01) / len(self.mic_data) * 100
+            print(f"🔇 Silencio micrófono: {mic_silence:.1f}%")
+
+        if mic_exists and sys_exists and self.mic_data is not None and self.system_data is not None:
+            print(f"⚖️  Diferencia: {abs(mic_duration - sys_duration):.2f} segundos")
         
     
     def detect_cross_correlation(self, mic_exists=True):
@@ -179,88 +191,60 @@ class AudioSyncAnalyzer:
         
         return lag_seconds
     
-    def create_synchronized_chunks(self, lag_seconds=0, mic_exists=True):
+    def create_synchronized_chunks(self, lag_seconds=0, mic_exists=True, sys_exists=True):
         """Crear chunks sincronizados para análisis temporal"""
         print(f"\n⏰ CREANDO CHUNKS SINCRONIZADOS (lag: {lag_seconds:.3f}s)")
         print("=" * 50)
         
-        if not mic_exists or self.mic_audio is None:
-            print("⚠️  Solo se procesará el sistema.")
-            if self.system_audio is not None:
-                system_adjusted = self.system_audio
-                duration = len(system_adjusted)
-                num_chunks = duration // CHUNK_SIZE_MS
-                print(f"📦 Creando {num_chunks} chunks de {CHUNK_SIZE_MS}ms cada uno (solo sistema)")
-                chunks_info = []
-                for i in range(num_chunks):
-                    start_ms = i * CHUNK_SIZE_MS
-                    end_ms = start_ms + CHUNK_SIZE_MS
-                    sys_chunk = system_adjusted[start_ms:end_ms]
-                    sys_rms = sys_chunk.rms
-                    sys_active = sys_rms > 100
-                    chunk_info = {
-                        'start_time': start_ms / 1000,
-                        'end_time': end_ms / 1000,
-                        'mic_rms': None,
-                        'sys_rms': sys_rms,
-                        'mic_active': None,
-                        'sys_active': sys_active,
-                        'both_active': None
-                    }
-                    chunks_info.append(chunk_info)
-                return chunks_info
+        mic_adj = None
+        sys_adj = None
+
+        if mic_exists and self.mic_audio is not None:
+            if sys_exists and self.system_audio is not None:
+                if lag_seconds > 0:
+                    sys_adj = self.system_audio[int(lag_seconds * 1000):]
+                    mic_adj = self.mic_audio
+                else:
+                    mic_adj = self.mic_audio[int(abs(lag_seconds) * 1000):]
+                    sys_adj = self.system_audio
+            else:
+                mic_adj = self.mic_audio
+        elif sys_exists and self.system_audio is not None:
+            sys_adj = self.system_audio
+
+        if not mic_adj and not sys_adj:
             return []
-        
-        # Ajustar por lag si es necesario
-        if lag_seconds > 0:
-            # Sistema adelantado, recortar inicio del sistema
-            lag_ms = int(lag_seconds * 1000)
-            system_adjusted = self.system_audio[lag_ms:]
-            mic_adjusted = self.mic_audio
-        elif lag_seconds < 0:
-            # Micrófono adelantado, recortar inicio del micrófono
-            lag_ms = int(abs(lag_seconds) * 1000)
-            mic_adjusted = self.mic_audio[lag_ms:]
-            system_adjusted = self.system_audio
+
+        # Determinar duración común o individual
+        if mic_adj and sys_adj:
+            duration = min(len(mic_adj), len(sys_adj))
+        elif mic_adj:
+            duration = len(mic_adj)
         else:
-            # Sin ajuste necesario
-            mic_adjusted = self.mic_audio
-            system_adjusted = self.system_audio
-        
-        # Crear chunks
-        duration = min(len(mic_adjusted), len(system_adjusted))
+            duration = len(sys_adj)
+
         num_chunks = duration // CHUNK_SIZE_MS
-        
-        print(f"📦 Creando {num_chunks} chunks de {CHUNK_SIZE_MS}ms cada uno")
-        
         chunks_info = []
-        
+
         for i in range(num_chunks):
             start_ms = i * CHUNK_SIZE_MS
             end_ms = start_ms + CHUNK_SIZE_MS
             
-            mic_chunk = mic_adjusted[start_ms:end_ms]
-            sys_chunk = system_adjusted[start_ms:end_ms]
+            mic_rms = mic_adj[start_ms:end_ms].rms if mic_adj else None
+            sys_rms = sys_adj[start_ms:end_ms].rms if sys_adj else None
             
-            # Calcular RMS de cada chunk
-            mic_rms = mic_chunk.rms
-            sys_rms = sys_chunk.rms
+            mic_active = mic_rms > 100 if mic_rms is not None else None
+            sys_active = sys_rms > 100 if sys_rms is not None else None
             
-            # Detectar actividad (no silencio)
-            mic_active = mic_rms > 100  # Umbral ajustable
-            sys_active = sys_rms > 100
-            
-            chunk_info = {
+            chunks_info.append({
                 'start_time': start_ms / 1000,
                 'end_time': end_ms / 1000,
                 'mic_rms': mic_rms,
                 'sys_rms': sys_rms,
                 'mic_active': mic_active,
                 'sys_active': sys_active,
-                'both_active': mic_active and sys_active
-            }
-            
-            chunks_info.append(chunk_info)
+                'both_active': (mic_active and sys_active) if (mic_active is not None and sys_active is not None) else None
+            })
         
         return chunks_info
     
@@ -278,8 +262,8 @@ class AudioSyncAnalyzer:
                 return self.whisper_model.transcribe(audio_file, **kwargs)
             raise
 
-    def transcribe_audio_files(self, lag_seconds=0, mic_exists=True):
-        """Transcribir ambos archivos de audio usando Whisper con parámetros avanzados para evitar repeticiones y falsos positivos por música"""
+    def transcribe_audio_files(self, lag_seconds=0, mic_exists=True, sys_exists=True):
+        """Transcribir archivos de audio usando Whisper con parámetros avanzados"""
         print("\n🎙️ TRANSCRIBIENDO ARCHIVOS DE AUDIO")
         print("=" * 50)
         
@@ -287,7 +271,7 @@ class AudioSyncAnalyzer:
         os.makedirs(self.output_dir, exist_ok=True)
         
         # Preparar archivos temporales WAV para Whisper
-        temp_sys_wav = os.path.join(self.output_dir, "temp_sys.wav")
+        temp_sys_wav = os.path.join(self.output_dir, "temp_sys.wav") if sys_exists else None
         temp_mic_wav = os.path.join(self.output_dir, "temp_mic.wav") if mic_exists else None
         
         try:
@@ -298,10 +282,8 @@ class AudioSyncAnalyzer:
                 else:
                     mic_adjusted = self.mic_audio
                 mic_adjusted.export(temp_mic_wav, format="wav")
-            else:
-                temp_mic_wav = None
             
-            if self.system_audio is not None:
+            if sys_exists and self.system_audio is not None:
                 if lag_seconds > 0:
                     lag_ms = int(lag_seconds * 1000)
                     system_adjusted = self.system_audio[lag_ms:]
@@ -320,30 +302,34 @@ class AudioSyncAnalyzer:
                     temp_mic_wav,
                     word_timestamps=True,
                     language=TRANSCRIPTION_LANGUAGE,
-                    no_speech_threshold=0.7,  # Más estricto para ignorar música
-                    condition_on_previous_text=False,  # Evita repeticiones
+                    no_speech_threshold=0.7,
+                    condition_on_previous_text=False,
                     beam_size=dynamic_beam_size,
                     vad_filter=True,
                     vad_parameters=dict(min_silence_duration_ms=500)
                 )
 
                 mic_segments = []
+                base_progress = 10
+                progress_weight = 45 if sys_exists else 85
+                
                 for segment in segments:
                     mic_segments.append({'start': segment.start, 'end': segment.end, 'text': segment.text})
-                    # Progreso: 10% base + hasta 45% (total 55%)
                     if info.duration > 0:
-                        current_progress = int(10 + (segment.end / info.duration) * 45)
-                        print(f"PROGRESS:{min(55, current_progress)}", flush=True)
+                        current_progress = int(base_progress + (segment.end / info.duration) * progress_weight)
+                        print(f"PROGRESS:{min(95 if not sys_exists else 55, current_progress)}", flush=True)
 
                 mic_result = {
                     'text': ' '.join(s['text'] for s in mic_segments),
                     'segments': mic_segments
                 }
-            print("PROGRESS:55", flush=True)
+            
+            if mic_exists:
+                print(f"PROGRESS:{55 if sys_exists else 95}", flush=True)
 
             # Transcribir sistema
             sys_result = None
-            if temp_sys_wav and self.whisper_model:
+            if sys_exists and temp_sys_wav and self.whisper_model:
                 print("🔊 Transcribiendo audio de sistema...", flush=True)
                 segments, info = self._transcribe_with_fallback(
                     temp_sys_wav,
@@ -357,8 +343,6 @@ class AudioSyncAnalyzer:
                 )
                 
                 sys_segments = []
-                # Si no hay micro, el sistema asume todo el progreso del 10% al 95% (85% total)
-                # Si hay micro, asume del 55% al 95% (40% total)
                 base_progress = 55 if mic_exists else 10
                 progress_weight = 40 if mic_exists else 85
                 
@@ -372,7 +356,9 @@ class AudioSyncAnalyzer:
                     'text': ' '.join(s['text'] for s in sys_segments),
                     'segments': sys_segments
                 }
-            print("PROGRESS:95", flush=True)
+            
+            if sys_exists:
+                print("PROGRESS:95", flush=True)
             
             # Limpiar archivos temporales
             if temp_mic_wav and os.path.exists(temp_mic_wav):
@@ -409,15 +395,18 @@ class AudioSyncAnalyzer:
         merged.append(current)
         return merged
 
-    def combine_transcriptions(self, mic_result, sys_result, mic_exists=True):
+    def combine_transcriptions(self, mic_result, sys_result, mic_exists=True, sys_exists=True):
         """Combinar las transcripciones eliminando duplicados y mejorando la detección de interlocutores"""
         print("\n📝 COMBINANDO TRANSCRIPCIONES")
         print("=" * 50)
-        if not sys_result:
-            print("❌ No hay transcripción de sistema para combinar")
+        
+        if not sys_result and not mic_result:
+            print("❌ No hay resultados de transcripción para combinar")
             return
+
         def clean_text(text):
             return text.strip().lower().replace("  ", " ") if text else ""
+
         def texts_similar(text1, text2, threshold=0.8):
             if not text1 or not text2:
                 return False
@@ -430,20 +419,11 @@ class AudioSyncAnalyzer:
             intersection = len(words1 & words2)
             union = len(words1 | words2)
             return intersection / union > threshold if union > 0 else False
-        debug_file = os.path.join(self.output_dir, "debug_segmentos.txt")
-        with open(debug_file, 'w', encoding='utf-8') as dbg:
-            dbg.write("SEGMENTOS ORIGINALES DE WHISPER\n")
-            dbg.write("="*60 + "\n\n")
-            if mic_exists and mic_result:
-                dbg.write("MICRÓFONO:\n")
-                for i, seg in enumerate(mic_result.get('segments', []), 1):
-                    dbg.write(f"[{i}] {seg['start']:.2f}-{seg['end']:.2f}: {seg['text'].strip()}\n")
-            dbg.write("\nSISTEMA:\n")
-            for i, seg in enumerate(sys_result.get('segments', []), 1):
-                dbg.write(f"[{i}] {seg['start']:.2f}-{seg['end']:.2f}: {seg['text'].strip()}\n")
-        print(f"🪪 Segmentos originales guardados en: {debug_file}")
+
         all_segments = []
         processed_texts = set()
+
+        # Procesar micrófono
         if mic_exists and mic_result:
             mic_segments_raw = []
             for segment in mic_result.get('segments', []):
@@ -462,58 +442,63 @@ class AudioSyncAnalyzer:
                         processed_texts.add(clean_text_key)
             mic_segments_merged = self.merge_close_segments(mic_segments_raw, min_gap_seconds=1.2)
             all_segments.extend(mic_segments_merged)
-        sys_segments_raw = []
-        for segment in sys_result.get('segments', []):
-            text = segment['text'].strip()
-            if not text or len(text) <= 3:
-                continue
-            clean_text_key = clean_text(text)
-            if clean_text_key in processed_texts:
-                continue
-            sys_segments_raw.append({
-                'start': segment['start'],
-                'end': segment['end'],
-                'text': text,
-                'source': 'sistema',
-                'emoji': '🔊',
-                'speaker': 'SISTEMA'
-            })
-            processed_texts.add(clean_text_key)
-        sys_segments_merged = self.merge_close_segments(sys_segments_raw, min_gap_seconds=0.5)
-        current_speaker_id = 1
-        last_text = ""
+
+        # Procesar sistema
+        sys_segments_merged = []
         speaker_texts = {}
-        for segment in sys_segments_merged:
-            text = segment['text'].strip()
-            if texts_similar(text, last_text):
-                continue
-            is_new_speaker = False
-            if len(speaker_texts) > 0:
-                best_match_speaker = None
-                best_similarity = 0
-                for speaker_id, speaker_text_list in speaker_texts.items():
-                    for prev_text in speaker_text_list[-3:]:
-                        if texts_similar(text, prev_text, threshold=0.6):
-                            if texts_similar(text, prev_text, threshold=0.6) > best_similarity:
-                                best_match_speaker = speaker_id
-                                best_similarity = texts_similar(text, prev_text, threshold=0.6)
-                if best_match_speaker:
-                    current_speaker_id = best_match_speaker
-                else:
-                    current_speaker_id = len(speaker_texts) + 1
-                    is_new_speaker = True
-            else:
-                speaker_texts[current_speaker_id] = []
-            if current_speaker_id not in speaker_texts:
-                speaker_texts[current_speaker_id] = []
-            speaker_texts[current_speaker_id].append(text)
-            speaker_label = f"INTERLOCUTOR-{current_speaker_id}"
-            if is_new_speaker:
-                speaker_label += " (NUEVO)"
-            segment['speaker'] = speaker_label
-            all_segments.append(segment)
-            last_text = text
+        if sys_exists and sys_result:
+            sys_segments_raw = []
+            for segment in sys_result.get('segments', []):
+                text = segment['text'].strip()
+                if not text or len(text) <= 3:
+                    continue
+                clean_text_key = clean_text(text)
+                if clean_text_key in processed_texts:
+                    continue
+                sys_segments_raw.append({
+                    'start': segment['start'],
+                    'end': segment['end'],
+                    'text': text,
+                    'source': 'sistema',
+                    'emoji': '🔊',
+                    'speaker': 'SISTEMA'
+                })
+                processed_texts.add(clean_text_key)
+            
+            sys_segments_merged = self.merge_close_segments(sys_segments_raw, min_gap_seconds=0.5)
+            
+            current_speaker_id = 1
+            last_text = ""
+            for segment in sys_segments_merged:
+                text = segment['text'].strip()
+                if texts_similar(text, last_text):
+                    continue
+                
+                if len(speaker_texts) > 0:
+                    best_match_speaker = None
+                    best_similarity = 0
+                    for speaker_id, speaker_text_list in speaker_texts.items():
+                        for prev_text in speaker_text_list[-3:]:
+                            if texts_similar(text, prev_text, threshold=0.6):
+                                if texts_similar(text, prev_text, threshold=0.6) > best_similarity:
+                                    best_match_speaker = speaker_id
+                                    best_similarity = texts_similar(text, prev_text, threshold=0.6)
+                    if best_match_speaker:
+                        current_speaker_id = best_match_speaker
+                    else:
+                        current_speaker_id = len(speaker_texts) + 1
+                
+                if current_speaker_id not in speaker_texts:
+                    speaker_texts[current_speaker_id] = []
+                speaker_texts[current_speaker_id].append(text)
+                
+                segment['speaker'] = f"INTERLOCUTOR-{current_speaker_id}"
+                all_segments.append(segment)
+                last_text = text
+
         all_segments.sort(key=lambda x: x['start'])
+        
+        # Eliminar duplicados temporales
         filtered_segments = []
         for i, segment in enumerate(all_segments):
             is_duplicate = False
@@ -525,15 +510,19 @@ class AudioSyncAnalyzer:
                         break
             if not is_duplicate:
                 filtered_segments.append(segment)
+        
         all_segments = filtered_segments
+        
+        # Guardar TXT
         output_file = os.path.join(self.output_dir, "transcripcion_combinada.txt")
         with open(output_file, 'w', encoding='utf-8') as f:
-            f.write("TRANSCRIPCIÓN COMBINADA DE AUDIO DUAL\n")
+            f.write("TRANSCRIPCIÓN DE AUDIO\n")
             f.write("=" * 60 + "\n\n")
             if mic_exists and mic_result:
                 f.write(f"🎤 Usuario: {len([s for s in all_segments if s['source'] == 'micrófono'])} segmentos\n")
-            f.write(f"🔊 Sistema: {len([s for s in all_segments if s['source'] == 'sistema'])} segmentos\n")
-            f.write(f"👥 Interlocutores detectados: {len(speaker_texts)} en canal sistema\n")
+            if sys_exists and sys_result:
+                f.write(f"🔊 Sistema: {len([s for s in all_segments if s['source'] == 'sistema'])} segmentos\n")
+                f.write(f"👥 Interlocutores detectados: {len(speaker_texts)}\n")
             f.write(f"📝 Total: {len(all_segments)} segmentos únicos\n\n")
             f.write("TIMELINE:\n")
             f.write("-" * 40 + "\n\n")
@@ -542,13 +531,14 @@ class AudioSyncAnalyzer:
                 end_time = str(timedelta(seconds=int(segment['end'])))
                 f.write(f"[{start_time} - {end_time}] {segment['emoji']} {segment['speaker']}:\n")
                 f.write(f"   {segment['text']}\n\n")
-        print(f"✅ Transcripción combinada guardada en: {output_file}")
+
+        # Guardar JSON
         json_file = os.path.join(self.output_dir, "transcripcion_combinada.json")
         with open(json_file, 'w', encoding='utf-8') as f:
             json.dump({
                 'metadata': {
                     'total_segments': len(all_segments),
-                    'microphone_segments': len([s for s in all_segments if s['source'] == 'micrófono']) if mic_exists and mic_result else 0,
+                    'microphone_segments': len([s for s in all_segments if s['source'] == 'micrófono']),
                     'system_segments': len([s for s in all_segments if s['source'] == 'sistema']),
                     'detected_speakers': len(speaker_texts),
                     'total_duration': max([s['end'] for s in all_segments]) if all_segments else 0
@@ -646,40 +636,55 @@ class AudioSyncAnalyzer:
         print("PROGRESS:0", flush=True)
         print("🚀 INICIANDO ANÁLISIS COMPLETO DE AUDIO DUAL")
         print("=" * 60)
+        
         mic_exists = os.path.exists(self.mic_file)
         sys_exists = os.path.exists(self.system_file)
+        
         if not mic_exists and not sys_exists:
             print(f"❌ No se encuentra ninguno de los archivos de audio: {self.mic_file} ni {self.system_file}")
             return False
+            
         if not mic_exists:
-            print(f"⚠️  Advertencia: No se encuentra archivo de micrófono: {self.mic_file}. Solo se analizará el sistema.")
+            print(f"⚠️  Advertencia: No se encuentra archivo de micrófono: {self.mic_file}.")
+            
         if not sys_exists:
-            print(f"❌ No se encuentra archivo de sistema: {self.system_file}")
-            return False
+            print(f"⚠️  Advertencia: No se encuentra archivo de sistema: {self.system_file}.")
+            
         # Cargar modelo Whisper
         if not self.load_whisper_model():
             return False
+            
         print("PROGRESS:5", flush=True)
+        
         # Ejecutar pasos del análisis
-        if not self.load_audio_files(mic_exists=mic_exists):
+        if not self.load_audio_files(mic_exists=mic_exists, sys_exists=sys_exists):
             return False
+            
         print("PROGRESS:10", flush=True)
-        if not self.convert_to_numpy(mic_exists=mic_exists):
+        
+        if not self.convert_to_numpy(mic_exists=mic_exists, sys_exists=sys_exists):
             return False
-        self.analyze_audio_properties(mic_exists=mic_exists)
-        lag_seconds = self.detect_cross_correlation(mic_exists=mic_exists)
+            
+        self.analyze_audio_properties(mic_exists=mic_exists, sys_exists=sys_exists)
+        
+        lag_seconds = 0
+        if mic_exists and sys_exists:
+            lag_seconds = self.detect_cross_correlation(mic_exists=mic_exists)
+        
         print("PROGRESS:15", flush=True)
-        chunks_info = self.create_synchronized_chunks(lag_seconds, mic_exists=mic_exists)
+        
+        chunks_info = self.create_synchronized_chunks(lag_seconds, mic_exists=mic_exists, sys_exists=sys_exists)
         self.generate_activity_report(chunks_info, mic_exists=mic_exists)
         self.create_waveform_visualization(mic_exists=mic_exists)
-        # NUEVA FUNCIONALIDAD: Transcripción y combinación
+        
+        # Transcripción y combinación
         print("PROGRESS:20", flush=True)
-        mic_result, sys_result = self.transcribe_audio_files(lag_seconds, mic_exists=mic_exists)
-        if sys_result:  # Solo combinar si hay sistema
-            self.combine_transcriptions(mic_result, sys_result, mic_exists=mic_exists)
+        mic_result, sys_result = self.transcribe_audio_files(lag_seconds, mic_exists=mic_exists, sys_exists=sys_exists)
+        
+        self.combine_transcriptions(mic_result, sys_result, mic_exists=mic_exists, sys_exists=sys_exists)
+        
         print(f"\n🎉 ANÁLISIS COMPLETADO")
         print(f"📁 Archivos de salida en: {self.output_dir}")
-        print(f"📝 Transcripción combinada: transcripcion_combinada.txt")
         print("PROGRESS:100", flush=True)
         return True
 
