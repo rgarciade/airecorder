@@ -110,7 +110,17 @@ export default function App() {
       )}
 
       {currentView !== 'onboarding' && (
-        <Sidebar currentView={currentView} onViewChange={setCurrentView} queueCount={queueCount} />
+        <Sidebar 
+          currentView={currentView} 
+          onViewChange={(view) => {
+            if (view === 'settings') {
+              handleOpenSettings('agents');
+            } else {
+              navigateTo(view);
+            }
+          }} 
+          queueCount={queueCount} 
+        />
       )}
       
       <div className={`${styles.mainContent} ${currentView !== 'onboarding' ? styles.mainContentWithSidebar : ''}`}>

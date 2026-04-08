@@ -30,6 +30,7 @@ export const useNavigation = () => {
           initialTimestamp: timestamp || null,
         });
         setCurrentView('recording-detail');
+        setSettingsInitialTab('agents');
       } else {
         console.error('[useNavigation] No se pudo encontrar la grabación con ID:', recordingId);
       }
@@ -42,6 +43,7 @@ export const useNavigation = () => {
     setSelectedProject(project);
     setSelectedProjectId(project.id);
     setCurrentView('project-detail');
+    setSettingsInitialTab('agents');
   }, []);
 
   const handleBack = useCallback(() => {
@@ -53,11 +55,15 @@ export const useNavigation = () => {
       setSelectedRecording(null);
       setSelectedProject(null);
       setSelectedProjectId(null);
+      setSettingsInitialTab('agents');
     }
   }, [currentView, selectedProject]);
 
   const navigateTo = useCallback((view) => {
     setCurrentView(view);
+    if (view !== 'settings') {
+      setSettingsInitialTab('agents');
+    }
     if (view === 'home') {
       setSelectedRecording(null);
       setSelectedProject(null);
@@ -76,6 +82,7 @@ export const useNavigation = () => {
   const handleSelectRecording = useCallback((recording) => {
     setSelectedRecording(recording);
     setCurrentView('recording-detail');
+    setSettingsInitialTab('agents');
   }, []);
 
   return {
