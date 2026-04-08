@@ -244,6 +244,12 @@ async function initApp() {
     });
   });
 
+  transcriptionManager.setAutoAnalyzeCallback((recordingId) => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('auto-analyze-recording', recordingId);
+    });
+  });
+
   // 4. Cargar configuraciones guardadas
   if (fs.existsSync(settingsPath)) {
     try {

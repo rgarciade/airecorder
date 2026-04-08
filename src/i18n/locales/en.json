@@ -17,7 +17,8 @@
     "send": "Send",
     "sending": "Sending...",
     "saveChanges": "Save Changes",
-    "reportBug": "Report a bug"
+    "reportBug": "Report a bug",
+    "quickSummary": "Quick Summary"
   },
   "modelInfo": {
     "title": "Recommended models",
@@ -97,7 +98,9 @@
     "change": "Change",
     "saving": "Saving files...",
     "stopping": "Stopping recording...",
-    "saveAndExit": "Save & Exit"
+    "saveAndExit": "Save & Exit",
+    "extraInstructions": "Instructions & Context (optional)",
+    "extraInstructionsPlaceholder": "E.g.: Sprint planning meeting with the frontend team. Focus on technical decisions and task assignments..."
   },
   "settings": {
     "title": "AIRecorder Settings",
@@ -234,6 +237,14 @@
       "notifications": {
         "title": "Desktop Notifications",
         "desc": "Show native notifications when tasks complete"
+      },
+      "autoTranscribe": {
+        "title": "Auto-Transcribe",
+        "desc": "Automatically start transcription when a recording is saved"
+      },
+      "autoAnalyze": {
+        "title": "Auto AI Analysis",
+        "desc": "Automatically generate AI summaries and insights when transcription finishes"
       },
       "devTools": {
         "title": "Developer Tools",
@@ -427,9 +438,38 @@
     "unassignTitle": "Unassign from Project?",
     "unassignConfirm": "Are you sure you want to unassign \"{{recordingName}}\" from project \"{{projectName}}\"?",
     "unassign": "Unassign",
-    "page": "Page {{current}} of {{total}}"
-  },
-  "newSessionCard": {
+    "page": "Page {{current}} de {{total}}"
+    },
+    "recordingDetail": {
+    "overview": {
+      "detailedSummary": "Detailed Summary",
+      "notesAndInstructions": "Notes & Instructions",
+      "edit": "Edit",
+      "cancel": "Cancel",
+      "save": "Save",
+      "placeholder": "Add context for this recording: topic, key participants, goals...",
+      "noInstructions": "No extra instructions. Click Edit to add context.",
+      "keyHighlights": "Key Highlights",
+      "noHighlights": "No highlights available.",
+      "participants": "Participants",
+      "analyzing": "Analyzing Recording...",
+      "waitingAnalysis": "Waiting for Analysis",
+      "aiExtracting": "AI is extracting insights, summaries, and participants.",
+      "analysisPending": "Analysis pending or not available.",
+      "noTranscription": "No transcription yet",
+      "noTranscriptionDesc": "AI needs the transcription to generate the summary and key topics."
+    }
+    },
+    "participantsList": {
+    "title": "Participants",
+    "add": "Add",
+    "name": "Name",
+    "role": "Role",
+    "noParticipants": "No participants detected.",
+    "aiSuggested": "AI",
+    "aiSuggestedTooltip": "Suggested by AI"
+    },
+    "newSessionCard": {
     "title": "New Session",
     "description": "Start recording instantly. Our AI will handle transcription, summarization, and key point extraction automatically.",
     "changeMic": "Change Microphone",

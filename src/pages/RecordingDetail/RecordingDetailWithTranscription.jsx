@@ -89,6 +89,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [geminiData, setGeminiData] = useState({ resumen_breve: '', ideas: [] });
   const [detailedSummary, setDetailedSummary] = useState('');
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [extraInstructions, setExtraInstructions] = useState('');
 
   // Tasks State
   const [tasks, setTasks] = useState([]);
@@ -401,6 +402,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             setTasks(savedTasks);
           }
         }
+
+        // Load Extra Instructions
+        const instructions = await recordingsService.getExtraInstructions(recording.dbId || recording.id);
+        setExtraInstructions(instructions || '');
 
         // Load Summary
         const existing = await recordingAiService.getRecordingSummary(recording.id);
@@ -1071,6 +1076,17 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
   };
 
+  // --- EXTRA INSTRUCTIONS HANDLER ---
+
+  const handleSaveExtraInstructions = async (text) => {
+    try {
+      await recordingsService.saveExtraInstructions(recording.dbId || recording.id, text);
+      setExtraInstructions(text);
+    } catch (error) {
+      console.error('Error guardando instrucciones extra:', error);
+    }
+  };
+
   // --- PARTICIPANT MANAGEMENT HANDLERS (Direct updates) ---
 
   const handleAddParticipant = async (newParticipantData) => {
@@ -1562,6 +1578,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             hasTranscription={!!transcription}
             aiProvider={geminiData.aiProvider || null}
             aiModel={geminiData.aiModel || null}
+            extraInstructions={extraInstructions}
+            onSaveExtraInstructions={handleSaveExtraInstructions}
           />
         )}
         {activeTab === 'transcription' && (

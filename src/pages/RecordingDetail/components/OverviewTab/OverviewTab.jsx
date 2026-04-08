@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { useTranslation } from 'react-i18next';
 import styles from './OverviewTab.module.css';
-import { 
+import {
   MdAutoAwesome,
-  MdHourglassEmpty 
+  MdHourglassEmpty,
+  MdEditNote,
+  MdCheck,
+  MdClose
 } from 'react-icons/md';
 import ParticipantsList from '../../../../components/ParticipantsList/ParticipantsList';
 
@@ -24,8 +28,29 @@ export default function OverviewTab({
   isGeneratingAi,
   hasTranscription,
   aiProvider,
-  aiModel
+  aiModel,
+  extraInstructions,
+  onSaveExtraInstructions
 }) {
+  const { t } = useTranslation();
+  const [isEditingInstructions, setIsEditingInstructions] = useState(false);
+  const [localInstructions, setLocalInstructions] = useState('');
+
+  const handleStartEdit = () => {
+    setLocalInstructions(extraInstructions || '');
+    setIsEditingInstructions(true);
+  };
+
+  const handleSaveInstructions = () => {
+    if (onSaveExtraInstructions) {
+      onSaveExtraInstructions(localInstructions);
+    }
+    setIsEditingInstructions(false);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingInstructions(false);
+  };
 
   // Custom markdown components
   const markdownComponents = {
@@ -51,12 +76,12 @@ export default function OverviewTab({
               <MdAutoAwesome className={styles.spinningIcon} size={48} />
             </div>
             <h3 className={styles.loadingTitle}>
-              {isGeneratingAi ? 'Analyzing Recording...' : 'Waiting for Analysis'}
+              {isGeneratingAi ? t('recordingDetail.overview.analyzing') : t('recordingDetail.overview.waitingAnalysis')}
             </h3>
             <p className={styles.loadingSubtitle}>
               {isGeneratingAi 
-                ? 'AI is extracting insights, summaries, and participants.' 
-                : 'Analysis pending or not available.'}
+                ? t('recordingDetail.overview.aiExtracting') 
+                : t('recordingDetail.overview.analysisPending')}
             </p>
           </div>
         </div>
@@ -70,10 +95,10 @@ export default function OverviewTab({
               <MdHourglassEmpty size={48} />
             </div>
             <h3 className={styles.loadingTitle} style={{ color: 'var(--text-secondary)' }}>
-              Aún no hay transcripción
+              {t('recordingDetail.overview.noTranscription')}
             </h3>
             <p className={styles.loadingSubtitle}>
-              La inteligencia artificial necesita la transcripción para poder generar el resumen y los temas clave.
+              {t('recordingDetail.overview.noTranscriptionDesc')}
             </p>
           </div>
         </div>
@@ -88,7 +113,7 @@ export default function OverviewTab({
               <div className={styles.cardHeader} style={{ justifyContent: 'space-between' }}>
                 <div className={`${styles.cardTitle} ${styles.quickTitle}`}>
                   <MdAutoAwesome size={20} />
-                  Quick Summary
+                  {t('common.quickSummary', 'Quick Summary')}
                 </div>
                 {formatAiEngine(aiProvider, aiModel) && (
                   <span className={styles.aiBadge}>{formatAiEngine(aiProvider, aiModel)}</span>
@@ -96,7 +121,7 @@ export default function OverviewTab({
               </div>
               <div className={styles.summaryText}>
                 <ReactMarkdown>
-                  {summary || "No quick summary available."}
+                  {summary || t('recordingDetail.overview.noHighlights')}
                 </ReactMarkdown>
               </div>
             </section>
@@ -104,11 +129,11 @@ export default function OverviewTab({
             {/* Detailed Summary */}
             <section className={styles.card}>
               <div className={styles.cardHeader}>
-                <h3 className={styles.cardTitle}>Detailed Summary</h3>
+                <h3 className={styles.cardTitle}>{t('recordingDetail.overview.detailedSummary')}</h3>
               </div>
               <div className={styles.detailedContent}>
                 <ReactMarkdown components={markdownComponents}>
-                  {detailedSummary || "No detailed summary available."}
+                  {detailedSummary || t('recordingDetail.overview.noHighlights')}
                 </ReactMarkdown>
               </div>
             </section>
@@ -116,10 +141,60 @@ export default function OverviewTab({
 
           {/* Right Column (Sidebar info) */}
           <div className={styles.rightPanel}>
+            {/* Extra Instructions */}
+            <section className={styles.card}>
+              <div className={styles.cardHeader}>
+                <h3 className={styles.cardTitle}>{t('recordingDetail.overview.notesAndInstructions')}</h3>
+                {!isEditingInstructions && (
+                  <button
+                    onClick={handleStartEdit}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px' }}
+                  >
+                    <MdEditNote size={18} />
+                    {t('recordingDetail.overview.edit')}
+                  </button>
+                )}
+              </div>
+              {isEditingInstructions ? (
+                <div>
+                  <textarea
+                    value={localInstructions}
+                    onChange={(e) => setLocalInstructions(e.target.value)}
+                    placeholder={t('recordingDetail.overview.placeholder')}
+                    style={{
+                      width: '100%',
+                      minHeight: '80px',
+                      resize: 'vertical',
+                      padding: '8px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-bg-secondary)',
+                      color: 'var(--color-text-primary)',
+                      fontSize: '13px',
+                      fontFamily: 'inherit',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px', justifyContent: 'flex-end' }}>
+                    <button onClick={handleCancelEdit} style={{ background: 'none', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
+                      <MdClose size={14} /> {t('recordingDetail.overview.cancel')}
+                    </button>
+                    <button onClick={handleSaveInstructions} style={{ background: 'var(--color-primary)', border: 'none', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: '600' }}>
+                      <MdCheck size={14} /> {t('recordingDetail.overview.save')}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.summaryText} style={{ whiteSpace: 'pre-wrap', color: extraInstructions ? 'var(--color-text-primary)' : 'var(--color-text-muted)', fontStyle: extraInstructions ? 'normal' : 'italic' }}>
+                  {extraInstructions || t('recordingDetail.overview.noInstructions')}
+                </div>
+              )}
+            </section>
+
             {/* Key Highlights */}
             <section className={styles.card}>
               <div className={styles.cardHeader}>
-                <h3 className={styles.cardTitle}>Key Highlights</h3>
+                <h3 className={styles.cardTitle}>{t('recordingDetail.overview.keyHighlights')}</h3>
               </div>
               <div className={styles.highlightsList}>
                 {highlights && highlights.length > 0 ? (
@@ -134,7 +209,7 @@ export default function OverviewTab({
                     </div>
                   ))
                 ) : (
-                  <p className={styles.summaryText}>No highlights available.</p>
+                  <p className={styles.summaryText}>{t('recordingDetail.overview.noHighlights')}</p>
                 )}
               </div>
             </section>
@@ -146,7 +221,7 @@ export default function OverviewTab({
                 onAddParticipant={onAddParticipant}
                 onRemoveParticipant={onRemoveParticipant}
                 onUpdateParticipant={onUpdateParticipant}
-                title="Participants"
+                title={t('recordingDetail.overview.participants')}
               />
             </section>
           </div>

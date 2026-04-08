@@ -410,6 +410,41 @@ module.exports.registerAnalysisHandlers = () => {
     }
   });
 
+  // Guardar instrucciones extra de la grabación
+  ipcMain.handle('save-extra-instructions', async (event, recordingId, text) => {
+    try {
+      const folderName = await getFolderPathFromId(recordingId);
+      const baseOutputDir = await getRecordingsPath();
+      const folderPath = path.join(baseOutputDir, folderName);
+      if (!fs.existsSync(folderPath)) {
+        fs.mkdirSync(folderPath, { recursive: true });
+      }
+      const filePath = path.join(folderPath, 'extra_instructions.txt');
+      await fs.promises.writeFile(filePath, text, 'utf8');
+      return { success: true };
+    } catch (error) {
+      console.error('Error saving extra instructions:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Obtener instrucciones extra de la grabación
+  ipcMain.handle('get-extra-instructions', async (event, recordingId) => {
+    try {
+      const folderName = await getFolderPathFromId(recordingId);
+      const baseOutputDir = await getRecordingsPath();
+      const filePath = path.join(baseOutputDir, folderName, 'extra_instructions.txt');
+      if (!fs.existsSync(filePath)) {
+        return { success: true, text: '' };
+      }
+      const text = await fs.promises.readFile(filePath, 'utf8');
+      return { success: true, text };
+    } catch (error) {
+      console.error('Error getting extra instructions:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // Limpiar estado de generación
   ipcMain.handle('clear-generating-state', async (event, recordingId) => {
     try {

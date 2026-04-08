@@ -67,7 +67,9 @@ export const getSettings = async () => {
       aiProvider: 'ollama', // Cambiado a ollama por defecto según petición
       projectHighlightsCount: 2,
       theme: 'system',
-      activeExpert: 'developer'
+      activeExpert: 'developer',
+      autoTranscribe: true,
+      autoAnalyze: true
     };
   } catch (error) {
     console.error('Error getting settings:', error);

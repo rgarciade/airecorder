@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import i18n from './i18n/index.js'
+import recordingAiService from './services/recordingAiService';
 import WhatsNewModal from './components/WhatsNewModal/WhatsNewModal'
 import Home from './pages/Home/Home'
 import RecordingDetailWithTranscription from './pages/RecordingDetail/RecordingDetailWithTranscription';
@@ -57,7 +58,23 @@ export default function App() {
       });
     }
 
-    // No cleanup for root app listener
+    // Auto-análisis IA al terminar transcripción
+    let cleanupAutoAnalyze;
+    if (window.electronAPI?.onAutoAnalyze) {
+      cleanupAutoAnalyze = window.electronAPI.onAutoAnalyze(async (recordingId) => {
+        console.log('[App] Auto-análisis IA para grabación:', recordingId);
+        try {
+          await recordingAiService.generateRecordingSummary(recordingId);
+          await recordingAiService.extractParticipants(recordingId);
+        } catch (err) {
+          console.error('[App] Error en auto-análisis IA:', err);
+        }
+      });
+    }
+
+    return () => {
+      if (cleanupAutoAnalyze) cleanupAutoAnalyze();
+    };
   }, []);
 
   useEffect(() => {

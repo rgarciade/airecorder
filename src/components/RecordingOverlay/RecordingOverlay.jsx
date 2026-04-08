@@ -6,6 +6,7 @@ import styles from './RecordingOverlay.module.css';
 import ProjectSelector from '../ProjectSelector/ProjectSelector';
 import projectsService from '../../services/projectsService';
 import recordingsService from '../../services/recordingsService';
+import { getSettings } from '../../services/settingsService';
 import { MdStop, MdExpandMore, MdDeleteOutline } from 'react-icons/md';
 
 const RecordingOverlay = ({ recorder, onFinish }) => {
@@ -24,6 +25,7 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
   const [dbId, setDbId] = useState(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [newName, setNewName] = useState('');
+  const [extraInstructions, setExtraInstructions] = useState('');
 
   // Expanded State
   const [isExpanded, setIsExpanded] = useState(false);
@@ -141,6 +143,23 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
       } catch (error) {
         console.error('Error al agregar grabación al proyecto:', error);
       }
+    }
+
+    if (extraInstructions.trim() && dbId) {
+      try {
+        await recordingsService.saveExtraInstructions(dbId, extraInstructions.trim());
+      } catch (error) {
+        console.error('Error al guardar instrucciones extra:', error);
+      }
+    }
+
+    try {
+      const settings = await getSettings();
+      if (settings.autoTranscribe !== false && dbId) {
+        recordingsService.transcribeRecording(dbId, settings.whisperModel || null).catch(console.error);
+      }
+    } catch (error) {
+      console.error('Error al verificar autoTranscribe:', error);
     }
 
     dispatch(saveAndExit(finalName));
@@ -285,6 +304,18 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
                       {selectedProject ? t('recordingOverlay.change') : t('recordingOverlay.selectProject')}
                     </button>
                   </div>
+                </div>
+
+                <div className={styles.inputContainer}>
+                  <label className={styles.inputLabel}>{t('recordingOverlay.extraInstructions')}</label>
+                  <textarea
+                    value={extraInstructions}
+                    onChange={(e) => setExtraInstructions(e.target.value)}
+                    placeholder={t('recordingOverlay.extraInstructionsPlaceholder')}
+                    className={styles.input}
+                    rows={3}
+                    style={{ resize: 'vertical', minHeight: '72px' }}
+                  />
                 </div>
 
                 <div className={styles.modalButtons}>

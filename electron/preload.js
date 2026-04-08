@@ -212,4 +212,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getExpertCustomizations: (expertId) => ipcRenderer.invoke('get-expert-customizations', expertId),
   saveExpertCustomization: (data) => ipcRenderer.invoke('save-expert-customization', data),
   resetExpertCustomization: (data) => ipcRenderer.invoke('reset-expert-customization', data),
+
+  // Instrucciones extra por grabación
+  saveExtraInstructions: (recordingId, text) => ipcRenderer.invoke('save-extra-instructions', recordingId, text),
+  getExtraInstructions: (recordingId) => ipcRenderer.invoke('get-extra-instructions', recordingId),
+
+  // Auto-análisis IA (evento desde main process tras transcripción)
+  onAutoAnalyze: (callback) => {
+    const handler = (_event, recordingId) => callback(recordingId);
+    ipcRenderer.on('auto-analyze-recording', handler);
+    return () => ipcRenderer.removeListener('auto-analyze-recording', handler);
+  },
 }); 
