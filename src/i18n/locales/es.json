@@ -507,6 +507,7 @@
   "recordingCard": {
     "transcribing": "Transcribiendo ({{progress}}%)",
     "queued": "En cola",
+    "analyzing": "Analizando con IA...",
     "needsAnalysis": "Necesita Análisis IA",
     "analyzed": "Analizado",
     "recorded": "Grabado",
