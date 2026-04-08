@@ -35,10 +35,29 @@ async function getFolderPathFromId(recordingId) {
   return recordingId;
 }
 
+/**
+ * Lee un setting específico del archivo de configuración de forma síncrona.
+ * @param {string} key - Clave del setting
+ * @param {*} defaultValue - Valor por defecto si no existe o hay error
+ */
+function getSetting(key, defaultValue = null) {
+  try {
+    if (fs.existsSync(settingsPath)) {
+      const data = fs.readFileSync(settingsPath, 'utf8');
+      const settings = JSON.parse(data);
+      return settings[key] !== undefined ? settings[key] : defaultValue;
+    }
+  } catch (e) {
+    console.error(`[Settings] Error leyendo setting "${key}":`, e);
+  }
+  return defaultValue;
+}
+
 module.exports = {
   DEFAULT_BASE_RECORDER_PATH,
   PROJECTS_PATH,
   settingsPath,
   getRecordingsPath,
-  getFolderPathFromId
+  getFolderPathFromId,
+  getSetting
 };

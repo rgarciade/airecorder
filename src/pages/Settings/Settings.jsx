@@ -10,7 +10,8 @@ import {
   MdMic, MdClose, MdCloud, MdAutoAwesome, MdComputer, MdTerminal,
   MdFolder, MdVisibility, MdVisibilityOff, MdRefresh, MdInfo, MdCheck,
   MdTextFormat, MdTranslate, MdNotifications, MdSmartToy, MdSettings, MdSecurity,
-  MdSystemUpdate, MdLightMode, MdDarkMode, MdBrightness6, MdWork
+  MdSystemUpdate, MdLightMode, MdDarkMode, MdBrightness6, MdWork,
+  MdGraphicEq, MdAutoFixHigh
 } from 'react-icons/md';
 import { applyTheme } from '../../services/themeService';
 import styles from './Settings.module.css';
@@ -51,6 +52,8 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
   const [theme, setTheme] = useState('system');
   const [projectHighlightsCount, setProjectHighlightsCount] = useState(2);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [autoTranscribe, setAutoTranscribe] = useState(true);
+  const [autoAnalyze, setAutoAnalyze] = useState(true);
   const [whisperModel, setWhisperModel] = useState('small');
   const [cpuThreads, setCpuThreads] = useState(4);
   const [maxCpuThreads, setMaxCpuThreads] = useState(4);
@@ -181,6 +184,8 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         setTheme(savedSettings.theme || 'system');
         setProjectHighlightsCount(savedSettings.projectHighlightsCount || 2);
         setNotificationsEnabled(savedSettings.notificationsEnabled !== false); // Default true
+        setAutoTranscribe(savedSettings.autoTranscribe !== false); // Default true
+        setAutoAnalyze(savedSettings.autoAnalyze !== false); // Default true
         setWhisperModel(savedSettings.whisperModel || 'small');
         
         try {
@@ -533,6 +538,8 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         uiLanguage: selectedUiLanguage,
         microphone: selectedMicrophone,
         notificationsEnabled: notificationsEnabled,
+        autoTranscribe: autoTranscribe,
+        autoAnalyze: autoAnalyze,
         fontSize: fontSize,
         theme: theme,
         projectHighlightsCount: projectHighlightsCount,
@@ -1523,6 +1530,54 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                     <p className={styles.helpText}>
                       {t('settings.helpText.cpuThreads')}
                     </p>
+                  </div>
+                </div>
+
+                {/* Auto-transcripción */}
+                <div className={styles.card} style={{marginTop: '16px'}}>
+                  <div className={styles.cardHeader}>
+                    <div className={styles.providerInfo}>
+                      <div className={styles.providerIcon} style={{backgroundColor: '#e0f2fe', color: '#0ea5e9'}}>
+                        <MdGraphicEq size={24} />
+                      </div>
+                      <div>
+                        <h4 className={styles.providerName}>{t('settings.misc.autoTranscribe.title')}</h4>
+                        <p className={styles.providerDesc}>{t('settings.misc.autoTranscribe.desc')}</p>
+                      </div>
+                    </div>
+                    <label className={styles.toggleWrapper}>
+                      <input
+                        type="checkbox"
+                        className={styles.toggleInput}
+                        checked={autoTranscribe}
+                        onChange={(e) => setAutoTranscribe(e.target.checked)}
+                      />
+                      <div className={styles.toggleSlider}></div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Auto-análisis IA */}
+                <div className={styles.card} style={{marginTop: '16px'}}>
+                  <div className={styles.cardHeader}>
+                    <div className={styles.providerInfo}>
+                      <div className={styles.providerIcon} style={{backgroundColor: '#f0fdf4', color: '#16a34a'}}>
+                        <MdAutoFixHigh size={24} />
+                      </div>
+                      <div>
+                        <h4 className={styles.providerName}>{t('settings.misc.autoAnalyze.title')}</h4>
+                        <p className={styles.providerDesc}>{t('settings.misc.autoAnalyze.desc')}</p>
+                      </div>
+                    </div>
+                    <label className={styles.toggleWrapper}>
+                      <input
+                        type="checkbox"
+                        className={styles.toggleInput}
+                        checked={autoAnalyze}
+                        onChange={(e) => setAutoAnalyze(e.target.checked)}
+                      />
+                      <div className={styles.toggleSlider}></div>
+                    </label>
                   </div>
                 </div>
               </section>

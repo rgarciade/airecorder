@@ -277,6 +277,17 @@ class RecordingAiService {
         throw new Error('No se pudo obtener el texto de la transcripción');
       }
 
+      // 2.5. Cargar instrucciones extra del usuario
+      let extraInstructions = '';
+      try {
+        extraInstructions = await recordingsService.getExtraInstructions(recordingId) || '';
+      } catch (e) {
+        console.warn('No se pudieron cargar las instrucciones extra:', e);
+      }
+      const instructionPrefix = extraInstructions.trim()
+        ? `[INSTRUCCIONES DEL USUARIO SOBRE ESTA GRABACIÓN]:\n${extraInstructions.trim()}\n[FIN INSTRUCCIONES]\n\n`
+        : '';
+
       // 3. Cargar resumen existente para preservar datos no regenerados
       const existing = await this.getRecordingSummary(recordingId) || {};
 
@@ -314,7 +325,7 @@ class RecordingAiService {
               `\n\nNote: This is part ${i + 1} of ${chunks.length} of a longer transcription. Summarize only this specific section.`;
             const chunkSystemPrompt = await buildSystemPrompt(FEATURE_TYPES.LONG_SUMMARY, baseChunkPrompt, lang);
 
-            const partialResult = await this._callAiProvider(chunkSystemPrompt, chunks[i], {
+            const partialResult = await this._callAiProvider(chunkSystemPrompt, instructionPrefix + chunks[i], {
               ...providerOverrides,
               queueMeta: {
                 name: `Resumen detallado (Parte ${i + 1}/${chunks.length}): ${recName}`,
@@ -345,7 +356,7 @@ class RecordingAiService {
         } else {
           // Caso normal: transcripción cabe en el contexto
           const enrichedDetailedPrompt = await buildSystemPrompt(FEATURE_TYPES.LONG_SUMMARY, detailedSummaryPrompt(lang), lang);
-          const detailedResult = await this._callAiProvider(enrichedDetailedPrompt, txt, {
+          const detailedResult = await this._callAiProvider(enrichedDetailedPrompt, instructionPrefix + txt, {
             ...providerOverrides,
             queueMeta: { name: `Resumen detallado: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY }
           });
@@ -373,7 +384,7 @@ class RecordingAiService {
 
           shortTasks.push(
             buildSystemPrompt(FEATURE_TYPES.SHORT_SUMMARY, shortSummaryPrompt(lang), lang).then(enrichedPrompt =>
-              this._callAiProvider(enrichedPrompt, contextForShort, {
+              this._callAiProvider(enrichedPrompt, instructionPrefix + contextForShort, {
                 ...providerOverrides,
                 queueMeta: { name: `Resumen breve: ${recName}`, type: AI_TASK_TYPES.SUMMARY }
               })
@@ -392,7 +403,7 @@ class RecordingAiService {
 
           shortTasks.push(
             buildSystemPrompt(FEATURE_TYPES.KEY_POINTS, keyPointsPrompt(lang), lang).then(enrichedPrompt =>
-              this._callAiProvider(enrichedPrompt, contextForShort, {
+              this._callAiProvider(enrichedPrompt, instructionPrefix + contextForShort, {
                 ...providerOverrides,
                 queueMeta: { name: `Puntos clave: ${recName}`, type: AI_TASK_TYPES.KEY_POINTS }
               })

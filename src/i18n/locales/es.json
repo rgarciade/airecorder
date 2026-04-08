@@ -17,7 +17,8 @@
     "send": "Enviar",
     "sending": "Enviando...",
     "saveChanges": "Guardar Cambios",
-    "reportBug": "Reportar un error"
+    "reportBug": "Reportar un error",
+    "quickSummary": "Resumen rápido"
   },
   "contextBar": {
     "context": "Contexto",
@@ -114,7 +115,9 @@
     "change": "Cambiar",
     "saving": "Guardando archivos...",
     "stopping": "Deteniendo grabación...",
-    "saveAndExit": "Guardar y Salir"
+    "saveAndExit": "Guardar y Salir",
+    "extraInstructions": "Instrucciones y Contexto (opcional)",
+    "extraInstructionsPlaceholder": "Ej: Reunión de planificación del sprint con el equipo frontend. Foco en decisiones técnicas y asignación de tareas..."
   },
   "settings": {
     "title": "Ajustes de AIRecorder",
@@ -251,6 +254,14 @@
       "notifications": {
         "title": "Notificaciones de Escritorio",
         "desc": "Mostrar notificaciones nativas al completar tareas"
+      },
+      "autoTranscribe": {
+        "title": "Transcripción Automática",
+        "desc": "Iniciar transcripción automáticamente al guardar una grabación"
+      },
+      "autoAnalyze": {
+        "title": "Análisis IA Automático",
+        "desc": "Generar resúmenes e insights con IA al terminar la transcripción"
       },
       "devTools": {
         "title": "Herramientas de Desarrollo",
@@ -445,6 +456,35 @@
     "unassignConfirm": "¿Seguro que quieres desasignar \"{{recordingName}}\" del proyecto \"{{projectName}}\"?",
     "unassign": "Desasignar",
     "page": "Página {{current}} de {{total}}"
+  },
+  "recordingDetail": {
+    "overview": {
+      "detailedSummary": "Resumen Detallado",
+      "notesAndInstructions": "Notas e Instrucciones",
+      "edit": "Editar",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "placeholder": "Añade contexto sobre esta grabación: tema, participantes clave, objetivos...",
+      "noInstructions": "Sin instrucciones adicionales. Haz clic en Editar para añadir contexto.",
+      "keyHighlights": "Puntos Clave",
+      "noHighlights": "No hay puntos clave disponibles.",
+      "participants": "Participantes",
+      "analyzing": "Analizando grabación...",
+      "waitingAnalysis": "Esperando análisis",
+      "aiExtracting": "La IA está extrayendo información, resúmenes y participantes.",
+      "analysisPending": "Análisis pendiente o no disponible.",
+      "noTranscription": "Aún no hay transcripción",
+      "noTranscriptionDesc": "La inteligencia artificial necesita la transcripción para poder generar el resumen y los temas clave."
+    }
+  },
+  "participantsList": {
+    "title": "Participantes",
+    "add": "Añadir",
+    "name": "Nombre",
+    "role": "Rol",
+    "noParticipants": "No se detectaron participantes.",
+    "aiSuggested": "IA",
+    "aiSuggestedTooltip": "Sugerido por IA"
   },
   "newSessionCard": {
     "title": "Nueva Sesión",
