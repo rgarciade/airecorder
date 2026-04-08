@@ -10,6 +10,7 @@ import { callProvider, getActiveProviderContextWindow } from './ai/providerRoute
 import { AI_TASK_TYPES } from './ai/aiQueueService';
 import { cleanAiResponse, parseJsonArray, parseJsonObject } from '../utils/aiResponseParser';
 import { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt, participantsPrompt, participantsPromptSuffix, taskSuggestionsPrompt, taskSuggestionsPromptSuffix, taskImprovementSystemPrompt, taskImprovementUserContent, consolidateSummaryPrompt } from '../prompts/aiPrompts';
+import { buildSystemPrompt, FEATURE_TYPES } from './ai/promptBuilder';
 
 class RecordingAiService {
   constructor() {
@@ -309,9 +310,10 @@ class RecordingAiService {
           for (let i = 0; i < chunks.length; i++) {
             console.log(`  🧩 Procesando fragmento ${i + 1}/${chunks.length}...`);
             // System prompt: instrucciones de tarea. User content: el fragmento a procesar.
-            const chunkSystemPrompt = detailedSummaryPrompt(lang) +
+            const baseChunkPrompt = detailedSummaryPrompt(lang) +
               `\n\nNote: This is part ${i + 1} of ${chunks.length} of a longer transcription. Summarize only this specific section.`;
-            
+            const chunkSystemPrompt = await buildSystemPrompt(FEATURE_TYPES.LONG_SUMMARY, baseChunkPrompt, lang);
+
             const partialResult = await this._callAiProvider(chunkSystemPrompt, chunks[i], {
               ...providerOverrides,
               queueMeta: {
@@ -342,7 +344,8 @@ class RecordingAiService {
           }
         } else {
           // Caso normal: transcripción cabe en el contexto
-          const detailedResult = await this._callAiProvider(detailedSummaryPrompt(lang), txt, {
+          const enrichedDetailedPrompt = await buildSystemPrompt(FEATURE_TYPES.LONG_SUMMARY, detailedSummaryPrompt(lang), lang);
+          const detailedResult = await this._callAiProvider(enrichedDetailedPrompt, txt, {
             ...providerOverrides,
             queueMeta: { name: `Resumen detallado: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY }
           });
@@ -369,10 +372,12 @@ class RecordingAiService {
           }
 
           shortTasks.push(
-            this._callAiProvider(shortSummaryPrompt(lang), contextForShort, {
-              ...providerOverrides,
-              queueMeta: { name: `Resumen breve: ${recName}`, type: AI_TASK_TYPES.SUMMARY }
-            }).then(res => {
+            buildSystemPrompt(FEATURE_TYPES.SHORT_SUMMARY, shortSummaryPrompt(lang), lang).then(enrichedPrompt =>
+              this._callAiProvider(enrichedPrompt, contextForShort, {
+                ...providerOverrides,
+                queueMeta: { name: `Resumen breve: ${recName}`, type: AI_TASK_TYPES.SUMMARY }
+              })
+            ).then(res => {
               shortSummaryText = res.text;
               if (!aiMeta.provider) aiMeta = { provider: res.provider, model: res.model || null };
             })
@@ -386,10 +391,12 @@ class RecordingAiService {
           }
 
           shortTasks.push(
-            this._callAiProvider(keyPointsPrompt(lang), contextForShort, {
-              ...providerOverrides,
-              queueMeta: { name: `Puntos clave: ${recName}`, type: AI_TASK_TYPES.KEY_POINTS }
-            }).then(res => {
+            buildSystemPrompt(FEATURE_TYPES.KEY_POINTS, keyPointsPrompt(lang), lang).then(enrichedPrompt =>
+              this._callAiProvider(enrichedPrompt, contextForShort, {
+                ...providerOverrides,
+                queueMeta: { name: `Puntos clave: ${recName}`, type: AI_TASK_TYPES.KEY_POINTS }
+              })
+            ).then(res => {
               keyPointText = res.text;
               // Restaurar extracción manual: el prompt de keyPoints devuelve formato "--|-- X --|-- texto", NO JSON.
               ideas = [];
@@ -625,9 +632,9 @@ class RecordingAiService {
       }
 
       // System prompt: instrucciones fijas. User content: texto + recordatorio final.
-      const taskSystemPrompt = taskSuggestionsPrompt(lang);
+      const enrichedTaskPrompt = await buildSystemPrompt(FEATURE_TYPES.TASKS, taskSuggestionsPrompt(lang), lang);
       const userContentWithSuffix = `${contextText}\n${taskSuggestionsPromptSuffix}`;
-      const response = await this._callAiProvider(taskSystemPrompt, userContentWithSuffix, {
+      const response = await this._callAiProvider(enrichedTaskPrompt, userContentWithSuffix, {
         // NO usar format: 'json' aquí - Ollama con format json devuelve un solo objeto en vez de array
         // El parser aiResponseParser ya maneja JSON en markdown correctamente
         queueMeta: { name: `Tareas: ${recName}`, type: AI_TASK_TYPES.TASK_SUGGESTIONS },

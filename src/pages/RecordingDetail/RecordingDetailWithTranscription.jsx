@@ -9,6 +9,7 @@ import { getLMStudioModels } from '../../services/ai/lmStudioProvider';
 import { callProvider, callProviderStreaming, callChatProviderStreaming } from '../../services/ai/providerRouter';
 import { chatSystemPrompt } from '../../prompts/aiPrompts';
 import { ragSystemPrompt, mapHistoryToMessages } from '../../prompts/ragPrompts';
+import { buildSystemPrompt, FEATURE_TYPES } from '../../services/ai/promptBuilder';
 import ragService from '../../services/ragService';
 import recordingAiService from '../../services/recordingAiService';
 import chatPendingService from '../../services/chatPendingService';
@@ -615,7 +616,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         // --- MODO RAG V2: array de mensajes nativo con system prompt ---
         console.log(`🔍 [RAG V2] Usando ${ragChunks.length} chunks relevantes`);
 
-        const systemContent = ragSystemPrompt(ragChunks, docContext);
+        const systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, ragSystemPrompt(ragChunks, docContext));
         sentCharsEstimate = systemContent.length + docContext.length;
 
         const attachmentTokens = attachmentImages.length * 256;
@@ -661,7 +662,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           context = await recordingsService.getTranscriptionTxt(recording.id);
         }
 
-        const systemContent = chatSystemPrompt(context || 'No context available.', uiLanguage, docContext);
+        const systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, chatSystemPrompt(context || 'No context available.', uiLanguage, docContext));
         sentCharsEstimate = systemContent.length;
 
         const attachmentTokens = attachmentImages.length * 256;

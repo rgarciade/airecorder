@@ -16,7 +16,8 @@ import { applyTheme } from '../../services/themeService';
 import styles from './Settings.module.css';
 import InfoTooltip from '../../components/InfoTooltip/InfoTooltip';
 import IntegrationsTab from './components/IntegrationsTab/IntegrationsTab';
-import { MdLink } from 'react-icons/md';
+import ExpertsTab from './components/ExpertsTab/ExpertsTab';
+import { MdLink, MdPsychology } from 'react-icons/md';
 
 const mockLanguages = [
   { value: 'es', label: 'Español' },
@@ -677,6 +678,13 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
               <MdSettings className={styles.tabIcon} />
               {t('settings.tabs.general')}
             </button>
+            <button
+              className={`${styles.tab} ${activeTab === 'experts' ? styles.tabActive : ''}`}
+              onClick={() => setActiveTab('experts')}
+            >
+              <MdPsychology className={styles.tabIcon} />
+              {t('settings.tabs.experts')}
+            </button>
             {/*
             <button
               className={`${styles.tab} ${activeTab === 'integrations' ? styles.tabActive : ''}`}
@@ -690,6 +698,8 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
 
           {activeTab === 'integrations' ? (
             <IntegrationsTab />
+          ) : activeTab === 'experts' ? (
+            <ExpertsTab />
           ) : activeTab === 'agents' ? (
             /* --- AI Agents Tab --- */
             <>

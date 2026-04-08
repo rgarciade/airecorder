@@ -123,6 +123,7 @@
     "tabs": {
       "agents": "Agentes de IA",
       "general": "General",
+      "experts": "Expertos",
       "integrations": "Integraciones"
     },
     "sections": {
@@ -652,6 +653,64 @@
       "nextStep": "Continuar a la configuración",
       "noInstallTitle": "¿No tienes nada instalado?",
       "noInstallDesc": "Recomendamos pausar un momento, seguir nuestra guía e instalar Ollama antes de continuar."
+    }
+  },
+  "experts": {
+    "active": "Activo",
+    "activate": "Activar",
+    "save": "Guardar cambios",
+    "saved": "Guardado",
+    "resetToDefault": "Restaurar original",
+    "clear": "Limpiar",
+    "sections": {
+      "mode": {
+        "title": "Modo de Especialidad",
+        "description": "Seleccioná cómo querés que la IA interprete y procese las grabaciones. El modo activo afecta todos los resúmenes, puntos clave, tareas y el chat."
+      },
+      "customize": {
+        "title": "Personalizar: {{expert}}",
+        "description": "Configurá instrucciones extra que se inyectarán con máxima prioridad en cada funcionalidad. Dejar vacío usa el comportamiento estándar del experto."
+      }
+    },
+    "developer": {
+      "name": "Programador",
+      "description": "Orientado a equipos de desarrollo de software. Optimizado para reuniones técnicas, código y arquitectura."
+    },
+    "psychologist": {
+      "name": "Psicólogo",
+      "description": "Orientado a profesionales de la salud mental. Tono clínico, empático y ético."
+    },
+    "features": {
+      "base": {
+        "label": "Prompt Base",
+        "hint": "Define el comportamiento central del experto. Modificalo para ajustar el tono, foco y vocabulario de TODAS las funcionalidades. Dejar vacío usa el texto original de fábrica (visible como placeholder).",
+        "placeholder": ""
+      },
+      "shortSummary": {
+        "label": "Resumen Corto",
+        "hint": "Instrucciones que se aplican solo al generar el resumen corto. Ejemplo: \"Siempre incluí el nombre del paciente y la fecha de sesión al inicio.\"",
+        "placeholder": "Ej: Priorizá las decisiones tomadas y los próximos pasos acordados..."
+      },
+      "longSummary": {
+        "label": "Resumen Largo",
+        "hint": "Instrucciones que se aplican al generar el resumen detallado de la grabación.",
+        "placeholder": "Ej: Incluí siempre una sección separada de 'Riesgos identificados'..."
+      },
+      "keyPoints": {
+        "label": "Puntos Importantes",
+        "hint": "Instrucciones para la extracción de puntos clave. Ejemplo: \"Limitá los puntos a decisiones clínicas concretas, no menciones aspectos administrativos.\"",
+        "placeholder": "Ej: Cada punto debe empezar con el nombre del responsable de la acción..."
+      },
+      "chat": {
+        "label": "Chat",
+        "hint": "Instrucciones adicionales para el asistente de chat. Se aplican tanto en modo RAG como en modo clásico.",
+        "placeholder": "Ej: Respondé siempre en formato de lista cuando haya más de un elemento..."
+      },
+      "tasks": {
+        "label": "Generación de Tareas",
+        "hint": "Instrucciones para la generación automática de tareas desde la transcripción.",
+        "placeholder": "Ej: Las tareas siempre deben tener un responsable asignado y una fecha estimada..."
+      }
     }
   }
 }
