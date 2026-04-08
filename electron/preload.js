@@ -207,4 +207,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Abrir URLs en el navegador predeterminado del sistema
   openExternal: (url) => shell.openExternal(url),
+
+  // Expertos — Modos de Especialidad
+  getExpertCustomizations: (expertId) => ipcRenderer.invoke('get-expert-customizations', expertId),
+  saveExpertCustomization: (data) => ipcRenderer.invoke('save-expert-customization', data),
+  resetExpertCustomization: (data) => ipcRenderer.invoke('reset-expert-customization', data),
 }); 
