@@ -4,14 +4,22 @@ import styles from './RecordingCard.module.css';
 import { MdFolderOpen, MdSchedule, MdAutorenew, MdTranscribe } from 'react-icons/md';
 
 export default function RecordingCard({ recording, onClick, onTranscribe }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // Format duration
   const durationStr = recording.duration
     ? `${Math.floor(recording.duration/60).toString().padStart(2,'0')}:${Math.floor(recording.duration%60).toString().padStart(2,'0')}`
     : '--:--';
 
-  const dateStr = recording.date ? new Date(recording.date).toLocaleDateString() : '';
+  const dateSource = recording.createdAt || recording.date;
+  const parsedDate = dateSource ? new Date(dateSource) : null;
+  const dateStr = parsedDate && !Number.isNaN(parsedDate.getTime())
+    ? parsedDate.toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'es-ES', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      })
+    : (typeof recording.date === 'string' ? recording.date : '');
 
   const getStatusDisplay = () => {
     const q = recording.queueStatus;
@@ -25,6 +33,15 @@ export default function RecordingCard({ recording, onClick, onTranscribe }) {
         };
       }
       if (q.status === 'pending') return { key: 'pending', label: t('recordingCard.queued'), icon: <MdSchedule />, color: '#9CA3AF' };
+    }
+
+    if (recording.isGeneratingAi) {
+      return {
+        key: 'analyzing',
+        label: t('recordingCard.analyzing'),
+        icon: <MdAutorenew className="animate-spin" />,
+        color: '#8B5CF6'
+      };
     }
 
     if (recording.status === 'transcribed') return { key: 'transcribed', label: t('recordingCard.needsAnalysis'), icon: <MdTranscribe />, color: '#F59E0B' };
