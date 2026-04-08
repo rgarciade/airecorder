@@ -448,10 +448,11 @@ module.exports.registerAnalysisHandlers = () => {
   // Limpiar estado de generación
   ipcMain.handle('clear-generating-state', async (event, recordingId) => {
     try {
+      const folderName = await getFolderPathFromId(recordingId);
       const baseOutputDir = await getRecordingsPath();
       const statePath = path.join(
         baseOutputDir,
-        recordingId,
+        folderName,
         'analysis',
         '.generating.json'
       );
