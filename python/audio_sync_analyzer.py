@@ -42,6 +42,8 @@ BASE_DIR = "/Users/raul.garciad/Desktop/recorder/grabaciones"
 SAMPLE_RATE = 22050  # Frecuencia de muestreo para análisis
 CHUNK_SIZE_MS = 1000  # Tamaño de chunks en milisegundos
 WHISPER_MODEL = "large"  # Opciones: tiny, base, small, medium, large
+MIN_SIGNAL_RMS = 0.001
+SILENT_TRACK_THRESHOLD_PCT = 99.5
 
 class AudioSyncAnalyzer:
     def __init__(self, mic_file, system_file, output_dir):
@@ -53,6 +55,37 @@ class AudioSyncAnalyzer:
         self.mic_data = None
         self.system_data = None
         self.whisper_model = None
+        self.audio_metrics = {}
+
+    def _load_audio_track(self, file_path, label):
+        """Carga una pista individual y la invalida de forma segura si está vacía o corrupta."""
+        if not file_path or not os.path.exists(file_path):
+            print(f"⚠️  No se encontró archivo de {label}: {file_path}", flush=True)
+            return None
+
+        try:
+            file_size = os.path.getsize(file_path)
+        except OSError as exc:
+            print(f"⚠️  No se pudo leer el tamaño del archivo de {label}: {exc}", flush=True)
+            return None
+
+        if file_size <= 0:
+            print(f"⚠️  El archivo de {label} está vacío, se ignorará.", flush=True)
+            return None
+
+        try:
+            audio = AudioSegment.from_file(file_path)
+        except Exception as exc:
+            print(f"⚠️  No se pudo decodificar el audio de {label}, se ignorará: {exc}", flush=True)
+            return None
+
+        if len(audio) <= 0:
+            print(f"⚠️  El audio de {label} no contiene duración útil, se ignorará.", flush=True)
+            return None
+
+        print(f"📁 {label}: {len(audio)/1000:.2f} segundos", flush=True)
+        print(f"📊 Sample rate {label.lower()}: {audio.frame_rate} Hz", flush=True)
+        return audio
         
     def load_whisper_model(self):
         """Cargar el modelo Whisper para transcripción"""
@@ -76,18 +109,24 @@ class AudioSyncAnalyzer:
         
         try:
             if mic_exists:
-                self.mic_audio = AudioSegment.from_file(self.mic_file)
-                print(f"📁 Micrófono: {len(self.mic_audio)/1000:.2f} segundos")
-                print(f"📊 Sample rate micrófono: {self.mic_audio.frame_rate} Hz")
+                self.mic_audio = self._load_audio_track(self.mic_file, 'Micrófono')
             else:
                 self.mic_audio = None
             
             if sys_exists:
-                self.system_audio = AudioSegment.from_file(self.system_file)
-                print(f"📁 Sistema: {len(self.system_audio)/1000:.2f} segundos")
-                print(f"📊 Sample rate sistema: {self.system_audio.frame_rate} Hz")
+                self.system_audio = self._load_audio_track(self.system_file, 'Sistema')
             else:
                 self.system_audio = None
+
+            if mic_exists and self.mic_audio is None:
+                mic_exists = False
+
+            if sys_exists and self.system_audio is None:
+                sys_exists = False
+
+            if not mic_exists and not sys_exists:
+                print("❌ No hay ninguna pista de audio válida para procesar.", flush=True)
+                return False
             
             return True
             
@@ -134,28 +173,70 @@ class AudioSyncAnalyzer:
         """Analizar propiedades básicas de los audios"""
         print("\n📊 ANÁLISIS DE PROPIEDADES")
         print("=" * 50)
+
+        self.audio_metrics = {}
         
         sys_duration = 0
         mic_duration = 0
 
         if sys_exists and self.system_data is not None:
             sys_duration = len(self.system_data) / SAMPLE_RATE
-            print(f"⏱️  Duración sistema: {sys_duration:.2f} segundos")
             sys_rms = np.sqrt(np.mean(self.system_data**2))
-            print(f"🔊 RMS sistema: {sys_rms:.4f}")
             sys_silence = np.sum(np.abs(self.system_data) < 0.01) / len(self.system_data) * 100
+            self.audio_metrics['system'] = {
+                'duration': sys_duration,
+                'rms': float(sys_rms),
+                'silence_pct': float(sys_silence)
+            }
+            print(f"⏱️  Duración sistema: {sys_duration:.2f} segundos")
+            print(f"🔊 RMS sistema: {sys_rms:.4f}")
             print(f"🔇 Silencio sistema: {sys_silence:.1f}%")
             
         if mic_exists and self.mic_data is not None:
             mic_duration = len(self.mic_data) / SAMPLE_RATE
-            print(f"⏱️  Duración micrófono: {mic_duration:.2f} segundos")
             mic_rms = np.sqrt(np.mean(self.mic_data**2))
-            print(f"🔊 RMS micrófono: {mic_rms:.4f}")
             mic_silence = np.sum(np.abs(self.mic_data) < 0.01) / len(self.mic_data) * 100
+            self.audio_metrics['mic'] = {
+                'duration': mic_duration,
+                'rms': float(mic_rms),
+                'silence_pct': float(mic_silence)
+            }
+            print(f"⏱️  Duración micrófono: {mic_duration:.2f} segundos")
+            print(f"🔊 RMS micrófono: {mic_rms:.4f}")
             print(f"🔇 Silencio micrófono: {mic_silence:.1f}%")
 
         if mic_exists and sys_exists and self.mic_data is not None and self.system_data is not None:
             print(f"⚖️  Diferencia: {abs(mic_duration - sys_duration):.2f} segundos")
+
+    def _is_silent_track(self, track_key):
+        metrics = self.audio_metrics.get(track_key)
+        if not metrics:
+            return False
+        return metrics['rms'] <= MIN_SIGNAL_RMS or metrics['silence_pct'] >= SILENT_TRACK_THRESHOLD_PCT
+
+    def _sanitize_lag(self, lag_seconds):
+        if lag_seconds == 0:
+            return 0
+
+        durations = []
+        if self.mic_audio is not None:
+            durations.append(len(self.mic_audio) / 1000)
+        if self.system_audio is not None:
+            durations.append(len(self.system_audio) / 1000)
+
+        if not durations:
+            return 0
+
+        shortest_duration = min(durations)
+        max_reasonable_lag = min(5.0, shortest_duration * 0.5)
+        if abs(lag_seconds) > max_reasonable_lag:
+            print(
+                f"⚠️  Lag descartado por improbable ({lag_seconds:.3f}s > {max_reasonable_lag:.3f}s). Se usará 0.",
+                flush=True
+            )
+            return 0
+
+        return lag_seconds
         
     
     def detect_cross_correlation(self, mic_exists=True):
@@ -165,6 +246,10 @@ class AudioSyncAnalyzer:
         
         if not mic_exists or self.mic_data is None or self.system_data is None:
             print("⚠️  No hay datos de micrófono, se omite correlación cruzada.")
+            return 0
+
+        if self._is_silent_track('mic') or self._is_silent_track('system'):
+            print("⚠️  Una de las pistas está prácticamente en silencio, se omite correlación cruzada.", flush=True)
             return 0
 
         # Tomar una muestra más pequeña para análisis rápido
@@ -179,6 +264,7 @@ class AudioSyncAnalyzer:
         
         # Convertir lag a tiempo
         lag_seconds = lag / SAMPLE_RATE
+        lag_seconds = self._sanitize_lag(lag_seconds)
         
         print(f"⚡ Lag detectado: {lag} samples ({lag_seconds:.3f} segundos)")
         
@@ -323,6 +409,7 @@ class AudioSyncAnalyzer:
                     'text': ' '.join(s['text'] for s in mic_segments),
                     'segments': mic_segments
                 }
+                print(f"🎤 Segmentos detectados en micrófono: {len(mic_segments)}", flush=True)
             
             if mic_exists:
                 print(f"PROGRESS:{55 if sys_exists else 95}", flush=True)
@@ -356,6 +443,7 @@ class AudioSyncAnalyzer:
                     'text': ' '.join(s['text'] for s in sys_segments),
                     'segments': sys_segments
                 }
+                print(f"🔊 Segmentos detectados en sistema: {len(sys_segments)}", flush=True)
             
             if sys_exists:
                 print("PROGRESS:95", flush=True)
@@ -659,6 +747,13 @@ class AudioSyncAnalyzer:
         # Ejecutar pasos del análisis
         if not self.load_audio_files(mic_exists=mic_exists, sys_exists=sys_exists):
             return False
+
+        mic_exists = self.mic_audio is not None
+        sys_exists = self.system_audio is not None
+
+        if not mic_exists and not sys_exists:
+            print("❌ No quedó ninguna pista válida tras la carga inicial.", flush=True)
+            return False
             
         print("PROGRESS:10", flush=True)
         
@@ -666,6 +761,18 @@ class AudioSyncAnalyzer:
             return False
             
         self.analyze_audio_properties(mic_exists=mic_exists, sys_exists=sys_exists)
+
+        if sys_exists and self._is_silent_track('system'):
+            print("⚠️  La pista de sistema está en silencio. Se omitirá para sincronización y transcripción.", flush=True)
+            sys_exists = False
+
+        if mic_exists and self._is_silent_track('mic'):
+            print("⚠️  La pista de micrófono está en silencio. Se omitirá para sincronización y transcripción.", flush=True)
+            mic_exists = False
+
+        if not mic_exists and not sys_exists:
+            print("❌ Ambas pistas están en silencio o sin señal útil.", flush=True)
+            return False
         
         lag_seconds = 0
         if mic_exists and sys_exists:
