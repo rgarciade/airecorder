@@ -226,7 +226,7 @@
 
 .cancelButton {
   background: var(--color-bg-secondary);
-  color: #4B5563;
+  color: var(--color-text-secondary);
   border: 1px solid var(--color-border-secondary);
 }
 
@@ -235,7 +235,7 @@
 }
 
 .timelineDescription {
-  color: #4B5563;
+  color: var(--color-text-secondary);
   font-size: 14px;
   line-height: 1.4;
   margin-bottom: 8px;

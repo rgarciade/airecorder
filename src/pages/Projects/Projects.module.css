@@ -161,7 +161,7 @@
   border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #4B5563;
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -249,7 +249,7 @@
 }
 
 .modalText {
-  color: #4B5563;
+  color: var(--color-text-secondary);
   font-size: 0.95rem;
   line-height: 1.5;
   margin-bottom: 12px;
