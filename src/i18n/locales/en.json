@@ -99,6 +99,8 @@
     "saving": "Saving files...",
     "stopping": "Stopping recording...",
     "saveAndExit": "Save & Exit",
+    "mute": "Mute",
+    "unmute": "Unmute",
     "extraInstructions": "Instructions & Context (optional)",
     "extraInstructionsPlaceholder": "E.g.: Sprint planning meeting with the frontend team. Focus on technical decisions and task assignments..."
   },
