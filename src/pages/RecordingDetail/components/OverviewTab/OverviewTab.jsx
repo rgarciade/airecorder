@@ -94,9 +94,11 @@ export default function OverviewTab({
                   <span className={styles.aiBadge}>{formatAiEngine(aiProvider, aiModel)}</span>
                 )}
               </div>
-              <p className={styles.summaryText}>
-                {summary || "No quick summary available."}
-              </p>
+              <div className={styles.summaryText}>
+                <ReactMarkdown>
+                  {summary || "No quick summary available."}
+                </ReactMarkdown>
+              </div>
             </section>
 
             {/* Detailed Summary */}
