@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useTranslation } from 'react-i18next';
+import { normalizeAiSummaryText } from '../../../../utils/aiResponseParser';
 import styles from './OverviewTab.module.css';
 import {
   MdAutoAwesome,
@@ -66,6 +67,7 @@ export default function OverviewTab({
 
   const hasAiData = summary || (highlights && highlights.length > 0) || detailedSummary;
   const showBlur = isGeneratingAi || (!hasAiData && hasTranscription);
+  const normalizedDetailedSummary = normalizeAiSummaryText(detailedSummary);
 
   return (
     <div className={styles.container}>
@@ -133,7 +135,7 @@ export default function OverviewTab({
               </div>
               <div className={styles.detailedContent}>
                 <ReactMarkdown components={markdownComponents}>
-                  {detailedSummary || t('recordingDetail.overview.noHighlights')}
+                  {normalizedDetailedSummary || t('recordingDetail.overview.noHighlights')}
                 </ReactMarkdown>
               </div>
             </section>

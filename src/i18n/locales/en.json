@@ -698,6 +698,10 @@
         "description": "Configure extra instructions that will be injected with maximum priority into each feature. Leave empty to use the expert's standard behavior."
       }
     },
+    "general": {
+      "name": "General",
+      "description": "No fixed specialty. Neutral and adaptable to any type of conversation or professional context."
+    },
     "developer": {
       "name": "Developer",
       "description": "Geared toward software development teams. Optimized for technical meetings, code and architecture."
@@ -709,7 +713,7 @@
     "features": {
       "base": {
         "label": "Expert Base Prompt",
-        "hint": "Defines the core behavior of the expert. Modify it to adjust the tone, focus and vocabulary of ALL features. Leave empty to use the original factory text (visible as placeholder).",
+        "hint": "Defines the core behavior of the expert. Edit the text directly to adjust the tone, focus and vocabulary of ALL features. Restore original to go back to the factory text.",
         "placeholder": ""
       },
       "shortSummary": {
