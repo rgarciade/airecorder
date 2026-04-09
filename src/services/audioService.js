@@ -144,6 +144,22 @@ class AudioRecorder {
     }
   }
 
+  toggleMute() {
+    if (this.microphoneStream) {
+      const audioTracks = this.microphoneStream.getAudioTracks();
+      const currentlyMuted = audioTracks.length > 0 && !audioTracks[0].enabled;
+      const newMuteState = !currentlyMuted;
+      
+      audioTracks.forEach(track => {
+        track.enabled = !newMuteState;
+      });
+      
+      console.log(`Micrófono ${newMuteState ? 'silenciado' : 'activado'}`);
+      return newMuteState;
+    }
+    return false;
+  }
+
   handleRecordingStop() {
     if (this.audioChunks.length > 0) {
       // Crear blob con los datos de audio mezclado
@@ -556,6 +572,13 @@ class MixedAudioRecorder {
     } catch (error) {
       console.error('Error al detener la grabación dual:', error);
     }
+  }
+
+  toggleMute() {
+    if (this.audioRecorder) {
+      return this.audioRecorder.toggleMute();
+    }
+    return false;
   }
 
   stopAndDiscard() {

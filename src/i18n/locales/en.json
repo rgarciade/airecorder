@@ -17,7 +17,8 @@
     "send": "Send",
     "sending": "Sending...",
     "saveChanges": "Save Changes",
-    "reportBug": "Report a bug"
+    "reportBug": "Report a bug",
+    "quickSummary": "Quick Summary"
   },
   "modelInfo": {
     "title": "Recommended models",
@@ -97,7 +98,11 @@
     "change": "Change",
     "saving": "Saving files...",
     "stopping": "Stopping recording...",
-    "saveAndExit": "Save & Exit"
+    "saveAndExit": "Save & Exit",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "extraInstructions": "Instructions & Context (optional)",
+    "extraInstructionsPlaceholder": "E.g.: Sprint planning meeting with the frontend team. Focus on technical decisions and task assignments..."
   },
   "settings": {
     "title": "AIRecorder Settings",
@@ -106,6 +111,7 @@
     "tabs": {
       "agents": "AI Agents",
       "general": "General",
+      "experts": "Experts",
       "integrations": "Integrations"
     },
     "sections": {
@@ -233,6 +239,14 @@
       "notifications": {
         "title": "Desktop Notifications",
         "desc": "Show native notifications when tasks complete"
+      },
+      "autoTranscribe": {
+        "title": "Auto-Transcribe",
+        "desc": "Automatically start transcription when a recording is saved"
+      },
+      "autoAnalyze": {
+        "title": "Auto AI Analysis",
+        "desc": "Automatically generate AI summaries and insights when transcription finishes"
       },
       "devTools": {
         "title": "Developer Tools",
@@ -426,9 +440,38 @@
     "unassignTitle": "Unassign from Project?",
     "unassignConfirm": "Are you sure you want to unassign \"{{recordingName}}\" from project \"{{projectName}}\"?",
     "unassign": "Unassign",
-    "page": "Page {{current}} of {{total}}"
-  },
-  "newSessionCard": {
+    "page": "Page {{current}} de {{total}}"
+    },
+    "recordingDetail": {
+    "overview": {
+      "detailedSummary": "Detailed Summary",
+      "notesAndInstructions": "Notes & Instructions",
+      "edit": "Edit",
+      "cancel": "Cancel",
+      "save": "Save",
+      "placeholder": "Add context for this recording: topic, key participants, goals...",
+      "noInstructions": "No extra instructions. Click Edit to add context.",
+      "keyHighlights": "Key Highlights",
+      "noHighlights": "No highlights available.",
+      "participants": "Participants",
+      "analyzing": "Analyzing Recording...",
+      "waitingAnalysis": "Waiting for Analysis",
+      "aiExtracting": "AI is extracting insights, summaries, and participants.",
+      "analysisPending": "Analysis pending or not available.",
+      "noTranscription": "No transcription yet",
+      "noTranscriptionDesc": "AI needs the transcription to generate the summary and key topics."
+    }
+    },
+    "participantsList": {
+    "title": "Participants",
+    "add": "Add",
+    "name": "Name",
+    "role": "Role",
+    "noParticipants": "No participants detected.",
+    "aiSuggested": "AI",
+    "aiSuggestedTooltip": "Suggested by AI"
+    },
+    "newSessionCard": {
     "title": "New Session",
     "description": "Start recording instantly. Our AI will handle transcription, summarization, and key point extraction automatically.",
     "changeMic": "Change Microphone",
@@ -447,6 +490,7 @@
   "recordingCard": {
     "transcribing": "Transcribing ({{progress}}%)",
     "queued": "Queued",
+    "analyzing": "Analyzing with AI...",
     "needsAnalysis": "Needs AI Analysis",
     "analyzed": "Analyzed",
     "recorded": "Recorded",
@@ -635,6 +679,68 @@
       "nextStep": "Continue to configuration",
       "noInstallTitle": "Nothing installed yet?",
       "noInstallDesc": "We recommend pausing for a moment, following our guide, and installing Ollama before continuing."
+    }
+  },
+  "experts": {
+    "active": "Active",
+    "activate": "Activate",
+    "save": "Save changes",
+    "saved": "Saved",
+    "resetToDefault": "Restore original",
+    "clear": "Clear",
+    "sections": {
+      "mode": {
+        "title": "Specialty Mode",
+        "description": "Select how you want the AI to interpret and process recordings. The active mode affects all summaries, key points, tasks and chat."
+      },
+      "customize": {
+        "title": "Customize: {{expert}}",
+        "description": "Configure extra instructions that will be injected with maximum priority into each feature. Leave empty to use the expert's standard behavior."
+      }
+    },
+    "general": {
+      "name": "General",
+      "description": "No fixed specialty. Neutral and adaptable to any type of conversation or professional context."
+    },
+    "developer": {
+      "name": "Developer",
+      "description": "Geared toward software development teams. Optimized for technical meetings, code and architecture."
+    },
+    "psychologist": {
+      "name": "Psychologist",
+      "description": "Geared toward mental health professionals. Clinical, empathetic and ethical tone."
+    },
+    "features": {
+      "base": {
+        "label": "Expert Base Prompt",
+        "hint": "Defines the core behavior of the expert. Edit the text directly to adjust the tone, focus and vocabulary of ALL features. Restore original to go back to the factory text.",
+        "placeholder": ""
+      },
+      "shortSummary": {
+        "label": "Short Summary",
+        "hint": "Instructions applied only when generating the short summary. Example: \"Always include the patient's name and session date at the beginning.\"",
+        "placeholder": "E.g.: Prioritize decisions made and agreed next steps..."
+      },
+      "longSummary": {
+        "label": "Long Summary",
+        "hint": "Instructions applied when generating the detailed summary of the recording.",
+        "placeholder": "E.g.: Always include a separate 'Identified risks' section..."
+      },
+      "keyPoints": {
+        "label": "Key Points",
+        "hint": "Instructions for key point extraction. Example: \"Limit points to concrete clinical decisions, don't mention administrative aspects.\"",
+        "placeholder": "E.g.: Each point should start with the responsible person's name..."
+      },
+      "chat": {
+        "label": "Chat",
+        "hint": "Additional instructions for the chat assistant. Applied in both RAG mode and classic mode.",
+        "placeholder": "E.g.: Always respond in list format when there is more than one element..."
+      },
+      "tasks": {
+        "label": "Task Generation",
+        "hint": "Instructions for automatic task generation from the transcription.",
+        "placeholder": "E.g.: Tasks should always have an assigned owner and an estimated date..."
+      }
     }
   }
 }
