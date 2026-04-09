@@ -9,6 +9,7 @@ import { parseJsonObject } from '../utils/aiResponseParser';
 import { projectAnalysisSystemPrompt, chatSystemPrompt } from '../prompts/aiPrompts';
 import { projectRagSystemPrompt, mapHistoryToMessages } from '../prompts/ragPrompts';
 import { getSettings } from './settingsService';
+import { buildSystemPrompt, FEATURE_TYPES } from './ai/promptBuilder';
 
 class ProjectAiService {
   constructor() {
@@ -380,7 +381,7 @@ class ProjectAiService {
       // 2a. Modo RAG V2 — system prompt con chunks + historial completo nativo
       if (allChunks.length > 0) {
         console.log(`[ProjectAI V2] RAG: ${allChunks.length} chunks de ${recordingIds.length} grabaciones`);
-        const systemContent = projectRagSystemPrompt(allChunks, options.extraContext || '');
+        const systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, projectRagSystemPrompt(allChunks, options.extraContext || ''));
         const historyMessages = mapHistoryToMessages(chatHistory);
         const messages = [
           { role: 'system', content: systemContent },
@@ -423,7 +424,7 @@ class ProjectAiService {
         contextText += `\n\n--- DOCUMENTOS ADJUNTOS ---${options.extraContext}\n--- FIN DOCUMENTOS ADJUNTOS ---\n`;
       }
 
-      const systemContent = chatSystemPrompt(contextText, 'es');
+      const systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, chatSystemPrompt(contextText, 'es'));
       const historyMessages = mapHistoryToMessages(chatHistory);
       const messages = [
         { role: 'system', content: systemContent },
@@ -511,7 +512,7 @@ class ProjectAiService {
     const lang = settings.uiLanguage || 'es';
 
     // System prompt: instrucciones de rol + formato JSON. User content: resúmenes de las grabaciones.
-    const sysPrompt = projectAnalysisSystemPrompt(lang);
+    const sysPrompt = await buildSystemPrompt(FEATURE_TYPES.LONG_SUMMARY, projectAnalysisSystemPrompt(lang), lang);
     const result = await callProvider(contextText, {
       systemPrompt: sysPrompt,
       queueMeta: { name: 'Análisis de proyecto', type: AI_TASK_TYPES.PROJECT_ANALYSIS },

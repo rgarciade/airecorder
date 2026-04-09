@@ -6,12 +6,14 @@ import styles from './RecordingOverlay.module.css';
 import ProjectSelector from '../ProjectSelector/ProjectSelector';
 import projectsService from '../../services/projectsService';
 import recordingsService from '../../services/recordingsService';
-import { MdStop, MdExpandMore, MdDeleteOutline } from 'react-icons/md';
+import { getSettings } from '../../services/settingsService';
+import { MdStop, MdExpandMore, MdDeleteOutline, MdMic, MdMicOff } from 'react-icons/md';
 
 const RecordingOverlay = ({ recorder, onFinish }) => {
   const dispatch = useDispatch();
   const { t } = useTranslation();
   const [time, setTime] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [fileName, setFileName] = useState('');
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
@@ -24,6 +26,7 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
   const [dbId, setDbId] = useState(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [newName, setNewName] = useState('');
+  const [extraInstructions, setExtraInstructions] = useState('');
 
   // Expanded State
   const [isExpanded, setIsExpanded] = useState(false);
@@ -72,6 +75,14 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
       return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleToggleMute = (e) => {
+    if (e) e.stopPropagation();
+    if (recorder && recorder.toggleMute) {
+      const muted = recorder.toggleMute();
+      setIsMuted(muted);
+    }
   };
 
   const handleFinish = (e) => {
@@ -141,6 +152,23 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
       } catch (error) {
         console.error('Error al agregar grabación al proyecto:', error);
       }
+    }
+
+    if (extraInstructions.trim() && dbId) {
+      try {
+        await recordingsService.saveExtraInstructions(dbId, extraInstructions.trim());
+      } catch (error) {
+        console.error('Error al guardar instrucciones extra:', error);
+      }
+    }
+
+    try {
+      const settings = await getSettings();
+      if (settings.autoTranscribe !== false && dbId) {
+        recordingsService.transcribeRecording(dbId, settings.whisperModel || null).catch(console.error);
+      }
+    } catch (error) {
+      console.error('Error al verificar autoTranscribe:', error);
     }
 
     dispatch(saveAndExit(finalName));
@@ -217,6 +245,13 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
               </div>
 
               <div className={styles.cardActions}>
+                <button 
+                  className={`${styles.btnMute} ${isMuted ? styles.btnMuted : ''}`} 
+                  onClick={handleToggleMute}
+                  title={isMuted ? t('recordingOverlay.unmute') : t('recordingOverlay.mute')}
+                >
+                  {isMuted ? <MdMicOff size={20} /> : <MdMic size={20} />}
+                </button>
                 <button className={styles.btnCancel} onClick={handleDiscard}>
                   <MdDeleteOutline size={18} /> {t('common.cancel')}
                 </button>
@@ -233,6 +268,13 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
                 <span className={styles.capsuleLabel}>{t('recordingOverlay.recording').toUpperCase()}</span>
                 <span className={styles.capsuleTime}>{formatTime(time)}</span>
               </div>
+              <button
+                className={`${styles.btnMuteRound} ${isMuted ? styles.btnMuted : ''}`}
+                onClick={handleToggleMute}
+                title={isMuted ? t('recordingOverlay.unmute') : t('recordingOverlay.mute')}
+              >
+                {isMuted ? <MdMicOff size={16} /> : <MdMic size={16} />}
+              </button>
               <button
                 className={styles.btnDiscardRound}
                 onClick={handleDiscard}
@@ -285,6 +327,18 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
                       {selectedProject ? t('recordingOverlay.change') : t('recordingOverlay.selectProject')}
                     </button>
                   </div>
+                </div>
+
+                <div className={styles.inputContainer}>
+                  <label className={styles.inputLabel}>{t('recordingOverlay.extraInstructions')}</label>
+                  <textarea
+                    value={extraInstructions}
+                    onChange={(e) => setExtraInstructions(e.target.value)}
+                    placeholder={t('recordingOverlay.extraInstructionsPlaceholder')}
+                    className={styles.input}
+                    rows={3}
+                    style={{ resize: 'vertical', minHeight: '72px' }}
+                  />
                 </div>
 
                 <div className={styles.modalButtons}>

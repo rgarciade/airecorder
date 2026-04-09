@@ -65,7 +65,11 @@ const {
   UPDATE_PROJECT_INTEGRATION_SYNC,
   SELECT_PROJECT_INTEGRATIONS,
   SELECT_CHAT_INTEGRATIONS,
-  DELETE_PROJECT_INTEGRATION
+  DELETE_PROJECT_INTEGRATION,
+  CREATE_TABLE_EXPERT_CUSTOMIZATIONS,
+  GET_EXPERT_CUSTOMIZATIONS,
+  UPSERT_EXPERT_CUSTOMIZATION,
+  RESET_EXPERT_CUSTOMIZATION
 } = require('./queries');
 
 class DbService {
@@ -271,11 +275,56 @@ class DbService {
         console.error('[DB] Error migrando rag_status:', e);
       }
 
+      // Tabla de customizaciones de expertos
+      try {
+        this.db.exec(CREATE_TABLE_EXPERT_CUSTOMIZATIONS);
+      } catch (e) {
+        console.error('[DB] Error creando expert_customizations:', e);
+      }
+
       console.log(`[DB] Inicializada en: ${dbPath}`);
       return true;
     } catch (error) {
       console.error('[DB] Error init:', error);
       return false;
+    }
+  }
+
+  // ── Expert Customizations ──────────────────────────────────────────────────
+
+  getExpertCustomizations(expertId) {
+    if (!this.db) return {};
+    try {
+      const rows = this.db.prepare(GET_EXPERT_CUSTOMIZATIONS).all(expertId);
+      return rows.reduce((acc, row) => {
+        acc[row.feature] = row.instructions;
+        return acc;
+      }, {});
+    } catch (e) {
+      console.error('[DB] Error getExpertCustomizations:', e);
+      return {};
+    }
+  }
+
+  saveExpertCustomization(expertId, feature, instructions) {
+    if (!this.db) return { success: false };
+    try {
+      this.db.prepare(UPSERT_EXPERT_CUSTOMIZATION).run(expertId, feature, instructions);
+      return { success: true };
+    } catch (e) {
+      console.error('[DB] Error saveExpertCustomization:', e);
+      return { success: false, error: e.message };
+    }
+  }
+
+  resetExpertCustomization(expertId, feature) {
+    if (!this.db) return { success: false };
+    try {
+      this.db.prepare(RESET_EXPERT_CUSTOMIZATION).run(expertId, feature);
+      return { success: true };
+    } catch (e) {
+      console.error('[DB] Error resetExpertCustomization:', e);
+      return { success: false, error: e.message };
     }
   }
 

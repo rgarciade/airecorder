@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 export default function ProjectRecordingSummaries({ recordings, onNavigateToRecording }) {
     const [expandedId, setExpandedId] = useState(null);
@@ -75,9 +76,11 @@ export default function ProjectRecordingSummaries({ recordings, onNavigateToReco
                         <div className="p-4 border-t border-gray-200 dark:border-edge-primary bg-white dark:bg-surface-secondary">
                             <div className="mb-3">
                                 <h5 className="text-blue-600 dark:text-brand text-xs font-bold uppercase tracking-wider mb-1">Resumen</h5>
-                                <p className="text-gray-700 dark:text-content-secondary leading-relaxed" style={{ fontSize: 'var(--app-font-size)' }}>
-                                    {rec.summary?.resumen_breve || 'Sin resumen disponible.'}
-                                </p>
+                                <div className="text-gray-700 dark:text-content-secondary leading-relaxed" style={{ fontSize: 'var(--app-font-size)' }}>
+                                    <ReactMarkdown>
+                                        {rec.summary?.resumen_breve || 'Sin resumen disponible.'}
+                                    </ReactMarkdown>
+                                </div>
                             </div>
 
                             {rec.summary?.ideas && rec.summary.ideas.length > 0 && (
@@ -86,7 +89,9 @@ export default function ProjectRecordingSummaries({ recordings, onNavigateToReco
                                     <ul className="list-disc list-inside space-y-1.5">
                                         {rec.summary.ideas.map((idea, idx) => (
                                             <li key={idx} className="text-gray-600 dark:text-content-secondary leading-relaxed" style={{ fontSize: 'var(--app-font-size)' }}>
-                                                {idea}
+                                                <ReactMarkdown allowedElements={['strong', 'em', 'code', 'a']}>
+                                                    {idea}
+                                                </ReactMarkdown>
                                             </li>
                                         ))}
                                     </ul>
@@ -114,3 +119,4 @@ export default function ProjectRecordingSummaries({ recordings, onNavigateToReco
         </div>
     );
 }
+

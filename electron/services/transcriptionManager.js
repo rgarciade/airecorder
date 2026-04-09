@@ -4,18 +4,24 @@ const fs = require('fs');
 const { app } = require('electron');
 const dbService = require('../database/dbService');
 const notificationService = require('./notificationService');
+const { getSetting } = require('../utils/paths');
 
 class TranscriptionManager {
   constructor() {
     this.activeTask = null;
     this.process = null;
     this.onUpdateCallback = null;
+    this.onAutoAnalyzeCallback = null;
     this.basePath = null;
     // Don't check queue here, DB isn't ready. Explicitly call checkQueue() from main.js
   }
 
   setBasePath(path) {
     this.basePath = path;
+  }
+
+  setAutoAnalyzeCallback(callback) {
+    this.onAutoAnalyzeCallback = callback;
   }
 
   setUpdateCallback(callback) {
@@ -290,6 +296,10 @@ class TranscriptionManager {
                   `La transcripción de "${folderName}" ha finalizado.`,
                   { type: 'transcription-complete', recordingId: folderName }
                 );
+                // Auto-análisis IA si está habilitado en ajustes
+                if (getSetting('autoAnalyze', true) !== false && this.onAutoAnalyzeCallback) {
+                  this.onAutoAnalyzeCallback(task.recording_id);
+                }
 
                 resolve();
             } else {

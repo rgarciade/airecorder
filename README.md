@@ -139,6 +139,8 @@ This project follows [Conventional Commits](https://www.conventionalcommits.org/
 
 ### Running the Python script manually
 
+The transcription pipeline is resilient to partial recordings: if one track is empty, undecodable, has zero duration, or is effectively silent, the analyzer skips that track and still transcribes the valid one. It also discards implausible synchronization lags instead of trimming almost the entire clip. The process only fails when both tracks are unusable.
+
 ```bash
 python python/audio_sync_analyzer.py \
   --basename <recording-folder-name> \

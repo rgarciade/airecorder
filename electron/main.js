@@ -40,6 +40,7 @@ const { registerExportHandlers } = require('./ipc-handlers/export');
 const { registerUpdateHandlers } = require('./ipc-handlers/updates');
 const { registerSystemHandlers } = require('./ipc-handlers/system');
 const { registerAttachmentsHandlers } = require('./ipc-handlers/attachments');
+const { registerExpertsHandlers } = require('./ipc-handlers/experts');
 
 // ========================================
 // 1.5 REDIRIGIR LOGS DEL MAIN AL RENDERER (DevTools)
@@ -112,6 +113,7 @@ function registerIpcHandlers() {
   registerExportHandlers();
   registerUpdateHandlers();
   registerAttachmentsHandlers();
+  registerExpertsHandlers();
 }
 
 async function checkMicrophonePermission() {
@@ -239,6 +241,12 @@ async function initApp() {
   transcriptionManager.setUpdateCallback((queueState) => {
     BrowserWindow.getAllWindows().forEach(win => {
       win.webContents.send('queue-update', queueState);
+    });
+  });
+
+  transcriptionManager.setAutoAnalyzeCallback((recordingId) => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('auto-analyze-recording', recordingId);
     });
   });
 

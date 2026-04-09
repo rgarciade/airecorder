@@ -66,7 +66,10 @@ export const getSettings = async () => {
       lmStudioContextLength: null, // Ventana de contexto en tokens (null = detectar en cada generación)
       aiProvider: 'ollama', // Cambiado a ollama por defecto según petición
       projectHighlightsCount: 2,
-      theme: 'system'
+      theme: 'system',
+      activeExpert: 'developer',
+      autoTranscribe: true,
+      autoAnalyze: true
     };
   } catch (error) {
     console.error('Error getting settings:', error);
