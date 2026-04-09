@@ -239,6 +239,25 @@ export default function ChatInterface({
     return parts.length > 0 ? parts : text;
   };
 
+  const LATEX_SYMBOLS = {
+    '\\rightarrow': '→', '\\to': '→', '\\longrightarrow': '⟶',
+    '\\leftarrow': '←', '\\gets': '←', '\\longleftarrow': '⟵',
+    '\\Rightarrow': '⇒', '\\Leftarrow': '⇐',
+    '\\leftrightarrow': '↔', '\\Leftrightarrow': '⇔',
+    '\\implies': '⟹', '\\iff': '⟺',
+    '\\uparrow': '↑', '\\downarrow': '↓',
+    '\\Uparrow': '⇑', '\\Downarrow': '⇓',
+    '\\nearrow': '↗', '\\searrow': '↘',
+    '\\nwarrow': '↖', '\\swarrow': '↙',
+    '\\times': '×', '\\div': '÷', '\\pm': '±',
+    '\\infty': '∞', '\\approx': '≈', '\\neq': '≠',
+    '\\leq': '≤', '\\geq': '≥',
+    '\\alpha': 'α', '\\beta': 'β', '\\gamma': 'γ',
+    '\\delta': 'δ', '\\epsilon': 'ε', '\\theta': 'θ',
+    '\\lambda': 'λ', '\\mu': 'μ', '\\pi': 'π',
+    '\\sigma': 'σ', '\\omega': 'ω',
+  };
+
   const processMessageContent = (content) => {
     if (!content) return '';
     let processed = content;
@@ -247,6 +266,10 @@ export default function ChatInterface({
     if (match) {
       processed = match[1];
     }
+    // Reemplazar expresiones LaTeX simples ($\comando$) con su equivalente Unicode
+    processed = processed.replace(/\$\\([a-zA-Z]+)\$/g, (full, cmd) => {
+      return LATEX_SYMBOLS['\\' + cmd] ?? full;
+    });
     // Parsear [Ref: id | "titulo" | timestamp] → enlace de cita (sigue usando links normales de MD)
     processed = processed.replace(
       /\[Ref:\s*([^|\]]+?)\s*\|\s*"?([^|"]+?)"?\s*(?:\|\s*([^\]]+?))?\]/g,
