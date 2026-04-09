@@ -715,6 +715,10 @@
         "description": "Configurá instrucciones extra que se inyectarán con máxima prioridad en cada funcionalidad. Dejar vacío usa el comportamiento estándar del experto."
       }
     },
+    "general": {
+      "name": "General",
+      "description": "Sin especialidad fija. Neutral y adaptable a cualquier tipo de conversación o contexto profesional."
+    },
     "developer": {
       "name": "Programador",
       "description": "Orientado a equipos de desarrollo de software. Optimizado para reuniones técnicas, código y arquitectura."
@@ -726,7 +730,7 @@
     "features": {
       "base": {
         "label": "Prompt Base",
-        "hint": "Define el comportamiento central del experto. Modificalo para ajustar el tono, foco y vocabulario de TODAS las funcionalidades. Dejar vacío usa el texto original de fábrica (visible como placeholder).",
+        "hint": "Define el comportamiento central del experto. Editá el texto directamente para ajustar el tono, foco y vocabulario de TODAS las funcionalidades. Restaurar original vuelve al texto de fábrica.",
         "placeholder": ""
       },
       "shortSummary": {

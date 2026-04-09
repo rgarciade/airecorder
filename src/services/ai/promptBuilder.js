@@ -10,10 +10,12 @@
 import { getSettings } from '../settingsService';
 import * as developerExpert from '../../prompts/experts/developer';
 import * as psychologistExpert from '../../prompts/experts/psychologist';
+import * as generalExpert from '../../prompts/experts/general';
 
 // ── Registro de expertos disponibles ─────────────────────────────────────────
 
 const EXPERTS_MAP = {
+  general: generalExpert,
   developer: developerExpert,
   psychologist: psychologistExpert,
 };

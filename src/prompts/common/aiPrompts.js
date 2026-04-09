@@ -93,6 +93,7 @@ Include:
 - Important context for future queries
 
 The summary must be detailed enough that someone can ask specific questions about the conversation and get precise answers.
+FORMAT RULE: Write in plain Markdown text only. Do NOT use LaTeX, math notation, or escaped formulas such as $\\rightarrow$, $\\to$, \\rightarrow, or similar.
 The summary MUST be written in ${langName(lang)}.
 `;
 

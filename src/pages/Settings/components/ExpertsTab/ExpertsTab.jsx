@@ -125,31 +125,35 @@ export default function ExpertsTab() {
     });
     invalidateExpertCache();
 
-    // Para el base prompt, mostramos el texto original del .js en el textarea
-    // Para features extras, simplemente limpiamos el campo
-    if (activeFeature === 'specialty_base') {
-      setCustomizations(prev => ({ ...prev, specialty_base: '' }));
-    } else {
-      setCustomizations(prev => ({ ...prev, [activeFeature]: '' }));
-    }
+    // Limpiamos la customización del estado — para specialty_base,
+    // getTextareaValue() mostrará automáticamente el texto de fábrica editable.
+    setCustomizations(prev => ({ ...prev, [activeFeature]: '' }));
 
     setSavedFeedback(true);
     setTimeout(() => setSavedFeedback(false), 2000);
   };
 
-  // ── Placeholder del textarea según la feature ─────────────────────────
+  // ── Valor editable del textarea según la feature ──────────────────────
+  // Para specialty_base siempre mostramos el texto real (custom o default),
+  // nunca como placeholder, para que el usuario pueda seleccionarlo y editarlo.
 
-  const getPlaceholder = () => {
-    const feature = FEATURES.find(f => f.key === activeFeature);
-    if (activeFeature === 'specialty_base') {
+  const getTextareaValue = () => {
+    const saved = customizations[activeFeature] || '';
+    if (!saved && activeFeature === 'specialty_base') {
       return getDefaultSpecialtyPrompt(editingExpertId);
     }
+    return saved;
+  };
+
+  const getPlaceholder = () => {
+    if (activeFeature === 'specialty_base') return '';
+    const feature = FEATURES.find(f => f.key === activeFeature);
     return t(feature?.placeholderKey || '');
   };
 
   if (loading) return null;
 
-  const currentText = customizations[activeFeature] || '';
+  const currentText = getTextareaValue();
   const currentFeatureDef = FEATURES.find(f => f.key === activeFeature);
 
   return (

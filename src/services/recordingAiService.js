@@ -8,7 +8,7 @@ import recordingsService from './recordingsService';
 import { getSettings } from './settingsService';
 import { callProvider, getActiveProviderContextWindow } from './ai/providerRouter';
 import { AI_TASK_TYPES } from './ai/aiQueueService';
-import { cleanAiResponse, parseJsonArray, parseJsonObject } from '../utils/aiResponseParser';
+import { cleanAiResponse, normalizeAiSummaryText, parseJsonArray, parseJsonObject } from '../utils/aiResponseParser';
 import { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt, participantsPrompt, participantsPromptSuffix, taskSuggestionsPrompt, taskSuggestionsPromptSuffix, taskImprovementSystemPrompt, taskImprovementUserContent, consolidateSummaryPrompt } from '../prompts/aiPrompts';
 import { buildSystemPrompt, FEATURE_TYPES } from './ai/promptBuilder';
 
@@ -337,7 +337,7 @@ class RecordingAiService {
               }
             });
             if (!aiMeta.provider) aiMeta = { provider: partialResult.provider, model: partialResult.model || null };
-            combinedPartialSummaries += partialResult.text + '\n\n';
+            combinedPartialSummaries += normalizeAiSummaryText(partialResult.text) + '\n\n';
           }
 
           // Si hay MUCHOS fragmentos, combinedPartialSummaries también podría superar el contexto.
@@ -349,9 +349,9 @@ class RecordingAiService {
               ...providerOverrides,
               queueMeta: { name: `Consolidación final: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY }
             });
-            detailedText = finalDetailedResult.text;
+            detailedText = normalizeAiSummaryText(finalDetailedResult.text);
           } else {
-            detailedText = combinedPartialSummaries;
+            detailedText = normalizeAiSummaryText(combinedPartialSummaries);
           }
         } else {
           // Caso normal: transcripción cabe en el contexto
@@ -361,7 +361,7 @@ class RecordingAiService {
             queueMeta: { name: `Resumen detallado: ${recName}`, type: AI_TASK_TYPES.DETAILED_SUMMARY }
           });
           aiMeta = { provider: detailedResult.provider, model: detailedResult.model || null };
-          detailedText = detailedResult.text;
+          detailedText = normalizeAiSummaryText(detailedResult.text);
         }
       }
 
