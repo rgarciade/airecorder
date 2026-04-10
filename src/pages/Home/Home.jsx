@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSelector, useDispatch } from 'react-redux';
 import { startRecording } from '../../store/recordingSlice';
 import { MixedAudioRecorder, getSystemMicrophones } from '../../services/audioService';
 import { getSettings } from '../../services/settingsService';
 import recordingsService from '../../services/recordingsService';
+import recordingAiService from '../../services/recordingAiService';
 import { MdChevronLeft, MdChevronRight } from 'react-icons/md';
 import styles from './Home.module.css';
 
@@ -64,6 +65,26 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
   }, [isRecording]); 
   
   const loadDashboardStats = async () => {
+  const reloadTimeoutRef = useRef(null);
+
+  const enrichRecordingsWithRuntimeState = useCallback(async (list) => {
+    return Promise.all(
+      list.map(async (recording) => {
+        if (recording.status !== 'transcribed' && recording.status !== 'analyzed') {
+          return recording;
+        }
+        try {
+          const isGeneratingAi = await recordingAiService.isGenerating(recording.id);
+          return { ...recording, isGeneratingAi };
+        } catch {
+          console.error(`[Home] Error comprobando estado IA para ${recording.id}`);
+          return recording;
+        }
+      })
+    );
+  }, []);
+
+  const loadDashboardStats = useCallback(async () => {
     if (window.electronAPI?.getDashboardStats) {
       try {
         const stats = await window.electronAPI.getDashboardStats();
@@ -86,9 +107,9 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
         console.error("Error loading dashboard stats:", err);
       }
     }
-  };
+  }, []);
 
-  const loadSettingsInfo = async () => {
+  const loadSettingsInfo = useCallback(async () => {
     try {
       const settings = await getSettings();
       const devices = await getSystemMicrophones();
@@ -113,9 +134,9 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
     } catch (error) {
       console.error("Error loading settings info:", error);
     }
-  };
+  }, [t]);
 
-  const checkPermissions = async () => {
+  const checkPermissions = useCallback(async () => {
     if (window.electronAPI && window.electronAPI.getMicrophonePermission) {
       try {
         const status = await window.electronAPI.getMicrophonePermission();
@@ -126,26 +147,110 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
         console.error('Error checking permissions:', err);
       }
     }
-  };
+  }, []);
 
-  const loadRecordings = async () => {
+  const loadRecordings = useCallback(async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
+      setError(null);
 
       const list = await recordingsService.getRecordings();
-      // Sort by date desc
-      list.sort((a, b) => new Date(b.date) - new Date(a.date));
-      setRecordings(list);
-      return list;
+      const enriched = await enrichRecordingsWithRuntimeState(list);
+      enriched.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+
+      setRecordings(enriched);
+      return enriched;
 
     } catch (err) {
       console.error("Error loading recordings:", err);
       setError("Failed to load recordings");
       return [];
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, [enrichRecordingsWithRuntimeState]);
+
+  useEffect(() => {
+    loadRecordings();
+    loadDashboardStats();
+    checkPermissions();
+    loadSettingsInfo();
+  }, [refreshTrigger, loadRecordings, loadDashboardStats, checkPermissions, loadSettingsInfo]);
+
+  const scheduleReload = useCallback(() => {
+    clearTimeout(reloadTimeoutRef.current);
+    reloadTimeoutRef.current = setTimeout(() => {
+      loadRecordings({ silent: true });
+      loadDashboardStats();
+    }, 200);
+  }, [loadRecordings, loadDashboardStats]);
+
+  const syncQueueState = useCallback((queueState) => {
+    if (!queueState) {
+      scheduleReload();
+      return;
+    }
+
+    const activeTasks = queueState.active || [];
+    const latestTasks = [...activeTasks, ...(queueState.history || [])];
+
+    setRecordings((prev) => prev.map((recording) => {
+      const activeTask = activeTasks.find((task) => task.recording_id === recording.dbId);
+
+      if (activeTask) {
+        return {
+          ...recording,
+          queueStatus: { id: activeTask.id, status: activeTask.status, step: activeTask.step, progress: activeTask.progress },
+          isGeneratingAi: false
+        };
+      }
+
+      if (!['pending', 'processing'].includes(recording.queueStatus?.status)) {
+        return recording;
+      }
+
+      const latestTask = latestTasks.find((task) => task.recording_id === recording.dbId);
+
+      if (latestTask?.status === 'completed' || latestTask?.status === 'failed') {
+        scheduleReload();
+      }
+
+      return {
+        ...recording,
+        queueStatus: null,
+        ...(latestTask?.status === 'completed' && { status: 'transcribed' })
+      };
+    }));
+  }, [scheduleReload]);
+
+  useEffect(() => {
+    const cleanupQueueUpdate = window.electronAPI?.onQueueUpdate?.(syncQueueState);
+    const cleanupAutoAnalyze = window.electronAPI?.onAutoAnalyze?.((recordingId) => {
+      setRecordings((prev) => prev.map((recording) =>
+        recording.dbId === recordingId
+          ? { ...recording, queueStatus: null, status: 'transcribed', isGeneratingAi: true }
+          : recording
+      ));
+      scheduleReload();
+    });
+
+    return () => {
+      clearTimeout(reloadTimeoutRef.current);
+      if (typeof cleanupQueueUpdate === 'function') cleanupQueueUpdate();
+      if (typeof cleanupAutoAnalyze === 'function') cleanupAutoAnalyze();
+    };
+  }, [syncQueueState, scheduleReload]);
+
+  useEffect(() => {
+    const hasTransientRecordings = recordings.some(
+      (r) => ['pending', 'processing'].includes(r.queueStatus?.status) || r.isGeneratingAi
+    );
+
+    if (!hasTransientRecordings) return;
+
+    const intervalId = setInterval(() => loadRecordings({ silent: true }), 2500);
+    return () => clearInterval(intervalId);
+  }, [recordings, loadRecordings]);
 
   const handleTranscribe = async (recordingId) => {
     try {
@@ -478,4 +583,5 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
       )}
     </div>
   );
+  }
 }

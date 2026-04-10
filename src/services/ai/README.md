@@ -44,6 +44,7 @@ El contenido de usuario (transcripción, resumen, etc.) siempre se pasa **por se
     `--|-- N --|-- texto del punto`
     *(Cualquier alteración romperá el parsing de la UI).*
 3.  **JSON estricto:** Para prompts que devuelven JSON, indicar explícitamente que no incluya markdown ni bloques de código.
+4.  **Sin LaTeX en resúmenes:** Los prompts de resumen deben pedir texto Markdown plano, sin notación matemática inline como `$\\rightarrow$`.
 
 ## 3. Dos Paradigmas de IA — Análisis vs. Chat
 

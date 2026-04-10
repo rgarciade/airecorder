@@ -533,6 +533,29 @@ class RecordingsService {
     }
   }
 
+  async saveExtraInstructions(recordingId, text) {
+    try {
+      if (!window.electronAPI?.saveExtraInstructions) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.saveExtraInstructions(recordingId, text);
+      return result.success;
+    } catch (error) {
+      console.error('Error guardando instrucciones extra:', error);
+      return false;
+    }
+  }
+
+  async getExtraInstructions(recordingId) {
+    try {
+      if (!window.electronAPI?.getExtraInstructions) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.getExtraInstructions(recordingId);
+      if (!result.success) return '';
+      return result.text || '';
+    } catch (error) {
+      console.error('Error leyendo instrucciones extra:', error);
+      return '';
+    }
+  }
+
 }
 
 // Instancia singleton del servicio

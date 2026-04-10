@@ -9,6 +9,7 @@ import { getLMStudioModels } from '../../services/ai/lmStudioProvider';
 import { callProvider, callProviderStreaming, callChatProviderStreaming } from '../../services/ai/providerRouter';
 import { chatSystemPrompt } from '../../prompts/aiPrompts';
 import { ragSystemPrompt, mapHistoryToMessages } from '../../prompts/ragPrompts';
+import { buildSystemPrompt, FEATURE_TYPES } from '../../services/ai/promptBuilder';
 import ragService from '../../services/ragService';
 import recordingAiService from '../../services/recordingAiService';
 import chatPendingService from '../../services/chatPendingService';
@@ -88,6 +89,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [geminiData, setGeminiData] = useState({ resumen_breve: '', ideas: [] });
   const [detailedSummary, setDetailedSummary] = useState('');
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [extraInstructions, setExtraInstructions] = useState('');
 
   // Tasks State
   const [tasks, setTasks] = useState([]);
@@ -401,6 +403,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           }
         }
 
+        // Load Extra Instructions
+        const instructions = await recordingsService.getExtraInstructions(recording.dbId || recording.id);
+        setExtraInstructions(instructions || '');
+
         // Load Summary
         const existing = await recordingAiService.getRecordingSummary(recording.id);
         const hasSummary = existing && existing.resumen_breve;
@@ -615,7 +621,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         // --- MODO RAG V2: array de mensajes nativo con system prompt ---
         console.log(`🔍 [RAG V2] Usando ${ragChunks.length} chunks relevantes`);
 
-        const systemContent = ragSystemPrompt(ragChunks, docContext);
+        const systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, ragSystemPrompt(ragChunks, docContext));
         sentCharsEstimate = systemContent.length + docContext.length;
 
         const attachmentTokens = attachmentImages.length * 256;
@@ -661,7 +667,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           context = await recordingsService.getTranscriptionTxt(recording.id);
         }
 
-        const systemContent = chatSystemPrompt(context || 'No context available.', uiLanguage, docContext);
+        const systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, chatSystemPrompt(context || 'No context available.', uiLanguage, docContext));
         sentCharsEstimate = systemContent.length;
 
         const attachmentTokens = attachmentImages.length * 256;
@@ -1067,6 +1073,17 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       alert("Error al regenerar datos de IA: " + error.message);
     } finally {
       setIsGeneratingAi(false);
+    }
+  };
+
+  // --- EXTRA INSTRUCTIONS HANDLER ---
+
+  const handleSaveExtraInstructions = async (text) => {
+    try {
+      await recordingsService.saveExtraInstructions(recording.dbId || recording.id, text);
+      setExtraInstructions(text);
+    } catch (error) {
+      console.error('Error guardando instrucciones extra:', error);
     }
   };
 
@@ -1645,6 +1662,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             hasTranscription={!!transcription}
             aiProvider={geminiData.aiProvider || null}
             aiModel={geminiData.aiModel || null}
+            extraInstructions={extraInstructions}
+            onSaveExtraInstructions={handleSaveExtraInstructions}
           />
         )}
         {activeTab === 'transcription' && (
@@ -1847,7 +1866,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                            }}
                          />
                          {att.filename}
-                         <span style={{ color: '#9CA3AF', fontSize: '0.75rem', marginLeft: 4 }}>
+                         <span style={{ color: 'var(--color-text-tertiary)', fontSize: '0.75rem', marginLeft: 4 }}>
                            ({att.type})
                          </span>
                        </label>

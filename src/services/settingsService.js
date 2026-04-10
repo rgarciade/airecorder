@@ -69,7 +69,10 @@ export const getSettings = async () => {
       theme: 'system',
       // Diarización (pyannote speaker diarization)
       hfToken: '',
-      diarizationEnabled: false
+      diarizationEnabled: false,
+      activeExpert: 'developer',
+      autoTranscribe: true,
+      autoAnalyze: true
     };
   } catch (error) {
     console.error('Error getting settings:', error);

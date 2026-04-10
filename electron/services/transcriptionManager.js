@@ -11,12 +11,17 @@ class TranscriptionManager {
     this.activeTask = null;
     this.process = null;
     this.onUpdateCallback = null;
+    this.onAutoAnalyzeCallback = null;
     this.basePath = null;
     // Don't check queue here, DB isn't ready. Explicitly call checkQueue() from main.js
   }
 
   setBasePath(path) {
     this.basePath = path;
+  }
+
+  setAutoAnalyzeCallback(callback) {
+    this.onAutoAnalyzeCallback = callback;
   }
 
   setUpdateCallback(callback) {
@@ -362,6 +367,16 @@ class TranscriptionManager {
                         logNode('[Manager] diarizationPromise era null — diarización no se ejecutó');
                     }
                     // ──────────────────────────────────────────────────────
+                // Notificar al usuario
+                notificationService.show(
+                  'Transcripción Completada',
+                  `La transcripción de "${folderName}" ha finalizado.`,
+                  { type: 'transcription-complete', recordingId: folderName }
+                );
+                // Auto-análisis IA si está habilitado en ajustes
+                if (getSetting('autoAnalyze', true) !== false && this.onAutoAnalyzeCallback) {
+                  this.onAutoAnalyzeCallback(task.recording_id);
+                }
 
                     nodeLog.end();
 
