@@ -42,6 +42,8 @@ BASE_DIR = "/Users/raul.garciad/Desktop/recorder/grabaciones"
 SAMPLE_RATE = 22050  # Frecuencia de muestreo para análisis
 CHUNK_SIZE_MS = 1000  # Tamaño de chunks en milisegundos
 WHISPER_MODEL = "large"  # Opciones: tiny, base, small, medium, large
+MIN_SIGNAL_RMS = 0.001          # Por debajo de este RMS se considera pista silenciosa
+SILENT_TRACK_THRESHOLD_PCT = 95.0  # Si el % de silencio supera este valor, la pista se descarta
 
 # ---------------------------------------------------------------------------
 # Diarización con pyannote.audio
@@ -190,6 +192,17 @@ class AudioSyncAnalyzer:
             print(f"❌ Error cargando modelo Whisper: {e}")
             return False
         
+    def _load_audio_track(self, filepath, label):
+        """Carga un archivo de audio con pydub. Retorna AudioSegment o None si falla."""
+        try:
+            audio = AudioSegment.from_file(filepath)
+            print(f"📁 {label}: {len(audio)/1000:.2f} segundos", flush=True)
+            print(f"📊 Sample rate {label.lower()}: {audio.frame_rate} Hz", flush=True)
+            return audio
+        except Exception as e:
+            print(f"⚠️  No se pudo cargar {label} ({filepath}): {e}", flush=True)
+            return None
+
     def load_audio_files(self, mic_exists=True, sys_exists=True):
         """Cargar los archivos de audio usando pydub"""
         print("🎵 Cargando archivos de audio...", flush=True)
@@ -445,7 +458,7 @@ class AudioSyncAnalyzer:
                 return self.whisper_model.transcribe(audio_file, **kwargs)
             raise
 
-    def transcribe_audio_files(self, lag_seconds=0, mic_exists=True):
+    def transcribe_audio_files(self, lag_seconds=0, mic_exists=True, sys_exists=True):
         """Transcribir ambos archivos de audio usando Whisper con parámetros avanzados"""
         print("\n🎙️ TRANSCRIBIENDO ARCHIVOS DE AUDIO")
         print("=" * 50)
@@ -489,8 +502,6 @@ class AudioSyncAnalyzer:
                     temp_mic_wav,
                     word_timestamps=True,
                     language=TRANSCRIPTION_LANGUAGE,
-                    no_speech_threshold=0.7,
-                    condition_on_previous_text=False,
                     no_speech_threshold=0.7,
                     condition_on_previous_text=False,
                     beam_size=dynamic_beam_size,
@@ -922,7 +933,7 @@ class AudioSyncAnalyzer:
         self.generate_activity_report(chunks_info, mic_exists=mic_exists)
         self.create_waveform_visualization(mic_exists=mic_exists)
         print("PROGRESS:20", flush=True)
-        mic_result, sys_result = self.transcribe_audio_files(lag_seconds, mic_exists=mic_exists)
+        mic_result, sys_result = self.transcribe_audio_files(lag_seconds, mic_exists=mic_exists, sys_exists=sys_exists)
         if sys_result:
             self.combine_transcriptions(mic_result, sys_result, mic_exists=mic_exists)
         print(f"\n🎉 ANÁLISIS COMPLETADO")

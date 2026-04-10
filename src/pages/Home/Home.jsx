@@ -41,13 +41,6 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
   const [importModal, setImportModal] = useState(null);
   const [importName, setImportName] = useState('');
 
-  useEffect(() => {
-    loadRecordings();
-    loadDashboardStats();
-    checkPermissions();
-    loadSettingsInfo();
-  }, [refreshTrigger]);
-
   // Escuchar evento de auto-inicio de grabación desde parámetro --auto-record
   useEffect(() => {
     if (window.electronAPI?.onAutoStartRecording) {
@@ -64,7 +57,6 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
     };
   }, [isRecording]); 
   
-  const loadDashboardStats = async () => {
   const reloadTimeoutRef = useRef(null);
 
   const enrichRecordingsWithRuntimeState = useCallback(async (list) => {
@@ -583,5 +575,4 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
       )}
     </div>
   );
-  }
 }

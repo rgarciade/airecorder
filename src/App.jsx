@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
+import { addDownload, updateDownload } from './store/downloadsSlice'
+import DownloadManager from './components/DownloadManager/DownloadManager'
 import useAutoAnalyze from './hooks/useAutoAnalyze'
 import useAppearance from './hooks/useAppearance'
 import useDatabaseStatus from './hooks/useDatabaseStatus'
@@ -22,6 +24,7 @@ import styles from './App.module.css'
 import './App.css'
 
 export default function App() {
+  const dispatch = useDispatch()
   const [currentRecorder, setCurrentRecorder] = useState(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0) // Trigger para refrescar Home
   const { isRecording } = useSelector((state) => state.recording)
@@ -62,8 +65,39 @@ export default function App() {
   useAutoAnalyze();
   useAppearance(appSettings);
   const { queueCount, queueState, loadQueueData } = useQueueManager();
-  const { dbFallbackBanner } = useDatabaseStatus();
+  const { dbFallbackBanner, setDbFallbackBanner } = useDatabaseStatus();
   useNotificationHandler(handleNavigateToRecording);
+
+  // Listener de progreso de instalación de diarización → Redux
+  useEffect(() => {
+    if (!window.electronAPI?.onDiarizationInstallProgress) return;
+    window.electronAPI.onDiarizationInstallProgress((data) => {
+      if (data.phase === 'done' || data.phase === 'error') {
+        dispatch(updateDownload({
+          id: 'diarization-env',
+          phase: data.phase,
+          percent: data.percent ?? 100,
+          detail: data.detail ?? '',
+          status: data.phase === 'done' ? 'done' : 'error',
+        }));
+      } else {
+        dispatch(addDownload({
+          id: 'diarization-env',
+          name: 'Entorno de diarización',
+          cancellable: true,
+        }));
+        dispatch(updateDownload({
+          id: 'diarization-env',
+          phase: data.phase,
+          percent: data.percent ?? 0,
+          detail: data.detail ?? '',
+        }));
+      }
+    });
+    return () => {
+      window.electronAPI?.offDiarizationInstallProgress?.();
+    };
+  }, [dispatch]);
 
   const handleOnboardingComplete = () => {
     loadAppSettings().then(() => {

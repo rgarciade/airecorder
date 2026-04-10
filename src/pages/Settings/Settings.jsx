@@ -10,7 +10,7 @@ import {
   MdMic, MdClose, MdCloud, MdAutoAwesome, MdComputer, MdTerminal,
   MdFolder, MdVisibility, MdVisibilityOff, MdRefresh, MdInfo, MdCheck,
   MdTextFormat, MdTranslate, MdNotifications, MdSmartToy, MdSettings, MdSecurity,
-  MdSystemUpdate, MdLightMode, MdDarkMode, MdBrightness6, MdWork, MdRecordVoiceOver, MdLightMode, MdDarkMode, MdBrightness6, MdWork,
+  MdSystemUpdate, MdLightMode, MdDarkMode, MdBrightness6, MdWork, MdRecordVoiceOver,
   MdGraphicEq, MdAutoFixHigh
 } from 'react-icons/md';
 import { applyTheme } from '../../services/themeService';
