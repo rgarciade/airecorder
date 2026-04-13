@@ -10,19 +10,23 @@ OUTPUT_DIR="$PROJECT_ROOT/python-dist"
 echo "=== Building audio_sync_analyzer binary ==="
 echo "Project root: $PROJECT_ROOT"
 
-# Verificar que el venv existe
+# Asegurar que el venv existe
 if [ ! -f "$VENV_DIR/bin/python" ]; then
-    echo "ERROR: No se encontró el venv en $VENV_DIR"
-    echo "Ejecuta: python3 -m venv venv && venv/bin/pip install -r requirements.txt pyinstaller"
-    exit 1
+    echo "🔧 No se encontró el venv. Creando uno nuevo..."
+    python3 -m venv "$VENV_DIR"
+    echo "📦 Instalando dependencias base..."
+    "$VENV_DIR/bin/pip" install -r "$PROJECT_ROOT/requirements.txt" pyinstaller
 fi
 
-# Verificar que PyInstaller está instalado
-if ! "$VENV_DIR/bin/python" -c "import PyInstaller" 2>/dev/null; then
-    echo "ERROR: PyInstaller no está instalado en el venv"
-    echo "Ejecuta: venv/bin/pip install pyinstaller"
-    exit 1
-fi
+# Asegurar que las dependencias críticas están instaladas (incluyendo pyannote.audio)
+echo "🔍 Verificando dependencias críticas..."
+CRITICAL_DEPS=("PyInstaller" "pyannote.audio")
+for dep in "${CRITICAL_DEPS[@]}"; do
+    if ! "$VENV_DIR/bin/python" -c "import $dep" 2>/dev/null && ! "$VENV_DIR/bin/python" -c "import ${dep//./_}" 2>/dev/null; then
+        echo "📥 Dependencia '$dep' no detectada. Instalando..."
+        "$VENV_DIR/bin/pip" install "${dep,,}"
+    fi
+done
 
 # Obtener arquitectura actual
 ARCH=$(uname -m)

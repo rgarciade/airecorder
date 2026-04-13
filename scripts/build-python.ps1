@@ -10,20 +10,32 @@ $Arch = "x64"
 Write-Host "=== Building audio_sync_analyzer binary ==="
 Write-Host "Project root: $ProjectRoot"
 
-# Verificar que el venv existe
+# Asegurar que el venv existe
 $PythonExe = Join-Path $VenvDir "Scripts\python.exe"
+$PipExe = Join-Path $VenvDir "Scripts\pip.exe"
+
 if (-not (Test-Path $PythonExe)) {
-    Write-Error "ERROR: No se encontro el venv en $VenvDir"
-    Write-Host "Ejecuta: python -m venv venv && venv\Scripts\pip install -r requirements.txt pyinstaller"
-    exit 1
+    Write-Host "🔧 No se encontro el venv. Creando uno nuevo..."
+    & python -m venv "$VenvDir"
+    Write-Host "📦 Instalando dependencias base..."
+    $ReqFile = Join-Path $ProjectRoot "requirements.txt"
+    & $PipExe install -r "$ReqFile" pyinstaller
 }
 
-# Verificar que PyInstaller esta instalado
-& $PythonExe -c "import PyInstaller" 2>$null
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "ERROR: PyInstaller no esta instalado en el venv"
-    Write-Host "Ejecuta: venv\Scripts\pip install pyinstaller"
-    exit 1
+# Asegurar que las dependencias criticas estan instaladas (incluyendo pyannote.audio)
+Write-Host "🔍 Verificando dependencias criticas..."
+$CriticalDeps = @("PyInstaller", "pyannote.audio")
+foreach ($dep in $CriticalDeps) {
+    # Check both original and underscore version (e.g. pyannote.audio vs pyannote_audio)
+    $safeDep = $dep -replace '\.', '_'
+    & $PythonExe -c "import $dep" 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        & $PythonExe -c "import $safeDep" 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "📥 Dependencia '$dep' no detectada. Instalando..."
+            & $PipExe install $dep
+        }
+    }
 }
 
 Write-Host "Arquitectura: $Arch"
