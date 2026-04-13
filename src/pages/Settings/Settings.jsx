@@ -54,6 +54,8 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [autoTranscribe, setAutoTranscribe] = useState(true);
   const [autoAnalyze, setAutoAnalyze] = useState(true);
+  const [enableDiarization, setEnableDiarization] = useState(false);
+  const [hfToken, setHfToken] = useState('');
   const [whisperModel, setWhisperModel] = useState('small');
   const [cpuThreads, setCpuThreads] = useState(4);
   const [maxCpuThreads, setMaxCpuThreads] = useState(4);
@@ -186,6 +188,8 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         setNotificationsEnabled(savedSettings.notificationsEnabled !== false); // Default true
         setAutoTranscribe(savedSettings.autoTranscribe !== false); // Default true
         setAutoAnalyze(savedSettings.autoAnalyze !== false); // Default true
+        setEnableDiarization(savedSettings.enableDiarization || false);
+        setHfToken(savedSettings.hfToken || '');
         setWhisperModel(savedSettings.whisperModel || 'small');
         
         try {
@@ -540,6 +544,8 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         notificationsEnabled: notificationsEnabled,
         autoTranscribe: autoTranscribe,
         autoAnalyze: autoAnalyze,
+        enableDiarization: enableDiarization,
+        hfToken: hfToken,
         fontSize: fontSize,
         theme: theme,
         projectHighlightsCount: projectHighlightsCount,
@@ -1579,6 +1585,69 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       <div className={styles.toggleSlider}></div>
                     </label>
                   </div>
+                </div>
+
+                {/* Diarización de Interlocutores (pyannote.audio) */}
+                <div className={styles.card} style={{marginTop: '16px'}}>
+                  <div className={styles.cardHeader}>
+                    <div className={styles.providerInfo}>
+                      <div className={styles.providerIcon} style={{backgroundColor: '#fff7ed', color: '#f97316'}}>
+                        <MdGraphicEq size={24} />
+                      </div>
+                      <div>
+                        <h4 className={styles.providerName}>Diarización de Interlocutores (Experimental)</h4>
+                        <p className={styles.providerDesc}>Identifica y separa las voces de distintas personas en el audio del sistema usando pyannote.audio (PyTorch).</p>
+                      </div>
+                    </div>
+                    <label className={styles.toggleWrapper}>
+                      <input
+                        type="checkbox"
+                        className={styles.toggleInput}
+                        checked={enableDiarization}
+                        onChange={(e) => setEnableDiarization(e.target.checked)}
+                      />
+                      <div className={styles.toggleSlider}></div>
+                    </label>
+                  </div>
+
+                  {enableDiarization && (
+                    <div className={styles.formGroup} style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--color-border-subtle)' }}>
+                      <label className={styles.label}>HuggingFace Access Token</label>
+                      <div className={styles.inputWrapper}>
+                        <input
+                          type={showApiKey ? "text" : "password"}
+                          className={styles.input}
+                          placeholder="hf_..."
+                          value={hfToken}
+                          onChange={(e) => setHfToken(e.target.value)}
+                        />
+                        <button
+                          className={styles.inputIcon}
+                          onClick={() => setShowApiKey(!showApiKey)}
+                        >
+                          {showApiKey ? <MdVisibilityOff /> : <MdVisibility />}
+                        </button>
+                      </div>
+                      <p className={styles.helpText}>
+                        <strong>Sigue estos pasos para configurar la diarización:</strong>
+                      </p>
+                      <ol className={styles.helpText} style={{ paddingLeft: '20px', listStyleType: 'decimal' }}>
+                        <li style={{marginBottom: '4px'}}>
+                          Ve a <a href="https://huggingface.co/pyannote/speaker-diarization-3.1" target="_blank" rel="noreferrer" style={{color: 'var(--color-primary)', textDecoration: 'underline'}}>pyannote/speaker-diarization-3.1</a> y acepta los términos de uso (haz clic en "Agree and access repository").
+                        </li>
+                        <li style={{marginBottom: '4px'}}>
+                          Haz lo mismo en <a href="https://huggingface.co/pyannote/segmentation-3.0" target="_blank" rel="noreferrer" style={{color: 'var(--color-primary)', textDecoration: 'underline'}}>pyannote/segmentation-3.0</a> (es una dependencia requerida).
+                        </li>
+                        <li style={{marginBottom: '4px'}}>
+                          Crea un Access Token en <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noreferrer" style={{color: 'var(--color-primary)', textDecoration: 'underline'}}>HuggingFace Settings</a>. Debe ser de tipo <strong>Read</strong>.
+                        </li>
+                        <li>Pega el token aquí arriba y guarda los ajustes.</li>
+                      </ol>
+                      <p className={styles.helpText} style={{ color: 'var(--color-warning)', fontWeight: 500, marginTop: '12px' }}>
+                        ⚠️ Nota: La primera vez que se use, la aplicación descargará varios gigabytes de modelos de IA. Ten paciencia y asegúrate de tener una buena conexión.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </section>
 

@@ -24,7 +24,7 @@ dataFileDatabase
 *.njsproj
 *.sln
 *.sw?
-
+devfiles/
 .agents/
 opencode.json
 python-dist/

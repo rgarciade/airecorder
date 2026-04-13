@@ -69,7 +69,9 @@ export const getSettings = async () => {
       theme: 'system',
       activeExpert: 'developer',
       autoTranscribe: true,
-      autoAnalyze: true
+      autoAnalyze: true,
+      enableDiarization: false,
+      hfToken: ''
     };
   } catch (error) {
     console.error('Error getting settings:', error);
