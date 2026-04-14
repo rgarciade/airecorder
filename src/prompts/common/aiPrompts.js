@@ -395,3 +395,55 @@ export const tasksPrompt = `Extract all tasks, actions and commitments mentioned
 - Follow-up actions
 - Pending decisions
 - Acquired commitments`;
+
+// ---------------------------------------------------------------------------
+// Prompt para normalización de conversaciones importadas
+// ---------------------------------------------------------------------------
+
+/**
+ * Prompt para normalizar el contenido crudo de una conversación importada
+ * a formato de segmentos canónico JSON.
+ * @param {string} rawContent - Texto crudo de la conversación a normalizar
+ * @returns {string} Prompt completo listo para enviar a la IA
+ */
+export const conversationNormalizationPrompt = (rawContent) =>
+  `You are an expert at parsing and structuring conversation transcripts.
+
+YOUR TASK: Analyze the raw conversation transcript provided below and extract ALL speakers, timestamps, and text segments.
+
+CRITICAL OUTPUT RULE: Respond ONLY with a valid JSON object. NO markdown code fences, NO explanation, NO preamble, NO trailing text. The response must start with "{" and end with "}".
+
+REQUIRED JSON FORMAT:
+{
+  "segments": [
+    { "id": 0, "start": 0.0, "end": 3.0, "speaker": "Speaker Name", "text": "What they said", "source": "conversation-import" }
+  ]
+}
+
+RULES — follow every rule strictly:
+
+1. TIMESTAMPS:
+   - If timestamps ARE present in the transcript: extract them as float seconds (e.g., "00:01:23" → 83.0, "1:05" → 65.0).
+   - If timestamps are NOT present: assign sequential times at 3 seconds per segment (segment 0: start=0.0, end=3.0; segment 1: start=3.0, end=6.0; etc.).
+
+2. SPEAKER NAMES:
+   - If speaker names ARE present: use them exactly as they appear.
+   - If speaker names are NOT present: use "Speaker 1", "Speaker 2", etc., assigning numbers in the order speakers first appear.
+
+3. MANDATORY FIELDS:
+   - "id": sequential integer starting from 0.
+   - "start": float, start time in seconds.
+   - "end": float, end time in seconds.
+   - "speaker": string, name of the speaker.
+   - "text": string, the spoken content.
+   - "source": always the exact string "conversation-import".
+
+4. ORDERING: Segments must be in chronological order.
+
+5. FIDELITY: Do NOT invent, paraphrase, or add any text that is not in the original transcript.
+
+6. OUTPUT: The response must be ONLY the JSON object — nothing before it, nothing after it.
+
+--- RAW CONVERSATION TRANSCRIPT ---
+${rawContent}
+--- END OF TRANSCRIPT ---`;

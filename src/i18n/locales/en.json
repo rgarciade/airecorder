@@ -57,6 +57,7 @@
     "errorTranscribing": "Error starting transcription: {{error}}",
     "errorImporting": "Error importing transcription: {{error}}",
     "errorImportingAudio": "Error importing audio: {{error}}",
+    "errorImportingConversation": "Error importing conversation",
     "importAudio": {
       "title": "Import Audio",
       "description": "The audio has been imported successfully. You can rename it before starting the transcription.",
@@ -64,6 +65,14 @@
       "namePlaceholder": "Name",
       "cancel": "Cancel",
       "startTranscription": "Start Transcription"
+    },
+    "importConversation": {
+      "title": "Import external conversation",
+      "largeFileWarning": "The file exceeds 50KB. The AI may not be able to process it fully. Do you want to continue?",
+      "noSegments": "No segments could be extracted from the conversation. Make sure the file contains a valid conversation.",
+      "noProvider": "No AI provider is configured. Please set one up in Settings before importing.",
+      "processing": "Normalizing conversation with AI...",
+      "success": "Conversation imported successfully"
     }
   },
   "recordButton": {
@@ -479,7 +488,11 @@
     "aiPowered": "AI POWERED",
     "start": "START",
     "teams": "Teams",
-    "audio": "Audio"
+    "audio": "Audio",
+    "importConversation": "Import with AI",
+    "importConversationDescription": "Upload text, srt, or vtt files. AI will normalize the format automatically.",
+    "importTeamsDescription": "Import Microsoft Teams transcriptions (.docx).",
+    "importAudioDescription": "Upload audio files (mp3, wav, ogg...) to transcribe."
   },
   "statsRow": {
     "thisWeek": "This Week",

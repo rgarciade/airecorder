@@ -168,6 +168,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Importar archivo de audio externo
   importAudioFile: () => ipcRenderer.invoke('import-audio-file'),
 
+  // Importar conversación externa
+  selectConversationFile: () => ipcRenderer.invoke('select-conversation-file'),
+  saveConversationImport: (data) => ipcRenderer.invoke('save-conversation-import', data),
+
   // Actualizaciones
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),

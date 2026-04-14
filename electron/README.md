@@ -171,6 +171,22 @@ Permite guardar `recordings.db` en un directorio personalizado (útil para disco
 - Los mensajes se convierten a formato canónico de transcripción (`[H:MM:SS - H:MM:SS] emoji SPEAKER:\n   texto`) usando `chatSyncUtils.js`.
 - Se guardan como grabación (`recordings` table) con `transcription_model = 'gchat-sync' | 'teams-sync'`, y se vinculan al proyecto.
 
+### Importación de Conversaciones (`ipc-handlers/integrations.js`)
+
+Permite importar archivos de conversación en texto plano (`.txt`, `.md`, `.vtt`, `.srt`) directamente como grabaciones transcriptas. El flujo es de dos pasos: primero se selecciona y lee el archivo, luego el frontend lo parsea y envía los segmentos para guardar.
+
+#### Handlers IPC
+| Canal IPC | Descripción |
+|-----------|-------------|
+| `select-conversation-file` | Abre diálogo de selección filtrado a `.txt`, `.md`, `.vtt`, `.srt`. Devuelve `{ success: true, raw, fileName, ext, filePath, fileSize }` o `{ success: true, canceled: true }` o `{ success: false, error }` |
+| `save-conversation-import` | Recibe `{ fileName, raw, ext, segments }`. Crea carpeta `conv_import_{baseName}_{timestamp}/`, escribe `analysis/raw_import.{ext}`, `analysis/transcripcion_combinada.json`, `analysis/transcripcion_combinada.txt` y `metadata.json`. Llama a `dbService.saveRecording` con `status='transcribed'` y `transcription_model='conversation-import'`. Devuelve `{ success: true, recording: { id, relative_path } }` o `{ success: false, error }` |
+
+#### Métodos expuestos en `preload.js`
+| Método | Descripción |
+|--------|-------------|
+| `selectConversationFile()` | Abre el diálogo de selección de archivo de conversación |
+| `saveConversationImport(data)` | Guarda la conversación parseada como nueva grabación transcripción |
+
 ## 5. Protección de Código (Build de producción)
 
 El build de producción aplica 3 capas de protección:

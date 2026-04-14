@@ -6,6 +6,8 @@ const dbService = require('../database/dbService');
 const notificationService = require('./notificationService');
 const { getSetting } = require('../utils/paths');
 
+const SUPPORTED_AUDIO_EXTENSIONS = ['webm', 'wav', 'mp3', 'm4a', 'ogg', 'aac', 'flac'];
+
 class TranscriptionManager {
   constructor() {
     this.activeTask = null;
@@ -134,10 +136,12 @@ class TranscriptionManager {
                 // 1. Obtener ruta del audio de sistema
                 const recording = dbService.getRecordingById(this.activeTask.recording_id);
                 if (recording) {
-                    const sysAudioPath = path.join(this.basePath, recording.relative_path, `${recording.relative_path}-system.webm`);
+                    const sysAudioPath = SUPPORTED_AUDIO_EXTENSIONS
+                        .map((ext) => path.join(this.basePath, recording.relative_path, `${recording.relative_path}-system.${ext}`))
+                        .find((candidate) => fs.existsSync(candidate));
                     const outputDiarizationPath = path.join(this.basePath, recording.relative_path, 'analysis', 'diarization.json');
                     
-                    if (fs.existsSync(sysAudioPath)) {
+                    if (sysAudioPath) {
                         console.log(`[Manager] Diarización habilitada. Ejecutando pre-proceso...`);
                         this.updateProgress(0, 'diarizing');
                         
@@ -164,9 +168,17 @@ class TranscriptionManager {
                         if (ffprobePath && fs.existsSync(ffprobePath)) diarizationArgs.push('--ffprobe', ffprobePath);
 
                         // Ejecutar diarización (Paso A: 0% -> 50%)
-                        await this.runPythonProcess('diarization_analyzer.py', diarizationArgs, (p) => this.updateProgress(Math.floor(p / 2), 'diarizing'));
-                        
-                        diarizationFile = outputDiarizationPath;
+                        // IMPORTANTE: si diarización falla, seguimos con la transcripción sin diarización.
+                        try {
+                            await this.runPythonProcess('diarization_analyzer.py', diarizationArgs, (p) => this.updateProgress(Math.floor(p / 2), 'diarizing'));
+                            diarizationFile = fs.existsSync(outputDiarizationPath) ? outputDiarizationPath : null;
+                            if (!diarizationFile) {
+                                console.warn('[Manager] Diarización finalizó sin generar JSON. Continuando sin diarización.');
+                            }
+                        } catch (diarizationError) {
+                            console.warn(`[Manager] Diarización falló: ${diarizationError.message}. Continuando sin diarización.`);
+                            diarizationFile = null;
+                        }
                     }
                 }
             }
