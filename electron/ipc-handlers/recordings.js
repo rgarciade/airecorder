@@ -118,7 +118,10 @@ module.exports.registerRecordingsHandlers = () => {
       }
       
       const transcriptionData = await fs.promises.readFile(transcriptionPath, 'utf8');
-      const transcription = JSON.parse(transcriptionData);
+      const parsed = JSON.parse(transcriptionData);
+      const transcription = Array.isArray(parsed)
+        ? { segments: parsed }
+        : parsed;
       
       return { success: true, transcription };
     } catch (error) {

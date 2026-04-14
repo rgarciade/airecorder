@@ -1308,7 +1308,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     ? `${Math.floor(recording.duration / 60)}:${Math.floor(recording.duration % 60).toString().padStart(2, '0')}`
     : '--:--';
 
-  const dateStr = new Date(localRecording.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const dateSource = localRecording?.createdAt || localRecording?.date || recording?.createdAt || recording?.date;
+  const parsedDate = dateSource ? new Date(dateSource) : null;
+  const dateStr = parsedDate && !Number.isNaN(parsedDate.getTime())
+    ? parsedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : '--';
 
   // Helper to get audio URLs
   const getAudioUrls = () => {

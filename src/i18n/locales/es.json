@@ -74,6 +74,7 @@
     "errorTranscribing": "Error iniciando transcripción: {{error}}",
     "errorImporting": "Error importando la transcripción: {{error}}",
     "errorImportingAudio": "Error importando audio: {{error}}",
+    "errorImportingConversation": "Error al importar la conversación",
     "importAudio": {
       "title": "Importar audio",
       "description": "El audio ha sido importado con éxito. Puedes renombrarlo antes de iniciar la transcripción.",
@@ -81,6 +82,14 @@
       "namePlaceholder": "Nombre",
       "cancel": "Cancelar",
       "startTranscription": "Iniciar transcripción"
+    },
+    "importConversation": {
+      "title": "Importar conversación externa",
+      "largeFileWarning": "El archivo supera los 50KB. Puede que la IA no pueda procesarlo completo. ¿Deseas continuar?",
+      "noSegments": "No se pudieron extraer segmentos de la conversación. Verifica que el archivo contenga una conversación válida.",
+      "noProvider": "No hay proveedor de IA configurado. Configura uno en Ajustes antes de importar.",
+      "processing": "Normalizando conversación con IA...",
+      "success": "Conversación importada correctamente"
     }
   },
   "recordButton": {
@@ -496,7 +505,11 @@
     "aiPowered": "POTENCIADO POR IA",
     "start": "INICIAR",
     "teams": "Teams",
-    "audio": "Audio"
+    "audio": "Audio",
+    "importConversation": "Importar con IA",
+    "importConversationDescription": "Sube archivos de texto, srt o vtt. La IA normalizará el formato automáticamente.",
+    "importTeamsDescription": "Importa transcripciones de Microsoft Teams (.docx).",
+    "importAudioDescription": "Sube archivos de audio (mp3, wav, ogg...) para transcribir."
   },
   "statsRow": {
     "thisWeek": "Esta Semana",
