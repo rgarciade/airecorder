@@ -69,7 +69,20 @@ const {
   CREATE_TABLE_EXPERT_CUSTOMIZATIONS,
   GET_EXPERT_CUSTOMIZATIONS,
   UPSERT_EXPERT_CUSTOMIZATION,
-  RESET_EXPERT_CUSTOMIZATION
+  RESET_EXPERT_CUSTOMIZATION,
+  CREATE_TABLE_SPEAKERS,
+  CREATE_TABLE_SPEAKER_EMBEDDINGS,
+  INSERT_SPEAKER,
+  SELECT_SPEAKER_BY_ALIAS,
+  INSERT_SPEAKER_EMBEDDING,
+  SELECT_ALL_SPEAKER_EMBEDDINGS,
+  REASSIGN_SPEAKER_EMBEDDINGS,
+  DELETE_SPEAKER,
+  CREATE_TABLE_RECORDING_SPEAKER_RESOLUTIONS,
+  UPSERT_RECORDING_SPEAKER_RESOLUTION,
+  SELECT_RECORDING_SPEAKER_RESOLUTIONS,
+  DELETE_RECORDING_SPEAKER_RESOLUTION,
+  REASSIGN_RECORDING_SPEAKER_RESOLUTIONS
 } = require('./queries');
 
 class DbService {
@@ -280,6 +293,40 @@ class DbService {
         this.db.exec(CREATE_TABLE_EXPERT_CUSTOMIZATIONS);
       } catch (e) {
         console.error('[DB] Error creando expert_customizations:', e);
+      }
+
+      // Tablas de identificación de hablantes
+      try {
+        // Verificar si la tabla speakers existe
+        const tables = this.db.prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='speakers'"
+        ).all();
+
+        if (tables.length === 0) {
+          console.log('[DB] Creando tabla speakers...');
+          this.db.prepare(CREATE_TABLE_SPEAKERS).run();
+        }
+
+        // Verificar si la tabla speaker_embeddings existe
+        const embedTables = this.db.prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='speaker_embeddings'"
+        ).all();
+
+        if (embedTables.length === 0) {
+          console.log('[DB] Creando tabla speaker_embeddings...');
+          this.db.prepare(CREATE_TABLE_SPEAKER_EMBEDDINGS).run();
+        }
+
+        // Tabla de resolución persistente (idempotencia cross-recording)
+        const resolutionTables = this.db.prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='recording_speaker_resolutions'"
+        ).all();
+        if (resolutionTables.length === 0) {
+          console.log('[DB] Creando tabla recording_speaker_resolutions...');
+          this.db.prepare(CREATE_TABLE_RECORDING_SPEAKER_RESOLUTIONS).run();
+        }
+      } catch (e) {
+        console.error('[DB] Error creando tablas de speakers:', e);
       }
 
       console.log(`[DB] Inicializada en: ${dbPath}`);
@@ -817,6 +864,212 @@ class DbService {
     } catch (error) {
       console.error('[DB] Error getChatIntegrations:', error);
       return [];
+    }
+  }
+
+  // ========================================
+  // IDENTIFICACIÓN DE HABLANTES
+  // ========================================
+
+  /**
+   * Crea un nuevo hablante con alias (display_name).
+   * El id es un UUID generado externamente.
+   * @param {string} alias - Nombre legible del hablante.
+   * @returns {object|null} El objeto del hablante creado o null en caso de error.
+   */
+  createSpeaker(alias) {
+    if (!this.db) return null;
+    try {
+      const { randomUUID } = require('crypto');
+      const id = randomUUID();
+      this.db.prepare(INSERT_SPEAKER).run(id, alias);
+      return this.db.prepare('SELECT * FROM speakers WHERE id = ?').get(id);
+    } catch (error) {
+      console.error('[DB] Error createSpeaker:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Busca un hablante por su alias (display_name).
+   * @param {string} alias - Nombre legible del hablante.
+   * @returns {object|null} El objeto del hablante o null si no existe.
+   */
+  getSpeakerByAlias(alias) {
+    if (!this.db) return null;
+    try {
+      return this.db.prepare(SELECT_SPEAKER_BY_ALIAS).get(alias) || null;
+    } catch (error) {
+      console.error('[DB] Error getSpeakerByAlias:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Persiste un embedding de audio asociado a un hablante.
+   * @param {string} speakerId - UUID del hablante (FK a speakers.id).
+   * @param {Buffer} embeddingBlob - Embedding serializado como BLOB.
+   * @param {number|null} recordingId - ID de la grabación de origen (opcional).
+   * @returns {{ success: boolean, id?: number, error?: string }}
+   */
+  saveSpeakerEmbedding(speakerId, embeddingBlob, recordingId = null) {
+    if (!this.db) return { success: false };
+    try {
+      const info = this.db.prepare(INSERT_SPEAKER_EMBEDDING).run(speakerId, embeddingBlob, recordingId);
+      return { success: true, id: info.lastInsertRowid };
+    } catch (error) {
+      console.error('[DB] Error saveSpeakerEmbedding:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Devuelve todos los embeddings de hablantes almacenados.
+   * @returns {Array} Array de filas de speaker_embeddings.
+   */
+  getAllSpeakerEmbeddings() {
+    if (!this.db) return [];
+    try {
+      return this.db.prepare(SELECT_ALL_SPEAKER_EMBEDDINGS).all();
+    } catch (error) {
+      console.error('[DB] Error getAllSpeakerEmbeddings:', error);
+      return [];
+    }
+  }
+
+/**
+ * Devuelve todos los hablantes registrados en la BD ordenados por nombre.
+ * Se usa para poblar el autocompletado de alias en el frontend.
+ * @returns {Array} Array de filas de la tabla speakers: { id, display_name, created_at }
+ */
+getAllSpeakers() {
+  if (!this.db) return [];
+  try {
+    return this.db.prepare(
+      'SELECT id, display_name, created_at FROM speakers ORDER BY display_name ASC'
+    ).all();
+  } catch (error) {
+    console.error('[DB] Error getAllSpeakers:', error);
+    return [];
+  }
+}
+
+  /**
+   * Reasigna todos los embeddings de `fromSpeakerId` al `toSpeakerId`.
+   * Se usa al fusionar hablantes para consolidar los vectores bajo un único perfil.
+   * @param {string} fromSpeakerId - UUID origen (se vacía).
+   * @param {string} toSpeakerId   - UUID destino (recibe los embeddings).
+   * @returns {{ success: boolean, changes?: number, error?: string }}
+   */
+  reassignSpeakerEmbeddings(fromSpeakerId, toSpeakerId) {
+    if (!this.db) return { success: false, error: 'DB no inicializada' };
+    try {
+      const info = this.db.prepare(REASSIGN_SPEAKER_EMBEDDINGS).run(toSpeakerId, fromSpeakerId);
+      return { success: true, changes: info.changes };
+    } catch (error) {
+      console.error('[DB] Error reassignSpeakerEmbeddings:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Elimina un perfil de hablante por su UUID.
+   * Los embeddings asociados se eliminan en cascada (FK ON DELETE CASCADE).
+   * @param {string} speakerId - UUID del hablante a eliminar.
+   * @returns {{ success: boolean, error?: string }}
+   */
+  deleteSpeaker(speakerId) {
+    if (!this.db) return { success: false, error: 'DB no inicializada' };
+    try {
+      this.db.prepare(DELETE_SPEAKER).run(speakerId);
+      return { success: true };
+    } catch (error) {
+      console.error('[DB] Error deleteSpeaker:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // ── Resolución persistente de hablantes por grabación ─────────────────────
+
+  /**
+   * Devuelve el mapa de resolución ya persistido para una grabación.
+   * { ephemeral_id → { speaker_id, display_name } }
+   * @param {number} recordingId
+   * @returns {Object|null} Mapa o null si no hay datos aún.
+   */
+  getRecordingSpeakerResolutions(recordingId) {
+    if (!this.db) return null;
+    try {
+      const rows = this.db.prepare(SELECT_RECORDING_SPEAKER_RESOLUTIONS).all(recordingId);
+      if (!rows || rows.length === 0) return null;
+      const map = {};
+      for (const row of rows) {
+        map[row.ephemeral_id] = { speakerId: row.speaker_id, displayName: row.display_name, isNew: false };
+      }
+      return map;
+    } catch (error) {
+      console.error('[DB] Error getRecordingSpeakerResolutions:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Persiste (o actualiza) la resolución de un hablante efímero para una grabación.
+   * @param {number} recordingId
+   * @param {string} ephemeralId - Ej: "SPEAKER_00"
+   * @param {string} speakerId   - UUID del hablante persistente
+   * @returns {{ success: boolean, error?: string }}
+   */
+  upsertRecordingSpeakerResolution(recordingId, ephemeralId, speakerId) {
+    if (!this.db) return { success: false, error: 'DB no inicializada' };
+    try {
+      this.db.prepare(UPSERT_RECORDING_SPEAKER_RESOLUTION).run(recordingId, ephemeralId, speakerId);
+      return { success: true };
+    } catch (error) {
+      console.error('[DB] Error upsertRecordingSpeakerResolution:', {
+        recordingId,
+        ephemeralId,
+        speakerId,
+        error: error.message,
+        code: error.code,
+      });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Elimina la resolución de un hablante efímero concreto (para re-asignar manualmente).
+   * @param {number} recordingId
+   * @param {string} ephemeralId
+   * @returns {{ success: boolean, error?: string }}
+   */
+  deleteRecordingSpeakerResolution(recordingId, ephemeralId) {
+    if (!this.db) return { success: false, error: 'DB no inicializada' };
+    try {
+      this.db.prepare(DELETE_RECORDING_SPEAKER_RESOLUTION).run(recordingId, ephemeralId);
+      return { success: true };
+    } catch (error) {
+      console.error('[DB] Error deleteRecordingSpeakerResolution:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Reasigna todas las resoluciones persistidas que apuntan a un speaker hacia otro.
+   * @param {string} fromSpeakerId
+   * @param {string} toSpeakerId
+   * @returns {{ success: boolean, changes?: number, error?: string }}
+   */
+  reassignRecordingSpeakerResolutions(fromSpeakerId, toSpeakerId) {
+    if (!this.db) return { success: false, error: 'DB no inicializada' };
+    try {
+      const info = this.db
+        .prepare(REASSIGN_RECORDING_SPEAKER_RESOLUTIONS)
+        .run(toSpeakerId, fromSpeakerId);
+      return { success: true, changes: info.changes };
+    } catch (error) {
+      console.error('[DB] Error reassignRecordingSpeakerResolutions:', error);
+      return { success: false, error: error.message };
     }
   }
 }

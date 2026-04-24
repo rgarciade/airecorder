@@ -1,0 +1,271 @@
+/* MergeSpeakersModal.module.css */
+
+/* ── Overlay ─────────────────────────────────────────────────────────────────── */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  backdrop-filter: blur(2px);
+}
+
+/* ── Modal ───────────────────────────────────────────────────────────────────── */
+
+.modal {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(-8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem 1rem;
+  border-bottom: 1px solid var(--color-border-secondary);
+}
+
+.title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: var(--color-text-tertiary);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.closeBtn:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+/* ── Body ────────────────────────────────────────────────────────────────────── */
+
+.body {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.description {
+  font-size: 0.875rem;
+  color: var(--color-text-tertiary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sectionLabel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Lista de hablantes ──────────────────────────────────────────────────────── */
+
+.speakerList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 8px;
+  background: var(--color-bg-secondary);
+  padding: 4px;
+}
+
+.speakerItem {
+  border-radius: 6px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.1s ease;
+}
+
+.checkboxLabel:hover {
+  background: var(--color-bg-tertiary);
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.speakerName {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  flex: 1;
+}
+
+.speakerEphemeral {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+  font-family: monospace;
+  background: var(--color-bg-tertiary);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* ── Input nombre ────────────────────────────────────────────────────────────── */
+
+.nameInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  font-size: 0.925rem;
+  color: var(--color-text-primary);
+  background: var(--color-bg-secondary);
+  border: 1.5px solid var(--color-border-secondary);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.nameInput:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-bg);
+}
+
+.nameInput:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Sugerencias del input ───────────────────────────────────────────────────── */
+
+.suggestions {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 8px;
+  padding: 4px 0;
+  margin: 0;
+  list-style: none;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.suggestionItem {
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.suggestionItem:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+/* ── Mensaje de error ────────────────────────────────────────────────────────── */
+
+.errorMsg {
+  font-size: 0.85rem;
+  color: var(--color-danger);
+  margin: 0;
+  padding: 8px 12px;
+  background: rgba(var(--color-danger-rgb, 239, 68, 68), 0.08);
+  border-radius: 6px;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────────── */
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--color-border-secondary);
+}
+
+.cancelBtn,
+.confirmBtn {
+  padding: 9px 18px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.cancelBtn {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+}
+
+.cancelBtn:hover:not(:disabled) {
+  background: var(--color-border-secondary);
+  color: var(--color-text-primary);
+}
+
+.confirmBtn {
+  background: var(--color-primary);
+  color: white;
+}
+
+.confirmBtn:hover:not(:disabled) {
+  background: var(--color-primary-hover, var(--color-primary));
+  filter: brightness(1.1);
+}
+
+.confirmBtn:disabled,
+.cancelBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

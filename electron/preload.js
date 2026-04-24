@@ -227,4 +227,48 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('auto-analyze-recording', handler);
     return () => ipcRenderer.removeListener('auto-analyze-recording', handler);
   },
+
+  // ── Identificación de Hablantes ──────────────────────────────────────────────
+
+  /**
+   * Resuelve el mapa `speaker_embeddings` de una sesión de diarización.
+   * Para cada ID efímero ("SPEAKER_00") devuelve el UUID persistente y su alias.
+   *
+   * @param {{ speakerEmbeddings: Object, recordingId?: number, threshold?: number }} params
+   * @returns {Promise<{ success: boolean, data?: Object, error?: string }>}
+   */
+  resolveSpeakers: (params) => ipcRenderer.invoke('resolve-speaker', params),
+
+  /**
+   * Persiste un alias personalizado para un hablante identificado por UUID.
+   * Opcionalmente guarda un embedding actualizado.
+   *
+   * @param {{ speakerId: string, alias: string, embedding?: number[], recordingId?: number }} params
+   * @returns {Promise<{ success: boolean, error?: string }>}
+   */
+  assignSpeakerAlias: (params) => ipcRenderer.invoke('assign-alias', params),
+
+  /**
+   * Devuelve todos los hablantes registrados en la BD.
+   * Se usa para poblar el autocompletado de alias en el frontend.
+   *
+   * @returns {Promise<{ success: boolean, data: Array, error?: string }>}
+   */
+  getAllSpeakers: () => ipcRenderer.invoke('get-all-speakers'),
+
+  /**
+   * Fusiona múltiples hablantes en un único perfil persistente.
+   * Reasigna embeddings y elimina perfiles redundantes en BD.
+   * @param {{ sourceEphemeralIds: string[], speakersMap: Object, targetAlias: string }} params
+   * @returns {Promise<{ success: boolean, targetSpeakerId?: string, displayName?: string, error?: string }>}
+   */
+  mergeSpeakers: (params) => ipcRenderer.invoke('merge-speakers', params),
+
+  /**
+   * Confirma una sugerencia de match de hablante.
+   * Vincula el ephemeralId al hablante confirmado y consolida los embeddings.
+   * @param {{ recordingId: number, ephemeralId: string, confirmedSpeakerId: string, currentSpeakerId: string }} params
+   * @returns {Promise<{ success: boolean, displayName?: string, error?: string }>}
+   */
+  confirmSpeakerSuggestion: (params) => ipcRenderer.invoke('confirm-speaker-suggestion', params),
 }); 

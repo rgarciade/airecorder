@@ -1,0 +1,107 @@
+/* SpeakerLabel.module.css */
+
+/* ── Modo visualización ─────────────────────────────────────────────────────── */
+
+.label {
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.editable {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0 4px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.editable:hover {
+  background-color: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.editable:hover .editIcon {
+  opacity: 1;
+}
+
+.editIcon {
+  font-size: 0.7rem;
+  opacity: 0;
+  color: var(--color-text-tertiary);
+  transition: opacity 0.15s ease;
+  flex-shrink: 0;
+}
+
+/* ── Modo edición ────────────────────────────────────────────────────────────── */
+
+.editingContainer {
+  position: relative;
+  display: inline-block;
+}
+
+.input {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+  border: 2px solid var(--color-primary);
+  border-radius: 6px;
+  padding: 2px 8px;
+  outline: none;
+  min-width: 120px;
+  max-width: 220px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input:focus {
+  box-shadow: 0 0 0 3px var(--color-primary-bg);
+}
+
+.saving {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* ── Lista de sugerencias ─────────────────────────────────────────────────────── */
+
+.suggestionList {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 100;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 8px;
+  padding: 4px 0;
+  margin: 0;
+  list-style: none;
+  min-width: 180px;
+  max-width: 260px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.suggestionItem {
+  padding: 7px 12px;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color 0.1s ease;
+}
+
+.suggestionItem:hover {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+.suggestionActive {
+  background-color: var(--color-primary-bg);
+  color: var(--color-primary);
+  font-weight: 600;
+}

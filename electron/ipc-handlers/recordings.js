@@ -2,6 +2,7 @@ const { ipcMain, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const dbService = require('../database/dbService');
+const speakerManager = require('../services/speakerManager');
 const { getRecordingsPath, getFolderPathFromId } = require('../utils/paths');
 
 module.exports.registerRecordingsHandlers = () => {
@@ -122,8 +123,110 @@ module.exports.registerRecordingsHandlers = () => {
       const transcription = Array.isArray(parsed)
         ? { segments: parsed }
         : parsed;
-      
-      return { success: true, transcription };
+
+      // ── Phase 5: Resolución de hablantes ──────────────────────────────────
+      // Si existe el JSON de diarización v2.0 con embeddings, procesarlos para
+      // obtener el mapa ephemeralId → { speakerId (UUID), displayName }.
+      // El resultado se incluye como `speakerResolution` en la respuesta para
+      // que el frontend pueda inicializar el Redux speakersSlice antes de renderizar.
+      let speakerResolution = {};
+      try {
+        const diarizationPath = path.join(
+          baseOutputDir,
+          folderName,
+          'analysis',
+          'diarization.json'
+        );
+        const dbRecording = dbService.getRecording(folderName);
+        const numericRecordingId = dbRecording ? dbRecording.id : null;
+
+        const hasDiarizationFile = fs.existsSync(diarizationPath);
+
+        // Si existe el archivo de diarización (aunque esté vacío o sin embeddings),
+        // marcar como origen 'diarization' para habilitar la UI de edición.
+        // El frontend verificará si los speakerId son UUIDs válidos.
+        if (hasDiarizationFile) {
+          const diarizationRaw = fs.readFileSync(diarizationPath, 'utf8');
+          const diarizationData = JSON.parse(diarizationRaw);
+
+          // Soportar formato v2.0 ({ version, segments, speaker_embeddings })
+          const speakerEmbeddings =
+            diarizationData?.speaker_embeddings &&
+            typeof diarizationData.speaker_embeddings === 'object' &&
+            Object.keys(diarizationData.speaker_embeddings).length > 0
+              ? diarizationData.speaker_embeddings
+              : null;
+
+          if (speakerEmbeddings) {
+            const { resolutionMap, pendingSuggestions } = speakerManager.processEmbeddings(
+              speakerEmbeddings,
+              numericRecordingId
+            );
+            speakerResolution = resolutionMap;
+
+            // Enriquecer las sugerencias con el timestamp del primer segmento del hablante
+            // para que el frontend pueda reproducir un fragmento de 5 segundos
+            if (pendingSuggestions.length > 0 && transcription.segments) {
+              const allSegments = diarizationData.segments || transcription.segments;
+              for (const suggestion of pendingSuggestions) {
+                const firstSeg = allSegments.find(
+                  (s) => s.speaker === suggestion.ephemeralId && typeof s.start === 'number'
+                );
+                suggestion.firstSegmentStart = firstSeg ? firstSeg.start : null;
+              }
+            }
+
+            speakerResolution._pendingSuggestions = pendingSuggestions;
+          } else if (diarizationData?.segments && diarizationData.segments.length > 0) {
+            // Fallback: diarización existe pero sin embeddings. Usar los segments
+            // del propio diarization.json para generar resolución.
+            speakerResolution = speakerManager.resolveFromSegments(
+              diarizationData.segments,
+              numericRecordingId
+            );
+          }
+
+          // IMPORTANTE: marcar como 'diarization' SIEMPRE que exista el archivo,
+          // independientemente de si hay embeddings o no. El frontend validará
+          // los UUIDs. Esto cubre el caso de diarización activa pero sin embeddings.
+          speakerResolution._source = 'diarization';
+          console.log(
+            `[IPC:get-transcription] Speaker resolution para "${folderName}" (source=diarization):`,
+            Object.keys(speakerResolution)
+              .filter((k) => k !== '_source' && k !== 'displayName')
+              .map(
+                (k) => `${k} → ${speakerResolution[k]?.displayName || 'sin resolución'}`
+              )
+          );
+        } else {
+          // Fallback: NO hay diarization.json → generar a partir de los segmentos.
+          // Se marca como 'segments' (solo lectura).
+          if (transcription.segments?.length > 0) {
+            speakerResolution = speakerManager.resolveFromSegments(
+              transcription.segments,
+              numericRecordingId
+            );
+            if (Object.keys(speakerResolution).length > 0) {
+              speakerResolution._source = 'segments';
+              console.log(
+                `[IPC:get-transcription] Speaker resolution (segmentos, solo lectura) para "${folderName}":`,
+                Object.keys(speakerResolution)
+                  .filter((k) => k !== '_source')
+                  .map((k) => `${k} → ${speakerResolution[k].displayName}`)
+              );
+            }
+          }
+        }
+      } catch (speakerErr) {
+        // No abortar la carga de la transcripción si falla la resolución de hablantes
+        console.warn(
+          `[IPC:get-transcription] Resolución de hablantes falló para "${folderName}":`,
+          speakerErr.message
+        );
+      }
+      // ── Fin Phase 5 ────────────────────────────────────────────────────────
+
+      return { success: true, transcription: { ...transcription, speakerResolution } };
     } catch (error) {
       console.error('Error getting transcription:', error);
       return { success: false, error: error.message };
@@ -265,6 +368,30 @@ module.exports.registerRecordingsHandlers = () => {
       return { success: true, recording };
     } catch (error) {
       console.error('Error obteniendo grabación por ID:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Confirma una sugerencia de match de hablante para una grabación.
+   * Vincula el ephemeralId al hablante confirmado y consolida los embeddings.
+   * El frontend puede llamar este handler cuando el usuario acepta una sugerencia.
+   *
+   * Payload: { recordingId, ephemeralId, confirmedSpeakerId, currentSpeakerId }
+   * Respuesta: { success, displayName?, error? }
+   */
+  ipcMain.handle('confirm-speaker-suggestion', async (event, payload) => {
+    try {
+      const { recordingId, ephemeralId, confirmedSpeakerId, currentSpeakerId } = payload || {};
+      if (!recordingId || !ephemeralId || !confirmedSpeakerId) {
+        return { success: false, error: 'Faltan parámetros: recordingId, ephemeralId, confirmedSpeakerId.' };
+      }
+      const result = speakerManager.confirmSpeakerSuggestion(
+        recordingId, ephemeralId, confirmedSpeakerId, currentSpeakerId
+      );
+      return result;
+    } catch (error) {
+      console.error('[IPC:confirm-speaker-suggestion] Error:', error);
       return { success: false, error: error.message };
     }
   });
