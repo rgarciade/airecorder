@@ -1,20 +1,20 @@
 # Skill Registry — AIRecorder
-_Generated: 2026-04-13_
+_Generated: 2026-04-14_
 
 ## Project Conventions
 
 | File | Role |
 |------|------|
-| `AGENTS.md` (= `CLAUDE.md` symlink) | Agent rules: language, commit policy, doc maintenance matrix |
-| `electron/README.md` | Electron main process: IPC handlers, SQLite, audio, OAuth |
-| `src/services/ai/README.md` | AI providers, prompts, chat protocol, timestamps |
-| `README.md` | Root: Python audio pipeline, Whisper, project structure |
+| `AGENTS.md` (= `CLAUDE.md` symlink) | Reglas para agentes: idioma, commits, matriz de mantenimiento de docs |
+| `electron/README.md` | Main process Electron: IPC handlers, SQLite, audio, OAuth |
+| `src/services/ai/README.md` | Proveedores de IA, prompts, protocolo de chat, timestamps |
+| `README.md` | Raíz: pipeline de audio Python, Whisper, estructura del proyecto |
 
-**Key rules from AGENTS.md:**
-- Respond always in Spanish
-- NEVER create git commits autonomously
-- Avoid monolithic files — split by context modules
-- Mandatory doc updates: modify code → update its README
+**Reglas clave de AGENTS.md:**
+- Responder SIEMPRE en español
+- NUNCA crear commits de git de forma autónoma
+- Evitar archivos monolíticos — dividir por módulos de contexto
+- Actualización obligatoria de docs: modificar código → actualizar su README correspondiente
 
 ---
 
@@ -24,55 +24,57 @@ _Generated: 2026-04-13_
 
 | Skill | Trigger |
 |-------|---------|
-| `electron` | Electron main/renderer/IPC, window management, desktop app, Electron-specific APIs |
+| `electron` | Electron main/renderer/IPC, gestión de ventanas, APIs de escritorio |
 
 ### User-level skills (`~/.config/opencode/skills/`)
 
 | Skill | Trigger |
 |-------|---------|
-| `sdd-init` | Initialize SDD context, "sdd init", "iniciar sdd" |
-| `sdd-propose` | Create change proposal, "sdd propose", "new change" |
-| `sdd-explore` | Explore/investigate features before committing |
-| `sdd-spec` | Write specifications with Given/When/Then |
-| `sdd-design` | Technical design document |
-| `sdd-tasks` | Break down change into task checklist |
-| `sdd-apply` | Implement tasks from a change |
-| `sdd-verify` | Validate implementation against specs |
-| `sdd-archive` | Archive completed change |
-| `sdd-onboard` | Guided SDD walkthrough |
-| `branch-pr` | Create pull requests |
-| `issue-creation` | Create GitHub issues |
-| `go-testing` | Go tests, Bubbletea TUI |
-| `judgment-day` | Adversarial dual review |
-| `skill-creator` | Create new AI agent skills |
-| `skill-registry` | Update skill registry |
+| `sdd-init` | Inicializar contexto SDD, "sdd init", "iniciar sdd" |
+| `sdd-propose` | Crear propuesta de cambio, "sdd propose", "nuevo cambio" |
+| `sdd-explore` | Explorar/investigar features antes de comprometerse |
+| `sdd-spec` | Escribir especificaciones con Given/When/Then |
+| `sdd-design` | Documento de diseño técnico |
+| `sdd-tasks` | Desglosar un cambio en checklist de tareas |
+| `sdd-apply` | Implementar tareas de un cambio |
+| `sdd-verify` | Validar implementación contra specs |
+| `sdd-archive` | Archivar un cambio completado |
+| `sdd-onboard` | Guía completa del flujo SDD |
+| `branch-pr` | Crear pull requests |
+| `issue-creation` | Crear issues de GitHub |
+| `go-testing` | Tests en Go, Bubbletea TUI |
+| `judgment-day` | Revisión adversarial dual |
+| `skill-creator` | Crear nuevas skills de agentes de IA |
+| `skill-registry` | Actualizar registro de skills |
 
 ### User-level skills (`~/.agents/skills/`)
 
 | Skill | Trigger |
 |-------|---------|
-| `electron` | Electron framework guidance |
+| `electron` | Guía del framework Electron |
 | `vue-best-practices` | Vue 3 / Composition API / Pinia |
-| `accessibility-compliance` | WCAG 2.2, ARIA, screen readers |
-| `contrast-checker` | WCAG color contrast analysis |
-| `figma` | Figma MCP, design-to-code |
-| `find-skills` | Discover installable skills |
-| `skill-creator` | New agent skill creation |
-| `azure-*` (multiple) | Azure cloud services |
-| `microsoft-foundry` | Foundry agents end-to-end |
+| `accessibility-compliance` | WCAG 2.2, ARIA, lectores de pantalla |
+| `contrast-checker` | Análisis de contraste de color WCAG |
+| `figma` | Figma MCP, diseño-a-código |
+| `find-skills` | Descubrir skills instalables |
+| `skill-creator` | Crear nuevas skills de agentes |
+| `azure-*` (múltiples) | Servicios cloud de Azure |
+| `microsoft-foundry` | Agentes Foundry end-to-end |
 
 ### Project custom skills (`~/.claude/skills/`)
 
 | Skill | Trigger |
 |-------|---------|
-| `create-version` | Create new AIRecorder release version |
-| `release-notes` | Generate and publish release notes |
+| `create-version` | Crear nueva versión de AIRecorder |
+| `release-notes` | Generar y publicar notas de versión |
 
 ---
 
 ## Notes
 
-- No test runner detected — strict TDD mode unavailable
-- Linter: ESLint 8 with `eslint-plugin-react`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`
-- No formatter configured (no Prettier in devDependencies)
-- Bundler: Vite 5 with `@vitejs/plugin-react`
+- **Sin test runner** — Strict TDD Mode no disponible
+- **Linter**: ESLint 8 con `eslint-plugin-react`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`
+  - ⚠️ Usa flat config (`eslint.config.js`) — correr con `npx eslint .` NO con `npm run lint` (el script tiene flag `--ext` incompatible)
+- **Sin formatter** (no Prettier en devDependencies)
+- **Bundler**: Vite 5 con `@vitejs/plugin-react`
+- **Persistencia SDD**: engram (modo engram, sin directorio `openspec/`)

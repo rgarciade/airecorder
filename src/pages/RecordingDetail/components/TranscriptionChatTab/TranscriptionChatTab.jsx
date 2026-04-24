@@ -25,6 +25,7 @@ export default function TranscriptionChatTab({
   transcriptionDuration,
   initialSeekSeconds = null,
   onInitialSeekDone = null,
+  recordingId = null,
 }) {
   const [chatWidth, setChatWidth] = useState(550);
   const [isDragging, setIsDragging] = useState(false);
@@ -168,6 +169,8 @@ export default function TranscriptionChatTab({
             onMatchesFound={setTotalMatches}
             currentTime={currentTime}
             onSeek={handleSeek}
+            recordingId={recordingId}
+            audioSrc={audioUrls?.mic || audioUrls?.sys || null}
           />
         </div>
         {audioUrls && (audioUrls.mic || audioUrls.sys) && (

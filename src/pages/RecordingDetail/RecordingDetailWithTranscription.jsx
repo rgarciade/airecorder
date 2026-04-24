@@ -75,11 +75,14 @@ function parseTimestampToSeconds(ts) {
 }
 
 export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject }) {
+  const persistentRecordingId = recording?.dbId ?? recording?.id ?? null;
+
   // --- STATE MANAGEMENT ---
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'transcription' | 'tasks'
   
   // Data State
   const [localRecording, setLocalRecording] = useState(recording);
+  const currentRecordingDbId = localRecording?.dbId ?? recording?.dbId ?? localRecording?.id ?? recording?.id ?? null;
   const [participants, setParticipants] = useState(recording?.participants || []);
   const [transcription, setTranscription] = useState(null);
   const [transcriptionLoading, setTranscriptionLoading] = useState(false);
@@ -221,16 +224,16 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
     // Load Transcription
     setTranscriptionLoading(true);
-    recordingsService.getTranscription(recording.id)
+    recordingsService.getTranscription(currentRecordingDbId)
       .then(setTranscription)
       .catch(() => setTranscriptionError('Transcription not available'))
       .finally(() => setTranscriptionLoading(false));
 
     // Load Chat History
-    recordingsService.getQuestionHistory(recording.id).then(setQaHistory);
+    recordingsService.getQuestionHistory(currentRecordingDbId).then(setQaHistory);
 
     // Load Attachments
-    getAttachments(recording.id).then(setRecordAttachments);
+    getAttachments(currentRecordingDbId).then(setRecordAttachments);
 
     // Load AI Config
     getSettings().then(settings => {
@@ -420,7 +423,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         // Check if transcription exists first to avoid errors
         let hasTranscription = false;
         try {
-           const tCheck = await recordingsService.getTranscription(recording.id);
+           const tCheck = await recordingsService.getTranscription(currentRecordingDbId);
            hasTranscription = !!tCheck;
         } catch (e) {
            hasTranscription = false;
@@ -1605,6 +1608,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             onChatContextModeChange={handleChatModeChangeRequest}
             initialSeekSeconds={initialSeekSeconds}
             onInitialSeekDone={() => setInitialSeekSeconds(null)}
+            recordingId={currentRecordingDbId}
             chatProps={{
               chatHistory: convertChatHistory(),
               onSendMessage: handleAskQuestion,
@@ -1635,7 +1639,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         )}
         {activeTab === 'attachments' && (
           <AttachmentsTab
-            recordingId={recording.id}
+            recordingId={currentRecordingDbId}
             attachments={recordAttachments}
             onAttachmentsChange={handleAttachmentsChange}
           />

@@ -472,5 +472,106 @@ module.exports = {
 
   RESET_EXPERT_CUSTOMIZATION: `
     DELETE FROM expert_customizations WHERE expert_id = ? AND feature = ?;
+  `,
+
+  // ========================================
+  // IDENTIFICACIÓN DE HABLANTES
+  // ========================================
+
+  CREATE_TABLE_SPEAKERS: `
+    CREATE TABLE IF NOT EXISTS speakers (
+      id TEXT PRIMARY KEY,
+      display_name TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `,
+
+  CREATE_TABLE_SPEAKER_EMBEDDINGS: `
+    CREATE TABLE IF NOT EXISTS speaker_embeddings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      speaker_id TEXT NOT NULL,
+      embedding BLOB NOT NULL,
+      recording_id INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (speaker_id) REFERENCES speakers(id) ON DELETE CASCADE,
+      FOREIGN KEY (recording_id) REFERENCES recordings(id) ON DELETE SET NULL
+    );
+  `,
+
+  // Insertar un nuevo hablante (id = UUID externo, display_name = alias)
+  INSERT_SPEAKER: `
+    INSERT INTO speakers (id, display_name) VALUES (?, ?);
+  `,
+
+  // Buscar hablante por alias (display_name)
+  SELECT_SPEAKER_BY_ALIAS: `
+    SELECT * FROM speakers WHERE display_name = ? LIMIT 1;
+  `,
+
+  // Insertar un embedding de hablante
+  INSERT_SPEAKER_EMBEDDING: `
+    INSERT INTO speaker_embeddings (speaker_id, embedding, recording_id) VALUES (?, ?, ?);
+  `,
+
+  // Obtener todos los embeddings de hablantes
+  SELECT_ALL_SPEAKER_EMBEDDINGS: `
+    SELECT * FROM speaker_embeddings;
+  `,
+
+  // Reasignar todos los embeddings de un hablante a otro (usado en fusión)
+  REASSIGN_SPEAKER_EMBEDDINGS: `
+    UPDATE speaker_embeddings SET speaker_id = ? WHERE speaker_id = ?;
+  `,
+
+  // Eliminar un perfil de hablante por ID
+  DELETE_SPEAKER: `
+    DELETE FROM speakers WHERE id = ?;
+  `,
+
+  // ── Tabla de resolución persistente de hablantes por grabación ──────────────
+  // Guarda el mapa ephemeral_id → speaker_id una sola vez por grabación,
+  // evitando recalcular embeddings y crear duplicados en cada apertura.
+  CREATE_TABLE_RECORDING_SPEAKER_RESOLUTIONS: `
+    CREATE TABLE IF NOT EXISTS recording_speaker_resolutions (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      recording_id INTEGER NOT NULL,
+      ephemeral_id TEXT    NOT NULL,
+      speaker_id   TEXT    NOT NULL,
+      confirmed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (recording_id) REFERENCES recordings(id) ON DELETE CASCADE,
+      FOREIGN KEY (speaker_id)   REFERENCES speakers(id)   ON DELETE CASCADE,
+      UNIQUE (recording_id, ephemeral_id)
+    );
+  `,
+
+  // Insertar o reemplazar la resolución de un hablante efímero en una grabación
+  UPSERT_RECORDING_SPEAKER_RESOLUTION: `
+    INSERT INTO recording_speaker_resolutions (recording_id, ephemeral_id, speaker_id)
+    VALUES (?, ?, ?)
+    ON CONFLICT (recording_id, ephemeral_id) DO UPDATE SET
+      speaker_id   = excluded.speaker_id,
+      confirmed_at = CURRENT_TIMESTAMP;
+  `,
+
+  // Obtener todas las resoluciones de una grabación
+  SELECT_RECORDING_SPEAKER_RESOLUTIONS: `
+    SELECT rsr.ephemeral_id, rsr.speaker_id, s.display_name
+    FROM recording_speaker_resolutions rsr
+    JOIN speakers s ON s.id = rsr.speaker_id
+    WHERE rsr.recording_id = ?;
+  `,
+
+  // Eliminar la resolución de un hablante efímero concreto (para re-asignar)
+  DELETE_RECORDING_SPEAKER_RESOLUTION: `
+    DELETE FROM recording_speaker_resolutions
+    WHERE recording_id = ? AND ephemeral_id = ?;
+  `,
+
+  // Reasignar todas las resoluciones persistidas que apuntan a un speaker hacia otro.
+  REASSIGN_RECORDING_SPEAKER_RESOLUTIONS: `
+    UPDATE recording_speaker_resolutions
+    SET speaker_id = ?,
+        confirmed_at = CURRENT_TIMESTAMP
+    WHERE speaker_id = ?;
   `
 };

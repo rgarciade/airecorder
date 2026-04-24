@@ -149,6 +149,31 @@ python python/audio_sync_analyzer.py \
   --threads 4
 ```
 
+### Diarización y Extracción de Embeddings
+
+Cuando la diarización está habilitada (Ajustes → HuggingFace Token), el pipeline ejecuta `diarization_analyzer.py` como paso previo a la transcripción. A partir de la versión `2.0` del schema de salida, el JSON generado tiene el siguiente formato:
+
+```json
+{
+  "version": "2.0",
+  "segments": [
+    { "start": 0.0, "end": 3.5, "speaker": "SPEAKER_00" },
+    { "start": 3.8, "end": 7.2, "speaker": "SPEAKER_01" }
+  ],
+  "speaker_embeddings": {
+    "SPEAKER_00": [0.123, -0.045, ...],
+    "SPEAKER_01": [0.891, 0.023, ...]
+  }
+}
+```
+
+- **`segments`**: Segmentos de audio con el hablante asignado (mismo formato que en v1.0).
+- **`speaker_embeddings`**: Mapa `{ speaker_id: [float] }` con el vector centroide normalizado (L2) de cada hablante. Se calcula promediando los embeddings de todos sus segmentos y normalizando a longitud unitaria. Listo para similitud coseno.
+
+Los embeddings se extraen usando el modelo de embedding interno de `pyannote/speaker-diarization-3.1` (`pipeline._embedding`, tipo `PretrainedSpeakerEmbedding`). El waveform se recorta manualmente por segmento y se pasa como tensor `(1, 1, n_samples)` directamente al modelo. Segmentos menores a 0.5s se descartan antes de la extracción. Si el modelo interno no está accesible, `speaker_embeddings` quedará como `{}` y la transcripción continúa normalmente.
+
+`audio_sync_analyzer.py` es retrocompatible con ambos formatos (lista plana v1.0 y objeto v2.0).
+
 ## License
 
 MIT © [Raul Garcia](https://github.com/rgarciade)

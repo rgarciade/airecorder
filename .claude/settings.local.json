@@ -9,7 +9,8 @@
       "Bash(./node_modules/.bin/electron-rebuild -f -w better-sqlite3)",
       "Bash(npm rebuild:*)",
       "Bash(pip install:*)",
-      "Bash(npx electron-icon-builder:*)"
+      "Bash(npx electron-icon-builder:*)",
+      "mcp__plugin_engram_engram__mem_search"
     ]
   }
 }
