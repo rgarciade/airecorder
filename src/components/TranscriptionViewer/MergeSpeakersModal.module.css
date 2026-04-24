@@ -25,7 +25,7 @@
   max-width: 480px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   animation: modalIn 0.2s ease;
 }
 
@@ -42,6 +42,8 @@
   justify-content: space-between;
   padding: 1.25rem 1.5rem 1rem;
   border-bottom: 1px solid var(--color-border-secondary);
+  border-radius: 12px 12px 0 0;
+  background: var(--color-bg-primary);
 }
 
 .title {
@@ -156,36 +158,128 @@
   border-radius: 4px;
 }
 
-/* ── Input nombre ────────────────────────────────────────────────────────────── */
+/* ── Combobox nombre unificado ───────────────────────────────────────────────── */
 
-.nameInput {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 10px 12px;
-  font-size: 0.925rem;
-  color: var(--color-text-primary);
+.comboboxWrapper {
+  position: relative;
+}
+
+.comboboxInput {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 4px 8px 4px 12px;
   background: var(--color-bg-secondary);
   border: 1.5px solid var(--color-border-secondary);
   border-radius: 8px;
-  outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
 }
 
-.nameInput:focus {
+.comboboxInput:focus-within {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-bg);
 }
 
-.nameInput:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.comboboxInputSelected {
+  border-color: var(--color-primary);
+  background: var(--color-bg-secondary);
 }
 
-/* ── Sugerencias del input ───────────────────────────────────────────────────── */
+.comboboxInputDisabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
 
-.suggestions {
+/* Input de texto libre dentro del combobox */
+.comboboxTextInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.925rem;
+  color: var(--color-text-primary);
+  padding: 4px 0;
+}
+
+.comboboxTextInput::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+/* Badge "Nuevo" cuando se escribe texto libre */
+.newBadge {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+/* Badge de hablante existente seleccionado */
+.selectedBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.selectedBadgeIcon {
+  color: var(--color-primary);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.selectedBadgeName {
+  font-size: 0.925rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selectedBadgeTag {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-success, #16a34a);
+  background: rgba(22, 163, 74, 0.1);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+/* Botón para limpiar selección */
+.comboboxClearBtn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--color-text-tertiary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+.comboboxClearBtn:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+/* ── Dropdown del combobox ───────────────────────────────────────────────────── */
+
+.comboboxDropdown {
   position: absolute;
-  top: calc(100% + 2px);
+  top: calc(100% + 4px);
   left: 0;
   right: 0;
   z-index: 200;
@@ -195,21 +289,86 @@
   padding: 4px 0;
   margin: 0;
   list-style: none;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
   overflow: hidden;
+  max-height: 240px;
+  overflow-y: auto;
 }
 
-.suggestionItem {
-  padding: 8px 12px;
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
+.dropdownGroupLabel {
+  padding: 6px 12px 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px;
   cursor: pointer;
   transition: background-color 0.1s ease;
+  outline: none;
 }
 
-.suggestionItem:hover {
+.dropdownItem:hover,
+.dropdownItem:focus {
   background: var(--color-bg-tertiary);
+}
+
+.dropdownItemName {
+  font-size: 0.875rem;
   color: var(--color-text-primary);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdownItemTag {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Fila especial "Crear nuevo" */
+.dropdownItemNew {
+  border-top: 1px solid var(--color-border-secondary);
+  margin-top: 2px;
+}
+
+.dropdownItemNew .dropdownItemName {
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.dropdownItemNewTag {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.dropdownEmpty {
+  padding: 12px;
+  font-size: 0.825rem;
+  color: var(--color-text-tertiary);
+  text-align: center;
+  pointer-events: none;
 }
 
 /* ── Mensaje de error ────────────────────────────────────────────────────────── */
@@ -231,6 +390,8 @@
   gap: 10px;
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--color-border-secondary);
+  border-radius: 0 0 12px 12px;
+  background: var(--color-bg-primary);
 }
 
 .cancelBtn,
