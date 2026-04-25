@@ -92,6 +92,20 @@ export default function TranscriptionViewer({
     return [...ids];
   }, [transcription]);
 
+  // ── Enriquecer pendingSuggestions con datos del speakersMap actual ───────────
+  // El backend genera las suggestions con candidateSpeakerId/candidateDisplayName
+  // pero no sabe el nombre temporal que Redux asignó al ephemeralId. Lo añadimos aquí.
+
+  const enrichedSuggestions = useMemo(() => {
+    const raw = transcription?.speakerResolution?._pendingSuggestions;
+    if (!raw?.length) return [];
+    return raw.map((s) => ({
+      ...s,
+      currentSpeakerId: speakersMap[s.ephemeralId]?.speakerId ?? null,
+      currentDisplayName: speakersMap[s.ephemeralId]?.displayName ?? s.ephemeralId,
+    }));
+  }, [transcription?.speakerResolution?._pendingSuggestions, speakersMap]);
+
   // ── Cálculo de coincidencias de búsqueda ────────────────────────────────────
 
   const matches = useMemo(() => {
@@ -275,9 +289,9 @@ export default function TranscriptionViewer({
       )}
 
       {/* Sugerencias de hablantes pendientes de confirmar */}
-      {transcription?.speakerResolution?._pendingSuggestions?.length > 0 && (
+      {enrichedSuggestions.length > 0 && (
         <SpeakerSuggestions
-          suggestions={transcription.speakerResolution._pendingSuggestions}
+          suggestions={enrichedSuggestions}
           recordingId={recordingId}
           audioSrc={audioSrc}
           onConfirmed={({ ephemeralId, confirmedSpeakerId, displayName }) => {

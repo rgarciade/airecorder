@@ -222,7 +222,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     setLocalName(recording?.name || '');
     setEditedTitle(recording?.name || '');
 
-    // Load Transcription
+    // Load Transcription — resetear antes de cargar para evitar que TranscriptionViewer
+    // reciba speakerResolution de la grabación anterior mientras llega la nueva.
+    setTranscription(null);
+    setTranscriptionError(null);
     setTranscriptionLoading(true);
     recordingsService.getTranscription(currentRecordingDbId)
       .then(setTranscription)
