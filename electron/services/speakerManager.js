@@ -65,45 +65,91 @@ const DUPLICATE_SIMILARITY_THRESHOLD = 0.99;
  */
 function filterAndCompressEmbeddings(newEmbedding, speakerId) {
   const existing = speakerRepository.getEmbeddingsBySpeakerId(speakerId);
+  const existingCount = existing.length;
+
+  console.log(
+    `[EmbeddingFilter] Iniciando filtro: speakerId=${speakerId}, ` +
+    `embeddings existentes=${existingCount}, nuevo embedding dims=${newEmbedding.length}`
+  );
 
   // Regla 1: duplicado — descartar sin guardar
+  let maxSim = -Infinity;
+  let maxSimEmbId = null;
   for (const existingEmb of existing) {
     const sim = speakerRepository.cosineSimilarity(newEmbedding, existingEmb.embedding);
+    if (sim > maxSim) {
+      maxSim = sim;
+      maxSimEmbId = existingEmb.id;
+    }
     if (sim > DUPLICATE_SIMILARITY_THRESHOLD) {
+      console.log(
+        `[EmbeddingFilter] DUPLICADO DESCARTADO: speakerId=${speakerId}, ` +
+        `sim=${sim.toFixed(4)} con embedding_id=${existingEmb.id} (umbral=${DUPLICATE_SIMILARITY_THRESHOLD})`
+      );
       return {
         accepted: false,
-        reason: `sim=${sim.toFixed(3)} > ${DUPLICATE_SIMILARITY_THRESHOLD}`,
+        reason: `sim=${sim.toFixed(4)} > ${DUPLICATE_SIMILARITY_THRESHOLD}`,
       };
     }
   }
 
-  // Regla 2: límite — comprimir si es necesario
-  let currentEmbeddings = existing;
-  if (currentEmbeddings.length >= MAX_EMBEDDINGS_PER_SPEAKER) {
-    const pair = speakerRepository.findMostSimilarPair(currentEmbeddings);
-    if (pair) {
-      const averaged = speakerRepository.averageEmbeddingPair(
-        currentEmbeddings[pair.idxA].embedding,
-        currentEmbeddings[pair.idxB].embedding
-      );
-      // Eliminar el más antiguo (menor id) y actualizar el más reciente con el promediado
-      const [olderEmb, newerEmb] =
-        currentEmbeddings[pair.idxA].id < currentEmbeddings[pair.idxB].id
-          ? [currentEmbeddings[pair.idxA], currentEmbeddings[pair.idxB]]
-          : [currentEmbeddings[pair.idxB], currentEmbeddings[pair.idxA]];
+  console.log(
+    `[EmbeddingFilter] SIN DUPLICADOS: sim máxima=${maxSim.toFixed(4)} con embedding_id=${maxSimEmbId}`
+  );
 
-      dbService.deleteSpeakerEmbedding(olderEmb.id);
-      // Reemplazar el más reciente con el embedding promediado
-      const newBlob = serializeEmbedding(averaged);
-      dbService.saveSpeakerEmbedding(speakerId, newBlob, newerEmb.recording_id);
+  // Regla 2: límite — comprimir si es necesario
+  if (existingCount >= MAX_EMBEDDINGS_PER_SPEAKER) {
+    console.log(
+      `[EmbeddingFilter] LÍMITE ALCANZADO: ${existingCount} >= ${MAX_EMBEDDINGS_PER_SPEAKER}, ` +
+      `buscando par más similar para comprimir...`
+    );
+
+    const pair = speakerRepository.findMostSimilarPair(existing);
+    if (pair) {
+      const [olderEmb, newerEmb] =
+        existing[pair.idxA].id < existing[pair.idxB].id
+          ? [existing[pair.idxA], existing[pair.idxB]]
+          : [existing[pair.idxB], existing[pair.idxA]];
 
       console.log(
-        `[SpeakerManager] Embeddings promediados (id ${olderEmb.id} → ${newerEmb.id}): ` +
-        `sim=${pair.similarity.toFixed(3)}, count ${MAX_EMBEDDINGS_PER_SPEAKER}→${MAX_EMBEDDINGS_PER_SPEAKER - 1}`
+        `[EmbeddingFilter] PAR ENCONTRADO: ids=[${olderEmb.id}, ${newerEmb.id}], ` +
+        `sim=${pair.similarity.toFixed(4)}, eliminando id=${olderEmb.id}`
+      );
+
+      const averaged = speakerRepository.averageEmbeddingPair(
+        existing[pair.idxA].embedding,
+        existing[pair.idxB].embedding
+      );
+
+      const deleteResult = dbService.deleteSpeakerEmbedding(olderEmb.id);
+      if (!deleteResult.success) {
+        console.error(
+          `[EmbeddingFilter] ERROR eliminando embedding antiguo: ${deleteResult.error}`
+        );
+      }
+
+      const newBlob = serializeEmbedding(averaged);
+      const saveResult = dbService.saveSpeakerEmbedding(speakerId, newBlob, newerEmb.recording_id);
+      if (!saveResult.success) {
+        console.error(
+          `[EmbeddingFilter] ERROR guardando embedding promediado: ${saveResult.error}`
+        );
+      }
+
+      console.log(
+        `[EmbeddingFilter] COMPRESIÓN EXITOSA: id ${olderEmb.id} eliminado, ` +
+        `nuevo promedio guardado, count ${existingCount}→${existingCount - 1}`
+      );
+    } else {
+      console.warn(
+        `[EmbeddingFilter] No se encontró par similar para comprimir (count=${existingCount})`
       );
     }
   }
 
+  console.log(
+    `[EmbeddingFilter] EMBEDDING ACEPTADO: speakerId=${speakerId}, count actual=${existingCount}`
+  );
   return { accepted: true };
 }
 
@@ -201,16 +247,21 @@ function processEmbeddings(speakerEmbeddings, recordingId = null, threshold = 0.
             const filterResult = filterAndCompressEmbeddings(embedding, speaker.id);
             if (!filterResult.accepted) {
               console.log(
-                `[SpeakerManager] Embedding descartado para "${speaker.display_name}": ` +
-                `similitud > ${DUPLICATE_SIMILARITY_THRESHOLD} (${filterResult.reason})`
+                `[EmbeddingFilter] Embedding DESCARTADO para "${speaker.display_name}" ` +
+                `(speakerId=${speaker.id}): ${filterResult.reason}`
               );
             } else {
               const embeddingBlob = serializeEmbedding(embedding);
               const embedResult = dbService.saveSpeakerEmbedding(speaker.id, embeddingBlob, recordingId);
               if (!embedResult.success) {
                 console.warn(
-                  `[SpeakerManager] Resolución guardada pero no el embedding nuevo para ` +
-                  `"${speaker.display_name}": ${embedResult.error}`
+                  `[EmbeddingFilter] ERROR guardando embedding para "${speaker.display_name}": ` +
+                  `${embedResult.error}`
+                );
+              } else {
+                console.log(
+                  `[EmbeddingFilter] Embedding GUARDADO para "${speaker.display_name}" ` +
+                  `(speakerId=${speaker.id}, recordingId=${recordingId})`
                 );
               }
             }
@@ -297,16 +348,21 @@ function _createNewSpeaker(ephemeralId, embedding, recordingId, aliasIndex) {
   const filterResult = filterAndCompressEmbeddings(embedding, speaker.id);
   if (!filterResult.accepted) {
     console.log(
-      `[SpeakerManager] Embedding descartado para nuevo hablante "${alias}": ` +
-      `similitud > ${DUPLICATE_SIMILARITY_THRESHOLD} (${filterResult.reason})`
+      `[EmbeddingFilter] Embedding DESCARTADO para nuevo hablante "${alias}" ` +
+      `(speakerId=${speaker.id}): ${filterResult.reason}`
     );
   } else {
     const embeddingBlob = serializeEmbedding(embedding);
     const embedResult = dbService.saveSpeakerEmbedding(speaker.id, embeddingBlob, recordingId);
     if (!embedResult.success) {
       console.error(
-        `[SpeakerManager] Perfil creado (${speaker.id}) pero no se pudo guardar el embedding: ` +
+        `[EmbeddingFilter] ERROR guardando embedding para nuevo hablante "${alias}": ` +
         `${embedResult.error}`
+      );
+    } else {
+      console.log(
+        `[EmbeddingFilter] Embedding GUARDADO para nuevo hablante "${alias}" ` +
+        `(speakerId=${speaker.id})`
       );
     }
   }
