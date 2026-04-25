@@ -4,7 +4,7 @@ const path = require('path');
 const dbService = require('../database/dbService');
 const speakerManager = require('../services/speakerManager');
 const diarizationService = require('../services/diarizationService');
-const { getRecordingsPath, getFolderPathFromId } = require('../utils/paths');
+const { getRecordingsPath, getFolderPathFromId, settingsPath } = require('../utils/paths');
 
 module.exports.registerRecordingsHandlers = () => {
 
@@ -127,7 +127,16 @@ module.exports.registerRecordingsHandlers = () => {
 
       // ── Phase 5: Resolución de hablantes (Diarización) ────────────────────
       let speakerResolution = {};
+      let speakerThreshold = 0.85; // default
       try {
+        // Leer threshold de similitud desde settings
+        if (fs.existsSync(settingsPath)) {
+          try {
+            const settingsData = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+            speakerThreshold = settingsData.speakerSimilarityThreshold ?? 0.85;
+          } catch (_) {}
+        }
+
         const dbRecording = dbService.getRecording(folderName);
         const numericRecordingId = dbRecording ? dbRecording.id : null;
 
@@ -135,7 +144,8 @@ module.exports.registerRecordingsHandlers = () => {
           recordingId: numericRecordingId,
           folderName,
           baseOutputDir,
-          transcriptionSegments: transcription.segments
+          transcriptionSegments: transcription.segments,
+          threshold: speakerThreshold
         });
 
         speakerResolution = result.resolutionMap;

@@ -174,6 +174,17 @@ Los embeddings se extraen usando el modelo de embedding interno de `pyannote/spe
 
 `audio_sync_analyzer.py` es retrocompatible con ambos formatos (lista plana v1.0 y objeto v2.0).
 
+### Umbral de Similitud de Hablantes
+
+El reconocimiento de hablantes usa **similitud coseno** entre embeddings de voz para identificar si un hablante en una nueva grabación coincide con un perfil conocido. El umbral por defecto es **0.85** (85%), configurable en Ajustes → sección de Diarización.
+
+**¿Cómo funciona?**
+- Valor entre 0.50 y 0.99 (slider en UI).
+- **Valores bajos** (más permisivo): mayor probabilidad de falsos positivos — une voces de personas diferentes que suenan similar.
+- **Valores altos** (más estricto): mayor probabilidad de falsos negativos — separa la misma voz en hablantes diferentes.
+
+**Para ajustar**: Ve a Ajustes → General → Diarización de Interlocutores → Slider "Umbral de similitud de hablantes". El cambio se aplica a las siguientes grabaciones procesadas.
+
 ## License
 
 MIT © [Raul Garcia](https://github.com/rgarciade)

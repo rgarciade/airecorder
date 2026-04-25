@@ -101,9 +101,10 @@ class DiarizationService {
    * @param {string} params.folderName - Carpeta de la grabación
    * @param {string} params.baseOutputDir - Directorio base de grabaciones
    * @param {Array} params.transcriptionSegments - Segmentos de transcripción (para fallback)
+   * @param {number} [params.threshold=0.85] - Umbral de similitud coseno
    * @returns {SpeakerResolutionResult}
    */
-  resolveRecording({ recordingId, folderName, baseOutputDir, transcriptionSegments }) {
+  resolveRecording({ recordingId, folderName, baseOutputDir, transcriptionSegments, threshold = 0.85 }) {
     // 1. Construir path a diarization.json
     const diarizationPath = path.join(baseOutputDir, folderName, 'analysis', 'diarization.json');
 
@@ -116,7 +117,8 @@ class DiarizationService {
       if (diarizationData.speaker_embeddings) {
         const { resolutionMap, pendingSuggestions } = speakerManager.processEmbeddings(
           diarizationData.speaker_embeddings,
-          recordingId
+          recordingId,
+          threshold
         );
 
         // Enriquecer suggestions con timestamps

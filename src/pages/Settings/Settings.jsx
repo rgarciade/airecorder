@@ -56,6 +56,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
   const [autoAnalyze, setAutoAnalyze] = useState(true);
   const [enableDiarization, setEnableDiarization] = useState(false);
   const [hfToken, setHfToken] = useState('');
+  const [speakerSimilarityThreshold, setSpeakerSimilarityThreshold] = useState(0.85);
   const [whisperModel, setWhisperModel] = useState('small');
   const [cpuThreads, setCpuThreads] = useState(4);
   const [maxCpuThreads, setMaxCpuThreads] = useState(4);
@@ -190,6 +191,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         setAutoAnalyze(savedSettings.autoAnalyze !== false); // Default true
         setEnableDiarization(savedSettings.enableDiarization || false);
         setHfToken(savedSettings.hfToken || '');
+        setSpeakerSimilarityThreshold(savedSettings.speakerSimilarityThreshold ?? 0.85);
         setWhisperModel(savedSettings.whisperModel || 'small');
         
         try {
@@ -546,6 +548,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         autoAnalyze: autoAnalyze,
         enableDiarization: enableDiarization,
         hfToken: hfToken,
+        speakerSimilarityThreshold: speakerSimilarityThreshold,
         fontSize: fontSize,
         theme: theme,
         projectHighlightsCount: projectHighlightsCount,
@@ -1646,6 +1649,32 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                       <p className={styles.helpText} style={{ color: 'var(--color-warning)', fontWeight: 500, marginTop: '12px' }}>
                         ⚠️ Nota: La primera vez que se use, la aplicación descargará varios gigabytes de modelos de IA. Ten paciencia y asegúrate de tener una buena conexión.
                       </p>
+
+                      {/* Slider de umbral de similitud */}
+                      <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--color-border-subtle)' }}>
+                        <label className={styles.label}>
+                          Umbral de similitud de hablantes
+                          <span style={{ marginLeft: '8px', fontWeight: 400, color: 'var(--color-text-secondary)' }}>
+                            {Math.round(speakerSimilarityThreshold * 100)}%
+                          </span>
+                        </label>
+                        <input
+                          type="range"
+                          min="50"
+                          max="99"
+                          step="1"
+                          value={Math.round(speakerSimilarityThreshold * 100)}
+                          onChange={(e) => setSpeakerSimilarityThreshold(parseInt(e.target.value) / 100)}
+                          style={{ width: '100%', marginTop: '8px' }}
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                          <span className={styles.helpText} style={{ fontSize: '0.75rem' }}>Más permisivo</span>
+                          <span className={styles.helpText} style={{ fontSize: '0.75rem' }}>Más estricto</span>
+                        </div>
+                        <p className={styles.helpText} style={{ marginTop: '8px' }}>
+                          Valores bajos = más falsos positivos (une voces diferentes). Valores altos = más falsos negativos (separa la misma voz).
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
