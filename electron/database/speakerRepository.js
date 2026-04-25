@@ -58,6 +58,64 @@ function cosineSimilarity(a, b) {
   return dotProduct(a, b) / (magA * magB);
 }
 
+/**
+ * Calcula el promedio elemento a elemento de dos vectores y lo normaliza a longitud unitaria (L2 = 1).
+ * Se usa cuando se alcanza el límite de embeddings por speaker y es necesario comprimir
+ * dos embeddings muy similares en uno solo.
+ *
+ * @param {number[]} a - Primer vector.
+ * @param {number[]} b - Segundo vector.
+ * @returns {number[]} Vector promediado y normalizado.
+ */
+function averageEmbeddingPair(a, b) {
+  if (!a || !b || a.length !== b.length) {
+    throw new Error('[SpeakerRepository] averageEmbeddingPair: vectores inválidos o longitudes distintas.');
+  }
+  const dim = a.length;
+  const averaged = new Array(dim);
+  for (let i = 0; i < dim; i++) {
+    averaged[i] = (a[i] + b[i]) / 2;
+  }
+  // Normalizar a longitud unitaria
+  const mag = magnitude(averaged);
+  if (mag > 1e-8) {
+    for (let i = 0; i < dim; i++) {
+      averaged[i] /= mag;
+    }
+  }
+  return averaged;
+}
+
+/**
+ * Busca el par de embeddings con la mayor similitud coseno entre sí.
+ * Itera O(n²) sobre la lista de embeddings y retorna el par más similar.
+ * n ≤ 40 por diseño (límite de embeddings por speaker), así que el coste es aceptable.
+ *
+ * @param {Array<{id: number, embedding: number[]}>} embeddings - Lista de embeddings con id y vector.
+ * @returns {{ idxA: number, idxB: number, similarity: number }|null} Índice del primer embedding,
+ *   índice del segundo embedding, y similitud del par. Null si menos de 2 embeddings.
+ */
+function findMostSimilarPair(embeddings) {
+  if (!embeddings || embeddings.length < 2) return null;
+
+  let bestIdxA = 0;
+  let bestIdxB = 1;
+  let bestSimilarity = -Infinity;
+
+  for (let i = 0; i < embeddings.length; i++) {
+    for (let j = i + 1; j < embeddings.length; j++) {
+      const sim = cosineSimilarity(embeddings[i].embedding, embeddings[j].embedding);
+      if (sim > bestSimilarity) {
+        bestSimilarity = sim;
+        bestIdxA = i;
+        bestIdxB = j;
+      }
+    }
+  }
+
+  return { idxA: bestIdxA, idxB: bestIdxB, similarity: bestSimilarity };
+}
+
 // ── Serialización de embeddings ───────────────────────────────────────────────
 
 /**
@@ -229,9 +287,29 @@ function findCandidateSpeakers(embedding, minThreshold = 0.70, maxThreshold = 0.
     .sort((a, b) => b.similarity - a.similarity);
 }
 
+/**
+ * Obtiene todos los embeddings de un hablante concreto, deserializados y listos para usar.
+ *
+ * @param {string} speakerId - UUID del hablante.
+ * @returns {Array<{ id: number, speaker_id: string, embedding: number[], recording_id: number|null, created_at: string }>}
+ */
+function getEmbeddingsBySpeakerId(speakerId) {
+  const rows = dbService.getEmbeddingsBySpeakerId(speakerId);
+  return rows.map((row) => ({
+    id: row.id,
+    speaker_id: row.speaker_id,
+    embedding: deserializeEmbedding(row.embedding),
+    recording_id: row.recording_id,
+    created_at: row.created_at,
+  }));
+}
+
 module.exports = {
   findMatchingSpeaker,
   findCandidateSpeakers,
+  getEmbeddingsBySpeakerId,
+  averageEmbeddingPair,
+  findMostSimilarPair,
   // Expuestos para pruebas unitarias o uso externo
   cosineSimilarity,
   dotProduct,

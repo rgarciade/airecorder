@@ -19,7 +19,10 @@
     "electron:build:dir": "npm run python:build && vite build && npm run obfuscate:electron && electron-builder --mac --dir && npm run clean:obfuscated",
     "reset:onboarding": "node scripts/reset-onboarding.js",
     "rebuild": "electron-rebuild --arch=arm64",
-    "rebuild:win": "electron-rebuild --arch=x64"
+    "rebuild:win": "electron-rebuild --arch=x64",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run"
   },
   "build": {
     "appId": "com.airecorder.app",
@@ -144,6 +147,7 @@
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.1",
     "vite": "^5.1.6",
+    "vitest": "^4.1.5",
     "wait-on": "^8.0.3"
   }
 }
