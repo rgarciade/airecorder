@@ -518,6 +518,19 @@ module.exports = {
     SELECT * FROM speaker_embeddings;
   `,
 
+  // Obtener todos los embeddings de un hablante concreto
+  SELECT_SPEAKER_EMBEDDINGS_BY_SPEAKER: `
+    SELECT id, speaker_id, embedding, recording_id, created_at
+    FROM speaker_embeddings
+    WHERE speaker_id = ?
+    ORDER BY created_at ASC;
+  `,
+
+  // Eliminar un embedding de hablante por ID
+  DELETE_SPEAKER_EMBEDDING: `
+    DELETE FROM speaker_embeddings WHERE id = ?;
+  `,
+
   // Reasignar todos los embeddings de un hablante a otro (usado en fusión)
   REASSIGN_SPEAKER_EMBEDDINGS: `
     UPDATE speaker_embeddings SET speaker_id = ? WHERE speaker_id = ?;

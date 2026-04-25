@@ -185,6 +185,17 @@ El reconocimiento de hablantes usa **similitud coseno** entre embeddings de voz 
 
 **Para ajustar**: Ve a Ajustes → General → Diarización de Interlocutores → Slider "Umbral de similitud de hablantes". El cambio se aplica a las siguientes grabaciones procesadas.
 
+### Regla de Mantenimiento de Archivos
+
+⚠️ **OBLIGATORIO**: Si un archivo de código fuente supera las ~300 líneas, es una señal de que necesita ser dividido.
+
+**Criterios de división:**
+- Si concentra demasiada lógica de negocio → separar en módulos más pequeños por contexto
+- Si tiene múltiples responsabilidades → separar en archivos especializados
+- Los módulos deben ser autocontenidos y poder entenderse de forma independiente
+
+Esta regla aplica a TODOS los archivos del proyecto (JavaScript, Python, configuración, etc.).
+
 ## License
 
 MIT © [Raul Garcia](https://github.com/rgarciade)

@@ -1072,6 +1072,37 @@ getAllSpeakers() {
       return { success: false, error: error.message };
     }
   }
+
+  /**
+   * Obtiene todos los embeddings de un hablante concreto.
+   * @param {string} speakerId - UUID del hablante.
+   * @returns {Array} Array de filas { id, speaker_id, embedding, recording_id, created_at }.
+   */
+  getEmbeddingsBySpeakerId(speakerId) {
+    if (!this.db) return [];
+    try {
+      return this.db.prepare(SELECT_SPEAKER_EMBEDDINGS_BY_SPEAKER).all(speakerId);
+    } catch (error) {
+      console.error('[DB] Error getEmbeddingsBySpeakerId:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Elimina un embedding de hablante por su ID.
+   * @param {number} embeddingId - ID del embedding a eliminar.
+   * @returns {{ success: boolean, changes?: number, error?: string }}
+   */
+  deleteSpeakerEmbedding(embeddingId) {
+    if (!this.db) return { success: false, error: 'DB no inicializada' };
+    try {
+      const info = this.db.prepare(DELETE_SPEAKER_EMBEDDING).run(embeddingId);
+      return { success: true, changes: info.changes };
+    } catch (error) {
+      console.error('[DB] Error deleteSpeakerEmbedding:', error);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 module.exports = new DbService();
