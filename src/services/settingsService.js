@@ -71,7 +71,8 @@ export const getSettings = async () => {
       autoTranscribe: true,
       autoAnalyze: true,
       enableDiarization: false,
-      hfToken: ''
+      hfToken: '',
+      speakerSimilarityThreshold: 0.85
     };
   } catch (error) {
     console.error('Error getting settings:', error);
