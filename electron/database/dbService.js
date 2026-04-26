@@ -293,90 +293,91 @@ class DbService {
 
   // ── Proxies a domain services ──────────────────────────────────────────────
   // Mantienen la API original para no romper main.js
+  // Son defensivos: si el domain service no está inicializado, devuelven valores seguros
 
   // Recordings
-  saveRecording(...args) { return this.recordings.saveRecording(...args); }
-  updateTranscriptionModel(...args) { return this.recordings.updateTranscriptionModel(...args); }
-  updateDuration(...args) { return this.recordings.updateDuration(...args); }
-  updateStatus(...args) { return this.recordings.updateStatus(...args); }
-  getDashboardStats(...args) { return this.recordings.getDashboardStats(...args); }
-  getAllRecordings(...args) { return this.recordings.getAllRecordings(...args); }
-  getRecording(...args) { return this.recordings.getRecording(...args); }
-  getRecordingById(...args) { return this.recordings.getRecordingById(...args); }
-  deleteRecording(...args) { return this.recordings.deleteRecording(...args); }
+  saveRecording(...args) { return this.recordings?.saveRecording(...args) ?? { success: false }; }
+  updateTranscriptionModel(...args) { return this.recordings?.updateTranscriptionModel(...args) ?? { success: false }; }
+  updateDuration(...args) { return this.recordings?.updateDuration(...args) ?? { success: false }; }
+  updateStatus(...args) { return this.recordings?.updateStatus(...args) ?? { success: false }; }
+  getDashboardStats(...args) { return this.recordings?.getDashboardStats(...args) ?? { totalHours: '0.0', totalTranscriptions: 0, totalRecordings: 0, weekHours: '0.0' }; }
+  getAllRecordings(...args) { return this.recordings?.getAllRecordings(...args) ?? []; }
+  getRecording(...args) { return this.recordings?.getRecording(...args) ?? null; }
+  getRecordingById(...args) { return this.recordings?.getRecordingById(...args) ?? null; }
+  deleteRecording(...args) { return this.recordings?.deleteRecording(...args); }
 
   // Queue
-  enqueueTask(...args) { return this.recordings.enqueueTask(...args); }
-  updateTask(...args) { return this.recordings.updateTask(...args); }
-  getNextTask(...args) { return this.recordings.getNextTask(...args); }
-  getActiveQueue(...args) { return this.recordings.getActiveQueue(...args); }
-  getQueueHistory(...args) { return this.recordings.getQueueHistory(...args); }
-  getRecordingTaskStatus(...args) { return this.recordings.getRecordingTaskStatus(...args); }
-  getTaskById(...args) { return this.recordings.getTaskById(...args); }
+  enqueueTask(...args) { return this.recordings?.enqueueTask(...args) ?? null; }
+  updateTask(...args) { return this.recordings?.updateTask(...args); }
+  getNextTask(...args) { return this.recordings?.getNextTask(...args) ?? null; }
+  getActiveQueue(...args) { return this.recordings?.getActiveQueue(...args) ?? []; }
+  getQueueHistory(...args) { return this.recordings?.getQueueHistory(...args) ?? []; }
+  getRecordingTaskStatus(...args) { return this.recordings?.getRecordingTaskStatus(...args) ?? null; }
+  getTaskById(...args) { return this.recordings?.getTaskById(...args) ?? null; }
 
   // Projects
-  getAllProjects(...args) { return this.projects.getAllProjects(...args); }
-  getProjectById(...args) { return this.projects.getProjectById(...args); }
-  createProject(...args) { return this.projects.createProject(...args); }
-  updateProject(...args) { return this.projects.updateProject(...args); }
-  deleteProject(...args) { return this.projects.deleteProject(...args); }
-  updateProjectSyncStatus(...args) { return this.projects.updateProjectSyncStatus(...args); }
-  addRecordingToProject(...args) { return this.projects.addRecordingToProject(...args); }
-  removeRecordingFromProject(...args) { return this.projects.removeRecordingFromProject(...args); }
-  getProjectRecordingIds(...args) { return this.projects.getProjectRecordingIds(...args); }
-  getRecordingProject(...args) { return this.projects.getRecordingProject(...args); }
-  getProjectTotalDuration(...args) { return this.projects.getProjectTotalDuration(...args); }
+  getAllProjects(...args) { return this.projects?.getAllProjects(...args) ?? []; }
+  getProjectById(...args) { return this.projects?.getProjectById(...args) ?? null; }
+  createProject(...args) { return this.projects?.createProject(...args) ?? null; }
+  updateProject(...args) { return this.projects?.updateProject(...args) ?? null; }
+  deleteProject(...args) { return this.projects?.deleteProject(...args); }
+  updateProjectSyncStatus(...args) { return this.projects?.updateProjectSyncStatus(...args); }
+  addRecordingToProject(...args) { return this.projects?.addRecordingToProject(...args); }
+  removeRecordingFromProject(...args) { return this.projects?.removeRecordingFromProject(...args); }
+  getProjectRecordingIds(...args) { return this.projects?.getProjectRecordingIds(...args) ?? []; }
+  getRecordingProject(...args) { return this.projects?.getRecordingProject(...args) ?? null; }
+  getProjectTotalDuration(...args) { return this.projects?.getProjectTotalDuration(...args) ?? 0; }
 
   // Chats
-  getProjectChats(...args) { return this.chats.getProjectChats(...args); }
-  createProjectChat(...args) { return this.chats.createProjectChat(...args); }
-  deleteProjectChat(...args) { return this.chats.deleteProjectChat(...args); }
-  getChatMessages(...args) { return this.chats.getChatMessages(...args); }
-  clearChatMessages(...args) { return this.chats.clearChatMessages(...args); }
-  saveProjectChatMessage(...args) { return this.chats.saveProjectChatMessage(...args); }
+  getProjectChats(...args) { return this.chats?.getProjectChats(...args) ?? []; }
+  createProjectChat(...args) { return this.chats?.createProjectChat(...args) ?? null; }
+  deleteProjectChat(...args) { return this.chats?.deleteProjectChat(...args); }
+  getChatMessages(...args) { return this.chats?.getChatMessages(...args) ?? []; }
+  clearChatMessages(...args) { return this.chats?.clearChatMessages(...args); }
+  saveProjectChatMessage(...args) { return this.chats?.saveProjectChatMessage(...args) ?? null; }
 
   // Tasks
-  getTaskSuggestions(...args) { return this.tasks.getTaskSuggestions(...args); }
-  getTaskSuggestionsByProject(...args) { return this.tasks.getTaskSuggestionsByProject(...args); }
-  addTaskSuggestion(...args) { return this.tasks.addTaskSuggestion(...args); }
-  updateTaskSuggestion(...args) { return this.tasks.updateTaskSuggestion(...args); }
-  deleteTaskSuggestion(...args) { return this.tasks.deleteTaskSuggestion(...args); }
-  createProjectTask(...args) { return this.tasks.createProjectTask(...args); }
-  addTaskToProject(...args) { return this.tasks.addTaskToProject(...args); }
-  removeTaskFromProject(...args) { return this.tasks.removeTaskFromProject(...args); }
-  updateTasksSortOrder(...args) { return this.tasks.updateTasksSortOrder(...args); }
+  getTaskSuggestions(...args) { return this.tasks?.getTaskSuggestions(...args) ?? []; }
+  getTaskSuggestionsByProject(...args) { return this.tasks?.getTaskSuggestionsByProject(...args) ?? []; }
+  addTaskSuggestion(...args) { return this.tasks?.addTaskSuggestion(...args) ?? null; }
+  updateTaskSuggestion(...args) { return this.tasks?.updateTaskSuggestion(...args) ?? null; }
+  deleteTaskSuggestion(...args) { return this.tasks?.deleteTaskSuggestion(...args); }
+  createProjectTask(...args) { return this.tasks?.createProjectTask(...args) ?? null; }
+  addTaskToProject(...args) { return this.tasks?.addTaskToProject(...args) ?? null; }
+  removeTaskFromProject(...args) { return this.tasks?.removeTaskFromProject(...args); }
+  updateTasksSortOrder(...args) { return this.tasks?.updateTasksSortOrder(...args); }
 
   // Task Comments
-  getTaskComments(...args) { return this.tasks.getTaskComments(...args); }
-  addTaskComment(...args) { return this.tasks.addTaskComment(...args); }
-  deleteTaskComment(...args) { return this.tasks.deleteTaskComment(...args); }
+  getTaskComments(...args) { return this.tasks?.getTaskComments(...args) ?? []; }
+  addTaskComment(...args) { return this.tasks?.addTaskComment(...args) ?? null; }
+  deleteTaskComment(...args) { return this.tasks?.deleteTaskComment(...args); }
 
   // Speakers
-  createSpeaker(...args) { return this.speakers.createSpeaker(...args); }
-  getSpeakerByAlias(...args) { return this.speakers.getSpeakerByAlias(...args); }
-  getAllSpeakers(...args) { return this.speakers.getAllSpeakers(...args); }
-  deleteSpeaker(...args) { return this.speakers.deleteSpeaker(...args); }
-  saveSpeakerEmbedding(...args) { return this.speakers.saveSpeakerEmbedding(...args); }
-  getAllSpeakerEmbeddings(...args) { return this.speakers.getAllSpeakerEmbeddings(...args); }
-  getEmbeddingsBySpeakerId(...args) { return this.speakers.getEmbeddingsBySpeakerId(...args); }
-  deleteSpeakerEmbedding(...args) { return this.speakers.deleteSpeakerEmbedding(...args); }
-  reassignSpeakerEmbeddings(...args) { return this.speakers.reassignSpeakerEmbeddings(...args); }
-  getRecordingSpeakerResolutions(...args) { return this.speakers.getRecordingSpeakerResolutions(...args); }
-  upsertRecordingSpeakerResolution(...args) { return this.speakers.upsertRecordingSpeakerResolution(...args); }
-  deleteRecordingSpeakerResolution(...args) { return this.speakers.deleteRecordingSpeakerResolution(...args); }
-  reassignRecordingSpeakerResolutions(...args) { return this.speakers.reassignRecordingSpeakerResolutions(...args); }
+  createSpeaker(...args) { return this.speakers?.createSpeaker(...args) ?? null; }
+  getSpeakerByAlias(...args) { return this.speakers?.getSpeakerByAlias(...args) ?? null; }
+  getAllSpeakers(...args) { return this.speakers?.getAllSpeakers(...args) ?? []; }
+  deleteSpeaker(...args) { return this.speakers?.deleteSpeaker(...args) ?? { success: false }; }
+  saveSpeakerEmbedding(...args) { return this.speakers?.saveSpeakerEmbedding(...args) ?? { success: false }; }
+  getAllSpeakerEmbeddings(...args) { return this.speakers?.getAllSpeakerEmbeddings(...args) ?? []; }
+  getEmbeddingsBySpeakerId(...args) { return this.speakers?.getEmbeddingsBySpeakerId(...args) ?? []; }
+  deleteSpeakerEmbedding(...args) { return this.speakers?.deleteSpeakerEmbedding(...args) ?? { success: false }; }
+  reassignSpeakerEmbeddings(...args) { return this.speakers?.reassignSpeakerEmbeddings(...args) ?? { success: false }; }
+  getRecordingSpeakerResolutions(...args) { return this.speakers?.getRecordingSpeakerResolutions(...args) ?? null; }
+  upsertRecordingSpeakerResolution(...args) { return this.speakers?.upsertRecordingSpeakerResolution(...args) ?? { success: false }; }
+  deleteRecordingSpeakerResolution(...args) { return this.speakers?.deleteRecordingSpeakerResolution(...args) ?? { success: false }; }
+  reassignRecordingSpeakerResolutions(...args) { return this.speakers?.reassignRecordingSpeakerResolutions(...args) ?? { success: false }; }
 
   // Integrations
-  savePlatformConnection(...args) { return this.integrations.savePlatformConnection(...args); }
-  updatePlatformConnectionTokens(...args) { return this.integrations.updatePlatformConnectionTokens(...args); }
-  getAllPlatformConnections(...args) { return this.integrations.getAllPlatformConnections(...args); }
-  getPlatformConnectionById(...args) { return this.integrations.getPlatformConnectionById(...args); }
-  deletePlatformConnection(...args) { return this.integrations.deletePlatformConnection(...args); }
-  addProjectIntegration(...args) { return this.integrations.addProjectIntegration(...args); }
-  updateProjectIntegrationSync(...args) { return this.integrations.updateProjectIntegrationSync(...args); }
-  getProjectIntegrations(...args) { return this.integrations.getProjectIntegrations(...args); }
-  getChatIntegrations(...args) { return this.integrations.getChatIntegrations(...args); }
-  deleteProjectIntegration(...args) { return this.integrations.deleteProjectIntegration(...args); }
+  savePlatformConnection(...args) { return this.integrations?.savePlatformConnection(...args) ?? { success: false }; }
+  updatePlatformConnectionTokens(...args) { return this.integrations?.updatePlatformConnectionTokens(...args) ?? { success: false }; }
+  getAllPlatformConnections(...args) { return this.integrations?.getAllPlatformConnections(...args) ?? []; }
+  getPlatformConnectionById(...args) { return this.integrations?.getPlatformConnectionById(...args) ?? null; }
+  deletePlatformConnection(...args) { return this.integrations?.deletePlatformConnection(...args) ?? { success: false }; }
+  addProjectIntegration(...args) { return this.integrations?.addProjectIntegration(...args) ?? { success: false }; }
+  updateProjectIntegrationSync(...args) { return this.integrations?.updateProjectIntegrationSync(...args) ?? { success: false }; }
+  getProjectIntegrations(...args) { return this.integrations?.getProjectIntegrations(...args) ?? []; }
+  getChatIntegrations(...args) { return this.integrations?.getChatIntegrations(...args) ?? []; }
+  deleteProjectIntegration(...args) { return this.integrations?.deleteProjectIntegration(...args) ?? { success: false }; }
 }
 
 module.exports = new DbService();
