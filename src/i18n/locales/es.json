@@ -761,7 +761,13 @@
     "mergeSuccess": "\"{{source}}\" fusionado en \"{{target}}\"",
     "mergeError": "Error al fusionar: {{error}}",
     "mergeModalTitle": "Fusionar hablante",
-    "mergeBtn": "Fusionar"
+    "mergeBtn": "Fusionar",
+    "deleteEmbedding": "Eliminar relación",
+    "deleteEmbeddingTitle": "Eliminar relación",
+    "deleteEmbeddingConfirm": "¿Eliminar la relación con \"{{recording}}\"? Esto eliminará el embedding y la asociación del hablante con esa grabación.",
+    "deleteEmbeddingBtn": "Eliminar",
+    "recordingRemoved": "Relación eliminada con \"{{recording}}\"",
+    "recordingRemoveError": "Error al eliminar relación: {{error}}"
   },
   "experts": {
     "active": "Activo",

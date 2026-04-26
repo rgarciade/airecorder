@@ -280,6 +280,26 @@
   color: white;
 }
 
+.deleteEmbeddingBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-bg-tertiary, #f1f5f9);
+  color: var(--color-text-secondary, #64748b);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.deleteEmbeddingBtn:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
 .mergeMessage {
   display: flex;
   align-items: center;

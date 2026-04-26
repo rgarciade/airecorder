@@ -47,6 +47,10 @@ module.exports = {
     DELETE FROM speaker_embeddings WHERE id = ?;
   `,
 
+  DELETE_SPEAKER_EMBEDDING_BY_SPEAKER_AND_RECORDING: `
+    DELETE FROM speaker_embeddings WHERE speaker_id = ? AND recording_id = ?;
+  `,
+
   REASSIGN_SPEAKER_EMBEDDINGS: `
     UPDATE speaker_embeddings SET speaker_id = ? WHERE speaker_id = ?;
   `,
@@ -88,6 +92,11 @@ module.exports = {
   DELETE_RECORDING_SPEAKER_RESOLUTION: `
     DELETE FROM recording_speaker_resolutions
     WHERE recording_id = ? AND ephemeral_id = ?;
+  `,
+
+  DELETE_RECORDING_SPEAKER_RESOLUTIONS_BY_SPEAKER_AND_RECORDING: `
+    DELETE FROM recording_speaker_resolutions
+    WHERE speaker_id = ? AND recording_id = ?;
   `,
 
   REASSIGN_RECORDING_SPEAKER_RESOLUTIONS: `

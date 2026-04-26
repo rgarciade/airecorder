@@ -9,12 +9,14 @@ const {
   SELECT_ALL_SPEAKER_EMBEDDINGS,
   SELECT_SPEAKER_EMBEDDINGS_BY_SPEAKER,
   DELETE_SPEAKER_EMBEDDING,
+  DELETE_SPEAKER_EMBEDDING_BY_SPEAKER_AND_RECORDING,
   REASSIGN_SPEAKER_EMBEDDINGS,
   DELETE_SPEAKER,
   CREATE_TABLE_RECORDING_SPEAKER_RESOLUTIONS,
   UPSERT_RECORDING_SPEAKER_RESOLUTION,
   SELECT_RECORDING_SPEAKER_RESOLUTIONS,
   DELETE_RECORDING_SPEAKER_RESOLUTION,
+  DELETE_RECORDING_SPEAKER_RESOLUTIONS_BY_SPEAKER_AND_RECORDING,
   REASSIGN_RECORDING_SPEAKER_RESOLUTIONS,
   GET_SPEAKER_STATS,
   GET_AVG_EMBEDDINGS_PER_SPEAKER,
@@ -118,6 +120,16 @@ class SpeakersDbService extends BaseDbService {
     return this._run(DELETE_SPEAKER_EMBEDDING, [embeddingId]);
   }
 
+  /**
+   * Elimina el embedding de un hablante para una grabación específica.
+   * @param {string} speakerId - UUID del hablante
+   * @param {number} recordingId - ID de la grabación
+   * @returns {{ changes: number }} Resultado con el número de filas eliminadas
+   */
+  deleteSpeakerEmbeddingBySpeakerAndRecording(speakerId, recordingId) {
+    return this._run(DELETE_SPEAKER_EMBEDDING_BY_SPEAKER_AND_RECORDING, [speakerId, recordingId]);
+  }
+
   reassignSpeakerEmbeddings(fromSpeakerId, toSpeakerId) {
     return this._modify(REASSIGN_SPEAKER_EMBEDDINGS, [toSpeakerId, fromSpeakerId]);
   }
@@ -140,6 +152,60 @@ class SpeakersDbService extends BaseDbService {
 
   deleteRecordingSpeakerResolution(recordingId, ephemeralId) {
     return this._run(DELETE_RECORDING_SPEAKER_RESOLUTION, [recordingId, ephemeralId]);
+  }
+
+  /**
+   * Elimina todas las resoluciones de un hablante para una grabación específica.
+   * @param {string} speakerId - UUID del hablante
+   * @param {number} recordingId - ID de la grabación
+   * @returns {{ changes: number }} Resultado con el número de filas eliminadas
+   */
+  deleteRecordingSpeakerResolutionsBySpeakerAndRecording(speakerId, recordingId) {
+    return this._run(DELETE_RECORDING_SPEAKER_RESOLUTIONS_BY_SPEAKER_AND_RECORDING, [speakerId, recordingId]);
+  }
+
+  /**
+   * Elimina de forma atómica (transacción) la relación hablante-grabación:
+   *   1) Borra embeddings del hablante para esa grabación
+   *   2) Borra resoluciones persistentes del hablante para esa grabación
+   *
+   * Si falla cualquiera de los pasos, se revierte todo (ROLLBACK).
+   *
+   * @param {string} speakerId - UUID del hablante
+   * @param {number} recordingId - ID de la grabación
+   * @returns {{ success: boolean, deletedEmbeddings?: number, deletedResolutions?: number, deletedCount?: number, error?: string }}
+   */
+  deleteSpeakerRecordingRelationAtomically(speakerId, recordingId) {
+    if (!this.db) return { success: false, error: 'DB no inicializada' };
+
+    try {
+      const runTx = this.db.transaction((spkId, recId) => {
+        const deleteEmbInfo = this.db
+          .prepare(DELETE_SPEAKER_EMBEDDING_BY_SPEAKER_AND_RECORDING)
+          .run(spkId, recId);
+
+        const deleteRelInfo = this.db
+          .prepare(DELETE_RECORDING_SPEAKER_RESOLUTIONS_BY_SPEAKER_AND_RECORDING)
+          .run(spkId, recId);
+
+        return {
+          deletedEmbeddings: deleteEmbInfo.changes,
+          deletedResolutions: deleteRelInfo.changes,
+          deletedCount: deleteRelInfo.changes
+        };
+      });
+
+      const result = runTx(speakerId, recordingId);
+      return {
+        success: true,
+        deletedEmbeddings: result.deletedEmbeddings,
+        deletedResolutions: result.deletedResolutions,
+        deletedCount: result.deletedCount
+      };
+    } catch (error) {
+      this._log('Error deleteSpeakerRecordingRelationAtomically:', error);
+      return { success: false, error: error.message || String(error) };
+    }
   }
 
   reassignRecordingSpeakerResolutions(fromSpeakerId, toSpeakerId) {

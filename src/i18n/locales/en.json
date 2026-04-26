@@ -744,7 +744,13 @@
     "mergeSuccess": "\"{{source}}\" merged into \"{{target}}\"",
     "mergeError": "Error merging: {{error}}",
     "mergeModalTitle": "Merge Speaker",
-    "mergeBtn": "Merge"
+    "mergeBtn": "Merge",
+    "deleteEmbedding": "Remove relation",
+    "deleteEmbeddingTitle": "Remove relation",
+    "deleteEmbeddingConfirm": "Remove the relation with \"{{recording}}\"? This will delete the embedding and the speaker's association with that recording.",
+    "deleteEmbeddingBtn": "Remove",
+    "recordingRemoved": "Relation removed with \"{{recording}}\"",
+    "recordingRemoveError": "Error removing relation: {{error}}"
   },
   "experts": {
     "active": "Active",
