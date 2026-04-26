@@ -271,4 +271,36 @@ contextBridge.exposeInMainWorld('electronAPI', {
    * @returns {Promise<{ success: boolean, displayName?: string, error?: string }>}
    */
   confirmSpeakerSuggestion: (params) => ipcRenderer.invoke('confirm-speaker-suggestion', params),
-}); 
+
+  // ── Estadísticas y Directorio de Hablantes ──────────────────────────────────
+
+  /**
+   * Devuelve métricas agregadas del sistema de reconocimiento de hablantes.
+   * @returns {Promise<{ success: boolean, data: Object, error?: string }>}
+   */
+  getSpeakerStats: () => ipcRenderer.invoke('get-speaker-stats'),
+
+  /**
+   * Devuelve todos los hablantes ordenados por nº de grabaciones DESC.
+   * @returns {Promise<{ success: boolean, data: Array, error?: string }>}
+   */
+  getSpeakersWithRecordings: () => ipcRenderer.invoke('get-speakers-with-recordings'),
+
+  /**
+   * Devuelve las grabaciones donde aparece un hablante específico.
+   * @param {{ speakerId: string }} params
+   * @returns {Promise<{ success: boolean, data: Object, error?: string }>}
+   */
+  getSpeakerRecordings: (params) => ipcRenderer.invoke('get-speaker-recordings', params),
+  getSimilarSpeakers: (params) => ipcRenderer.invoke('get-similar-speakers', params),
+  mergeSimilarSpeaker: (params) => ipcRenderer.invoke('merge-similar-speaker', params),
+
+  /**
+   * Devuelve el timestamp del primer segmento de un hablante en una grabación.
+   * Se usa para hacer seek al punto exacto donde ese hablante empieza a hablar.
+   *
+   * @param {{ speakerId: string, recordingId: number }} params
+   * @returns {Promise<{ success: boolean, data?: { startTime: number, ephemeralId: string }, error?: string }>}
+   */
+  getSpeakerFirstSegmentTime: (params) => ipcRenderer.invoke('get-speaker-first-segment-time', params),
+});

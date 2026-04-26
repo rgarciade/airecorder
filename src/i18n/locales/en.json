@@ -33,6 +33,7 @@
   "sidebar": {
     "home": "Home",
     "projects": "Projects",
+    "speakers": "Speakers",
     "transcriptionQueue": "Transcription\nQueue",
     "aiQueue": "AI\nQueue",
     "settings": "Settings"
@@ -693,6 +694,29 @@
       "noInstallTitle": "Nothing installed yet?",
       "noInstallDesc": "We recommend pausing for a moment, following our guide, and installing Ollama before continuing."
     }
+  },
+  "speakerDetail": {
+    "title": "Speaker Detail",
+    "back": "Back to Speakers",
+    "recordings": "Recordings",
+    "recordingsList": "Recordings",
+    "noRecordings": "This speaker does not appear in any recording.",
+    "embeddings": "Embeddings",
+    "notFound": "Speaker not found",
+    "notFoundDesc": "The speaker may have been deleted.",
+    "openRecording": "Open recording",
+    "totalRecordings": "Total recordings",
+    "totalEmbeddings": "Total embeddings",
+    "createdAt": "Registered on",
+    "similarSpeakers": "Similar Speakers",
+    "similarity": "similarity",
+    "mergeTooltip": "Merge into this speaker",
+    "mergeConfirm": "Merge \"{{source}}\" into \"{{target}}\"?\n\nAll recordings and embeddings will be reassigned.",
+    "mergeConfirmRich": "Merge <strong>\"{{source}}\"</strong> into <strong>\"{{target}}\"</strong>?<br/><br/>All recordings and embeddings will be reassigned.",
+    "mergeSuccess": "\"{{source}}\" merged into \"{{target}}\"",
+    "mergeError": "Error merging: {{error}}",
+    "mergeModalTitle": "Merge Speaker",
+    "mergeBtn": "Merge"
   },
   "experts": {
     "active": "Active",

@@ -366,6 +366,11 @@ class DbService {
   upsertRecordingSpeakerResolution(...args) { return this.speakers?.upsertRecordingSpeakerResolution(...args) ?? { success: false }; }
   deleteRecordingSpeakerResolution(...args) { return this.speakers?.deleteRecordingSpeakerResolution(...args) ?? { success: false }; }
   reassignRecordingSpeakerResolutions(...args) { return this.speakers?.reassignRecordingSpeakerResolutions(...args) ?? { success: false }; }
+  getSpeakerStats(...args) { return this.speakers?.getSpeakerStats(...args) ?? this.speakers?._emptyStats() ?? { totalSpeakers: 0, totalEmbeddings: 0, avgEmbeddingsPerSpeaker: 0, speakersWithRecordings: 0, speakersWithoutEmbeddings: 0, recordingsWithResolution: 0, lowQualitySpeakers: [], recentSpeakers: [] }; }
+  getSpeakersWithRecordingCount(...args) { return this.speakers?.getSpeakersWithRecordingCount(...args) ?? []; }
+  getSpeakerRecordings(...args) { return this.speakers?.getSpeakerRecordings(...args) ?? null; }
+  getSimilarSpeakers(...args) { return this.speakers?.getSimilarSpeakers(...args) ?? []; }
+  async getSpeakerFirstSegmentTime(...args) { return this.speakers?.getSpeakerFirstSegmentTime(...args) ?? null; }
 
   // Integrations
   savePlatformConnection(...args) { return this.integrations?.savePlatformConnection(...args) ?? { success: false }; }
