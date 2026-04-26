@@ -361,10 +361,13 @@ class DbService {
   getAllSpeakerEmbeddings(...args) { return this.speakers?.getAllSpeakerEmbeddings(...args) ?? []; }
   getEmbeddingsBySpeakerId(...args) { return this.speakers?.getEmbeddingsBySpeakerId(...args) ?? []; }
   deleteSpeakerEmbedding(...args) { return this.speakers?.deleteSpeakerEmbedding(...args) ?? { success: false }; }
+  deleteSpeakerEmbeddingBySpeakerAndRecording(...args) { return this.speakers?.deleteSpeakerEmbeddingBySpeakerAndRecording(...args) ?? { changes: 0 }; }
+  deleteSpeakerRecordingRelationAtomically(...args) { return this.speakers?.deleteSpeakerRecordingRelationAtomically(...args) ?? { success: false, error: 'Speakers DB no disponible' }; }
   reassignSpeakerEmbeddings(...args) { return this.speakers?.reassignSpeakerEmbeddings(...args) ?? { success: false }; }
   getRecordingSpeakerResolutions(...args) { return this.speakers?.getRecordingSpeakerResolutions(...args) ?? null; }
   upsertRecordingSpeakerResolution(...args) { return this.speakers?.upsertRecordingSpeakerResolution(...args) ?? { success: false }; }
   deleteRecordingSpeakerResolution(...args) { return this.speakers?.deleteRecordingSpeakerResolution(...args) ?? { success: false }; }
+  deleteRecordingSpeakerResolutionsBySpeakerAndRecording(...args) { return this.speakers?.deleteRecordingSpeakerResolutionsBySpeakerAndRecording(...args) ?? { changes: 0 }; }
   reassignRecordingSpeakerResolutions(...args) { return this.speakers?.reassignRecordingSpeakerResolutions(...args) ?? { success: false }; }
   getSpeakerStats(...args) { return this.speakers?.getSpeakerStats(...args) ?? this.speakers?._emptyStats() ?? { totalSpeakers: 0, totalEmbeddings: 0, avgEmbeddingsPerSpeaker: 0, speakersWithRecordings: 0, speakersWithoutEmbeddings: 0, recordingsWithResolution: 0, lowQualitySpeakers: [], recentSpeakers: [] }; }
   getSpeakersWithRecordingCount(...args) { return this.speakers?.getSpeakersWithRecordingCount(...args) ?? []; }

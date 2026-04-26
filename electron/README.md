@@ -445,9 +445,11 @@ Si no hay `diarization.json` o no tiene `speaker_embeddings`, el campo `speakerR
 | `get-all-speakers` | *(sin payload)* | `{ success, data: [{ id, display_name, created_at, updated_at }] }` |
 | `merge-similar-speaker` | `{ targetSpeakerId, sourceSpeakerId }` | `{ success: true, mergedName }` o `{ success: false, error }` |
 | `get-speaker-first-segment-time` | `{ speakerId, recordingId }` | `{ success: true, data: { startTime, ephemeralId } }` o `{ success: false, error }` |
+| `delete-speaker-recording-resolution` | `{ speakerId, recordingId }` | `{ success: true, deletedCount, deletedEmbeddings, deletedResolutions }` o `{ success: false, error }` |
 
 > `assign-alias` acepta un `speakerId` opcional. Si `alias` coincide con un hablante ya existente, el backend remapea el speaker actual a ese perfil persistente y actualiza también `recording_speaker_resolutions`. La UI no debe asumir éxito optimista: solo refleja la respuesta confirmada por BD.
 > `get-all-speakers` se llama al montar `TranscriptionViewer` para poblar el autocompletado y pre-cargar aliases.
+> `delete-speaker-recording-resolution` elimina en una **transacción atómica** la relación hablante-grabación: borra embeddings de `speaker_embeddings` para `(speakerId, recordingId)` y resoluciones de `recording_speaker_resolutions` para la misma clave. Si algo falla, se revierte todo.
 
 #### `get-transcription` (Phase 5 — resolución automática)
 
@@ -473,6 +475,7 @@ El campo `speakerResolution` es `{}` si no existe `diarization.json` o no tiene 
 | `assignSpeakerAlias(params)` | Persiste un alias personalizado y opcionalmente el embedding |
 | `getAllSpeakers()` | Devuelve todos los hablantes de BD (para autocompletado en UI) |
 | `confirmSpeakerSuggestion(params)` | Confirma una sugerencia pendiente: reasigna embeddings y actualiza BD |
+| `deleteSpeakerRecordingResolution(params)` | Elimina relación hablante-grabación de forma atómica (resolución + embeddings por grabación) |
 
 ### Función `dbService.getAllSpeakers()`
 

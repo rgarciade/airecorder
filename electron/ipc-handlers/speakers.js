@@ -308,6 +308,40 @@ function registerSpeakersHandlers() {
     }
   });
 
+  /**
+   * `delete-speaker-recording-resolution`
+   *
+   * Elimina la relación entre un hablante y una grabación específica.
+   * Esto elimina tanto la resolución (la asociación) como el embedding para esa grabación.
+   *
+   * Payload: { speakerId: string, recordingId: number }
+   *
+   * Respuesta: { success: true, deletedCount: number } | { success: false, error: string }
+   */
+  ipcMain.handle('delete-speaker-recording-resolution', async (_event, { speakerId, recordingId } = {}) => {
+    try {
+      if (!speakerId || !recordingId) {
+        return { success: false, error: 'speakerId y recordingId son requeridos' };
+      }
+
+      // Operación atómica: embedding + resolución en una sola transacción
+      const txResult = dbService.deleteSpeakerRecordingRelationAtomically(speakerId, recordingId);
+      if (!txResult?.success) {
+        return { success: false, error: txResult?.error || 'No se pudo eliminar la relación del hablante' };
+      }
+
+      return {
+        success: true,
+        deletedCount: txResult.deletedCount ?? 0,
+        deletedEmbeddings: txResult.deletedEmbeddings ?? 0,
+        deletedResolutions: txResult.deletedResolutions ?? 0
+      };
+    } catch (error) {
+      console.error('[IPC:delete-speaker-recording-resolution] Error:', error);
+      return { success: false, error: error.message || String(error) };
+    }
+  });
+
 }
 
 module.exports = { registerSpeakersHandlers };

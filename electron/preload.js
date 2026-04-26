@@ -303,4 +303,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
    * @returns {Promise<{ success: boolean, data?: { startTime: number, ephemeralId: string }, error?: string }>}
    */
   getSpeakerFirstSegmentTime: (params) => ipcRenderer.invoke('get-speaker-first-segment-time', params),
+
+  /**
+   * Elimina la relación entre un hablante y una grabación específica.
+   * Esto elimina tanto la resolución como el embedding para esa grabación.
+   *
+   * @param {{ speakerId: string, recordingId: number }} params
+   * @returns {Promise<{ success: boolean, deletedCount?: number, error?: string }>}
+   */
+  deleteSpeakerRecordingResolution: (params) => ipcRenderer.invoke('delete-speaker-recording-resolution', params),
 });

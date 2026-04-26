@@ -138,6 +138,27 @@ class SpeakersService {
       return null;
     }
   }
+
+  /**
+   * Elimina la relación entre un hablante y una grabación específica.
+   * Esto elimina tanto la resolución (la asociación) como el embedding para esa grabación.
+   *
+   * @param {string} speakerId - UUID del hablante
+   * @param {number} recordingId - ID de la grabación
+   * @returns {Promise<{ success: boolean, deletedCount?: number, error?: string }>}
+   */
+  async deleteSpeakerRecordingResolution(speakerId, recordingId) {
+    try {
+      if (!window.electronAPI?.deleteSpeakerRecordingResolution) {
+        throw new Error('API de Electron no disponible');
+      }
+      const result = await window.electronAPI.deleteSpeakerRecordingResolution({ speakerId, recordingId });
+      return result;
+    } catch (error) {
+      console.error('Error eliminando relación hablante-grabación:', error);
+      return { success: false, error: error.message || String(error) };
+    }
+  }
 }
 
 // Instancia singleton del servicio
