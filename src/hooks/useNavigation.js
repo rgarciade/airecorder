@@ -1,5 +1,8 @@
 import { useState, useCallback } from 'react';
 
+const VALID_SETTINGS_TABS = ['agents', 'general', 'experts'];
+const DEFAULT_SETTINGS_TAB = 'agents';
+
 /**
  * Hook para gestionar la navegación y el estado de las vistas de la aplicación.
  */
@@ -9,7 +12,8 @@ export const useNavigation = () => {
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedSpeakerId, setSelectedSpeakerId] = useState(null);
-  const [settingsInitialTab, setSettingsInitialTab] = useState('agents');
+  const [settingsInitialTab, setSettingsInitialTab] = useState(DEFAULT_SETTINGS_TAB);
+  const [settingsTargetElement, setSettingsTargetElement] = useState(null);
 
   /**
    * Navegación avanzada a una grabación específica, buscando su objeto completo.
@@ -84,8 +88,10 @@ export const useNavigation = () => {
     }
   }, []);
 
-  const handleOpenSettings = useCallback((tab = 'agents') => {
-    setSettingsInitialTab(tab);
+  const handleOpenSettings = useCallback((tab = DEFAULT_SETTINGS_TAB, targetElement = null) => {
+    const safeTab = VALID_SETTINGS_TABS.includes(tab) ? tab : DEFAULT_SETTINGS_TAB;
+    setSettingsInitialTab(safeTab);
+    setSettingsTargetElement(targetElement || null);
     setCurrentView('settings');
   }, []);
 
@@ -109,6 +115,7 @@ export const useNavigation = () => {
     setSelectedSpeakerId,
     settingsInitialTab,
     setSettingsInitialTab,
+    settingsTargetElement,
     handleNavigateToRecording,
     handleNavigateToProject,
     handleNavigateToSpeaker,

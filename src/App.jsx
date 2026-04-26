@@ -38,6 +38,7 @@ export default function App() {
     selectedSpeakerId,
     setSelectedSpeakerId,
     settingsInitialTab,
+    settingsTargetElement,
     handleNavigateToRecording,
     handleNavigateToProject,
     handleNavigateToSpeaker,
@@ -144,10 +145,12 @@ export default function App() {
           />
         )}
         {currentView === 'settings' && (
-          <Settings 
-            onBack={handleBack} 
-            onSettingsSaved={loadAppSettings} 
-            initialTab={settingsInitialTab} 
+          <Settings
+            key={`${settingsInitialTab}-${settingsTargetElement}`}
+            onBack={handleBack}
+            onSettingsSaved={loadAppSettings}
+            initialTab={settingsInitialTab}
+            targetElement={settingsTargetElement}
           />
         )}
         {currentView === 'projects' && (
@@ -185,7 +188,7 @@ export default function App() {
         {currentView === 'speakers' && (
           <SpeakersPage
             onNavigateToSpeaker={handleNavigateToSpeaker}
-            onNavigateToSettings={() => handleOpenSettings('agents')}
+            onNavigateToSettings={() => handleOpenSettings('general', 'diarization-settings')}
             diarizationEnabled={appSettings?.enableDiarization ?? false}
           />
         )}

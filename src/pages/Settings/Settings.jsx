@@ -41,7 +41,11 @@ const whisperModels = [
   { value: 'large', label: 'Large (Preciso)' },
 ];
 
-export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents' }) {
+const VALID_TABS = ['agents', 'general', 'experts'];
+const DEFAULT_TAB = 'agents';
+
+export default function Settings({ onBack, onSettingsSaved, initialTab = DEFAULT_TAB, targetElement = null }) {
+  const safeInitialTab = VALID_TABS.includes(initialTab) ? initialTab : DEFAULT_TAB;
   const { t } = useTranslation();
 
   // State
@@ -127,7 +131,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
   const [isDetectingLmCtx, setIsDetectingLmCtx] = useState(false);
 
   // UI State
-  const [activeTab, setActiveTab] = useState(initialTab); // 'general' | 'agents'
+  const [activeTab, setActiveTab] = useState(safeInitialTab); // 'general' | 'agents' | 'experts'
   const [showApiKey, setShowApiKey] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
@@ -148,9 +152,10 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
   }, []);
 
   useEffect(() => {
-    // Solo hacemos el scroll automático la primera vez que entramos a 'general'
-    // si el initialTab era 'general'.
-    if (activeTab === 'general' && initialTab === 'general' && !hasScrolledRef.current) {
+    if (activeTab === 'general' && safeInitialTab === 'general' && !hasScrolledRef.current) {
+      if (targetElement) {
+        return;
+      }
       setTimeout(() => {
         const micElement = document.getElementById('microphone-settings');
         if (micElement) {
@@ -159,7 +164,35 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
         }
       }, 100);
     }
-  }, [activeTab, initialTab]);
+  }, [activeTab, safeInitialTab, targetElement]);
+
+  useEffect(() => {
+    if (!targetElement || activeTab !== safeInitialTab) return;
+
+    let cancelled = false;
+    const startedAt = Date.now();
+    const MAX_WAIT_MS = 3000;
+    const POLL_INTERVAL_MS = 80;
+
+    const performScroll = (el) => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    const tryScroll = () => {
+      if (cancelled) return;
+      const el = document.getElementById(targetElement);
+      if (el) {
+        performScroll(el);
+        return;
+      }
+      if (Date.now() - startedAt < MAX_WAIT_MS) {
+        setTimeout(tryScroll, POLL_INTERVAL_MS);
+      }
+    };
+
+    tryScroll();
+    return () => { cancelled = true; };
+  }, [targetElement, activeTab, safeInitialTab]);
 
   const loadSettings = async () => {
     try {
@@ -1591,7 +1624,7 @@ export default function Settings({ onBack, onSettingsSaved, initialTab = 'agents
                 </div>
 
                 {/* Diarización de Interlocutores (pyannote.audio) */}
-                <div className={styles.card} style={{marginTop: '16px'}}>
+                <div id="diarization-settings" className={styles.card} style={{marginTop: '16px'}}>
                   <div className={styles.cardHeader}>
                     <div className={styles.providerInfo}>
                       <div className={styles.providerIcon} style={{backgroundColor: '#fff7ed', color: '#f97316'}}>
