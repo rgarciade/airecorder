@@ -443,6 +443,8 @@ Si no hay `diarization.json` o no tiene `speaker_embeddings`, el campo `speakerR
 | `resolve-speaker` | `{ speakerEmbeddings, recordingId?, threshold? }` | `{ success, data: { "SPEAKER_00": { speakerId, displayName, isNew } } }` |
 | `assign-alias` | `{ speakerId?, alias, embedding?, recordingId?, ephemeralId? }` | `{ success, speakerId?, displayName?, error? }` |
 | `get-all-speakers` | *(sin payload)* | `{ success, data: [{ id, display_name, created_at, updated_at }] }` |
+| `merge-similar-speaker` | `{ targetSpeakerId, sourceSpeakerId }` | `{ success: true, mergedName }` o `{ success: false, error }` |
+| `get-speaker-first-segment-time` | `{ speakerId, recordingId }` | `{ success: true, data: { startTime, ephemeralId } }` o `{ success: false, error }` |
 
 > `assign-alias` acepta un `speakerId` opcional. Si `alias` coincide con un hablante ya existente, el backend remapea el speaker actual a ese perfil persistente y actualiza también `recording_speaker_resolutions`. La UI no debe asumir éxito optimista: solo refleja la respuesta confirmada por BD.
 > `get-all-speakers` se llama al montar `TranscriptionViewer` para poblar el autocompletado y pre-cargar aliases.

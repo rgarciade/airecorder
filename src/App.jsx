@@ -15,6 +15,8 @@ import Projects from './pages/Projects/Projects'
 import ProjectDetail from './pages/ProjectDetail/ProjectDetail'
 import TranscriptionQueue from './pages/TranscriptionQueue/TranscriptionQueue'
 import AiQueue from './pages/AiQueue/AiQueue'
+import SpeakersPage from './pages/Speakers/SpeakersPage'
+import SpeakerDetail from './pages/Speakers/SpeakerDetail'
 import RecordingOverlay from './components/RecordingOverlay/RecordingOverlay'
 import Sidebar from './components/Sidebar/Sidebar';
 import Onboarding from './pages/Onboarding/Onboarding';
@@ -33,9 +35,12 @@ export default function App() {
     setSelectedRecording,
     selectedProjectId,
     selectedProject,
+    selectedSpeakerId,
+    setSelectedSpeakerId,
     settingsInitialTab,
     handleNavigateToRecording,
     handleNavigateToProject,
+    handleNavigateToSpeaker,
     handleBack,
     navigateTo,
     handleOpenSettings,
@@ -119,7 +124,8 @@ export default function App() {
               navigateTo(view);
             }
           }} 
-          queueCount={queueCount} 
+          queueCount={queueCount}
+          diarizationEnabled={appSettings?.enableDiarization ?? false}
         />
       )}
       
@@ -175,6 +181,21 @@ export default function App() {
         )}
         {currentView === 'ai-queue' && (
           <AiQueue onBack={handleBack} onNavigateToRecording={handleNavigateToRecording} />
+        )}
+        {currentView === 'speakers' && (
+          <SpeakersPage
+            onNavigateToSpeaker={handleNavigateToSpeaker}
+            onNavigateToSettings={() => handleOpenSettings('agents')}
+            diarizationEnabled={appSettings?.enableDiarization ?? false}
+          />
+        )}
+        {currentView === 'speaker-detail' && selectedSpeakerId && (
+          <SpeakerDetail
+            speakerId={selectedSpeakerId}
+            onBack={handleBack}
+            onNavigateToRecording={handleNavigateToRecording}
+            onNavigateToSpeaker={handleNavigateToSpeaker}
+          />
         )}
       </div>
       

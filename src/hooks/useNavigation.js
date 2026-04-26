@@ -8,6 +8,7 @@ export const useNavigation = () => {
   const [selectedRecording, setSelectedRecording] = useState(null);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [selectedSpeakerId, setSelectedSpeakerId] = useState(null);
   const [settingsInitialTab, setSettingsInitialTab] = useState('agents');
 
   /**
@@ -46,15 +47,24 @@ export const useNavigation = () => {
     setSettingsInitialTab('agents');
   }, []);
 
+  const handleNavigateToSpeaker = useCallback((speakerId) => {
+    setSelectedSpeakerId(speakerId);
+    setCurrentView('speaker-detail');
+  }, []);
+
   const handleBack = useCallback(() => {
     if (currentView === 'recording-detail' && selectedProject) {
       setCurrentView('project-detail');
       setSelectedRecording(null);
+    } else if (currentView === 'speaker-detail') {
+      setCurrentView('speakers');
+      setSelectedSpeakerId(null);
     } else {
       setCurrentView('home');
       setSelectedRecording(null);
       setSelectedProject(null);
       setSelectedProjectId(null);
+      setSelectedSpeakerId(null);
       setSettingsInitialTab('agents');
     }
   }, [currentView, selectedProject]);
@@ -68,6 +78,9 @@ export const useNavigation = () => {
       setSelectedRecording(null);
       setSelectedProject(null);
       setSelectedProjectId(null);
+    }
+    if (view === 'speakers') {
+      setSelectedSpeakerId(null);
     }
   }, []);
 
@@ -92,10 +105,13 @@ export const useNavigation = () => {
     setSelectedRecording,
     selectedProjectId,
     selectedProject,
+    selectedSpeakerId,
+    setSelectedSpeakerId,
     settingsInitialTab,
     setSettingsInitialTab,
     handleNavigateToRecording,
     handleNavigateToProject,
+    handleNavigateToSpeaker,
     handleBack,
     navigateTo,
     handleOpenSettings,

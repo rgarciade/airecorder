@@ -50,6 +50,7 @@
   "sidebar": {
     "home": "Inicio",
     "projects": "Proyectos",
+    "speakers": "Hablantes",
     "transcriptionQueue": "Cola de\nTranscripción",
     "aiQueue": "Cola\nde IA",
     "settings": "Ajustes"
@@ -710,6 +711,29 @@
       "noInstallTitle": "¿No tienes nada instalado?",
       "noInstallDesc": "Recomendamos pausar un momento, seguir nuestra guía e instalar Ollama antes de continuar."
     }
+  },
+  "speakerDetail": {
+    "title": "Detalle del Hablante",
+    "back": "Volver a Hablantes",
+    "recordings": "Grabaciones",
+    "recordingsList": "Grabaciones",
+    "noRecordings": "Este hablante no aparece en ninguna grabación.",
+    "embeddings": "Embeddings",
+    "notFound": "Hablante no encontrado",
+    "notFoundDesc": "El hablante pudo haber sido eliminado.",
+    "openRecording": "Abrir grabación",
+    "totalRecordings": "Total de grabaciones",
+    "totalEmbeddings": "Total de embeddings",
+    "createdAt": "Registrado el",
+    "similarSpeakers": "Hablantes similares",
+    "similarity": "similitud",
+    "mergeTooltip": "Fusionar en este hablante",
+    "mergeConfirm": "¿Fusionar \"{{source}}\" en \"{{target}}\"?\n\nSe reasignarán todas las grabaciones y embeddings.",
+    "mergeConfirmRich": "¿Fusionar <strong>\"{{source}}\"</strong> en <strong>\"{{target}}\"</strong>?<br/><br/>Se reasignarán todas las grabaciones y embeddings.",
+    "mergeSuccess": "\"{{source}}\" fusionado en \"{{target}}\"",
+    "mergeError": "Error al fusionar: {{error}}",
+    "mergeModalTitle": "Fusionar hablante",
+    "mergeBtn": "Fusionar"
   },
   "experts": {
     "active": "Activo",
