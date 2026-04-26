@@ -10,7 +10,8 @@
       "Bash(npm rebuild:*)",
       "Bash(pip install:*)",
       "Bash(npx electron-icon-builder:*)",
-      "mcp__plugin_engram_engram__mem_search"
+      "mcp__plugin_engram_engram__mem_search",
+      "mcp__Claude_Preview__preview_start"
     ]
   }
 }

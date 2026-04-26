@@ -39,16 +39,7 @@ const Sidebar = ({ currentView, onViewChange, queueCount = 0, diarizationEnabled
   ];
 
   const handleMenuItemClick = (item) => {
-    if (item.id === 'speakers') {
-      if (!diarizationEnabled) {
-        // Si diarización no está activada, ir a Settings
-        onViewChange('settings');
-      } else {
-        onViewChange('speakers');
-      }
-    } else {
-      onViewChange(item.id);
-    }
+    onViewChange(item.id);
   };
 
   return (
