@@ -32,7 +32,7 @@ Cada tarea tiene su propio par de funciones en `aiPrompts.js`:
 | `participantsPrompt(lang)` + `participantsPromptSuffix` | System | Instrucciones para extracción de participantes |
 | `taskSuggestionsPrompt(lang)` + `taskSuggestionsPromptSuffix` | System | Instrucciones para sugerencias de tareas |
 | `taskImprovementSystemPrompt(lang)` | System | Instrucciones para mejorar una tarea |
-| `taskImprovementUserContent(title, content, context)` | User | Tarea + contexto a mejorar |
+| `taskImprovementUserContent(title, content, context, userInstructions)` | User | Tarea + instrucciones del usuario + contexto a mejorar |
 | `projectAnalysisSystemPrompt(lang)` | System | Instrucciones para análisis de proyecto |
 | `chatSystemPrompt(transcription, lang, docContext)` | System | System prompt del chat interactivo (incluye instrucciones de timestamps `[TS: \| MM:SS]`) |
 | `conversationNormalizationPrompt(rawContent)` | Full Prompt | Normaliza un transcript crudo (cualquier formato) al JSON canónico de segmentos para importación de conversaciones |
