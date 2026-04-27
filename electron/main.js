@@ -6,7 +6,7 @@ require('dotenv').config();
 // ========================================
 // 1. IMPORTACIONES GLOBALES
 // ========================================
-const { app, BrowserWindow, ipcMain, systemPreferences, session, protocol, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, systemPreferences, session, protocol, dialog, Notification } = require('electron');
 const { initMain } = require('electron-audio-loopback');
 const path = require('path');
 const fs = require('fs');
@@ -20,6 +20,7 @@ const dbService = require('./database/dbService');
 const migrationService = require('./database/migrationService');
 const transcriptionManager = require('./services/transcriptionManager');
 const notificationService = require('./services/notificationService');
+const microphoneMonitor = require('./services/microphoneMonitor');
 const updateChecker = require('./services/updateChecker');
 
 // Utilitarios
@@ -292,7 +293,64 @@ async function initApp() {
   const mainWin = BrowserWindow.getAllWindows()[0];
   updateChecker.setMainWindow(mainWin);
   updateChecker.startPeriodicCheck();
+
+  // 10. Monitor de micrófono (macOS: Swift/CoreAudio — Windows: PowerShell/registro)
+  let isAppRecording = false;
+  ipcMain.handle('set-app-recording-state', (_event, recording) => {
+    isAppRecording = recording;
+  });
+
+  if (process.platform === 'darwin' || process.platform === 'win32') {
+    microphoneMonitor.on('activated', () => {
+      if (isAppRecording) return;
+      const win = BrowserWindow.getAllWindows()[0];
+      if (win) showMicNotification(win);
+    });
+
+    microphoneMonitor.start();
+  }
 }
+
+function showMicNotification(mainWindow) {
+  if (!Notification.isSupported()) return;
+  if (!notificationService.enabled) return;
+
+  const supportsActions = process.platform === 'darwin';
+
+  const notifOpts = {
+    title: 'AIRecorder',
+    body: 'Se detectó actividad en el micrófono. ¿Querés empezar a grabar?',
+  };
+
+  if (supportsActions) {
+    notifOpts.actions = [{ type: 'button', text: 'Grabar ahora' }];
+    notifOpts.closeButtonText = 'Cancelar';
+  }
+
+  const notification = new Notification(notifOpts);
+
+  notification.on('action', () => {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+    // Pequeño delay para que la ventana esté activa antes de pedir getDisplayMedia
+    setTimeout(() => {
+      mainWindow.webContents.executeJavaScript(
+        `window.dispatchEvent(new CustomEvent('notification-start-recording'))`,
+        true // userGesture: true → permite getDisplayMedia
+      ).catch(() => {});
+    }, 300);
+  });
+
+  notification.on('click', () => {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  });
+
+  notification.show();
+}
+
 
 
 // ========================================

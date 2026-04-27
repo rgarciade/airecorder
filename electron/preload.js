@@ -153,6 +153,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onNotificationClick: (callback) => ipcRenderer.on('notification-click', (_event, value) => callback(value)),
   offNotificationClick: () => ipcRenderer.removeAllListeners('notification-click'),
 
+  // Monitor de micrófono del sistema
+  setAppRecordingState: (isRecording) => ipcRenderer.invoke('set-app-recording-state', isRecording),
+
   // Dashboard
   getDashboardStats: () => ipcRenderer.invoke('get-dashboard-stats'),
 
