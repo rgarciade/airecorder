@@ -293,6 +293,11 @@
         "title": "Actualizaciones",
         "testDev": "Probar Update (Dev)"
       },
+      "kofi": {
+        "title": "Apoya el proyecto",
+        "desc": "AIRecorder es gratuito y de código abierto. Si te resulta útil, considera apoyar su desarrollo.",
+        "btn": "☕ Apoya en Ko-fi"
+      },
       "directoryNotSupported": "La selección de directorio no está soportada en este entorno",
       "changeDbTitle": "Cambiar ruta de la base de datos",
       "changeDbNewPath": "Nueva ruta:",

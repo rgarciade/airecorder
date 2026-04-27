@@ -3,17 +3,71 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AIRecorder — Wiki</title>
-  <meta name="description" content="Wiki completa de AIRecorder: guia de usuario, arquitectura, proveedores de IA, sistema RAG, prompts, diarizacion, FAQ y guia para contribuidores.">
+  <title>Wiki AIRecorder — Guía de Usuario, Arquitectura, RAG y FAQ</title>
+  <meta name="description" content="Wiki completa de AIRecorder: guía de usuario, arquitectura técnica, proveedores de IA (Ollama, LM Studio, Gemini), sistema RAG, diarización de hablantes y preguntas frecuentes.">
+  <meta name="keywords" content="AIRecorder wiki, guía usuario, diarización hablantes, RAG transcripciones, Ollama configurar, Whisper local, arquitectura Electron React">
+  <meta name="author" content="Raul Garcia">
+  <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#3994EF">
   <link rel="icon" type="image/png" href="icon.png">
+  <link rel="canonical" href="https://rgarciade.github.io/airecorder/wiki.html">
 
   <!-- Open Graph -->
-  <meta property="og:title" content="AIRecorder — Wiki">
-  <meta property="og:description" content="Wiki completa de AIRecorder: todo lo que necesitas saber.">
+  <meta property="og:title" content="Wiki AIRecorder — Guía de Usuario, Arquitectura, RAG y FAQ">
+  <meta property="og:description" content="Wiki completa de AIRecorder: guía de usuario, arquitectura técnica, proveedores de IA, sistema RAG, diarización de hablantes y preguntas frecuentes.">
   <meta property="og:image" content="https://rgarciade.github.io/airecorder/icon.png">
   <meta property="og:url" content="https://rgarciade.github.io/airecorder/wiki.html">
-  <meta property="og:type" content="website">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="AIRecorder">
+  <meta property="og:locale" content="es_ES">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Wiki AIRecorder — Guía de Usuario, Arquitectura y FAQ">
+  <meta name="twitter:description" content="Documentación completa de AIRecorder: guía de usuario, RAG, diarización, proveedores IA y preguntas frecuentes.">
+  <meta name="twitter:image" content="https://rgarciade.github.io/airecorder/icon.png">
+
+  <!-- Structured Data: FAQPage for Google rich snippets -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "¿La transcripción no funciona?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Verifica que tienes un proveedor de IA configurado en Ajustes > Agentes IA y que el archivo de audio se generó correctamente. Si usas Whisper local, asegúrate de que Ollama o LM Studio están corriendo."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Puedo usar AIRecorder sin internet?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sí, completamente. Si usas Ollama o LM Studio con modelos descargados localmente, AIRecorder funciona sin conexión: grabación de audio, transcripción con Whisper local, análisis de IA y chat RAG. Solo necesitas internet para la descarga inicial de modelos o si usas proveedores en la nube."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Dónde se almacenan los datos de AIRecorder?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Todos los datos se almacenan localmente en ~/Library/Application Support/AIRecorder. No se envía ningún dato a servidores externos a menos que uses un proveedor de IA en la nube (Gemini, DeepSeek, Kimi)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Cómo cambiar el idioma de la interfaz?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Ve a Ajustes > General y busca la sección de idioma. AIRecorder soporta español e inglés. El cambio se aplica inmediatamente."
+        }
+      }
+    ]
+  }
+  </script>
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1160,6 +1214,7 @@
         footerGH:         'GitHub',
         footerReleases:   'Releases',
         footerIssues:     'Reportar un problema',
+        footerContact:    'Contacto',
         footerCopyright:  '© 2024–2026 AIRecorder · Desarrollado por <a href="https://github.com/rgarciade" target="_blank" rel="noopener">Raul Garcia</a> · <a href="https://github.com/rgarciade/airecorder/blob/main/LICENSE" target="_blank" rel="noopener">MIT + Commons Clause</a>',
       },
       en: {
@@ -1192,6 +1247,7 @@
         footerGH:         'GitHub',
         footerReleases:   'Releases',
         footerIssues:     'Report an issue',
+        footerContact:    'Contact',
         footerCopyright:  '© 2024–2026 AIRecorder · Built by <a href="https://github.com/rgarciade" target="_blank" rel="noopener">Raul Garcia</a> · <a href="https://github.com/rgarciade/airecorder/blob/main/LICENSE" target="_blank" rel="noopener">MIT + Commons Clause</a>',
 
         // ── User Guide ──
