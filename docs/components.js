@@ -119,6 +119,9 @@ class AppFooter extends HTMLElement {
               AIRecorder
             </div>
             <p class="footer-tagline" data-i18n="footerTagline">Toma el control de tus reuniones y proyectos. Todo en local, todo privado.</p>
+            <a href="https://ko-fi.com/airecorderraulgarciadelafuente" target="_blank" rel="noopener" style="display:inline-block;margin:16px 0 8px;">
+              <img height="36" style="border:0;height:36px;" src="https://storage.ko-fi.com/cdn/kofi2.png?v=3" alt="Support AIRecorder on Ko-fi" />
+            </a>
             <nav class="footer-links" aria-label="Links del footer">
               <a href="https://github.com/rgarciade/airecorder" target="_blank" rel="noopener" data-i18n="footerGH">GitHub</a>
               <span>·</span>
@@ -127,6 +130,8 @@ class AppFooter extends HTMLElement {
               <a href="changelog.html" data-i18n="navChangelog">Novedades</a>
               <span>·</span>
               <a href="https://github.com/rgarciade/airecorder/issues" target="_blank" rel="noopener" data-i18n="footerIssues">Reportar un problema</a>
+              <span>·</span>
+              <a href="mailto:garcia.de.la.fuente.raul@gmail.com" data-i18n="footerContact">Contacto</a>
             </nav>
             <div class="footer-divider"></div>
             <p class="footer-copyright" data-i18n-html="footerCopyright">

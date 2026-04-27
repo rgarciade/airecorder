@@ -86,8 +86,20 @@ function SettingsContent({ onBack, safeInitialTab, targetElement }) {
         <div className={styles.maxWidthContainer}>
 
           <div className={styles.pageHeader}>
-            <h2 className={styles.pageTitle}>{t('settings.subtitle')}</h2>
-            <p className={styles.pageDescription}>{t('settings.description')}</p>
+            <div>
+              <h2 className={styles.pageTitle}>{t('settings.subtitle')}</h2>
+              <p className={styles.pageDescription}>{t('settings.description')}</p>
+            </div>
+            <a
+              href="#"
+              onClick={(e) => { e.preventDefault(); window.electronAPI?.openDownloadUrl?.('https://ko-fi.com/airecorderraulgarciadelafuente'); }}
+              style={{lineHeight: 0, opacity: 0.85, transition: 'opacity 0.15s', flexShrink: 0}}
+              onMouseEnter={e => e.currentTarget.style.opacity = 1}
+              onMouseLeave={e => e.currentTarget.style.opacity = 0.85}
+              title="Support AIRecorder on Ko-fi"
+            >
+              <img height="30" style={{border: 0, height: '30px', display: 'block'}} src="https://storage.ko-fi.com/cdn/kofi2.png?v=3" alt="Ko-fi" />
+            </a>
           </div>
 
           <div className={styles.tabsContainer}>
