@@ -105,7 +105,39 @@ La captura de audio del sistema usa el paquete `electron-audio-loopback` (requie
 El sistema guarda metadatos en la base de datos (ID, duración, estados), pero el contenido pesado (archivos WAV, archivos JSON de los resúmenes de IA, transcripciones txt) reside en el sistema de archivos (Filesystem).
 *   *Importante:* El ID de la grabación (`recordingId`) en la base de datos es numérico. En el disco, las carpetas de las grabaciones usan strings (`relative_path`). La función `getFolderPathFromId()` se utiliza para traducir el ID numérico a la ruta correcta en disco.
 
-## 4. Sistema de Actualizaciones (`services/updateChecker.js` + `ipc-handlers/updates.js`)
+## 4. Monitor de Micrófono del Sistema (`services/microphoneMonitor.js`)
+
+Detecta cuándo otro proceso del sistema activa el micrófono y notifica al usuario para que pueda iniciar una grabación.
+
+### Arquitectura
+
+- **`services/microphoneMonitor.js`**: Singleton `EventEmitter` que sondea el estado del audio de entrada vía `ioreg` (macOS) cada 3 segundos. Emite `'activated'` / `'deactivated'` según el estado detectado.
+- Integrado en `main.js` (paso 10 de `initApp()`).
+- **IPC `set-app-recording-state`**: El renderer avisa al main si la propia app está grabando; mientras sea `true`, las activaciones detectadas se ignoran para evitar auto-disparos.
+
+### Flujo
+
+1. `microphoneMonitor.start()` arranca el polling.
+2. Al detectar un engine de audio de entrada activo (`AppleHDAEngineInput` / `IOAudioEngineInput`):
+   - **App en primer plano** → envía evento IPC `mic-activated` al renderer → se muestra un banner in-app.
+   - **App en segundo plano** → lanza una `Notification` nativa con botón "Grabar ahora" (macOS) / solo notificación (otros SO).
+3. "Grabar ahora" envía `start-recording-from-notification` → el renderer inicia la grabación automáticamente.
+
+### Métodos expuestos en `preload.js`
+
+| Método | Descripción |
+|--------|-------------|
+| `onMicActivated(cb)` | Listener: micrófono activado (app en primer plano) |
+| `onStartRecordingFromNotification(cb)` | Listener: usuario pulsó "Grabar ahora" en notificación nativa |
+| `setAppRecordingState(bool)` | Informa al main si la app está grabando (suprime falsas alarmas) |
+
+### Limitación conocida
+
+El comando `ioreg -r -c AppleHDAEngineInput` funciona en Macs Intel y algunos M-chip. Si el nombre del driver difiere en hardware futuro, puede que no detecte la actividad. Se puede refinar la clase de búsqueda en `_isMicActive()`.
+
+---
+
+## 5. Sistema de Actualizaciones (`services/updateChecker.js` + `ipc-handlers/updates.js`)
 
 Sistema de notificación de actualizaciones manuales usando GitHub Releases API (la app no está firmada, por lo que no usa `electron-updater`).
 
