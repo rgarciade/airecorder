@@ -1530,8 +1530,22 @@
           <p class="feature-desc" data-i18n="feat2Desc">Whisper de OpenAI funciona directamente en tu equipo. Alta precisión, múltiples modelos y sin enviar audio a ningún servidor.</p>
         </div>
 
-        <!-- Análisis IA -->
+        <!-- Identificación de Hablantes -->
         <div class="feature-card animate-on-scroll delay-3">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <h3 class="feature-title" data-i18n="featSpeakersTitle">Identificación de Hablantes</h3>
+          <p class="feature-desc" data-i18n="featSpeakersDesc">Diarización automática que detecta quién habla en cada segmento. Gestiona, fusiona y nombra hablantes entre grabaciones. La IA reconoce a cada persona y enriquece el análisis con su voz.</p>
+        </div>
+
+        <!-- Análisis IA -->
+        <div class="feature-card animate-on-scroll delay-4">
           <div class="feature-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"/>
@@ -1623,8 +1637,21 @@
           <p class="feature-desc" data-i18n="feat9Desc">¿Tu reunión fue grabada en Microsoft Teams? Importa el archivo de transcripción directamente y analízalo con IA como si lo hubieras grabado tú mismo.</p>
         </div>
 
-        <!-- Subida de audio externo -->
+        <!-- Importar chat/conversación analizada por IA -->
         <div class="feature-card animate-on-scroll delay-2">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="10" y1="11" x2="14" y2="11"/>
+            </svg>
+          </div>
+          <h3 class="feature-title" data-i18n="featChatImportTitle">Importa conversaciones de chat con IA</h3>
+          <p class="feature-desc" data-i18n="featChatImportDesc">Importa archivos de conversaciones o chats analizados por IA y tratalos como cualquier grabación: resumen, tareas, búsqueda semántica y chat interactivo sobre el contenido.</p>
+        </div>
+
+        <!-- Subida de audio externo -->
+        <div class="feature-card animate-on-scroll delay-3">
           <div class="feature-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="16 16 12 12 8 16"/>
@@ -1684,6 +1711,20 @@
           </div>
           <h3 class="feature-title" data-i18n="feat14Title">Reproductor sincronizado con la transcripción</h3>
           <p class="feature-desc" data-i18n="feat14Desc">Haz clic en cualquier frase de la transcripción para saltar al instante exacto del audio. Reproduce micrófono y sistema como pistas independientes con control de velocidad.</p>
+        </div>
+
+        <!-- Prompts de Experto -->
+        <div class="feature-card animate-on-scroll delay-7">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+              <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+              <line x1="12" y1="12" x2="12" y2="16"/>
+              <line x1="10" y1="14" x2="14" y2="14"/>
+            </svg>
+          </div>
+          <h3 class="feature-title" data-i18n="featExpertsTitle">Prompts de Experto</h3>
+          <p class="feature-desc" data-i18n="featExpertsDesc">Activa perfiles especializados de Desarrollador de Software o Psicólogo para que la IA adapte su análisis al contexto exacto de tu reunión. Incluye un asistente general para cualquier tipo de conversación.</p>
         </div>
 
       </div>
@@ -2035,6 +2076,9 @@
         feat12Title: 'Búsqueda semántica con RAG', feat12Desc: 'Las transcripciones se indexan con embeddings vectoriales en LanceDB. El chat usa RAG para encontrar exactamente el fragmento relevante, incluso en proyectos con horas de grabaciones.',
         feat13Title: 'Adjuntos como contexto para la IA', feat13Desc: 'Adjunta imágenes, PDFs, documentos o Excel a cualquier grabación o proyecto. La IA los incorpora como contexto en el chat, con soporte de visión para modelos compatibles.',
         feat14Title: 'Reproductor sincronizado con la transcripción', feat14Desc: 'Haz clic en cualquier frase de la transcripción para saltar al instante exacto del audio. Reproduce micrófono y sistema como pistas independientes con control de velocidad.',
+        featChatImportTitle: 'Importa conversaciones de chat con IA', featChatImportDesc: 'Importa archivos de conversaciones o chats analizados por IA y tratalos como cualquier grabación: resumen, tareas, búsqueda semántica y chat interactivo sobre el contenido.',
+        featSpeakersTitle: 'Identificación de Hablantes', featSpeakersDesc: 'Diarización automática que detecta quién habla en cada segmento. Gestiona, fusiona y nombra hablantes entre grabaciones. La IA reconoce a cada persona y enriquece el análisis con su voz.',
+        featExpertsTitle: 'Prompts de Experto', featExpertsDesc: 'Activa perfiles especializados de Desarrollador de Software o Psicólogo para que la IA adapte su análisis al contexto exacto de tu reunión. Incluye un asistente general para cualquier tipo de conversación.',
         privLabel: 'Privacidad',
         privTitle: 'Tu privacidad,<br>nuestra prioridad',
         privSubtitle: 'Tus reuniones contienen información sensible. AIRecorder está diseñado para que tus datos nunca salgan de tu equipo.',
@@ -2094,6 +2138,9 @@
         feat12Title: 'Semantic search with RAG', feat12Desc: 'Transcripts are indexed with vector embeddings in LanceDB. The chat uses RAG to find exactly the relevant fragment, even in projects with hours of recordings.',
         feat13Title: 'Attachments as AI context', feat13Desc: 'Attach images, PDFs, documents or Excel files to any recording or project. The AI incorporates them as context in the chat, with vision support for compatible models.',
         feat14Title: 'Player synced with transcript', feat14Desc: 'Click any phrase in the transcript to jump to the exact moment in the audio. Play microphone and system as independent tracks with speed control.',
+        featChatImportTitle: 'Import AI-analyzed chat conversations', featChatImportDesc: 'Import conversation or AI-analyzed chat files and treat them like any recording: summary, tasks, semantic search, and interactive chat over the content.',
+        featSpeakersTitle: 'Speaker Identification', featSpeakersDesc: 'Automatic diarization that detects who speaks in each segment. Manage, merge, and name speakers across recordings. The AI recognizes each person and enriches the analysis with their voice.',
+        featExpertsTitle: 'Expert Prompts', featExpertsDesc: 'Activate specialized profiles — Software Developer or Psychologist — so the AI adapts its analysis to the exact context of your meeting. Includes a general assistant for any type of conversation.',
         privLabel: 'Privacy',
         privTitle: 'Your privacy,<br>our priority',
         privSubtitle: 'Your meetings contain sensitive information. AIRecorder is designed so your data never leaves your machine.',

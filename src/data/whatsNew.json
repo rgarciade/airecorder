@@ -71,6 +71,18 @@
       }
     },
     {
+      "id": "chat-import",
+      "icon": "💬",
+      "es": {
+        "title": "Importa conversaciones de chat con IA",
+        "desc": "Importa archivos de conversaciones o chats analizados por IA y tratalos como cualquier grabación: resumen automático, extracción de tareas, búsqueda semántica y chat interactivo sobre el contenido."
+      },
+      "en": {
+        "title": "Import AI-analyzed chat conversations",
+        "desc": "Import conversation or AI-analyzed chat files and treat them like any recording: automatic summary, task extraction, semantic search, and interactive chat over the content."
+      }
+    },
+    {
       "id": "mic-monitor",
       "icon": "🎙️",
       "es": {
