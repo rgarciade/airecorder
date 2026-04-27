@@ -1,9 +1,11 @@
 import React from 'react';
 import {
-  MdCloud, MdAutoAwesome, MdVisibility, MdVisibilityOff, MdRefresh
+  MdCloud, MdAutoAwesome, MdVisibility, MdVisibilityOff, MdRefresh, MdOpenInNew
 } from 'react-icons/md';
 import styles from '../../Settings.module.css';
 import { useSettings } from '../../SettingsContext';
+
+const WIKI_URL = 'https://rgarciade.github.io/airecorder/wiki.html';
 
 export default function CloudProvidersSection() {
   const {
@@ -39,12 +41,29 @@ export default function CloudProvidersSection() {
           <MdCloud className={styles.sectionIcon} size={20} />
           <h3 className={styles.sectionTitle}>{t('settings.sections.cloudProviders')}</h3>
         </div>
-        <span className={`${styles.badge} ${['geminifree', 'gemini', 'deepseek', 'kimi'].includes(aiProvider) ? styles.badgeActive : styles.badgeInactive}`}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <a
+            href={`${WIKI_URL}#ia`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 500 }}
+            onClick={(e) => {
+              e.preventDefault();
+              if (window.electronAPI && window.electronAPI.openExternal) {
+                window.electronAPI.openExternal(`${WIKI_URL}#ia`);
+              }
+            }}
+          >
+            <MdOpenInNew size={14} />
+            {t('settings.wikiLink')}
+          </a>
+          <span className={`${styles.badge} ${['geminifree', 'gemini', 'deepseek', 'kimi'].includes(aiProvider) ? styles.badgeActive : styles.badgeInactive}`}>
           {aiProvider === 'geminifree' ? 'Gemini Free' :
            aiProvider === 'gemini' ? 'Gemini Pro' :
            aiProvider === 'deepseek' ? 'DeepSeek' :
            aiProvider === 'kimi' ? 'Kimi' : t('settings.providers.inactive')}
-        </span>
+          </span>
+        </div>
       </div>
 
       {/* Gemini Free */}

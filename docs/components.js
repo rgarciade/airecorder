@@ -16,6 +16,7 @@ class AppHeader extends HTMLElement {
             <li><a href="index.html#privacidad" data-i18n="navPrivacy">Privacidad</a></li>
             <li><a href="index.html#proveedores" data-i18n="navProviders">Proveedores IA</a></li>
             <li><a href="docs.html" ${currentPath === 'docs.html' ? 'class="active"' : ''} data-i18n="navDocs">Guía IA Local</a></li>
+            <li><a href="wiki.html" ${currentPath === 'wiki.html' ? 'class="active"' : ''} data-i18n="navWiki">Wiki</a></li>
             <li><a href="changelog.html" ${currentPath === 'changelog.html' ? 'class="active"' : ''} data-i18n="navChangelog">Novedades</a></li>
             <li>
               <div class="lang-toggle" role="group" aria-label="Idioma">
@@ -38,6 +39,7 @@ class AppHeader extends HTMLElement {
         <a href="index.html#privacidad" data-i18n="navPrivacy">Privacidad</a>
         <a href="index.html#proveedores" data-i18n="navProviders">Proveedores IA</a>
         <a href="docs.html" data-i18n="navDocs">Guía IA Local</a>
+        <a href="wiki.html" data-i18n="navWiki">Wiki</a>
         <a href="changelog.html" data-i18n="navChangelog">Novedades</a>
         <a href="index.html#descarga" class="nav-cta" data-i18n="navDownload">Descargar</a>
         <div class="lang-toggle">
@@ -48,8 +50,10 @@ class AppHeader extends HTMLElement {
     `;
 
     this.initListeners();
-    // After appending HTML, we must re-run translations if window.TRANSLATIONS exist
-    if (window.setLang) window.setLang(currentLang);
+    // After appending HTML, re-run translations only if the page hasn't already
+    // initialised a language (window.currentLang). This prevents overriding a
+    // language the user just selected before this custom element was connected.
+    if (window.setLang && !window.currentLang) window.setLang(currentLang);
   }
 
   initListeners() {

@@ -53,7 +53,8 @@
     "speakers": "Hablantes",
     "transcriptionQueue": "Cola de\nTranscripción",
     "aiQueue": "Cola\nde IA",
-    "settings": "Ajustes"
+    "settings": "Ajustes",
+    "wiki": "Wiki"
   },
   "home": {
     "defaultMic": "Micrófono por defecto",
@@ -153,6 +154,7 @@
       "permissions": "Permisos y Privacidad",
       "about": "Acerca de AIRecorder"
     },
+    "wikiLink": "Ver en la Wiki",
     "fields": {
       "language": "Idioma",
       "theme": "Tema de la Aplicación",

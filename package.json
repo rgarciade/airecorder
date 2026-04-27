@@ -22,7 +22,8 @@
     "rebuild:win": "electron-rebuild --arch=x64",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run",
+    "web:dev": "npx serve docs -l 3000"
   },
   "build": {
     "appId": "com.airecorder.app",
