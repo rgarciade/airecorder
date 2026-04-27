@@ -1,6 +1,16 @@
-import React, { useState, useEffect } from 'react'
-import { useSelector } from 'react-redux'
-import i18n from './i18n/index.js'
+import React, { useState, useEffect, useCallback } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
+import { startRecording } from './store/recordingSlice'
+import useAutoAnalyze from './hooks/useAutoAnalyze'
+import useAppearance from './hooks/useAppearance'
+import useDatabaseStatus from './hooks/useDatabaseStatus'
+import useQueueManager from './hooks/useQueueManager'
+import useNotificationHandler from './hooks/useNotificationHandler'
+import useNavigation from './hooks/useNavigation'
+import useSession from './hooks/useSession'
+import useMicrophoneActivation from './hooks/useMicrophoneActivation'
+import { MixedAudioRecorder, getSystemMicrophones } from './services/audioService'
+import { getSettings } from './services/settingsService'
 import WhatsNewModal from './components/WhatsNewModal/WhatsNewModal'
 import Home from './pages/Home/Home'
 import RecordingDetailWithTranscription from './pages/RecordingDetail/RecordingDetailWithTranscription';
@@ -9,232 +19,98 @@ import Projects from './pages/Projects/Projects'
 import ProjectDetail from './pages/ProjectDetail/ProjectDetail'
 import TranscriptionQueue from './pages/TranscriptionQueue/TranscriptionQueue'
 import AiQueue from './pages/AiQueue/AiQueue'
+import SpeakersPage from './pages/Speakers/SpeakersPage'
+import SpeakerDetail from './pages/Speakers/SpeakerDetail'
 import RecordingOverlay from './components/RecordingOverlay/RecordingOverlay'
 import Sidebar from './components/Sidebar/Sidebar';
 import Onboarding from './pages/Onboarding/Onboarding';
-import { getSettings, updateSettings } from './services/settingsService';
-import { applyTheme } from './services/themeService';
 import styles from './App.module.css'
 import './App.css'
 
 export default function App() {
-  const [currentView, setCurrentView] = useState('loading') // Cambiado inicial a loading
-  const [selectedRecording, setSelectedRecording] = useState(null)
-  const [selectedProjectId, setSelectedProjectId] = useState(null)
-  const [selectedProject, setSelectedProject] = useState(null)
   const [currentRecorder, setCurrentRecorder] = useState(null)
-  const [refreshTrigger, setRefreshTrigger] = useState(0) // Trigger para refrescar Home
-  const [appSettings, setAppSettings] = useState(null)
-  const [queueCount, setQueueCount] = useState(0)
-  const [queueState, setQueueState] = useState({ active: [], history: [] })
-  const [settingsInitialTab, setSettingsInitialTab] = useState('agents')
-  const [dbFallbackBanner, setDbFallbackBanner] = useState(false)
-  const [showWhatsNew, setShowWhatsNew] = useState(false)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
   const { isRecording } = useSelector((state) => state.recording)
+  const dispatch = useDispatch()
 
-  useEffect(() => {
-    loadAppSettings();
-    loadQueueData();
-    checkDbStatus();
+  const {
+    currentView,
+    setCurrentView,
+    selectedRecording,
+    setSelectedRecording,
+    selectedProjectId,
+    selectedProject,
+    selectedSpeakerId,
+    setSelectedSpeakerId,
+    settingsInitialTab,
+    settingsTargetElement,
+    handleNavigateToRecording,
+    handleNavigateToProject,
+    handleNavigateToSpeaker,
+    handleBack,
+    navigateTo,
+    handleOpenSettings,
+    handleSelectRecording
+  } = useNavigation();
 
-    if (window.electronAPI?.onQueueUpdate) {
-      window.electronAPI.onQueueUpdate((data) => {
-        if (data) {
-          updateQueueState(data);
-        } else {
-          loadQueueData();
-        }
-      });
-    }
-
-    // Listen for notification clicks
-    if (window.electronAPI?.onNotificationClick) {
-      window.electronAPI.onNotificationClick((payload) => {
-        console.log('Notification clicked:', payload);
-        if (payload && payload.recordingId) {
-          handleNavigateToRecording(payload.recordingId);
-        }
-      });
-    }
-
-    // No cleanup for root app listener
-  }, []);
-
-  useEffect(() => {
-    if (appSettings?.fontSize) {
-      document.documentElement.setAttribute('data-font-size', appSettings.fontSize);
+  const onSessionLoaded = useCallback((settings) => {
+    // Solo inicializamos la vista si estamos en 'loading' o es el primer arranque
+    if (settings?.isFirstRun) {
+      setCurrentView('onboarding');
     } else {
-      document.documentElement.setAttribute('data-font-size', 'medium');
+      // Usamos una función de actualización de estado para evitar depender de currentView
+      setCurrentView(prev => (prev === 'loading' ? 'home' : prev));
     }
-  }, [appSettings?.fontSize]);
+  }, [setCurrentView]);
 
-  useEffect(() => {
-    applyTheme(appSettings?.theme || 'system');
-  }, [appSettings?.theme]);
+  const {
+    appSettings,
+    showWhatsNew,
+    setShowWhatsNew,
+    loadAppSettings
+  } = useSession(onSessionLoaded);
 
-  const checkDbStatus = async () => {
-    try {
-      if (window.electronAPI?.getDbStatus) {
-        const status = await window.electronAPI.getDbStatus();
-        if (status?.usingFallback) {
-          setDbFallbackBanner(true);
-        }
-      }
-    } catch (err) {
-      console.error('Error consultando estado de BD:', err);
-    }
-  };
-
-  const loadQueueData = async () => {
-    try {
-      if (window.electronAPI?.getTranscriptionQueue) {
-        const result = await window.electronAPI.getTranscriptionQueue();
-        if (result.success) {
-          updateQueueState(result);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading queue data:', error);
-    }
-  };
-
-  const updateQueueState = (data) => {
-    setQueueState(data);
-    if (data && data.active) {
-      setQueueCount(data.active.length);
-    }
-  };
-
-  const loadAppSettings = async () => {
-    try {
-      const settings = await getSettings();
-      setAppSettings(settings);
-
-      // Tracking: Primer inicio del día
-      if (import.meta.env.VITE_SENTRY_DSN) {
-        const today = new Date().toISOString().split('T')[0];
-        if (settings.lastLoginDate !== today) {
-          if (window.electronAPI && window.electronAPI.sentryLogInfo) {
-            window.electronAPI.sentryLogInfo('Usuario ha entrado en la app (Daily Login)');
-          }
-          // Actualizamos el settings de forma asíncrona pero sin bloquear la carga principal
-          updateSettings({ lastLoginDate: today }).catch(err => console.error(err));
-        }
-      }
-      
-      // Tracking: Actualización de versión
-      if (window.electronAPI?.getAppVersion) {
-        const r = await window.electronAPI.getAppVersion();
-        if (r?.success) {
-          const currentVersion = r.version;
-          const isVersionChange = settings.lastVersion && settings.lastVersion !== currentVersion;
-
-          if (isVersionChange) {
-            if (import.meta.env.VITE_SENTRY_DSN) {
-              if (window.electronAPI && window.electronAPI.sentryLogInfo) {
-                window.electronAPI.sentryLogInfo(`App actualizada: de v${settings.lastVersion} a v${currentVersion}`);
-              }
-            }
-          }
-          if (settings.lastVersion !== currentVersion) {
-            await updateSettings({ lastVersion: currentVersion });
-          }
-
-          // Mostrar "Novedades" en dev siempre, o en producción cuando hay cambio de versión
-          if (!settings.isFirstRun) {
-            if (import.meta.env.DEV || isVersionChange) {
-              setShowWhatsNew(true);
-            }
-          }
-        }
-      }
-
-      // Aplicar idioma de interfaz
-      if (settings.uiLanguage) {
-        i18n.changeLanguage(settings.uiLanguage);
-      } else if (settings.isFirstRun && window.electronAPI?.getSystemLanguage) {
-        // Primera ejecución: detectar idioma del SO
-        try {
-          const systemLang = await window.electronAPI.getSystemLanguage();
-          i18n.changeLanguage(systemLang);
-          updateSettings({ uiLanguage: systemLang }).catch(err => console.error('Error guardando uiLanguage:', err));
-        } catch (err) {
-          console.error('Error detectando idioma del sistema:', err);
-        }
-      }
-
-      // Check onboarding
-      if (settings.isFirstRun) {
-        setCurrentView('onboarding');
-      } else if (currentView === 'loading') {
-        setCurrentView('home');
-      }
-    } catch (error) {
-      console.error('Error loading app settings:', error);
-      // Fallback
-      if (currentView === 'loading') setCurrentView('home');
-    }
-  };
+  // Hooks de lógica desacoplada
+  useAutoAnalyze();
+  useAppearance(appSettings);
+  const { queueCount, queueState, loadQueueData } = useQueueManager();
+  const { dbFallbackBanner } = useDatabaseStatus();
+  useNotificationHandler(handleNavigateToRecording);
 
   const handleOnboardingComplete = () => {
     loadAppSettings().then(() => {
-        setCurrentView('home');
+      setCurrentView('home');
     });
-  };
-
-  const handleBack = () => {
-    if (currentView === 'recording-detail' && selectedProject) {
-      setCurrentView('project-detail');
-      setSelectedRecording(null);
-    } else {
-      setCurrentView('home')
-      setSelectedRecording(null)
-      setSelectedProjectId(null)
-      setSelectedProject(null)
-    }
-  }
-
-  const handleNavigateToProject = (project) => {
-    setSelectedProjectId(project.id)
-    setCurrentView('projects')
-  }
-
-  const handleProjectDetail = (project) => {
-    setSelectedProject(project)
-    setCurrentView('project-detail')
-  }
-
-  const handleNavigateToRecording = async (recordingId, timestamp = null) => {
-    try {
-      // Intentar obtener todas las grabaciones para encontrar la que coincide
-      const { default: recordingsService } = await import('./services/recordingsService');
-      const recordings = await recordingsService.getRecordings();
-      
-      // Buscar por dbId o por id (dependiendo de cómo se maneje en el servicio)
-      const recording = recordings.find(r => r.dbId === recordingId || r.id === recordingId || r.name === recordingId);
-      
-      if (recording) {
-        // Guardar el contexto de origen para poder volver (ej: desde chat de proyecto)
-        const originView = currentView;
-        const originProject = selectedProject;
-        setSelectedRecording({
-          ...recording,
-          initialTimestamp: timestamp || null,
-          originView: originView !== 'recording-detail' ? originView : null,
-          originProject: originView === 'project-detail' ? originProject : null,
-        });
-        setCurrentView('recording-detail');
-      } else {
-        console.error('No se pudo encontrar la grabación con ID:', recordingId);
-      }
-    } catch (error) {
-      console.error('Error navegando a la grabación:', error);
-    }
   };
 
   const handleRecordingStart = (recorder) => {
     setCurrentRecorder(recorder)
   }
+
+  const handleStartRecordingFromNotification = useCallback(async () => {
+    if (isRecording) return;
+    try {
+      const settings = await getSettings();
+      const devices = await getSystemMicrophones();
+      const micId = settings?.microphone || devices[0]?.value;
+      if (!micId) {
+        console.error('[App] No se encontró micrófono para iniciar grabación desde notificación');
+        return;
+      }
+      const recorder = new MixedAudioRecorder();
+      await recorder.startMixedRecording(micId, null);
+      dispatch(startRecording());
+      setCurrentRecorder(recorder);
+    } catch (err) {
+      console.error('[App] Error iniciando grabación desde notificación:', err.message || err);
+      // Re-lanzar para que el hook pueda mostrar feedback si se necesita
+    }
+  }, [isRecording, dispatch]);
+
+  useMicrophoneActivation({
+    onStartRecording: handleStartRecordingFromNotification,
+    isRecording,
+  });
 
   return (
     <div className={styles.appContainer} data-font-size={appSettings?.fontSize || 'medium'}>
@@ -270,7 +146,18 @@ export default function App() {
       )}
 
       {currentView !== 'onboarding' && (
-        <Sidebar currentView={currentView} onViewChange={setCurrentView} queueCount={queueCount} />
+        <Sidebar 
+          currentView={currentView} 
+          onViewChange={(view) => {
+            if (view === 'settings') {
+              handleOpenSettings('agents');
+            } else {
+              navigateTo(view);
+            }
+          }} 
+          queueCount={queueCount}
+          diarizationEnabled={appSettings?.enableDiarization ?? false}
+        />
       )}
       
       <div className={`${styles.mainContent} ${currentView !== 'onboarding' ? styles.mainContentWithSidebar : ''}`}>
@@ -279,45 +166,35 @@ export default function App() {
         )}
         {currentView === 'home' && (
           <Home
-            onSettings={(tab = 'agents') => {
-              setSettingsInitialTab(tab);
-              setCurrentView('settings');
-            }}
-            onProjects={() => setCurrentView('projects')}
+            onSettings={handleOpenSettings}
+            onProjects={() => navigateTo('projects')}
             onRecordingStart={handleRecordingStart}
-            onRecordingSelect={(recording) => {
-              setSelectedRecording(recording);
-              setCurrentView('recording-detail');
-            }}
+            onRecordingSelect={handleSelectRecording}
             onNavigateToProject={handleNavigateToProject}
             refreshTrigger={refreshTrigger}
           />
         )}
         {currentView === 'settings' && (
-          <Settings 
-            onBack={handleBack} 
-            onSettingsSaved={loadAppSettings} 
-            initialTab={settingsInitialTab} 
+          <Settings
+            key={`${settingsInitialTab}-${settingsTargetElement}`}
+            onBack={handleBack}
+            onSettingsSaved={loadAppSettings}
+            initialTab={settingsInitialTab}
+            targetElement={settingsTargetElement}
           />
         )}
         {currentView === 'projects' && (
           <Projects 
             onBack={handleBack} 
             initialProjectId={selectedProjectId}
-            onProjectDetail={handleProjectDetail}
-            onRecordingSelect={(recording) => {
-              setSelectedRecording(recording);
-              setCurrentView('recording-detail');
-            }}
+            onProjectDetail={handleNavigateToProject}
+            onRecordingSelect={handleSelectRecording}
           />
         )}
         {currentView === 'project-detail' && selectedProject && (
           <ProjectDetail 
             project={selectedProject} 
-            onBack={() => {
-              setCurrentView('projects');
-              setSelectedProject(null);
-            }}
+            onBack={handleBack}
             onNavigateToRecording={handleNavigateToRecording}
           />
         )}
@@ -325,7 +202,7 @@ export default function App() {
           <RecordingDetailWithTranscription 
             recording={selectedRecording} 
             onBack={handleBack}
-            onNavigateToProject={handleProjectDetail}
+            onNavigateToProject={handleNavigateToProject}
           />
         )}
         {currentView === 'queue' && (
@@ -336,7 +213,22 @@ export default function App() {
           />
         )}
         {currentView === 'ai-queue' && (
-          <AiQueue />
+          <AiQueue onBack={handleBack} onNavigateToRecording={handleNavigateToRecording} />
+        )}
+        {currentView === 'speakers' && (
+          <SpeakersPage
+            onNavigateToSpeaker={handleNavigateToSpeaker}
+            onNavigateToSettings={() => handleOpenSettings('general', 'diarization-settings')}
+            diarizationEnabled={appSettings?.enableDiarization ?? false}
+          />
+        )}
+        {currentView === 'speaker-detail' && selectedSpeakerId && (
+          <SpeakerDetail
+            speakerId={selectedSpeakerId}
+            onBack={handleBack}
+            onNavigateToRecording={handleNavigateToRecording}
+            onNavigateToSpeaker={handleNavigateToSpeaker}
+          />
         )}
       </div>
       

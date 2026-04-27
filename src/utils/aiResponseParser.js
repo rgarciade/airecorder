@@ -39,6 +39,22 @@ export function cleanAiResponse(text) {
 }
 
 /**
+ * Normaliza artefactos de formato que algunos modelos insertan en texto libre.
+ * Se usa en resúmenes para evitar secuencias LaTeX visibles en la UI.
+ * @param {string} text - Texto generado por la IA
+ * @returns {string} Texto normalizado
+ */
+export function normalizeAiSummaryText(text) {
+  if (!text || typeof text !== 'string') return text || '';
+
+  return text
+    .replace(/\$\s*\\rightarrow\s*\$/g, '→')
+    .replace(/\$\s*\\to\s*\$/g, '→')
+    .replace(/\$\s*\\Rightarrow\s*\$/g, '⇒')
+    .replace(/\$\s*\\implies\s*\$/g, '⇒');
+}
+
+/**
  * Extrae y parsea un array JSON de una respuesta de IA.
  * Usa tracking de profundidad de corchetes para encontrar el primer array JSON
  * válido y no-vacío, ignorando corchetes que formen parte del texto (ej: timestamps

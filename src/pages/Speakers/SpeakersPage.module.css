@@ -1,0 +1,683 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-text, #1a1a2e);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.searchWrapper {
+  flex: 1;
+  position: relative;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: var(--color-bg-input, #ffffff);
+  color: var(--color-text, #1a1a2e);
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.searchInput:focus {
+  border-color: var(--color-primary, #6366f1);
+}
+
+/* Botón "Fusionar hablantes" en el header */
+.mergePageBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border: 1px solid var(--color-primary, #6366f1);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-primary, #6366f1);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background-color 0.15s, color 0.15s, transform 0.15s;
+}
+
+.mergePageBtn:hover {
+  background: var(--color-primary, #6366f1);
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Banner de estado (éxito/error tras fusión) */
+.mergeStatusBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.mergeStatusSuccess {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.mergeStatusError {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.loading {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--color-text-secondary, #64748b);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.emptyIcon {
+  color: var(--color-text-muted, #94a3b8);
+  margin-bottom: 16px;
+}
+
+.emptyText {
+  color: var(--color-text-secondary, #64748b);
+  font-size: 0.95rem;
+  max-width: 320px;
+}
+
+.settingsButton {
+  margin-top: 16px;
+  padding: 10px 24px;
+  border: 1px solid var(--color-primary, #6366f1);
+  border-radius: 8px;
+  background: var(--color-primary, #6366f1);
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.15s;
+}
+
+.settingsButton:hover {
+  background: var(--color-primary-dark, #4f46e5);
+  transform: translateY(-1px);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.speakerCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 10px;
+  background: var(--color-bg-card, #ffffff);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.speakerCard:hover {
+  background: var(--color-bg-hover, #f8fafc);
+  border-color: var(--color-primary, #6366f1);
+  transform: translateY(-1px);
+}
+
+.speakerAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-primary, #6366f1);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.speakerInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.speakerName {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text, #1a1a2e);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.speakerStats {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary, #64748b);
+}
+
+.speakerArrow {
+  color: var(--color-text-muted, #94a3b8);
+  flex-shrink: 0;
+}
+
+/* Paginación */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border, #e2e8f0);
+}
+
+.paginationBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 6px;
+  background: var(--color-bg-card, #ffffff);
+  color: var(--color-text-secondary, #64748b);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.paginationBtn:hover:not(:disabled) {
+  background: var(--color-bg-hover, #f8fafc);
+  color: var(--color-text, #1a1a2e);
+  border-color: var(--color-primary, #6366f1);
+}
+
+.paginationBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.paginationPages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.paginationPage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-secondary, #64748b);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.paginationPage:hover {
+  background: var(--color-bg-hover, #f8fafc);
+  color: var(--color-text, #1a1a2e);
+}
+
+.paginationPageActive {
+  background: var(--color-primary, #6366f1);
+  color: white;
+  border-color: var(--color-primary, #6366f1);
+}
+
+.paginationPageActive:hover {
+  background: var(--color-primary-dark, #4f46e5);
+}
+
+/* ============================================================
+   MODAL DE FUSIÓN
+   ============================================================ */
+
+.mergeOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: overlayIn 0.15s ease-out;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.mergeModal {
+  background: var(--color-bg-card, #ffffff);
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 480px;
+  animation: modalIn 0.2s ease-out;
+  overflow: visible;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.mergeModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--color-border, #e2e8f0);
+}
+
+.mergeModalTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-text, #1a1a2e);
+}
+
+.mergeModalClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-secondary, #64748b);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.mergeModalClose:hover {
+  background: var(--color-bg-hover, #f1f5f9);
+  color: var(--color-text, #1a1a2e);
+}
+
+.mergeModalClose:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.mergeModalBody {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mergeModalDesc {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #64748b);
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+/* Campo de selección (origen / destino) */
+.mergeField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mergeFieldLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Dropdown personalizado */
+.mergeDropdownWrapper {
+  position: relative;
+}
+
+.mergeDropdownTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 8px;
+  background: var(--color-bg-input, #ffffff);
+  color: var(--color-text, #1a1a2e);
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s;
+  gap: 8px;
+}
+
+.mergeDropdownTrigger:hover,
+.mergeDropdownSelected {
+  border-color: var(--color-primary, #6366f1);
+}
+
+.mergeDropdownPlaceholder {
+  color: var(--color-text-muted, #94a3b8);
+  flex: 1;
+}
+
+.mergeDropdownSelectedName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.mergeDropdownAvatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-primary, #6366f1);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.mergeDropdownPanel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--color-bg-card, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 10;
+  overflow: hidden;
+  animation: dropdownIn 0.1s ease-out;
+}
+
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.mergeDropdownSearch {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  background: var(--color-bg-input, #ffffff);
+  color: var(--color-text, #1a1a2e);
+  font-size: 0.875rem;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.mergeDropdownList {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.mergeDropdownEmpty {
+  padding: 12px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #94a3b8);
+}
+
+.mergeDropdownOption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+
+.mergeDropdownOption:hover {
+  background: var(--color-bg-hover, #f8fafc);
+}
+
+.mergeDropdownOptionActive {
+  background: color-mix(in srgb, var(--color-primary, #6366f1) 10%, transparent);
+}
+
+.mergeDropdownOptionActive:hover {
+  background: color-mix(in srgb, var(--color-primary, #6366f1) 15%, transparent);
+}
+
+.mergeDropdownOptionDisabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.mergeDropdownOptionAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-text-secondary, #64748b);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.mergeDropdownOptionInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.mergeDropdownOptionName {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text, #1a1a2e);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mergeDropdownOptionMeta {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #64748b);
+}
+
+.mergeDropdownOptionTag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-primary, #6366f1) 15%, transparent);
+  color: var(--color-primary, #6366f1);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Flecha visual entre origen y destino */
+.mergeArrowRow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--color-text-muted, #94a3b8);
+  margin: 8px 0;
+}
+
+/* Vista previa de la fusión */
+.mergePreview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-primary, #6366f1) 8%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--color-primary, #6366f1) 40%, transparent);
+  margin-top: 12px;
+  color: var(--color-text-secondary, #64748b);
+  font-size: 0.85rem;
+}
+
+.mergePreviewSource {
+  font-weight: 600;
+  color: var(--color-text, #1a1a2e);
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mergePreviewTarget {
+  font-weight: 700;
+  color: var(--color-primary, #6366f1);
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Error de validación en el modal */
+.mergeModalError {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  font-size: 0.83rem;
+  font-weight: 500;
+}
+
+/* Footer del modal */
+.mergeModalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--color-border, #e2e8f0);
+  background: var(--color-bg-secondary, #f8fafc);
+}
+
+.mergeModalCancelBtn {
+  padding: 9px 18px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-secondary, #64748b);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.mergeModalCancelBtn:hover:not(:disabled) {
+  background: var(--color-bg-hover, #f1f5f9);
+  color: var(--color-text, #1a1a2e);
+}
+
+.mergeModalCancelBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mergeModalConfirmBtn {
+  padding: 9px 18px;
+  border: none;
+  border-radius: 8px;
+  background: var(--color-primary, #6366f1);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, transform 0.1s, opacity 0.15s;
+}
+
+.mergeModalConfirmBtn:hover:not(:disabled) {
+  background: var(--color-primary-dark, #4f46e5);
+  transform: translateY(-1px);
+}
+
+.mergeModalConfirmBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}

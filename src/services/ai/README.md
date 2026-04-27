@@ -32,11 +32,18 @@ Cada tarea tiene su propio par de funciones en `aiPrompts.js`:
 | `participantsPrompt(lang)` + `participantsPromptSuffix` | System | Instrucciones para extracción de participantes |
 | `taskSuggestionsPrompt(lang)` + `taskSuggestionsPromptSuffix` | System | Instrucciones para sugerencias de tareas |
 | `taskImprovementSystemPrompt(lang)` | System | Instrucciones para mejorar una tarea |
-| `taskImprovementUserContent(title, content, context)` | User | Tarea + contexto a mejorar |
+| `taskImprovementUserContent(title, content, context, userInstructions)` | User | Tarea + instrucciones del usuario + contexto a mejorar |
 | `projectAnalysisSystemPrompt(lang)` | System | Instrucciones para análisis de proyecto |
 | `chatSystemPrompt(transcription, lang, docContext)` | System | System prompt del chat interactivo (incluye instrucciones de timestamps `[TS: \| MM:SS]`) |
+| `conversationNormalizationPrompt(rawContent)` | Full Prompt | Normaliza un transcript crudo (cualquier formato) al JSON canónico de segmentos para importación de conversaciones |
 
 El contenido de usuario (transcripción, resumen, etc.) siempre se pasa **por separado** como segundo argumento de `_callAiProvider` o como `prompt` en `callProvider` con `options.systemPrompt`.
+
+> **Nota sobre `conversationNormalizationPrompt`:** A diferencia de los demás prompts de esta tabla, este es un prompt completo (instrucciones + contenido en un único string). No usa la separación System/User — el `rawContent` ya va embebido dentro del mismo prompt. El formato de salida esperado es:
+> ```json
+> { "segments": [{ "id": 0, "start": 0.0, "end": 3.0, "speaker": "Nombre", "text": "...", "source": "conversation-import" }] }
+> ```
+> Si `JSON.parse` falla en el caller (`handleImportConversation` en `Home.jsx`), se usa un segmento de fallback con el texto crudo completo. El campo `source: "conversation-import"` distingue estos segmentos de los generados por Whisper.
 
 ### Reglas Críticas al Modificar Prompts
 1.  **Idioma dinámico:** Usar `langName(lang)` para que el idioma respete la configuración del usuario.
@@ -44,6 +51,7 @@ El contenido de usuario (transcripción, resumen, etc.) siempre se pasa **por se
     `--|-- N --|-- texto del punto`
     *(Cualquier alteración romperá el parsing de la UI).*
 3.  **JSON estricto:** Para prompts que devuelven JSON, indicar explícitamente que no incluya markdown ni bloques de código.
+4.  **Sin LaTeX en resúmenes:** Los prompts de resumen deben pedir texto Markdown plano, sin notación matemática inline como `$\\rightarrow$`.
 
 ## 3. Dos Paradigmas de IA — Análisis vs. Chat
 

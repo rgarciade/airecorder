@@ -933,9 +933,11 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                     {isRegenerating ? 'Regenerando...' : 'Regenerar'}
                   </button>
                 </div>
-                <p className={styles.projectSummary}>
-                  {projectSummary?.resumen_breve || 'Cargando resumen del proyecto...'}
-                </p>
+                <div className={styles.projectSummary}>
+                  <ReactMarkdown>
+                    {projectSummary?.resumen_breve || 'Cargando resumen del proyecto...'}
+                  </ReactMarkdown>
+                </div>
               </div>
 
               {/* Highlights de las Últimas N Reuniones */}

@@ -69,12 +69,16 @@
 }
 
 .maxWidthContainer {
-  max-width: 48rem; /* max-w-3xl */
+  max-width: 64rem; /* max-w-3xl */
   margin: 0 auto;
 }
 
 .pageHeader {
   margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .pageTitle {
@@ -393,7 +397,7 @@
 }
 
 .footerContent {
-  max-width: 48rem;
+  max-width: 64rem;
   margin: 0 auto;
   display: flex;
   justify-content: flex-end;

@@ -1,0 +1,432 @@
+/* MergeSpeakersModal.module.css */
+
+/* ── Overlay ─────────────────────────────────────────────────────────────────── */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  backdrop-filter: blur(2px);
+}
+
+/* ── Modal ───────────────────────────────────────────────────────────────────── */
+
+.modal {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(-8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem 1rem;
+  border-bottom: 1px solid var(--color-border-secondary);
+  border-radius: 12px 12px 0 0;
+  background: var(--color-bg-primary);
+}
+
+.title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: var(--color-text-tertiary);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.closeBtn:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+/* ── Body ────────────────────────────────────────────────────────────────────── */
+
+.body {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.description {
+  font-size: 0.875rem;
+  color: var(--color-text-tertiary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sectionLabel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Lista de hablantes ──────────────────────────────────────────────────────── */
+
+.speakerList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 8px;
+  background: var(--color-bg-secondary);
+  padding: 4px;
+}
+
+.speakerItem {
+  border-radius: 6px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.1s ease;
+}
+
+.checkboxLabel:hover {
+  background: var(--color-bg-tertiary);
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.speakerName {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  flex: 1;
+}
+
+.speakerEphemeral {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+  font-family: monospace;
+  background: var(--color-bg-tertiary);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* ── Combobox nombre unificado ───────────────────────────────────────────────── */
+
+.comboboxWrapper {
+  position: relative;
+}
+
+.comboboxInput {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 4px 8px 4px 12px;
+  background: var(--color-bg-secondary);
+  border: 1.5px solid var(--color-border-secondary);
+  border-radius: 8px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.comboboxInput:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-bg);
+}
+
+.comboboxInputSelected {
+  border-color: var(--color-primary);
+  background: var(--color-bg-secondary);
+}
+
+.comboboxInputDisabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Input de texto libre dentro del combobox */
+.comboboxTextInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.925rem;
+  color: var(--color-text-primary);
+  padding: 4px 0;
+}
+
+.comboboxTextInput::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+/* Badge "Nuevo" cuando se escribe texto libre */
+.newBadge {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+/* Badge de hablante existente seleccionado */
+.selectedBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.selectedBadgeIcon {
+  color: var(--color-primary);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.selectedBadgeName {
+  font-size: 0.925rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selectedBadgeTag {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-success, #16a34a);
+  background: rgba(22, 163, 74, 0.1);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+/* Botón para limpiar selección */
+.comboboxClearBtn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--color-text-tertiary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+.comboboxClearBtn:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+/* ── Dropdown del combobox ───────────────────────────────────────────────────── */
+
+.comboboxDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 8px;
+  padding: 4px 0;
+  margin: 0;
+  list-style: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.dropdownGroupLabel {
+  padding: 6px 12px 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+  outline: none;
+}
+
+.dropdownItem:hover,
+.dropdownItem:focus {
+  background: var(--color-bg-tertiary);
+}
+
+.dropdownItemName {
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdownItemTag {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Fila especial "Crear nuevo" */
+.dropdownItemNew {
+  border-top: 1px solid var(--color-border-secondary);
+  margin-top: 2px;
+}
+
+.dropdownItemNew .dropdownItemName {
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.dropdownItemNewTag {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.dropdownEmpty {
+  padding: 12px;
+  font-size: 0.825rem;
+  color: var(--color-text-tertiary);
+  text-align: center;
+  pointer-events: none;
+}
+
+/* ── Mensaje de error ────────────────────────────────────────────────────────── */
+
+.errorMsg {
+  font-size: 0.85rem;
+  color: var(--color-danger);
+  margin: 0;
+  padding: 8px 12px;
+  background: rgba(var(--color-danger-rgb, 239, 68, 68), 0.08);
+  border-radius: 6px;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────────── */
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--color-border-secondary);
+  border-radius: 0 0 12px 12px;
+  background: var(--color-bg-primary);
+}
+
+.cancelBtn,
+.confirmBtn {
+  padding: 9px 18px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.cancelBtn {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+}
+
+.cancelBtn:hover:not(:disabled) {
+  background: var(--color-border-secondary);
+  color: var(--color-text-primary);
+}
+
+.confirmBtn {
+  background: var(--color-primary);
+  color: white;
+}
+
+.confirmBtn:hover:not(:disabled) {
+  background: var(--color-primary-hover, var(--color-primary));
+  filter: brightness(1.1);
+}
+
+.confirmBtn:disabled,
+.cancelBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

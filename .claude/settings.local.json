@@ -9,7 +9,12 @@
       "Bash(./node_modules/.bin/electron-rebuild -f -w better-sqlite3)",
       "Bash(npm rebuild:*)",
       "Bash(pip install:*)",
-      "Bash(npx electron-icon-builder:*)"
+      "Bash(npx electron-icon-builder:*)",
+      "mcp__plugin_engram_engram__mem_search",
+      "mcp__Claude_Preview__preview_start",
+      "mcp__plugin_engram_engram__mem_save",
+      "Bash(system_profiler SPCameraDataType)",
+      "Bash(awk '/C920|0x46d|UVC Camera/{p=NR+30} p && NR<=p')"
     ]
   }
 }

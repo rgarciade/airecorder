@@ -17,7 +17,8 @@
     "send": "Enviar",
     "sending": "Enviando...",
     "saveChanges": "Guardar Cambios",
-    "reportBug": "Reportar un error"
+    "reportBug": "Reportar un error",
+    "quickSummary": "Resumen rápido"
   },
   "contextBar": {
     "context": "Contexto",
@@ -49,9 +50,11 @@
   "sidebar": {
     "home": "Inicio",
     "projects": "Proyectos",
+    "speakers": "Hablantes",
     "transcriptionQueue": "Cola de\nTranscripción",
     "aiQueue": "Cola\nde IA",
-    "settings": "Ajustes"
+    "settings": "Ajustes",
+    "wiki": "Wiki"
   },
   "home": {
     "defaultMic": "Micrófono por defecto",
@@ -73,6 +76,7 @@
     "errorTranscribing": "Error iniciando transcripción: {{error}}",
     "errorImporting": "Error importando la transcripción: {{error}}",
     "errorImportingAudio": "Error importando audio: {{error}}",
+    "errorImportingConversation": "Error al importar la conversación",
     "importAudio": {
       "title": "Importar audio",
       "description": "El audio ha sido importado con éxito. Puedes renombrarlo antes de iniciar la transcripción.",
@@ -80,6 +84,14 @@
       "namePlaceholder": "Nombre",
       "cancel": "Cancelar",
       "startTranscription": "Iniciar transcripción"
+    },
+    "importConversation": {
+      "title": "Importar conversación externa",
+      "largeFileWarning": "El archivo supera los 50KB. Puede que la IA no pueda procesarlo completo. ¿Deseas continuar?",
+      "noSegments": "No se pudieron extraer segmentos de la conversación. Verifica que el archivo contenga una conversación válida.",
+      "noProvider": "No hay proveedor de IA configurado. Configura uno en Ajustes antes de importar.",
+      "processing": "Normalizando conversación con IA...",
+      "success": "Conversación importada correctamente"
     }
   },
   "recordButton": {
@@ -114,7 +126,11 @@
     "change": "Cambiar",
     "saving": "Guardando archivos...",
     "stopping": "Deteniendo grabación...",
-    "saveAndExit": "Guardar y Salir"
+    "saveAndExit": "Guardar y Salir",
+    "mute": "Silenciar",
+    "unmute": "Activar micro",
+    "extraInstructions": "Instrucciones y Contexto (opcional)",
+    "extraInstructionsPlaceholder": "Ej: Reunión de planificación del sprint con el equipo frontend. Foco en decisiones técnicas y asignación de tareas..."
   },
   "settings": {
     "title": "Ajustes de AIRecorder",
@@ -123,6 +139,7 @@
     "tabs": {
       "agents": "Agentes de IA",
       "general": "General",
+      "experts": "Expertos",
       "integrations": "Integraciones"
     },
     "sections": {
@@ -137,6 +154,7 @@
       "permissions": "Permisos y Privacidad",
       "about": "Acerca de AIRecorder"
     },
+    "wikiLink": "Ver en la Wiki",
     "fields": {
       "language": "Idioma",
       "theme": "Tema de la Aplicación",
@@ -251,6 +269,14 @@
         "title": "Notificaciones de Escritorio",
         "desc": "Mostrar notificaciones nativas al completar tareas"
       },
+      "autoTranscribe": {
+        "title": "Transcripción Automática",
+        "desc": "Iniciar transcripción automáticamente al guardar una grabación"
+      },
+      "autoAnalyze": {
+        "title": "Análisis IA Automático",
+        "desc": "Generar resúmenes e insights con IA al terminar la transcripción"
+      },
       "devTools": {
         "title": "Herramientas de Desarrollo",
         "desc": "Abrir consola de depuración de Chromium"
@@ -266,6 +292,11 @@
       "updates": {
         "title": "Actualizaciones",
         "testDev": "Probar Update (Dev)"
+      },
+      "kofi": {
+        "title": "Apoya el proyecto",
+        "desc": "AIRecorder es gratuito y de código abierto. Si te resulta útil, considera apoyar su desarrollo.",
+        "btn": "☕ Apoya en Ko-fi"
       },
       "directoryNotSupported": "La selección de directorio no está soportada en este entorno",
       "changeDbTitle": "Cambiar ruta de la base de datos",
@@ -445,6 +476,35 @@
     "unassign": "Desasignar",
     "page": "Página {{current}} de {{total}}"
   },
+  "recordingDetail": {
+    "overview": {
+      "detailedSummary": "Resumen Detallado",
+      "notesAndInstructions": "Notas e Instrucciones",
+      "edit": "Editar",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "placeholder": "Añade contexto sobre esta grabación: tema, participantes clave, objetivos...",
+      "noInstructions": "Sin instrucciones adicionales. Haz clic en Editar para añadir contexto.",
+      "keyHighlights": "Puntos Clave",
+      "noHighlights": "No hay puntos clave disponibles.",
+      "participants": "Participantes",
+      "analyzing": "Analizando grabación...",
+      "waitingAnalysis": "Esperando análisis",
+      "aiExtracting": "La IA está extrayendo información, resúmenes y participantes.",
+      "analysisPending": "Análisis pendiente o no disponible.",
+      "noTranscription": "Aún no hay transcripción",
+      "noTranscriptionDesc": "La inteligencia artificial necesita la transcripción para poder generar el resumen y los temas clave."
+    }
+  },
+  "participantsList": {
+    "title": "Participantes",
+    "add": "Añadir",
+    "name": "Nombre",
+    "role": "Rol",
+    "noParticipants": "No se detectaron participantes.",
+    "aiSuggested": "IA",
+    "aiSuggestedTooltip": "Sugerido por IA"
+  },
   "newSessionCard": {
     "title": "Nueva Sesión",
     "description": "Empieza a grabar al instante. La IA se encargará de la transcripción, resumen y extracción de puntos clave automáticamente.",
@@ -453,7 +513,11 @@
     "aiPowered": "POTENCIADO POR IA",
     "start": "INICIAR",
     "teams": "Teams",
-    "audio": "Audio"
+    "audio": "Audio",
+    "importConversation": "Importar con IA",
+    "importConversationDescription": "Sube archivos de texto, srt o vtt. La IA normalizará el formato automáticamente.",
+    "importTeamsDescription": "Importa transcripciones de Microsoft Teams (.docx).",
+    "importAudioDescription": "Sube archivos de audio (mp3, wav, ogg...) para transcribir."
   },
   "statsRow": {
     "thisWeek": "Esta Semana",
@@ -464,6 +528,7 @@
   "recordingCard": {
     "transcribing": "Transcribiendo ({{progress}}%)",
     "queued": "En cola",
+    "analyzing": "Analizando con IA...",
     "needsAnalysis": "Necesita Análisis IA",
     "analyzed": "Analizado",
     "recorded": "Grabado",
@@ -652,6 +717,125 @@
       "nextStep": "Continuar a la configuración",
       "noInstallTitle": "¿No tienes nada instalado?",
       "noInstallDesc": "Recomendamos pausar un momento, seguir nuestra guía e instalar Ollama antes de continuar."
+    }
+  },
+  "speakers": {
+    "title": "Hablantes",
+    "searchPlaceholder": "Buscar hablantes...",
+    "disabled": "Diarización desactivada",
+    "disabledDesc": "Activa la diarización en Ajustes para identificar y gestionar hablantes.",
+    "emptyState": "Aún no hay hablantes identificados. Graba y transcribe reuniones para empezar.",
+    "noResults": "Sin resultados",
+    "unknown": "Desconocido",
+    "recordings": "grabaciones",
+    "embeddings": "embeddings",
+    "goToSettings": "Ir a Ajustes",
+    "mergeBtn": "Fusionar hablantes",
+    "mergeModalTitle": "Fusionar hablantes",
+    "mergeModalDesc": "Selecciona el hablante origen (se eliminará) y el destino (conservará los datos de ambos).",
+    "mergeSourceLabel": "Hablante origen",
+    "mergeSourcePlaceholder": "Selecciona el hablante a fusionar...",
+    "mergeTargetLabel": "Hablante destino",
+    "mergeTargetPlaceholder": "Selecciona el hablante que recibirá los datos...",
+    "mergeConfirm": "¿Fusionar \"{{source}}\" en \"{{target}}\"?",
+    "mergeConfirmDesc": "Se reasignarán todas las grabaciones y embeddings. El hablante \"{{source}}\" se eliminará permanentemente.",
+    "mergeSuccess": "\"{{source}}\" fusionado en \"{{target}}\"",
+    "mergeError": "Error al fusionar: {{error}}",
+    "sameSpeakerError": "El origen y el destino no pueden ser el mismo hablante",
+    "selectBothError": "Selecciona ambos hablantes para continuar",
+    "prevPage": "Página anterior",
+    "nextPage": "Página siguiente",
+    "page": "Página"
+  },
+  "speakerDetail": {
+    "title": "Detalle del Hablante",
+    "back": "Volver a Hablantes",
+    "recordings": "Grabaciones",
+    "recordingsList": "Grabaciones",
+    "noRecordings": "Este hablante no aparece en ninguna grabación.",
+    "embeddings": "Embeddings",
+    "notFound": "Hablante no encontrado",
+    "notFoundDesc": "El hablante pudo haber sido eliminado.",
+    "openRecording": "Abrir grabación",
+    "totalRecordings": "Total de grabaciones",
+    "totalEmbeddings": "Total de embeddings",
+    "createdAt": "Registrado el",
+    "similarSpeakers": "Hablantes similares",
+    "similarity": "similitud",
+    "mergeTooltip": "Fusionar en este hablante",
+    "mergeConfirm": "¿Fusionar \"{{source}}\" en \"{{target}}\"?\n\nSe reasignarán todas las grabaciones y embeddings.",
+    "mergeConfirmRich": "¿Fusionar <strong>\"{{source}}\"</strong> en <strong>\"{{target}}\"</strong>?<br/><br/>Se reasignarán todas las grabaciones y embeddings.",
+    "mergeSuccess": "\"{{source}}\" fusionado en \"{{target}}\"",
+    "mergeError": "Error al fusionar: {{error}}",
+    "mergeModalTitle": "Fusionar hablante",
+    "mergeBtn": "Fusionar",
+    "deleteEmbedding": "Eliminar relación",
+    "deleteEmbeddingTitle": "Eliminar relación",
+    "deleteEmbeddingConfirm": "¿Eliminar la relación con \"{{recording}}\"? Esto eliminará el embedding y la asociación del hablante con esa grabación.",
+    "deleteEmbeddingBtn": "Eliminar",
+    "recordingRemoved": "Relación eliminada con \"{{recording}}\"",
+    "recordingRemoveError": "Error al eliminar relación: {{error}}"
+  },
+  "experts": {
+    "active": "Activo",
+    "activate": "Activar",
+    "save": "Guardar cambios",
+    "saved": "Guardado",
+    "resetToDefault": "Restaurar original",
+    "clear": "Limpiar",
+    "sections": {
+      "mode": {
+        "title": "Modo de Especialidad",
+        "description": "Seleccioná cómo querés que la IA interprete y procese las grabaciones. El modo activo afecta todos los resúmenes, puntos clave, tareas y el chat."
+      },
+      "customize": {
+        "title": "Personalizar: {{expert}}",
+        "description": "Configurá instrucciones extra que se inyectarán con máxima prioridad en cada funcionalidad. Dejar vacío usa el comportamiento estándar del experto."
+      }
+    },
+    "general": {
+      "name": "General",
+      "description": "Sin especialidad fija. Neutral y adaptable a cualquier tipo de conversación o contexto profesional."
+    },
+    "developer": {
+      "name": "Programador",
+      "description": "Orientado a equipos de desarrollo de software. Optimizado para reuniones técnicas, código y arquitectura."
+    },
+    "psychologist": {
+      "name": "Psicólogo",
+      "description": "Orientado a profesionales de la salud mental. Tono clínico, empático y ético."
+    },
+    "features": {
+      "base": {
+        "label": "Prompt Base",
+        "hint": "Define el comportamiento central del experto. Editá el texto directamente para ajustar el tono, foco y vocabulario de TODAS las funcionalidades. Restaurar original vuelve al texto de fábrica.",
+        "placeholder": ""
+      },
+      "shortSummary": {
+        "label": "Resumen Corto",
+        "hint": "Instrucciones que se aplican solo al generar el resumen corto. Ejemplo: \"Siempre incluí el nombre del paciente y la fecha de sesión al inicio.\"",
+        "placeholder": "Ej: Priorizá las decisiones tomadas y los próximos pasos acordados..."
+      },
+      "longSummary": {
+        "label": "Resumen Largo",
+        "hint": "Instrucciones que se aplican al generar el resumen detallado de la grabación.",
+        "placeholder": "Ej: Incluí siempre una sección separada de 'Riesgos identificados'..."
+      },
+      "keyPoints": {
+        "label": "Puntos Importantes",
+        "hint": "Instrucciones para la extracción de puntos clave. Ejemplo: \"Limitá los puntos a decisiones clínicas concretas, no menciones aspectos administrativos.\"",
+        "placeholder": "Ej: Cada punto debe empezar con el nombre del responsable de la acción..."
+      },
+      "chat": {
+        "label": "Chat",
+        "hint": "Instrucciones adicionales para el asistente de chat. Se aplican tanto en modo RAG como en modo clásico.",
+        "placeholder": "Ej: Respondé siempre en formato de lista cuando haya más de un elemento..."
+      },
+      "tasks": {
+        "label": "Generación de Tareas",
+        "hint": "Instrucciones para la generación automática de tareas desde la transcripción.",
+        "placeholder": "Ej: Las tareas siempre deben tener un responsable asignado y una fecha estimada..."
+      }
     }
   }
 }
