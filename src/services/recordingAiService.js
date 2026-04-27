@@ -696,11 +696,12 @@ class RecordingAiService {
 
   /**
    * Mejora una tarea específica usando IA
-   * @param {string} recordingId 
-   * @param {Object} task 
+   * @param {string} recordingId
+   * @param {Object} task
+   * @param {string} userInstructions - Instrucciones adicionales del usuario
    * @returns {Promise<Object>} Tarea mejorada
    */
-  async improveTask(recordingId, task) {
+  async improveTask(recordingId, task, userInstructions = '') {
     try {
       const recName = await this._getRecordingName(recordingId);
       // Obtener contexto (preferiblemente resumen detallado)
@@ -723,7 +724,7 @@ class RecordingAiService {
 
       // System prompt: instrucciones fijas. User content: tarea + contexto de grabación.
       const taskSysPrompt = taskImprovementSystemPrompt(lang);
-      const taskUserContent = taskImprovementUserContent(task.title, task.content, contextText);
+      const taskUserContent = taskImprovementUserContent(task.title, task.content, contextText, userInstructions);
       const response = await this._callAiProvider(taskSysPrompt, taskUserContent, {
         // NO usar format: 'json' - mejor dejar que devuelva JSON en markdown
         queueMeta: { name: `Mejorar tarea: ${task.title}`, type: AI_TASK_TYPES.TASK_IMPROVEMENT },

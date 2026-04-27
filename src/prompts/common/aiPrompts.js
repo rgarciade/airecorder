@@ -265,10 +265,14 @@ STRICT JSON FORMAT INSTRUCTIONS:
 /**
  * Genera el contenido del mensaje de usuario para mejorar una tarea.
  */
-export const taskImprovementUserContent = (title, content, contextText = '') => {
+export const taskImprovementUserContent = (title, content, contextText = '', userInstructions = '') => {
   let msg = `TASK TO IMPROVE:
 Title: ${title}
 Content: ${content}`;
+
+  if (userInstructions && userInstructions.trim()) {
+    msg += `\n\nUSER INSTRUCTIONS:\n${userInstructions.trim()}`;
+  }
 
   if (contextText) {
     msg += `\n\nCONTEXT FROM RECORDING:\n${contextText}`;

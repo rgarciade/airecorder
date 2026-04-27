@@ -1200,7 +1200,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     if (!task) return;
     setImprovingTaskId(taskId);
     try {
-      const improved = await recordingAiService.improveTaskSuggestion(task, userInstructions);
+      const improved = await recordingAiService.improveTask(recording.id, task, userInstructions);
       const saved = await recordingsService.updateTaskSuggestion(
         taskId, improved.title, improved.content,
         task.layer || 'general', task.status || 'backlog'
