@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './Sidebar.module.css';
 import {
-  MdAutoAwesome
+  MdAutoAwesome, MdMenuBook
 } from 'react-icons/md';
 import { aiQueueService } from '../../services/ai/aiQueueService';
 import BugReportButton from '../BugReportButton/BugReportButton';
@@ -61,6 +61,20 @@ const Sidebar = ({ currentView, onViewChange, queueCount = 0, diarizationEnabled
             <span className={styles.label}>{item.label}</span>
           </button>
         ))}
+        <button
+          className={styles.navItem}
+          onClick={() => {
+            if (window.electronAPI && window.electronAPI.openExternal) {
+              window.electronAPI.openExternal('https://rgarciade.github.io/airecorder/wiki.html');
+            }
+          }}
+          title={t('sidebar.wiki')}
+        >
+          <div className={styles.iconWrapper}>
+            <span className={styles.icon}><MdMenuBook /></span>
+          </div>
+          <span className={styles.label}>{t('sidebar.wiki')}</span>
+        </button>
         <BugReportButton />
       </nav>
     </aside>

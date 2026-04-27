@@ -36,7 +36,8 @@
     "speakers": "Speakers",
     "transcriptionQueue": "Transcription\nQueue",
     "aiQueue": "AI\nQueue",
-    "settings": "Settings"
+    "settings": "Settings",
+    "wiki": "Wiki"
   },
   "home": {
     "defaultMic": "Default Mic",
@@ -136,6 +137,7 @@
       "permissions": "Permissions & Privacy",
       "about": "About AIRecorder"
     },
+    "wikiLink": "View in Wiki",
     "fields": {
       "language": "Language",
       "theme": "App Theme",

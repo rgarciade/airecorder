@@ -1,10 +1,12 @@
 import React from 'react';
 import {
-  MdComputer, MdTerminal, MdSmartToy, MdRefresh
+  MdComputer, MdTerminal, MdSmartToy, MdRefresh, MdOpenInNew
 } from 'react-icons/md';
 import styles from '../../Settings.module.css';
 import InfoTooltip from '../../../../components/InfoTooltip/InfoTooltip';
 import { useSettings } from '../../SettingsContext';
+
+const WIKI_URL = 'https://rgarciade.github.io/airecorder/wiki.html';
 
 export default function LocalProvidersSection() {
   const {
@@ -50,10 +52,27 @@ export default function LocalProvidersSection() {
           <MdComputer className={styles.sectionIcon} size={20} />
           <h3 className={styles.sectionTitle}>{t('settings.sections.localProviders')}</h3>
         </div>
-        <span className={`${styles.badge} ${['ollama', 'lmstudio'].includes(aiProvider) ? styles.badgeActive : styles.badgeInactive}`}>
-          {aiProvider === 'ollama' ? t('settings.providers.ollamaActive') :
-           aiProvider === 'lmstudio' ? t('settings.providers.lmStudioActive') : t('settings.providers.inactive')}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <a
+            href={`${WIKI_URL}#ia`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 500 }}
+            onClick={(e) => {
+              e.preventDefault();
+              if (window.electronAPI && window.electronAPI.openExternal) {
+                window.electronAPI.openExternal(`${WIKI_URL}#ia`);
+              }
+            }}
+          >
+            <MdOpenInNew size={14} />
+            {t('settings.wikiLink')}
+          </a>
+          <span className={`${styles.badge} ${['ollama', 'lmstudio'].includes(aiProvider) ? styles.badgeActive : styles.badgeInactive}`}>
+           {aiProvider === 'ollama' ? t('settings.providers.ollamaActive') :
+            aiProvider === 'lmstudio' ? t('settings.providers.lmStudioActive') : t('settings.providers.inactive')}
+          </span>
+        </div>
       </div>
 
       {/* Ollama (1st) */}
