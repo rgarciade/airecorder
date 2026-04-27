@@ -88,6 +88,15 @@ export default function ExpertsTab() {
     await loadCustomizations(expertId);
   };
 
+  const handleExpertCardKeyDown = (event, expertId) => {
+    // Evita interceptar teclado cuando el foco está en elementos internos (ej. botón Activar)
+    if (event.target !== event.currentTarget) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleSelectEditingExpert(expertId);
+    }
+  };
+
   // ── Activar un experto como el modo global de la app ─────────────────
 
   const handleActivateExpert = async (expertId) => {
@@ -170,10 +179,15 @@ export default function ExpertsTab() {
           const isActive = expert.id === activeExpertId;
           const isEditing = expert.id === editingExpertId;
           return (
-            <button
+            <div
               key={expert.id}
               className={`${styles.expertCard} ${isEditing ? styles.expertCardActive : ''}`}
+              role="button"
+              tabIndex={0}
+              aria-pressed={isEditing}
+              aria-label={t('experts.sections.customize.title', { expert: t(expert.nameKey) })}
               onClick={() => handleSelectEditingExpert(expert.id)}
+              onKeyDown={(event) => handleExpertCardKeyDown(event, expert.id)}
             >
               <span className={styles.expertIcon}>{expert.icon}</span>
               <span className={styles.expertName}>{t(expert.nameKey)}</span>
@@ -185,6 +199,7 @@ export default function ExpertsTab() {
                 </span>
               ) : (
                 <button
+                  type="button"
                   className={styles.btnSecondary}
                   style={{ marginTop: 4, padding: '4px 12px', fontSize: '0.75rem' }}
                   onClick={(e) => {
@@ -195,7 +210,7 @@ export default function ExpertsTab() {
                   {t('experts.activate')}
                 </button>
               )}
-            </button>
+            </div>
           );
         })}
       </div>
@@ -217,6 +232,7 @@ export default function ExpertsTab() {
           const hasContent = !!(customizations[feature.key]?.trim());
           return (
             <button
+              type="button"
               key={feature.key}
               className={`${styles.featureTab} ${activeFeature === feature.key ? styles.featureTabActive : ''} ${hasContent ? styles.featureTabHasContent : ''}`}
               onClick={() => setActiveFeature(feature.key)}
@@ -250,13 +266,13 @@ export default function ExpertsTab() {
               {t('experts.saved')}
             </span>
           )}
-          <button className={styles.btnSecondary} onClick={handleReset}>
+          <button type="button" className={styles.btnSecondary} onClick={handleReset}>
             <MdRefresh size={15} />
             {activeFeature === 'specialty_base'
               ? t('experts.resetToDefault')
               : t('experts.clear')}
           </button>
-          <button className={styles.btnPrimary} onClick={handleSave}>
+          <button type="button" className={styles.btnPrimary} onClick={handleSave}>
             <MdSave size={15} />
             {t('experts.save')}
           </button>

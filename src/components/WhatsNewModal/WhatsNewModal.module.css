@@ -195,6 +195,23 @@
   text-decoration: underline;
 }
 
+.kofiBtn {
+  padding: 8px 16px;
+  background: #ff5e5b;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.12s;
+  white-space: nowrap;
+}
+
+.kofiBtn:hover {
+  background: #e54d4a;
+}
+
 .closeAction {
   padding: 8px 22px;
   background: var(--color-primary);

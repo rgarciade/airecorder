@@ -1,9 +1,21 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { clearAliases, initAliases, setAllSpeakers, updateAlias, selectSpeakersMap } from '../../store/slices/speakersSlice';
+import SpeakerLabel from './SpeakerLabel';
+import MergeSpeakersModal from './MergeSpeakersModal';
+import SpeakerSuggestions from './SpeakerSuggestions';
+import { hasEditableSpeakerResolution } from './speakerCompatibility.mjs';
 import styles from './TranscriptionViewer.module.css';
 
 /**
- * Componente para mostrar transcripciones en formato de conversación
- * Micrófono a la izquierda, Sistema a la derecha
+ * Componente para mostrar transcripciones en formato de conversación.
+ * Micrófono a la izquierda, Sistema a la derecha.
+ *
+ * Integra identificación de hablantes mediante:
+ *   - Redux `speakersSlice` para el mapa ephemeralId → alias.
+ *   - `SpeakerLabel` para edición inline de nombres.
+ *   - `MergeSpeakersModal` para fusionar hablantes.
+ *   - IPC `get-all-speakers` al montar para pre-cargar aliases y autocompletado.
  */
 export default function TranscriptionViewer({ 
   transcription, 
@@ -12,15 +24,90 @@ export default function TranscriptionViewer({
   searchTerm = '',
   currentMatchIndex = 0,
   onMatchesFound = () => {},
-  currentTime = -1, // Optional: if provided, highlights the active segment
-  onSeek = () => {} // Optional: callback when a segment/timestamp is clicked
+  currentTime = -1,
+  onSeek = () => {},
+  recordingId = null,
+  audioSrc = null,
 }) {
+  const dispatch = useDispatch();
+  const speakersMap = useSelector(selectSpeakersMap);
+
   const activeHighlightRef = useRef(null);
   const activeSegmentRef = useRef(null);
   const scrollContainerRef = useRef(null);
   const [userIsScrolling, setUserIsScrolling] = useState(false);
+  const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
+  const hasSpeakerResolution = useMemo(
+    () => hasEditableSpeakerResolution(transcription?.speakerResolution),
+    [transcription?.speakerResolution]
+  );
 
-  // Calcular coincidencias de búsqueda
+  // ── Cargar speakers de BD al montar ─────────────────────────────────────────
+
+  useEffect(() => {
+    async function loadSpeakers() {
+      try {
+        if (!window.electronAPI?.getAllSpeakers) return;
+
+        const result = await window.electronAPI.getAllSpeakers();
+        if (result?.success && Array.isArray(result.data)) {
+          dispatch(setAllSpeakers(result.data));
+        }
+      } catch (err) {
+        console.error('[TranscriptionViewer] Error al cargar hablantes:', err);
+      }
+    }
+    loadSpeakers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch]);
+
+  // ── Sincronizar speakerResolution cuando llega la transcripción ─────────────
+  // Usa initAliases en lugar de setAliases para evitar sobreescribir ediciones
+  // del usuario cuando TranscriptionViewer se remonta dentro de la misma grabación
+  // (navegación entre tabs con renderizado condicional). initAliases solo reemplaza
+  // el mapa completo cuando cambia la grabación; para la misma grabación, solo
+  // añade entradas que falten.
+  useEffect(() => {
+    if (hasSpeakerResolution) {
+      dispatch(initAliases({
+        recordingId,
+        speakerResolution: transcription.speakerResolution,
+      }));
+      return;
+    }
+
+    dispatch(clearAliases());
+    setIsMergeModalOpen(false);
+  }, [dispatch, hasSpeakerResolution, transcription?.speakerResolution, recordingId]);
+
+  // ── Lista única de ephemeralIds en la transcripción ─────────────────────────
+
+  const uniqueEphemeralIds = useMemo(() => {
+    if (!transcription?.segments) return [];
+    const ids = new Set(
+      transcription.segments
+        .map((s) => s.speaker)
+        .filter(Boolean)
+    );
+    return [...ids];
+  }, [transcription]);
+
+  // ── Enriquecer pendingSuggestions con datos del speakersMap actual ───────────
+  // El backend genera las suggestions con candidateSpeakerId/candidateDisplayName
+  // pero no sabe el nombre temporal que Redux asignó al ephemeralId. Lo añadimos aquí.
+
+  const enrichedSuggestions = useMemo(() => {
+    const raw = transcription?.speakerResolution?._pendingSuggestions;
+    if (!raw?.length) return [];
+    return raw.map((s) => ({
+      ...s,
+      currentSpeakerId: speakersMap[s.ephemeralId]?.speakerId ?? null,
+      currentDisplayName: speakersMap[s.ephemeralId]?.displayName ?? s.ephemeralId,
+    }));
+  }, [transcription?.speakerResolution?._pendingSuggestions, speakersMap]);
+
+  // ── Cálculo de coincidencias de búsqueda ────────────────────────────────────
+
   const matches = useMemo(() => {
     if (!transcription?.segments || !searchTerm || searchTerm.trim() === '') return [];
     
@@ -42,19 +129,16 @@ export default function TranscriptionViewer({
     return allMatches;
   }, [transcription, searchTerm]);
 
-  // Determine active segment index based on currentTime
+  // ── Segmento activo durante reproducción ────────────────────────────────────
+
   const activeSegmentIndex = useMemo(() => {
     if (currentTime < 0 || !transcription?.segments) return -1;
     
-    // Use a simple loop for better performance than findIndex if called often
     for (let i = 0; i < transcription.segments.length; i++) {
       const seg = transcription.segments[i];
       const start = Number(seg.start);
-      // If we are before this segment, then the PREVIOUS one was the active one? 
-      // No, we are looking for the segment containing currentTime.
-      
       const nextSeg = transcription.segments[i + 1];
-      const end = nextSeg ? Number(nextSeg.start) : (Number(seg.end) || start + 10); // Default duration 10s if last
+      const end = nextSeg ? Number(nextSeg.start) : (Number(seg.end) || start + 10);
       
       if (currentTime >= start && currentTime < end) {
         return i;
@@ -63,12 +147,12 @@ export default function TranscriptionViewer({
     return -1;
   }, [currentTime, transcription]);
 
-  // Notificar al padre sobre el número de coincidencias
+  // ── Efectos de scroll ────────────────────────────────────────────────────────
+
   useEffect(() => {
     onMatchesFound(matches.length);
   }, [matches.length, onMatchesFound]);
 
-  // Scroll a la coincidencia de búsqueda activa
   useEffect(() => {
     if (matches.length > 0 && activeHighlightRef.current) {
       activeHighlightRef.current.scrollIntoView({
@@ -78,7 +162,6 @@ export default function TranscriptionViewer({
     }
   }, [currentMatchIndex, matches]);
 
-  // Scroll to active segment during playback (auto-scroll)
   useEffect(() => {
     if (activeSegmentIndex !== -1 && activeSegmentRef.current && !userIsScrolling) {
        activeSegmentRef.current.scrollIntoView({
@@ -88,9 +171,66 @@ export default function TranscriptionViewer({
     }
   }, [activeSegmentIndex, userIsScrolling]);
 
-  // Detect user scroll to pause auto-scroll temporarily (simple version: click to re-enable?)
-  // For now, simpler approach: if user clicks a segment, we assume they want to go there.
-  // We won't implement complex "stop auto-scroll on wheel" unless requested.
+  // ── Handlers ─────────────────────────────────────────────────────────────────
+
+  const handleSegmentClick = useCallback((startTime) => {
+    onSeek(startTime);
+    setUserIsScrolling(false);
+  }, [onSeek]);
+
+  // ── Función para renderizar texto con resaltado ──────────────────────────────
+
+  const renderHighlightedText = (text, segIdx) => {
+    if (!searchTerm || searchTerm.trim() === '') return text;
+
+    const segmentMatches = matches
+      .map((m, i) => ({ ...m, globalIndex: i }))
+      .filter(m => m.segmentIndex === segIdx);
+
+    if (segmentMatches.length === 0) return text;
+
+    const parts = [];
+    let lastIndex = 0;
+
+    segmentMatches.forEach((match) => {
+      if (match.startIndex > lastIndex) {
+        parts.push(text.substring(lastIndex, match.startIndex));
+      }
+      
+      const isActive = match.globalIndex === currentMatchIndex;
+      
+      parts.push(
+        <span 
+          key={`match-${match.globalIndex}`}
+          className={`${styles.highlight} ${isActive ? styles.activeHighlight : ''}`}
+          ref={isActive ? activeHighlightRef : null}
+        >
+          {text.substring(match.startIndex, match.endIndex)}
+        </span>
+      );
+      
+      lastIndex = match.endIndex;
+    });
+
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts;
+  };
+
+  // ── Helpers de layout ────────────────────────────────────────────────────────
+
+  const isMicrophone = (source) => {
+    if (!source) return false;
+    return source.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === 'microfono';
+  };
+
+  const getSourceClass = (source) => {
+    return isMicrophone(source) ? styles.microphone : styles.system;
+  };
+
+  // ── Estados de carga / error / vacío ────────────────────────────────────────
 
   if (loading) {
     return (
@@ -128,69 +268,39 @@ export default function TranscriptionViewer({
 
   const { segments } = transcription;
 
-  // Helper para normalizar el origen del audio
-  const isMicrophone = (source) => {
-    if (!source) return false;
-    return source.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === 'microfono';
-  };
-
-  const getSourceClass = (source) => {
-    return isMicrophone(source) ? styles.microphone : styles.system;
-  };
-
-  const handleSegmentClick = (startTime) => {
-    onSeek(startTime);
-    setUserIsScrolling(false); // Re-enable auto-scroll on click
-  };
-
-  // Función para renderizar texto con resaltado
-  const renderHighlightedText = (text, segIdx) => {
-    if (!searchTerm || searchTerm.trim() === '') return text;
-
-    // Filtrar coincidencias para este segmento
-    const segmentMatches = matches
-      .map((m, i) => ({ ...m, globalIndex: i }))
-      .filter(m => m.segmentIndex === segIdx);
-
-    if (segmentMatches.length === 0) return text;
-
-    const parts = [];
-    let lastIndex = 0;
-
-    segmentMatches.forEach((match) => {
-      // Texto antes de la coincidencia
-      if (match.startIndex > lastIndex) {
-        parts.push(text.substring(lastIndex, match.startIndex));
-      }
-      
-      const isActive = match.globalIndex === currentMatchIndex;
-      
-      // Coincidencia resaltada
-      parts.push(
-        <span 
-          key={`match-${match.globalIndex}`}
-          className={`${styles.highlight} ${isActive ? styles.activeHighlight : ''}`}
-          ref={isActive ? activeHighlightRef : null}
-        >
-          {text.substring(match.startIndex, match.endIndex)}
-        </span>
-      );
-      
-      lastIndex = match.endIndex;
-    });
-
-    // Texto restante
-    if (lastIndex < text.length) {
-      parts.push(text.substring(lastIndex));
-    }
-
-    return parts;
-  };
+  // ── Render principal ─────────────────────────────────────────────────────────
 
   return (
     <div className={styles.container}>
-      {/* Header removed as requested, keeping container */}
-      
+      {/* Barra de herramientas de hablantes */}
+      {uniqueEphemeralIds.length > 1 && hasSpeakerResolution && (
+        <div className={styles.speakersToolbar}>
+          <span className={styles.speakersCount}>
+            {uniqueEphemeralIds.length} hablantes
+          </span>
+          <button
+            className={styles.mergeBtn}
+            onClick={() => setIsMergeModalOpen(true)}
+            title="Fusionar hablantes"
+          >
+            ⇄ Fusionar hablantes
+          </button>
+        </div>
+      )}
+
+      {/* Sugerencias de hablantes pendientes de confirmar */}
+      {enrichedSuggestions.length > 0 && (
+        <SpeakerSuggestions
+          suggestions={enrichedSuggestions}
+          recordingId={recordingId}
+          audioSrc={audioSrc}
+          onConfirmed={({ ephemeralId, confirmedSpeakerId, displayName }) => {
+            dispatch(updateAlias({ ephemeralId, speakerId: confirmedSpeakerId, displayName }));
+          }}
+          onDismissed={() => {}}
+        />
+      )}
+
       <div className={styles.conversation} ref={scrollContainerRef}>
         {segments.map((segment, index) => {
           const isActive = index === activeSegmentIndex;
@@ -202,9 +312,13 @@ export default function TranscriptionViewer({
               onClick={() => handleSegmentClick(segment.start)}
             >
               <div className={styles.messageHeader}>
-                <span className={styles.speaker}>
-                  {segment.speaker}
-                </span>
+                {/* SpeakerLabel reemplaza el <span> de texto plano */}
+                <SpeakerLabel
+                  ephemeralId={segment.speaker || 'SPEAKER_00'}
+                  embedding={segment.embedding || null}
+                  recordingId={recordingId}
+                  speakerResolution={transcription?.speakerResolution}
+                />
                 <span 
                   className={`${styles.timestamp} ${isActive ? styles.activeTimestamp : ''}`}
                   title="Click to seek"
@@ -219,6 +333,16 @@ export default function TranscriptionViewer({
           );
         })}
       </div>
+
+      {/* Modal de fusión de hablantes */}
+      {hasSpeakerResolution && (
+        <MergeSpeakersModal
+          isOpen={isMergeModalOpen}
+          onClose={() => setIsMergeModalOpen(false)}
+          ephemeralIds={uniqueEphemeralIds}
+          recordingId={recordingId}
+        />
+      )}
     </div>
   );
 }

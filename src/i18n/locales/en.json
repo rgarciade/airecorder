@@ -33,9 +33,11 @@
   "sidebar": {
     "home": "Home",
     "projects": "Projects",
+    "speakers": "Speakers",
     "transcriptionQueue": "Transcription\nQueue",
     "aiQueue": "AI\nQueue",
-    "settings": "Settings"
+    "settings": "Settings",
+    "wiki": "Wiki"
   },
   "home": {
     "defaultMic": "Default Mic",
@@ -57,6 +59,7 @@
     "errorTranscribing": "Error starting transcription: {{error}}",
     "errorImporting": "Error importing transcription: {{error}}",
     "errorImportingAudio": "Error importing audio: {{error}}",
+    "errorImportingConversation": "Error importing conversation",
     "importAudio": {
       "title": "Import Audio",
       "description": "The audio has been imported successfully. You can rename it before starting the transcription.",
@@ -64,6 +67,14 @@
       "namePlaceholder": "Name",
       "cancel": "Cancel",
       "startTranscription": "Start Transcription"
+    },
+    "importConversation": {
+      "title": "Import external conversation",
+      "largeFileWarning": "The file exceeds 50KB. The AI may not be able to process it fully. Do you want to continue?",
+      "noSegments": "No segments could be extracted from the conversation. Make sure the file contains a valid conversation.",
+      "noProvider": "No AI provider is configured. Please set one up in Settings before importing.",
+      "processing": "Normalizing conversation with AI...",
+      "success": "Conversation imported successfully"
     }
   },
   "recordButton": {
@@ -126,6 +137,7 @@
       "permissions": "Permissions & Privacy",
       "about": "About AIRecorder"
     },
+    "wikiLink": "View in Wiki",
     "fields": {
       "language": "Language",
       "theme": "App Theme",
@@ -263,6 +275,11 @@
       "updates": {
         "title": "Updates",
         "testDev": "Test Update (Dev)"
+      },
+      "kofi": {
+        "title": "Support the project",
+        "desc": "AIRecorder is free and open source. If you find it useful, consider supporting its development.",
+        "btn": "☕ Support on Ko-fi"
       },
       "directoryNotSupported": "Directory selection is not supported in this environment",
       "changeDbTitle": "Change database path",
@@ -479,7 +496,11 @@
     "aiPowered": "AI POWERED",
     "start": "START",
     "teams": "Teams",
-    "audio": "Audio"
+    "audio": "Audio",
+    "importConversation": "Import with AI",
+    "importConversationDescription": "Upload text, srt, or vtt files. AI will normalize the format automatically.",
+    "importTeamsDescription": "Import Microsoft Teams transcriptions (.docx).",
+    "importAudioDescription": "Upload audio files (mp3, wav, ogg...) to transcribe."
   },
   "statsRow": {
     "thisWeek": "This Week",
@@ -680,6 +701,63 @@
       "noInstallTitle": "Nothing installed yet?",
       "noInstallDesc": "We recommend pausing for a moment, following our guide, and installing Ollama before continuing."
     }
+  },
+  "speakers": {
+    "title": "Speakers",
+    "searchPlaceholder": "Search speakers...",
+    "disabled": "Diarization disabled",
+    "disabledDesc": "Enable diarization in Settings to identify and manage speakers.",
+    "emptyState": "No speakers identified yet. Record and transcribe meetings to get started.",
+    "noResults": "No results",
+    "unknown": "Unknown",
+    "recordings": "recordings",
+    "embeddings": "embeddings",
+    "goToSettings": "Go to Settings",
+    "mergeBtn": "Merge speakers",
+    "mergeModalTitle": "Merge speakers",
+    "mergeModalDesc": "Select the source speaker (will be removed) and the target (will keep the data from both).",
+    "mergeSourceLabel": "Source speaker",
+    "mergeSourcePlaceholder": "Select speaker to merge...",
+    "mergeTargetLabel": "Target speaker",
+    "mergeTargetPlaceholder": "Select speaker to receive the data...",
+    "mergeConfirm": "Merge \"{{source}}\" into \"{{target}}\"?",
+    "mergeConfirmDesc": "All recordings and embeddings will be reassigned. The speaker \"{{source}}\" will be permanently deleted.",
+    "mergeSuccess": "\"{{source}}\" merged into \"{{target}}\"",
+    "mergeError": "Error merging: {{error}}",
+    "sameSpeakerError": "Source and target cannot be the same speaker",
+    "selectBothError": "Select both speakers to continue",
+    "prevPage": "Previous page",
+    "nextPage": "Next page",
+    "page": "Page"
+  },
+  "speakerDetail": {
+    "title": "Speaker Detail",
+    "back": "Back to Speakers",
+    "recordings": "Recordings",
+    "recordingsList": "Recordings",
+    "noRecordings": "This speaker does not appear in any recording.",
+    "embeddings": "Embeddings",
+    "notFound": "Speaker not found",
+    "notFoundDesc": "The speaker may have been deleted.",
+    "openRecording": "Open recording",
+    "totalRecordings": "Total recordings",
+    "totalEmbeddings": "Total embeddings",
+    "createdAt": "Registered on",
+    "similarSpeakers": "Similar Speakers",
+    "similarity": "similarity",
+    "mergeTooltip": "Merge into this speaker",
+    "mergeConfirm": "Merge \"{{source}}\" into \"{{target}}\"?\n\nAll recordings and embeddings will be reassigned.",
+    "mergeConfirmRich": "Merge <strong>\"{{source}}\"</strong> into <strong>\"{{target}}\"</strong>?<br/><br/>All recordings and embeddings will be reassigned.",
+    "mergeSuccess": "\"{{source}}\" merged into \"{{target}}\"",
+    "mergeError": "Error merging: {{error}}",
+    "mergeModalTitle": "Merge Speaker",
+    "mergeBtn": "Merge",
+    "deleteEmbedding": "Remove relation",
+    "deleteEmbeddingTitle": "Remove relation",
+    "deleteEmbeddingConfirm": "Remove the relation with \"{{recording}}\"? This will delete the embedding and the speaker's association with that recording.",
+    "deleteEmbeddingBtn": "Remove",
+    "recordingRemoved": "Relation removed with \"{{recording}}\"",
+    "recordingRemoveError": "Error removing relation: {{error}}"
   },
   "experts": {
     "active": "Active",

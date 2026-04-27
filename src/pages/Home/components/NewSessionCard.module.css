@@ -130,3 +130,37 @@
   color: var(--color-bg-primary);
   box-shadow: 0 2px 8px rgba(92, 89, 192, 0.2);
 }
+
+.importButton {
+  position: relative;
+}
+
+.importButton:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-text-heading);
+  color: var(--color-bg-primary);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: normal;
+  max-width: 220px;
+  text-align: center;
+  line-height: 1.4;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+}
+
+.importButtonWide {
+  position: relative;
+}
+
+.importButtonWide:hover::after {
+  width: 320px;
+  max-width: min(320px, calc(100vw - 32px));
+}

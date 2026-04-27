@@ -6,6 +6,8 @@ const dbService = require('../database/dbService');
 const notificationService = require('./notificationService');
 const { getSetting } = require('../utils/paths');
 
+const SUPPORTED_AUDIO_EXTENSIONS = ['webm', 'wav', 'mp3', 'm4a', 'ogg', 'aac', 'flac'];
+
 class TranscriptionManager {
   constructor() {
     this.activeTask = null;
@@ -123,25 +125,146 @@ class TranscriptionManager {
     this.notifyUpdate();
 
     try {
-        await this.runTranscription(this.activeTask);
+        const { settingsPath } = require('../utils/paths');
+        let diarizationFile = null;
+        
+        if (fs.existsSync(settingsPath)) {
+            const settingsData = fs.readFileSync(settingsPath, 'utf8');
+            const settings = JSON.parse(settingsData);
+            
+            if (settings.enableDiarization && settings.hfToken) {
+                // 1. Obtener ruta del audio de sistema
+                const recording = dbService.getRecordingById(this.activeTask.recording_id);
+                if (recording) {
+                    const sysAudioPath = SUPPORTED_AUDIO_EXTENSIONS
+                        .map((ext) => path.join(this.basePath, recording.relative_path, `${recording.relative_path}-system.${ext}`))
+                        .find((candidate) => fs.existsSync(candidate));
+                    const outputDiarizationPath = path.join(this.basePath, recording.relative_path, 'analysis', 'diarization.json');
+                    
+                    if (sysAudioPath) {
+                        console.log(`[Manager] Diarización habilitada. Ejecutando pre-proceso...`);
+                        this.updateProgress(0, 'diarizing');
+                        
+                        // Obtener rutas de ffmpeg/ffprobe para pasarlas al script
+                        let ffmpegPath = null;
+                        let ffprobePath = null;
+                        
+                        if (!app.isPackaged) {
+                            // En dev, intentar usar los de node_modules
+                            ffmpegPath = path.join(__dirname, '../../node_modules/ffmpeg-static/ffmpeg');
+                            ffprobePath = path.join(__dirname, '../../node_modules/ffprobe-static/bin/darwin/arm64/ffprobe'); // Nota: ruta específica mac arm64
+                        } else {
+                            const resourcesPath = process.resourcesPath;
+                            ffmpegPath = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'ffmpeg-static', 'ffmpeg');
+                            ffprobePath = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'ffprobe-static', 'bin', 'darwin', 'arm64', 'ffprobe');
+                        }
+
+                        const diarizationArgs = [
+                            '--audio_file', sysAudioPath,
+                            '--hf_token', settings.hfToken,
+                            '--output_json', outputDiarizationPath
+                        ];
+                        if (ffmpegPath && fs.existsSync(ffmpegPath)) diarizationArgs.push('--ffmpeg', ffmpegPath);
+                        if (ffprobePath && fs.existsSync(ffprobePath)) diarizationArgs.push('--ffprobe', ffprobePath);
+
+                        // Ejecutar diarización (Paso A: 0% -> 50%)
+                        // IMPORTANTE: si diarización falla, seguimos con la transcripción sin diarización.
+                        try {
+                            await this.runPythonProcess('diarization_analyzer.py', diarizationArgs, (p) => this.updateProgress(Math.floor(p / 2), 'diarizing'));
+                            diarizationFile = fs.existsSync(outputDiarizationPath) ? outputDiarizationPath : null;
+                            if (!diarizationFile) {
+                                console.warn('[Manager] Diarización finalizó sin generar JSON. Continuando sin diarización.');
+                            }
+                        } catch (diarizationError) {
+                            console.warn(`[Manager] Diarización falló: ${diarizationError.message}. Continuando sin diarización.`);
+                            diarizationFile = null;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Ejecutar transcripción principal (Paso B: 50% -> 100% o 0% -> 100%)
+        const baseProgress = diarizationFile ? 50 : 0;
+        const progressFactor = diarizationFile ? 0.5 : 1.0;
+
+        await this.runTranscriptionProcess(this.activeTask, diarizationFile, (p) => {
+            const totalProgress = Math.floor(baseProgress + (p * progressFactor));
+            this.updateProgress(totalProgress, 'transcribing');
+        });
         
         dbService.updateTask(nextTask.id, 'completed', 'completed', 100);
         this.activeTask = null;
     } catch (error) {
-        console.error(`Transcription failed for ${nextTask.id}:`, error);
-        // Only mark failed if user didn't cancel it mid-process (which sets activeTask to null)
-        // If activeTask is null here, it means it was cancelled
+        const errorMsg = error.message || String(error);
+        console.error(`Transcription failed for ${nextTask.id}:`, errorMsg);
         if (this.activeTask) {
-            dbService.updateTask(nextTask.id, 'failed', 'failed', 0, error.message);
+            dbService.updateTask(nextTask.id, 'failed', 'failed', 0, errorMsg);
             this.activeTask = null;
         }
     }
 
     this.notifyUpdate();
-    this.processQueue(); // Next
+    this.processQueue(); // Siguiente tarea en la cola
   }
 
-  runTranscription(task) {
+  runPythonProcess(scriptName, scriptArgs, onProgress) {
+    return new Promise((resolve, reject) => {
+        const isDev = !app.isPackaged;
+        let executablePath;
+        let execArgs;
+
+        if (isDev) {
+            const pythonPath = '/Users/raul.garciad/Proyectos/personal/airecorder/venv/bin/python';
+            const systemPython = process.platform === 'win32' ? 'python' : 'python3';
+            executablePath = fs.existsSync(pythonPath) ? pythonPath : systemPython;
+            const scriptPath = path.join(__dirname, `../../python/${scriptName}`);
+            execArgs = [scriptPath];
+        } else {
+            const resourcesPath = process.resourcesPath;
+            // En producción, asumimos que diarization_analyzer también está compilado o empaquetado
+            // Pero como es nuevo y experimental, quizás lo ejecutamos vía python si está disponible, 
+            // o lo agregamos al build. Por ahora, asumimos la misma lógica que el principal.
+            executablePath = path.join(resourcesPath, 'python-bin', scriptName.replace('.py', ''));
+            execArgs = [];
+            if (!fs.existsSync(executablePath)) {
+                // Fallback a script si no está el binario (ej. en desarrollo o si no se compiló)
+                const pythonPath = '/usr/bin/python3';
+                executablePath = fs.existsSync(pythonPath) ? pythonPath : 'python3';
+                execArgs = [path.join(resourcesPath, 'python', scriptName)];
+            }
+        }
+
+        const args = [...execArgs, ...scriptArgs];
+        this.process = spawn(executablePath, args, { env: { ...process.env, PYTHONUNBUFFERED: '1' } });
+
+        this.process.stdout.on('data', (data) => {
+            const message = data.toString().trim();
+            console.log(`[${scriptName}]: ${message}`);
+            const progressMatch = message.match(/PROGRESS:\s*(\d+)/);
+            if (progressMatch && onProgress) {
+                onProgress(parseInt(progressMatch[1], 10));
+            }
+        });
+
+        this.process.stderr.on('data', (data) => {
+            console.error(`[${scriptName} ERR]: ${data.toString()}`);
+        });
+
+        this.process.on('close', (code) => {
+            this.process = null;
+            if (code === 0) resolve();
+            else reject(new Error(`${scriptName} exited with code ${code}`));
+        });
+
+        this.process.on('error', (err) => {
+            this.process = null;
+            reject(err);
+        });
+    });
+}
+
+runTranscriptionProcess(task, diarizationFile, onProgress) {
     return new Promise((resolve, reject) => {
         const isDev = !app.isPackaged;
         let executablePath;
@@ -150,164 +273,77 @@ class TranscriptionManager {
         let ffprobePath = null;
 
         if (isDev) {
-            // DESARROLLO: usar venv local + script .py directamente
             const pythonPath = '/Users/raul.garciad/Proyectos/personal/airecorder/venv/bin/python';
             const systemPython = process.platform === 'win32' ? 'python' : 'python3';
             executablePath = fs.existsSync(pythonPath) ? pythonPath : systemPython;
             const scriptPath = path.join(__dirname, '../../python/audio_sync_analyzer.py');
             execArgs = [scriptPath];
         } else {
-            // PRODUCCION: usar binario PyInstaller + ffmpeg bundled
             const resourcesPath = process.resourcesPath;
             executablePath = path.join(resourcesPath, 'python-bin', 'audio_sync_analyzer');
             execArgs = [];
-
-            // ffmpeg bundled — usar ruta directa al binario desempaquetado
-            ffmpegPath = path.join(resourcesPath, 'app.asar.unpacked',
-                'node_modules', 'ffmpeg-static', 'ffmpeg');
-            if (!fs.existsSync(ffmpegPath)) {
-                console.warn(`[Manager] ffmpeg no encontrado en: ${ffmpegPath}`);
-                ffmpegPath = null;
-            }
-
-            // ffprobe bundled
-            ffprobePath = path.join(resourcesPath, 'app.asar.unpacked',
-                'node_modules', 'ffprobe-static', 'bin', 'darwin', 'arm64', 'ffprobe');
-            if (!fs.existsSync(ffprobePath)) {
-                console.warn(`[Manager] ffprobe no encontrado en: ${ffprobePath}`);
-                ffprobePath = null;
-            }
+            ffmpegPath = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'ffmpeg-static', 'ffmpeg');
+            ffprobePath = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'ffprobe-static', 'bin', 'darwin', 'arm64', 'ffprobe');
         }
 
-        console.log(`[Manager] Modo: ${isDev ? 'DESARROLLO' : 'PRODUCCIÓN'}`);
-        console.log(`[Manager] Executable: ${executablePath}`);
-        if (ffmpegPath) console.log(`[Manager] ffmpeg: ${ffmpegPath}`);
-        if (ffprobePath) console.log(`[Manager] ffprobe: ${ffprobePath}`);
-
-      // Fetch recording details to get relative_path
-      let folderName = task.recording_id;
-      if (task.recording_id) {
-            const recording = dbService.getRecordingById(task.recording_id);
-            if (recording && recording.relative_path) {
-                folderName = recording.relative_path;
-            } else {
-                console.warn(`[Manager] No se encontró recording para ID ${task.recording_id}, usando ID como folderName: ${folderName}`);
-            }
-      }
-
-        console.log(`[Manager] Starting transcription for task ${task.id} (recording: ${folderName})`);
+        let folderName = task.recording_id;
+        const recording = dbService.getRecordingById(task.recording_id);
+        if (recording && recording.relative_path) folderName = recording.relative_path;
 
         const args = [...execArgs, '--basename', folderName];
-        if (this.basePath) {
-            args.push('--base_dir', this.basePath);
-        }
-        if (task.model) {
-            args.push('--model', task.model);
-        }
-        if (ffmpegPath) {
-            args.push('--ffmpeg', ffmpegPath);
-        }
-        if (ffprobePath) {
-            args.push('--ffprobe', ffprobePath);
-        }
+        if (this.basePath) args.push('--base_dir', this.basePath);
+        if (task.model) args.push('--model', task.model);
+        if (ffmpegPath && fs.existsSync(ffmpegPath)) args.push('--ffmpeg', ffmpegPath);
+        if (ffprobePath && fs.existsSync(ffprobePath)) args.push('--ffprobe', ffprobePath);
+        if (diarizationFile) args.push('--diarization_file', diarizationFile);
 
-        // Leer cpuThreads de settings si existe
         try {
             const { settingsPath } = require('../utils/paths');
             if (fs.existsSync(settingsPath)) {
-                const settingsData = fs.readFileSync(settingsPath, 'utf8');
-                const settings = JSON.parse(settingsData);
-                if (settings.cpuThreads) {
-                    args.push('--threads', settings.cpuThreads.toString());
-                }
+                const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+                if (settings.cpuThreads) args.push('--threads', settings.cpuThreads.toString());
             }
-        } catch (e) {
-            console.error('[Manager] Error leyendo settings para cpuThreads', e);
-        }
+        } catch (e) {}
 
-        console.log(`[Manager] Spawn: ${executablePath}`);
-        console.log(`[Manager] Args array: ${JSON.stringify(args)}`);
-        console.log(`[Manager] Executable exists: ${fs.existsSync(executablePath)}`);
-
-        // Entorno para el proceso Python
-        const spawnEnv = { ...process.env };
-        spawnEnv.PYTHONUNBUFFERED = '1'; // Forzar stdout sin buffer (garantiza flush inmediato)
-        spawnEnv.PYTHONIOENCODING = 'utf-8'; // Forzar UTF-8 en Windows (evita error con emojis)
-        if (ffmpegPath) {
+        const spawnEnv = { ...process.env, PYTHONUNBUFFERED: '1', PYTHONIOENCODING: 'utf-8' };
+        if (ffmpegPath && fs.existsSync(ffmpegPath)) {
             spawnEnv.FFMPEG_PATH = ffmpegPath;
-            // Añadir directorio de ffmpeg al PATH para que pydub lo encuentre vía which()
             spawnEnv.PATH = path.dirname(ffmpegPath) + ':' + (spawnEnv.PATH || '');
         }
-        if (ffprobePath) {
-            spawnEnv.FFPROBE_PATH = ffprobePath;
-            // Añadir directorio de ffprobe al PATH para que pydub lo encuentre vía which()
-            spawnEnv.PATH = path.dirname(ffprobePath) + ':' + (spawnEnv.PATH || '');
-        }
-        // HF_HOME NO se sobreescribe: faster_whisper usa ~/.cache/huggingface (estándar)
-        // donde el modelo ya está cacheado tras la primera descarga.
 
         this.process = spawn(executablePath, args, { env: spawnEnv });
 
         this.process.stdout.on('data', (data) => {
             const message = data.toString().trim();
-            console.log(`[Transcription ${task.id}]: ${message}`);
-            
-            // Leer progreso exacto dictado por Python
             const progressMatch = message.match(/PROGRESS:\s*(\d+)/);
-            if (progressMatch) {
-                const percent = parseInt(progressMatch[1], 10);
-                let step = 'processing';
-                if (percent < 20) step = 'preparing';
-                else if (percent < 95) step = 'transcribing';
-                else step = 'saving';
-                
-                this.updateProgress(percent, step);
+            if (progressMatch && onProgress) {
+                onProgress(parseInt(progressMatch[1], 10));
             }
         });
 
         this.process.stderr.on('data', (data) => {
             const msg = data.toString().trim();
-            // Los warnings de Python (matplotlib, etc.) no son errores fatales de la app.
-            // Usamos console.warn para evitar que lleguen a Sentry vía el override de console.error.
-            if (msg.toLowerCase().includes('warning') || msg.toLowerCase().includes('userwarning')) {
-                console.warn(`[Transcription ${task.id} WARN]: ${msg}`);
-            } else {
-                console.error(`[Transcription ${task.id} ERR]: ${msg}`);
-            }
+            if (msg.toLowerCase().includes('warning')) console.warn(`[Transcription ${task.id} WARN]: ${msg}`);
+            else console.error(`[Transcription ${task.id} ERR]: ${msg}`);
         });
 
         this.process.on('close', (code) => {
-            console.log(`[Manager] Proceso Python terminó con código: ${code}`);
             this.process = null;
             if (code === 0) {
                 dbService.updateStatus(folderName, 'transcribed');
-                // Resetear estado RAG para que se re-indexe con la nueva transcripción
                 dbService.updateRagStatus(folderName, null);
-                if (task.model) {
-                    dbService.updateTranscriptionModel(folderName, task.model);
-                }
-
-                // Intentar actualizar duración si es 0
+                if (task.model) dbService.updateTranscriptionModel(folderName, task.model);
                 this.updateDurationIfNeeded(folderName);
-
-                // Notificar al usuario
-                notificationService.show(
-                  'Transcripción Completada',
-                  `La transcripción de "${folderName}" ha finalizado.`,
-                  { type: 'transcription-complete', recordingId: folderName }
-                );
-                // Auto-análisis IA si está habilitado en ajustes
+                notificationService.show('Transcripción Completada', `La transcripción de "${folderName}" ha finalizado.`);
                 if (getSetting('autoAnalyze', true) !== false && this.onAutoAnalyzeCallback) {
-                  this.onAutoAnalyzeCallback(task.recording_id);
+                    this.onAutoAnalyzeCallback(task.recording_id);
                 }
-
                 resolve();
             } else {
-                console.error(`[Manager] Transcripción FALLIDA (código ${code}) para: ${folderName}`);
                 reject(new Error(`Process exited with code ${code}`));
             }
         });
-        
+
         this.process.on('error', (err) => {
             this.process = null;
             reject(err);

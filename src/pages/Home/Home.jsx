@@ -6,6 +6,8 @@ import { MixedAudioRecorder, getSystemMicrophones } from '../../services/audioSe
 import { getSettings } from '../../services/settingsService';
 import recordingsService from '../../services/recordingsService';
 import recordingAiService from '../../services/recordingAiService';
+import { callProvider, validateProviderConfig } from '../../services/ai/providerRouter';
+import { conversationNormalizationPrompt } from '../../prompts/common/aiPrompts';
 import { MdChevronLeft, MdChevronRight } from 'react-icons/md';
 import styles from './Home.module.css';
 
@@ -275,6 +277,69 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
     }
   };
 
+  const handleImportConversation = async () => {
+    try {
+      const validation = await validateProviderConfig();
+      if (!validation.valid) {
+        alert(t('home.importConversation.noProvider'));
+        return;
+      }
+
+      const result = await window.electronAPI.selectConversationFile();
+      if (result?.canceled) return;
+      if (result?.success === false) {
+        alert(t('home.errorImportingConversation', { error: result?.error || 'Error desconocido' }));
+        return;
+      }
+
+      if (result.fileSize > 51200) {
+        const proceed = window.confirm(t('home.importConversation.largeFileWarning'));
+        if (!proceed) return;
+      }
+
+      const prompt = conversationNormalizationPrompt(result.raw);
+      const aiResponse = await callProvider(prompt, { queueMeta: { type: 'conversation-import' } });
+
+      let parsedData;
+      try {
+        const fenceMatch = aiResponse.text.match(/```(?:json)?\s*([\s\S]*?)```/);
+        const jsonString = fenceMatch ? fenceMatch[1] : aiResponse.text;
+        parsedData = JSON.parse(jsonString);
+      } catch {
+        parsedData = {
+          segments: [{ id: 0, start: 0, end: 3, speaker: 'Speaker 1', text: result.raw.trim(), source: 'conversation-import' }]
+        };
+      }
+
+      if (!parsedData.segments || parsedData.segments.length === 0) {
+        alert(t('home.importConversation.noSegments'));
+        return;
+      }
+
+      const saveResult = await window.electronAPI.saveConversationImport({
+        fileName: result.fileName,
+        raw: result.raw,
+        ext: result.ext,
+        segments: parsedData.segments
+      });
+
+      if (saveResult?.success && saveResult?.recording) {
+        const list = await loadRecordings();
+        if (onRecordingSelect) {
+          const rec = list.find(r => r.id === saveResult.recording.relative_path || r.dbId === saveResult.recording.id);
+          if (rec) {
+            onRecordingSelect(rec);
+          }
+        }
+        alert(t('home.importConversation.success'));
+      } else {
+        alert(t('home.errorImportingConversation', { error: saveResult?.error || 'Error desconocido' }));
+      }
+    } catch (err) {
+      alert(t('home.errorImportingConversation', { error: err.message }));
+    }
+  };
+
   const handleImportAudio = async () => {
     try {
       const result = await window.electronAPI.importAudioFile();
@@ -464,6 +529,7 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
         onStart={handleStart}
         onImport={handleImportTeams}
         onImportAudio={handleImportAudio}
+        onImportConversation={handleImportConversation}
         microphoneLabel={currentMicLabel}
         languageLabel={currentLangLabel}
         onOpenSettings={() => onSettings('general')}
