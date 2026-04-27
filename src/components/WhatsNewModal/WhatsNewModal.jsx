@@ -81,6 +81,18 @@ export default function WhatsNewModal({ onClose }) {
           >
             {t.changelogLinkText}
           </a>
+          <a
+            href="https://ko-fi.com/airecorderraulgarciadelafuente"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.kofiBtn}
+            onClick={(e) => {
+              e.preventDefault();
+              window.electronAPI?.openDownloadUrl?.('https://ko-fi.com/airecorderraulgarciadelafuente');
+            }}
+          >
+            {t.kofiBtn}
+          </a>
           <button className={styles.closeAction} onClick={onClose}>
             {t.closeButton}
           </button>

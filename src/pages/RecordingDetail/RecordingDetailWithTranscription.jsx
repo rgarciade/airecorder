@@ -9,6 +9,7 @@ import { getLMStudioModels } from '../../services/ai/lmStudioProvider';
 import { callProvider, callProviderStreaming, callChatProviderStreaming } from '../../services/ai/providerRouter';
 import { chatSystemPrompt } from '../../prompts/aiPrompts';
 import { ragSystemPrompt, mapHistoryToMessages } from '../../prompts/ragPrompts';
+import { buildSystemPrompt, FEATURE_TYPES } from '../../services/ai/promptBuilder';
 import ragService from '../../services/ragService';
 import recordingAiService from '../../services/recordingAiService';
 import chatPendingService from '../../services/chatPendingService';
@@ -74,11 +75,14 @@ function parseTimestampToSeconds(ts) {
 }
 
 export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject }) {
+  const persistentRecordingId = recording?.dbId ?? recording?.id ?? null;
+
   // --- STATE MANAGEMENT ---
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'transcription' | 'tasks'
   
   // Data State
   const [localRecording, setLocalRecording] = useState(recording);
+  const currentRecordingDbId = localRecording?.dbId ?? recording?.dbId ?? localRecording?.id ?? recording?.id ?? null;
   const [participants, setParticipants] = useState(recording?.participants || []);
   const [transcription, setTranscription] = useState(null);
   const [transcriptionLoading, setTranscriptionLoading] = useState(false);
@@ -88,6 +92,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [geminiData, setGeminiData] = useState({ resumen_breve: '', ideas: [] });
   const [detailedSummary, setDetailedSummary] = useState('');
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [extraInstructions, setExtraInstructions] = useState('');
 
   // Tasks State
   const [tasks, setTasks] = useState([]);
@@ -217,18 +222,21 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     setLocalName(recording?.name || '');
     setEditedTitle(recording?.name || '');
 
-    // Load Transcription
+    // Load Transcription — resetear antes de cargar para evitar que TranscriptionViewer
+    // reciba speakerResolution de la grabación anterior mientras llega la nueva.
+    setTranscription(null);
+    setTranscriptionError(null);
     setTranscriptionLoading(true);
-    recordingsService.getTranscription(recording.id)
+    recordingsService.getTranscription(currentRecordingDbId)
       .then(setTranscription)
       .catch(() => setTranscriptionError('Transcription not available'))
       .finally(() => setTranscriptionLoading(false));
 
     // Load Chat History
-    recordingsService.getQuestionHistory(recording.id).then(setQaHistory);
+    recordingsService.getQuestionHistory(currentRecordingDbId).then(setQaHistory);
 
     // Load Attachments
-    getAttachments(recording.id).then(setRecordAttachments);
+    getAttachments(currentRecordingDbId).then(setRecordAttachments);
 
     // Load AI Config
     getSettings().then(settings => {
@@ -401,6 +409,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           }
         }
 
+        // Load Extra Instructions
+        const instructions = await recordingsService.getExtraInstructions(recording.dbId || recording.id);
+        setExtraInstructions(instructions || '');
+
         // Load Summary
         const existing = await recordingAiService.getRecordingSummary(recording.id);
         const hasSummary = existing && existing.resumen_breve;
@@ -414,7 +426,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         // Check if transcription exists first to avoid errors
         let hasTranscription = false;
         try {
-           const tCheck = await recordingsService.getTranscription(recording.id);
+           const tCheck = await recordingsService.getTranscription(currentRecordingDbId);
            hasTranscription = !!tCheck;
         } catch (e) {
            hasTranscription = false;
@@ -615,7 +627,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         // --- MODO RAG V2: array de mensajes nativo con system prompt ---
         console.log(`🔍 [RAG V2] Usando ${ragChunks.length} chunks relevantes`);
 
-        const systemContent = ragSystemPrompt(ragChunks, docContext);
+        const systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, ragSystemPrompt(ragChunks, docContext));
         sentCharsEstimate = systemContent.length + docContext.length;
 
         const attachmentTokens = attachmentImages.length * 256;
@@ -661,7 +673,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           context = await recordingsService.getTranscriptionTxt(recording.id);
         }
 
-        const systemContent = chatSystemPrompt(context || 'No context available.', uiLanguage, docContext);
+        const systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, chatSystemPrompt(context || 'No context available.', uiLanguage, docContext));
         sentCharsEstimate = systemContent.length;
 
         const attachmentTokens = attachmentImages.length * 256;
@@ -1070,6 +1082,17 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
   };
 
+  // --- EXTRA INSTRUCTIONS HANDLER ---
+
+  const handleSaveExtraInstructions = async (text) => {
+    try {
+      await recordingsService.saveExtraInstructions(recording.dbId || recording.id, text);
+      setExtraInstructions(text);
+    } catch (error) {
+      console.error('Error guardando instrucciones extra:', error);
+    }
+  };
+
   // --- PARTICIPANT MANAGEMENT HANDLERS (Direct updates) ---
 
   const handleAddParticipant = async (newParticipantData) => {
@@ -1177,7 +1200,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     if (!task) return;
     setImprovingTaskId(taskId);
     try {
-      const improved = await recordingAiService.improveTaskSuggestion(task, userInstructions);
+      const improved = await recordingAiService.improveTask(recording.id, task, userInstructions);
       const saved = await recordingsService.updateTaskSuggestion(
         taskId, improved.title, improved.content,
         task.layer || 'general', task.status || 'backlog'
@@ -1291,7 +1314,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     ? `${Math.floor(recording.duration / 60)}:${Math.floor(recording.duration % 60).toString().padStart(2, '0')}`
     : '--:--';
 
-  const dateStr = new Date(localRecording.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const dateSource = localRecording?.createdAt || localRecording?.date || recording?.createdAt || recording?.date;
+  const parsedDate = dateSource ? new Date(dateSource) : null;
+  const dateStr = parsedDate && !Number.isNaN(parsedDate.getTime())
+    ? parsedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : '--';
 
   // Helper to get audio URLs
   const getAudioUrls = () => {
@@ -1561,6 +1588,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             hasTranscription={!!transcription}
             aiProvider={geminiData.aiProvider || null}
             aiModel={geminiData.aiModel || null}
+            extraInstructions={extraInstructions}
+            onSaveExtraInstructions={handleSaveExtraInstructions}
           />
         )}
         {activeTab === 'transcription' && (
@@ -1582,6 +1611,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             onChatContextModeChange={handleChatModeChangeRequest}
             initialSeekSeconds={initialSeekSeconds}
             onInitialSeekDone={() => setInitialSeekSeconds(null)}
+            recordingId={currentRecordingDbId}
             chatProps={{
               chatHistory: convertChatHistory(),
               onSendMessage: handleAskQuestion,
@@ -1612,7 +1642,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         )}
         {activeTab === 'attachments' && (
           <AttachmentsTab
-            recordingId={recording.id}
+            recordingId={currentRecordingDbId}
             attachments={recordAttachments}
             onAttachmentsChange={handleAttachmentsChange}
           />
@@ -1762,7 +1792,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                            }}
                          />
                          {att.filename}
-                         <span style={{ color: '#9CA3AF', fontSize: '0.75rem', marginLeft: 4 }}>
+                         <span style={{ color: 'var(--color-text-tertiary)', fontSize: '0.75rem', marginLeft: 4 }}>
                            ({att.type})
                          </span>
                        </label>

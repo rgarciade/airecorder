@@ -3,23 +3,64 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AIRecorder — Graba, Transcribe y Analiza Reuniones con IA</title>
-  <meta name="description" content="Aplicación de escritorio para macOS que graba audio, transcribe con Whisper y analiza con IA. 100% local y privado. Toma el control de tus reuniones y proyectos.">
+  <title>AIRecorder — Graba y Transcribe Reuniones con IA Local</title>
+  <meta name="description" content="Aplicación macOS que graba audio, transcribe con Whisper y analiza reuniones con IA. 100% local y privado. Compatible con Ollama, LM Studio, Gemini y DeepSeek.">
+  <meta name="keywords" content="grabadora reuniones, transcripción automática, IA local, Whisper, Ollama, LM Studio, macOS, privacidad, diarización, análisis reuniones">
+  <meta name="author" content="Raul Garcia">
+  <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#3994EF">
   <link rel="icon" type="image/png" href="icon.png">
+  <link rel="canonical" href="https://rgarciade.github.io/airecorder/">
 
   <!-- Open Graph -->
-  <meta property="og:title" content="AIRecorder — Graba y Analiza Reuniones con IA">
-  <meta property="og:description" content="Transcripción automática y análisis con IA. Todo en tu equipo, 100% privado.">
+  <meta property="og:title" content="AIRecorder — Graba y Transcribe Reuniones con IA Local">
+  <meta property="og:description" content="Aplicación macOS que graba audio, transcribe con Whisper y analiza reuniones con IA. 100% local y privado. Compatible con Ollama, LM Studio, Gemini y DeepSeek.">
   <meta property="og:image" content="https://rgarciade.github.io/airecorder/icon.png">
   <meta property="og:url" content="https://rgarciade.github.io/airecorder/">
   <meta property="og:type" content="website">
+  <meta property="og:site_name" content="AIRecorder">
+  <meta property="og:locale" content="es_ES">
 
   <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="AIRecorder">
-  <meta name="twitter:description" content="Graba, transcribe y analiza reuniones con IA. 100% local.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AIRecorder — Graba y Transcribe Reuniones con IA Local">
+  <meta name="twitter:description" content="Aplicación macOS que graba audio, transcribe con Whisper y analiza reuniones con IA. 100% local y privado.">
   <meta name="twitter:image" content="https://rgarciade.github.io/airecorder/icon.png">
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "AIRecorder",
+    "description": "Aplicación de escritorio para macOS que graba audio, transcribe con Whisper y analiza reuniones con IA local. 100% privado, sin servidor.",
+    "applicationCategory": "ProductivityApplication",
+    "operatingSystem": "macOS",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "EUR"
+    },
+    "url": "https://rgarciade.github.io/airecorder/",
+    "downloadUrl": "https://github.com/rgarciade/airecorder/releases",
+    "softwareVersion": "latest",
+    "license": "https://github.com/rgarciade/airecorder/blob/main/LICENSE",
+    "author": {
+      "@type": "Person",
+      "name": "Raul Garcia",
+      "url": "https://github.com/rgarciade"
+    },
+    "featureList": [
+      "Grabación de audio local",
+      "Transcripción automática con Whisper",
+      "Análisis de reuniones con IA",
+      "Diarización de hablantes con pyannote",
+      "Sistema RAG con LanceDB",
+      "Compatible con Ollama, LM Studio, Gemini, DeepSeek"
+    ],
+    "screenshot": "https://rgarciade.github.io/airecorder/docs/screenshots/screen-home.png"
+  }
+  </script>
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1330,6 +1371,12 @@
           macOS y Windows · Código abierto en GitHub
         </p>
 
+        <div class="animate-on-scroll delay-5" style="margin-top: 16px; display:flex; justify-content:center;">
+          <a href="https://ko-fi.com/airecorderraulgarciadelafuente" target="_blank" rel="noopener">
+            <img height="32" style="border:0;height:32px;opacity:0.85;" src="https://storage.ko-fi.com/cdn/kofi2.png?v=3" alt="Support AIRecorder on Ko-fi" />
+          </a>
+        </div>
+
         <!-- Waveform decorativa -->
         <div class="hero-waveform" aria-hidden="true">
           <div class="waveform-bar" style="height:30%;animation-delay:0s"></div>
@@ -2007,7 +2054,7 @@
         dlMacMain: 'Descargar para macOS', dlMacSub: 'Apple Silicon · macOS 13+', dlMacTag: 'Disponible ahora',
         dlWinMain: 'Descargar para Windows', dlWinSub: 'Windows 10/11 · x64', dlWinTag: 'Disponible ahora',
         footerTagline: 'Toma el control de tus reuniones y proyectos. Todo en local, todo privado.',
-        footerGH: 'GitHub', footerReleases: 'Releases', footerIssues: 'Reportar un problema',
+        footerGH: 'GitHub', footerReleases: 'Releases', footerIssues: 'Reportar un problema', footerContact: 'Contacto',
         footerCopyright: '© 2024–2026 AIRecorder · Desarrollado por <a href="https://github.com/rgarciade" target="_blank" rel="noopener">Raul Garcia</a> · <a href="https://github.com/rgarciade/airecorder/blob/main/LICENSE" target="_blank" rel="noopener">MIT + Commons Clause</a>',
         modalTitle: 'Instrucciones de Instalación',
         modalText: '<p>⚠️ <strong>La app está en desarrollo preliminar y aún no está firmada.</strong></p><p>Para abrir la app por primera vez, es posible que tengas que lanzar este comando en la terminal después de instalarla (arrastrarla) en Aplicaciones:</p><code class="modal-code">xattr -cr /Applications/AIRecorder.app</code><div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,0.1)"><p style="margin-bottom:.5rem;font-size:.95em"><strong>🔄 ¿Estás actualizando desde una versión anterior?</strong></p><ol style="font-size:.9em;opacity:.9"><li>Borra la app actual de la carpeta Aplicaciones antes de instalar la nueva.</li><li>Cuando te pida permisos de captura de pantalla o accesibilidad, tienes que <strong>ELIMINAR</strong> el permiso antiguo en Ajustes del Sistema de macOS y volver a añadírselo a la nueva app.</li></ol></div>',
@@ -2066,7 +2113,7 @@
         dlMacMain: 'Download for macOS', dlMacSub: 'Apple Silicon · macOS 13+', dlMacTag: 'Available now',
         dlWinMain: 'Download for Windows', dlWinSub: 'Windows 10/11 · x64', dlWinTag: 'Available now',
         footerTagline: 'Take control of your meetings and projects. All local, all private.',
-        footerGH: 'GitHub', footerReleases: 'Releases', footerIssues: 'Report an issue',
+        footerGH: 'GitHub', footerReleases: 'Releases', footerIssues: 'Report an issue', footerContact: 'Contact',
         footerCopyright: '© 2024–2026 AIRecorder · Built by <a href="https://github.com/rgarciade" target="_blank" rel="noopener">Raul Garcia</a> · <a href="https://github.com/rgarciade/airecorder/blob/main/LICENSE" target="_blank" rel="noopener">MIT + Commons Clause</a>',
         modalTitle: 'Installation Instructions',
         modalText: '<p>⚠️ <strong>The app is in early development and is not yet signed.</strong></p><p>To open the app for the first time, you may need to run this command in the terminal after installing (dragging) it to Applications:</p><code class="modal-code">xattr -cr /Applications/AIRecorder.app</code><div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,0.1)"><p style="margin-bottom:.5rem;font-size:.95em"><strong>🔄 Updating from a previous version?</strong></p><ol style="font-size:.9em;opacity:.9"><li>Delete the current app from the Applications folder before installing the new one.</li><li>When asked for screen recording or accessibility permissions, you must <strong>REMOVE</strong> the old permission in macOS System Settings and re-add it to the new app.</li></ol></div>',

@@ -16,6 +16,7 @@ class AppHeader extends HTMLElement {
             <li><a href="index.html#privacidad" data-i18n="navPrivacy">Privacidad</a></li>
             <li><a href="index.html#proveedores" data-i18n="navProviders">Proveedores IA</a></li>
             <li><a href="docs.html" ${currentPath === 'docs.html' ? 'class="active"' : ''} data-i18n="navDocs">Guía IA Local</a></li>
+            <li><a href="wiki.html" ${currentPath === 'wiki.html' ? 'class="active"' : ''} data-i18n="navWiki">Wiki</a></li>
             <li><a href="changelog.html" ${currentPath === 'changelog.html' ? 'class="active"' : ''} data-i18n="navChangelog">Novedades</a></li>
             <li>
               <div class="lang-toggle" role="group" aria-label="Idioma">
@@ -38,6 +39,7 @@ class AppHeader extends HTMLElement {
         <a href="index.html#privacidad" data-i18n="navPrivacy">Privacidad</a>
         <a href="index.html#proveedores" data-i18n="navProviders">Proveedores IA</a>
         <a href="docs.html" data-i18n="navDocs">Guía IA Local</a>
+        <a href="wiki.html" data-i18n="navWiki">Wiki</a>
         <a href="changelog.html" data-i18n="navChangelog">Novedades</a>
         <a href="index.html#descarga" class="nav-cta" data-i18n="navDownload">Descargar</a>
         <div class="lang-toggle">
@@ -48,8 +50,10 @@ class AppHeader extends HTMLElement {
     `;
 
     this.initListeners();
-    // After appending HTML, we must re-run translations if window.TRANSLATIONS exist
-    if (window.setLang) window.setLang(currentLang);
+    // After appending HTML, re-run translations only if the page hasn't already
+    // initialised a language (window.currentLang). This prevents overriding a
+    // language the user just selected before this custom element was connected.
+    if (window.setLang && !window.currentLang) window.setLang(currentLang);
   }
 
   initListeners() {
@@ -115,6 +119,9 @@ class AppFooter extends HTMLElement {
               AIRecorder
             </div>
             <p class="footer-tagline" data-i18n="footerTagline">Toma el control de tus reuniones y proyectos. Todo en local, todo privado.</p>
+            <a href="https://ko-fi.com/airecorderraulgarciadelafuente" target="_blank" rel="noopener" style="display:inline-block;margin:16px 0 8px;">
+              <img height="36" style="border:0;height:36px;" src="https://storage.ko-fi.com/cdn/kofi2.png?v=3" alt="Support AIRecorder on Ko-fi" />
+            </a>
             <nav class="footer-links" aria-label="Links del footer">
               <a href="https://github.com/rgarciade/airecorder" target="_blank" rel="noopener" data-i18n="footerGH">GitHub</a>
               <span>·</span>
@@ -123,6 +130,8 @@ class AppFooter extends HTMLElement {
               <a href="changelog.html" data-i18n="navChangelog">Novedades</a>
               <span>·</span>
               <a href="https://github.com/rgarciade/airecorder/issues" target="_blank" rel="noopener" data-i18n="footerIssues">Reportar un problema</a>
+              <span>·</span>
+              <a href="mailto:garcia.de.la.fuente.raul@gmail.com" data-i18n="footerContact">Contacto</a>
             </nav>
             <div class="footer-divider"></div>
             <p class="footer-copyright" data-i18n-html="footerCopyright">

@@ -161,7 +161,7 @@
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #4B5563;
+  color: var(--color-text-secondary);
   padding: 4px 8px;
   border-radius: 4px;
   display: flex;

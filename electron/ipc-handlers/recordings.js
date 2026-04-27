@@ -2,7 +2,9 @@ const { ipcMain, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const dbService = require('../database/dbService');
-const { getRecordingsPath, getFolderPathFromId } = require('../utils/paths');
+const speakerManager = require('../services/speakerManager');
+const diarizationService = require('../services/diarizationService');
+const { getRecordingsPath, getFolderPathFromId, settingsPath } = require('../utils/paths');
 
 module.exports.registerRecordingsHandlers = () => {
 
@@ -118,9 +120,56 @@ module.exports.registerRecordingsHandlers = () => {
       }
       
       const transcriptionData = await fs.promises.readFile(transcriptionPath, 'utf8');
-      const transcription = JSON.parse(transcriptionData);
-      
-      return { success: true, transcription };
+      const parsed = JSON.parse(transcriptionData);
+      const transcription = Array.isArray(parsed)
+        ? { segments: parsed }
+        : parsed;
+
+      // ── Phase 5: Resolución de hablantes (Diarización) ────────────────────
+      let speakerResolution = {};
+      let speakerThreshold = 0.85; // default
+      try {
+        // Leer threshold de similitud desde settings
+        if (fs.existsSync(settingsPath)) {
+          try {
+            const settingsData = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+            speakerThreshold = settingsData.speakerSimilarityThreshold ?? 0.85;
+          } catch (_) {}
+        }
+
+        const dbRecording = dbService.getRecording(folderName);
+        const numericRecordingId = dbRecording ? dbRecording.id : null;
+
+        const result = diarizationService.resolveRecording({
+          recordingId: numericRecordingId,
+          folderName,
+          baseOutputDir,
+          transcriptionSegments: transcription.segments,
+          threshold: speakerThreshold
+        });
+
+        speakerResolution = result.resolutionMap;
+        if (result.pendingSuggestions.length > 0) {
+          speakerResolution._pendingSuggestions = result.pendingSuggestions;
+        }
+        speakerResolution._source = result._source;
+
+        // Preservar logging idéntico al original: source hardcoded como 'diarization' cuando existe el archivo
+        console.log(
+          `[IPC:get-transcription] Speaker resolution para "${folderName}" (source=${result._source}):`,
+          Object.keys(speakerResolution)
+            .filter((k) => k !== '_source' && k !== '_pendingSuggestions')
+            .map((k) => `${k} → ${speakerResolution[k]?.displayName || 'sin resolución'}`)
+        );
+      } catch (speakerErr) {
+        console.warn(
+          `[IPC:get-transcription] Resolución de hablantes falló para "${folderName}":`,
+          speakerErr.message
+        );
+      }
+      // ── Fin Phase 5 ────────────────────────────────────────────────────────
+
+      return { success: true, transcription: { ...transcription, speakerResolution } };
     } catch (error) {
       console.error('Error getting transcription:', error);
       return { success: false, error: error.message };
@@ -262,6 +311,30 @@ module.exports.registerRecordingsHandlers = () => {
       return { success: true, recording };
     } catch (error) {
       console.error('Error obteniendo grabación por ID:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Confirma una sugerencia de match de hablante para una grabación.
+   * Vincula el ephemeralId al hablante confirmado y consolida los embeddings.
+   * El frontend puede llamar este handler cuando el usuario acepta una sugerencia.
+   *
+   * Payload: { recordingId, ephemeralId, confirmedSpeakerId, currentSpeakerId }
+   * Respuesta: { success, displayName?, error? }
+   */
+  ipcMain.handle('confirm-speaker-suggestion', async (event, payload) => {
+    try {
+      const { recordingId, ephemeralId, confirmedSpeakerId, currentSpeakerId } = payload || {};
+      if (!recordingId || !ephemeralId || !confirmedSpeakerId) {
+        return { success: false, error: 'Faltan parámetros: recordingId, ephemeralId, confirmedSpeakerId.' };
+      }
+      const result = speakerManager.confirmSpeakerSuggestion(
+        recordingId, ephemeralId, confirmedSpeakerId, currentSpeakerId
+      );
+      return result;
+    } catch (error) {
+      console.error('[IPC:confirm-speaker-suggestion] Error:', error);
       return { success: false, error: error.message };
     }
   });

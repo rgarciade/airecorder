@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import styles from './ParticipantsList.module.css';
 import { 
   MdAdd, 
@@ -13,22 +14,20 @@ export default function ParticipantsList({
   onAddParticipant,
   onRemoveParticipant,
   onUpdateParticipant,
-  title = "Participantes"
+  title
 }) {
-  
-  // Estado local para agregar participante
+  const { t } = useTranslation();
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState('');
 
-  // Estado local para editar participante
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
   const [editRole, setEditRole] = useState('');
 
   const handleAddClick = () => {
     if (newName.trim()) {
-      onAddParticipant({ name: newName, role: newRole || 'Participante' });
+      onAddParticipant({ name: newName, role: newRole || t('participantsList.role') });
       setNewName('');
       setNewRole('');
       setIsAdding(false);
@@ -55,24 +54,23 @@ export default function ParticipantsList({
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h3 className={styles.title}>{title}</h3>
+        <h3 className={styles.title}>{title || t('participantsList.title')}</h3>
         {!isAdding && (
           <button 
             onClick={() => setIsAdding(true)}
             className={styles.addBtn}
-            title="Añadir"
+            title={t('participantsList.add')}
           >
             <MdAdd size={16} />
           </button>
         )}
       </div>
       
-      {/* Add Participant Form */}
       {isAdding && (
         <div className={styles.addForm}>
           <input 
             type="text" 
-            placeholder="Nombre" 
+            placeholder={t('participantsList.name')} 
             className={styles.input}
             value={newName}
             onChange={e => setNewName(e.target.value)}
@@ -80,7 +78,7 @@ export default function ParticipantsList({
           />
           <input 
             type="text" 
-            placeholder="Rol" 
+            placeholder={t('participantsList.role')} 
             className={styles.input}
             value={newRole}
             onChange={e => setNewRole(e.target.value)}
@@ -133,10 +131,10 @@ export default function ParticipantsList({
                       <div className={styles.nameRow}>
                         <h4>{p.name}</h4>
                         {(p.isAiSuggestion || p.createdByAi) && (
-                          <span className={styles.aiBadge} title="Sugerido por IA">IA</span>
+                          <span className={styles.aiBadge} title={t('participantsList.aiSuggestedTooltip')}>{t('participantsList.aiSuggested')}</span>
                         )}
                       </div>
-                      <p>{p.role || 'Participante'}</p>
+                      <p>{p.role || t('participantsList.role')}</p>
                     </div>
                   </div>
                   <div className={styles.actions}>
@@ -152,7 +150,7 @@ export default function ParticipantsList({
             </div>
           ))
         ) : (
-          !isAdding && <p className={styles.emptyText}>No se detectaron participantes.</p>
+          !isAdding && <p className={styles.emptyText}>{t('participantsList.noParticipants')}</p>
         )}
       </div>
     </div>
