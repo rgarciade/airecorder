@@ -1,0 +1,195 @@
+/* SpeakerSuggestions.module.css */
+
+.container {
+  margin: 0.75rem 1rem;
+  border: 1px solid var(--color-warning, #d97706);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(217, 119, 6, 0.08);
+  border-bottom: 1px solid var(--color-warning, #d97706);
+}
+
+.headerIcon {
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.headerText {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-warning, #d97706);
+  letter-spacing: 0.01em;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--color-border-secondary);
+  flex-wrap: wrap;
+}
+
+.card:last-child {
+  border-bottom: none;
+}
+
+.cardMain {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.speakerInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.currentName {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.arrow {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  opacity: 0.6;
+}
+
+.candidateName {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.similarity {
+  font-size: 0.72rem;
+  color: var(--color-text-secondary);
+  opacity: 0.75;
+  white-space: nowrap;
+  background: var(--color-bg-primary);
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--color-border-secondary);
+}
+
+.audioSection {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.audioLabel {
+  font-size: 0.72rem;
+  color: var(--color-text-secondary);
+  opacity: 0.65;
+  white-space: nowrap;
+}
+
+.playBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border-primary);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.playBtn:hover:not(:disabled) {
+  background: var(--color-accent, #3b82f6);
+  border-color: var(--color-accent, #3b82f6);
+  color: white;
+}
+
+.playBtn.playing {
+  background: var(--color-accent, #3b82f6);
+  border-color: var(--color-accent, #3b82f6);
+  color: white;
+}
+
+.playBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.noAudio {
+  font-size: 0.72rem;
+  color: var(--color-text-secondary);
+  opacity: 0.5;
+  font-style: italic;
+}
+
+.actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.confirmBtn,
+.dismissBtn {
+  padding: 0.25rem 0.6rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s;
+  border: 1px solid transparent;
+}
+
+.confirmBtn {
+  background: var(--color-accent, #3b82f6);
+  color: white;
+  border-color: var(--color-accent, #3b82f6);
+}
+
+.confirmBtn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.dismissBtn {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-secondary);
+}
+
+.dismissBtn:hover:not(:disabled) {
+  background: var(--color-bg-primary);
+}
+
+.confirmBtn:disabled,
+.dismissBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

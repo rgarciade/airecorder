@@ -153,6 +153,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onNotificationClick: (callback) => ipcRenderer.on('notification-click', (_event, value) => callback(value)),
   offNotificationClick: () => ipcRenderer.removeAllListeners('notification-click'),
 
+  // Monitor de micrófono del sistema
+  setAppRecordingState: (isRecording) => ipcRenderer.invoke('set-app-recording-state', isRecording),
+
   // Dashboard
   getDashboardStats: () => ipcRenderer.invoke('get-dashboard-stats'),
 
@@ -167,6 +170,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Importar archivo de audio externo
   importAudioFile: () => ipcRenderer.invoke('import-audio-file'),
+
+  // Importar conversación externa
+  selectConversationFile: () => ipcRenderer.invoke('select-conversation-file'),
+  saveConversationImport: (data) => ipcRenderer.invoke('save-conversation-import', data),
 
   // Actualizaciones
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
@@ -223,4 +230,89 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('auto-analyze-recording', handler);
     return () => ipcRenderer.removeListener('auto-analyze-recording', handler);
   },
-}); 
+
+  // ── Identificación de Hablantes ──────────────────────────────────────────────
+
+  /**
+   * Resuelve el mapa `speaker_embeddings` de una sesión de diarización.
+   * Para cada ID efímero ("SPEAKER_00") devuelve el UUID persistente y su alias.
+   *
+   * @param {{ speakerEmbeddings: Object, recordingId?: number, threshold?: number }} params
+   * @returns {Promise<{ success: boolean, data?: Object, error?: string }>}
+   */
+  resolveSpeakers: (params) => ipcRenderer.invoke('resolve-speaker', params),
+
+  /**
+   * Persiste un alias personalizado para un hablante identificado por UUID.
+   * Opcionalmente guarda un embedding actualizado.
+   *
+   * @param {{ speakerId: string, alias: string, embedding?: number[], recordingId?: number }} params
+   * @returns {Promise<{ success: boolean, error?: string }>}
+   */
+  assignSpeakerAlias: (params) => ipcRenderer.invoke('assign-alias', params),
+
+  /**
+   * Devuelve todos los hablantes registrados en la BD.
+   * Se usa para poblar el autocompletado de alias en el frontend.
+   *
+   * @returns {Promise<{ success: boolean, data: Array, error?: string }>}
+   */
+  getAllSpeakers: () => ipcRenderer.invoke('get-all-speakers'),
+
+  /**
+   * Fusiona múltiples hablantes en un único perfil persistente.
+   * Reasigna embeddings y elimina perfiles redundantes en BD.
+   * @param {{ sourceEphemeralIds: string[], speakersMap: Object, targetAlias: string }} params
+   * @returns {Promise<{ success: boolean, targetSpeakerId?: string, displayName?: string, error?: string }>}
+   */
+  mergeSpeakers: (params) => ipcRenderer.invoke('merge-speakers', params),
+
+  /**
+   * Confirma una sugerencia de match de hablante.
+   * Vincula el ephemeralId al hablante confirmado y consolida los embeddings.
+   * @param {{ recordingId: number, ephemeralId: string, confirmedSpeakerId: string, currentSpeakerId: string }} params
+   * @returns {Promise<{ success: boolean, displayName?: string, error?: string }>}
+   */
+  confirmSpeakerSuggestion: (params) => ipcRenderer.invoke('confirm-speaker-suggestion', params),
+
+  // ── Estadísticas y Directorio de Hablantes ──────────────────────────────────
+
+  /**
+   * Devuelve métricas agregadas del sistema de reconocimiento de hablantes.
+   * @returns {Promise<{ success: boolean, data: Object, error?: string }>}
+   */
+  getSpeakerStats: () => ipcRenderer.invoke('get-speaker-stats'),
+
+  /**
+   * Devuelve todos los hablantes ordenados por nº de grabaciones DESC.
+   * @returns {Promise<{ success: boolean, data: Array, error?: string }>}
+   */
+  getSpeakersWithRecordings: () => ipcRenderer.invoke('get-speakers-with-recordings'),
+
+  /**
+   * Devuelve las grabaciones donde aparece un hablante específico.
+   * @param {{ speakerId: string }} params
+   * @returns {Promise<{ success: boolean, data: Object, error?: string }>}
+   */
+  getSpeakerRecordings: (params) => ipcRenderer.invoke('get-speaker-recordings', params),
+  getSimilarSpeakers: (params) => ipcRenderer.invoke('get-similar-speakers', params),
+  mergeSimilarSpeaker: (params) => ipcRenderer.invoke('merge-similar-speaker', params),
+
+  /**
+   * Devuelve el timestamp del primer segmento de un hablante en una grabación.
+   * Se usa para hacer seek al punto exacto donde ese hablante empieza a hablar.
+   *
+   * @param {{ speakerId: string, recordingId: number }} params
+   * @returns {Promise<{ success: boolean, data?: { startTime: number, ephemeralId: string }, error?: string }>}
+   */
+  getSpeakerFirstSegmentTime: (params) => ipcRenderer.invoke('get-speaker-first-segment-time', params),
+
+  /**
+   * Elimina la relación entre un hablante y una grabación específica.
+   * Esto elimina tanto la resolución como el embedding para esa grabación.
+   *
+   * @param {{ speakerId: string, recordingId: number }} params
+   * @returns {Promise<{ success: boolean, deletedCount?: number, error?: string }>}
+   */
+  deleteSpeakerRecordingResolution: (params) => ipcRenderer.invoke('delete-speaker-recording-resolution', params),
+});

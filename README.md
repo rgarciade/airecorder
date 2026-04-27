@@ -149,6 +149,53 @@ python python/audio_sync_analyzer.py \
   --threads 4
 ```
 
+### Diarización y Extracción de Embeddings
+
+Cuando la diarización está habilitada (Ajustes → HuggingFace Token), el pipeline ejecuta `diarization_analyzer.py` como paso previo a la transcripción. A partir de la versión `2.0` del schema de salida, el JSON generado tiene el siguiente formato:
+
+```json
+{
+  "version": "2.0",
+  "segments": [
+    { "start": 0.0, "end": 3.5, "speaker": "SPEAKER_00" },
+    { "start": 3.8, "end": 7.2, "speaker": "SPEAKER_01" }
+  ],
+  "speaker_embeddings": {
+    "SPEAKER_00": [0.123, -0.045, ...],
+    "SPEAKER_01": [0.891, 0.023, ...]
+  }
+}
+```
+
+- **`segments`**: Segmentos de audio con el hablante asignado (mismo formato que en v1.0).
+- **`speaker_embeddings`**: Mapa `{ speaker_id: [float] }` con el vector centroide normalizado (L2) de cada hablante. Se calcula promediando los embeddings de todos sus segmentos y normalizando a longitud unitaria. Listo para similitud coseno.
+
+Los embeddings se extraen usando el modelo de embedding interno de `pyannote/speaker-diarization-3.1` (`pipeline._embedding`, tipo `PretrainedSpeakerEmbedding`). El waveform se recorta manualmente por segmento y se pasa como tensor `(1, 1, n_samples)` directamente al modelo. Segmentos menores a 0.5s se descartan antes de la extracción. Si el modelo interno no está accesible, `speaker_embeddings` quedará como `{}` y la transcripción continúa normalmente.
+
+`audio_sync_analyzer.py` es retrocompatible con ambos formatos (lista plana v1.0 y objeto v2.0).
+
+### Umbral de Similitud de Hablantes
+
+El reconocimiento de hablantes usa **similitud coseno** entre embeddings de voz para identificar si un hablante en una nueva grabación coincide con un perfil conocido. El umbral por defecto es **0.85** (85%), configurable en Ajustes → sección de Diarización.
+
+**¿Cómo funciona?**
+- Valor entre 0.50 y 0.99 (slider en UI).
+- **Valores bajos** (más permisivo): mayor probabilidad de falsos positivos — une voces de personas diferentes que suenan similar.
+- **Valores altos** (más estricto): mayor probabilidad de falsos negativos — separa la misma voz en hablantes diferentes.
+
+**Para ajustar**: Ve a Ajustes → General → Diarización de Interlocutores → Slider "Umbral de similitud de hablantes". El cambio se aplica a las siguientes grabaciones procesadas.
+
+### Regla de Mantenimiento de Archivos
+
+⚠️ **OBLIGATORIO**: Si un archivo de código fuente supera las ~300 líneas, es una señal de que necesita ser dividido.
+
+**Criterios de división:**
+- Si concentra demasiada lógica de negocio → separar en módulos más pequeños por contexto
+- Si tiene múltiples responsabilidades → separar en archivos especializados
+- Los módulos deben ser autocontenidos y poder entenderse de forma independiente
+
+Esta regla aplica a TODOS los archivos del proyecto (JavaScript, Python, configuración, etc.).
+
 ## License
 
 MIT © [Raul Garcia](https://github.com/rgarciade)

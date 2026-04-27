@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
+import { startRecording } from './store/recordingSlice'
 import useAutoAnalyze from './hooks/useAutoAnalyze'
 import useAppearance from './hooks/useAppearance'
 import useDatabaseStatus from './hooks/useDatabaseStatus'
@@ -7,6 +8,9 @@ import useQueueManager from './hooks/useQueueManager'
 import useNotificationHandler from './hooks/useNotificationHandler'
 import useNavigation from './hooks/useNavigation'
 import useSession from './hooks/useSession'
+import useMicrophoneActivation from './hooks/useMicrophoneActivation'
+import { MixedAudioRecorder, getSystemMicrophones } from './services/audioService'
+import { getSettings } from './services/settingsService'
 import WhatsNewModal from './components/WhatsNewModal/WhatsNewModal'
 import Home from './pages/Home/Home'
 import RecordingDetailWithTranscription from './pages/RecordingDetail/RecordingDetailWithTranscription';
@@ -15,6 +19,8 @@ import Projects from './pages/Projects/Projects'
 import ProjectDetail from './pages/ProjectDetail/ProjectDetail'
 import TranscriptionQueue from './pages/TranscriptionQueue/TranscriptionQueue'
 import AiQueue from './pages/AiQueue/AiQueue'
+import SpeakersPage from './pages/Speakers/SpeakersPage'
+import SpeakerDetail from './pages/Speakers/SpeakerDetail'
 import RecordingOverlay from './components/RecordingOverlay/RecordingOverlay'
 import Sidebar from './components/Sidebar/Sidebar';
 import Onboarding from './pages/Onboarding/Onboarding';
@@ -23,8 +29,9 @@ import './App.css'
 
 export default function App() {
   const [currentRecorder, setCurrentRecorder] = useState(null)
-  const [refreshTrigger, setRefreshTrigger] = useState(0) // Trigger para refrescar Home
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
   const { isRecording } = useSelector((state) => state.recording)
+  const dispatch = useDispatch()
 
   const {
     currentView,
@@ -33,9 +40,13 @@ export default function App() {
     setSelectedRecording,
     selectedProjectId,
     selectedProject,
+    selectedSpeakerId,
+    setSelectedSpeakerId,
     settingsInitialTab,
+    settingsTargetElement,
     handleNavigateToRecording,
     handleNavigateToProject,
+    handleNavigateToSpeaker,
     handleBack,
     navigateTo,
     handleOpenSettings,
@@ -75,6 +86,31 @@ export default function App() {
   const handleRecordingStart = (recorder) => {
     setCurrentRecorder(recorder)
   }
+
+  const handleStartRecordingFromNotification = useCallback(async () => {
+    if (isRecording) return;
+    try {
+      const settings = await getSettings();
+      const devices = await getSystemMicrophones();
+      const micId = settings?.microphone || devices[0]?.value;
+      if (!micId) {
+        console.error('[App] No se encontró micrófono para iniciar grabación desde notificación');
+        return;
+      }
+      const recorder = new MixedAudioRecorder();
+      await recorder.startMixedRecording(micId, null);
+      dispatch(startRecording());
+      setCurrentRecorder(recorder);
+    } catch (err) {
+      console.error('[App] Error iniciando grabación desde notificación:', err.message || err);
+      // Re-lanzar para que el hook pueda mostrar feedback si se necesita
+    }
+  }, [isRecording, dispatch]);
+
+  useMicrophoneActivation({
+    onStartRecording: handleStartRecordingFromNotification,
+    isRecording,
+  });
 
   return (
     <div className={styles.appContainer} data-font-size={appSettings?.fontSize || 'medium'}>
@@ -119,7 +155,8 @@ export default function App() {
               navigateTo(view);
             }
           }} 
-          queueCount={queueCount} 
+          queueCount={queueCount}
+          diarizationEnabled={appSettings?.enableDiarization ?? false}
         />
       )}
       
@@ -138,10 +175,12 @@ export default function App() {
           />
         )}
         {currentView === 'settings' && (
-          <Settings 
-            onBack={handleBack} 
-            onSettingsSaved={loadAppSettings} 
-            initialTab={settingsInitialTab} 
+          <Settings
+            key={`${settingsInitialTab}-${settingsTargetElement}`}
+            onBack={handleBack}
+            onSettingsSaved={loadAppSettings}
+            initialTab={settingsInitialTab}
+            targetElement={settingsTargetElement}
           />
         )}
         {currentView === 'projects' && (
@@ -175,6 +214,21 @@ export default function App() {
         )}
         {currentView === 'ai-queue' && (
           <AiQueue onBack={handleBack} onNavigateToRecording={handleNavigateToRecording} />
+        )}
+        {currentView === 'speakers' && (
+          <SpeakersPage
+            onNavigateToSpeaker={handleNavigateToSpeaker}
+            onNavigateToSettings={() => handleOpenSettings('general', 'diarization-settings')}
+            diarizationEnabled={appSettings?.enableDiarization ?? false}
+          />
+        )}
+        {currentView === 'speaker-detail' && selectedSpeakerId && (
+          <SpeakerDetail
+            speakerId={selectedSpeakerId}
+            onBack={handleBack}
+            onNavigateToRecording={handleNavigateToRecording}
+            onNavigateToSpeaker={handleNavigateToSpeaker}
+          />
         )}
       </div>
       

@@ -4,6 +4,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const dbService = require('../database/dbService');
 const { getRecordingsPath } = require('../utils/paths');
+const { buildTranscriptionJson, buildTranscriptionTxt } = require('../integrations/chatSyncUtils');
 
 module.exports.registerIntegrationsHandlers = () => {
 
@@ -123,6 +124,111 @@ module.exports.registerIntegrationsHandlers = () => {
     } catch (error) {
       console.error('[Teams Import] Error:', error);
       return { success: false, error: error.message };
+    }
+  });
+
+  // Seleccionar archivo de conversación para importar (.txt, .md, .vtt, .srt)
+  ipcMain.handle('select-conversation-file', async () => {
+    try {
+      const { canceled, filePaths } = await dialog.showOpenDialog({
+        title: 'Seleccionar archivo de conversación',
+        filters: [{ name: 'Conversation Files', extensions: ['txt', 'md', 'vtt', 'srt'] }],
+        properties: ['openFile'],
+      });
+      if (canceled || !filePaths[0]) return { success: true, canceled: true };
+
+      const filePath = filePaths[0];
+      const stats = await fs.promises.stat(filePath);
+      const content = await fs.promises.readFile(filePath, 'utf-8');
+
+      return {
+        success: true,
+        raw: content,
+        fileName: path.basename(filePath),
+        ext: path.extname(filePath).replace('.', ''),
+        filePath,
+        fileSize: stats.size,
+      };
+    } catch (err) {
+      console.error('[Conversation Import] Error seleccionando archivo:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
+  // Guardar conversación importada como nueva grabación
+  ipcMain.handle('save-conversation-import', async (event, { fileName, raw, ext, segments }) => {
+    try {
+      const baseName = path.basename(fileName, path.extname(fileName))
+        .replace(/[^a-zA-Z0-9_\-áéíóúüñÁÉÍÓÚÜÑ]/g, '_')
+        .slice(0, 60);
+      const folderName = `conv_import_${baseName}_${Date.now()}`;
+
+      const recordingsDir = await getRecordingsPath();
+      const analysisDir = path.join(recordingsDir, folderName, 'analysis');
+      await fs.promises.mkdir(analysisDir, { recursive: true });
+
+      // Guardar el archivo original en analysis/
+      const rawExt = ext || 'txt';
+      await fs.promises.writeFile(
+        path.join(analysisDir, `raw_import.${rawExt}`),
+        raw,
+        'utf-8'
+      );
+
+      // Generar y guardar transcripcion_combinada.json y .txt en analysis/
+      const normalizedSegments = buildTranscriptionJson(segments);
+      const speakers = [...new Set(normalizedSegments.map((seg) => seg.speaker).filter(Boolean))];
+      const totalDuration = normalizedSegments.length > 0
+        ? Number(normalizedSegments[normalizedSegments.length - 1].end) || 0
+        : 0;
+      const transcriptionJson = {
+        metadata: {
+          total_segments: normalizedSegments.length,
+          microphone_segments: 0,
+          system_segments: normalizedSegments.length,
+          detected_speakers: speakers.length,
+          total_duration: totalDuration,
+        },
+        segments: normalizedSegments,
+      };
+
+      await fs.promises.writeFile(
+        path.join(analysisDir, 'transcripcion_combinada.json'),
+        JSON.stringify(transcriptionJson, null, 2),
+        'utf-8'
+      );
+      await fs.promises.writeFile(
+        path.join(analysisDir, 'transcripcion_combinada.txt'),
+        buildTranscriptionTxt(segments),
+        'utf-8'
+      );
+
+      // Guardar metadata.json en la raíz de la sesión
+      const duration = segments.length > 0 ? (segments[segments.length - 1].end || 0) : 0;
+      await fs.promises.writeFile(
+        path.join(recordingsDir, folderName, 'metadata.json'),
+        JSON.stringify({
+          importedAt: new Date().toISOString(),
+          originalFileName: fileName,
+          segmentCount: segments.length,
+          source: 'conversation-import',
+        }, null, 2),
+        'utf-8'
+      );
+
+      // Registrar en la base de datos
+      const createdAt = new Date().toISOString();
+      const dbResult = dbService.saveRecording(folderName, duration, 'transcribed', createdAt, 'conversation-import');
+      if (!dbResult.success) {
+        return { success: false, error: 'Error guardando la grabación en la base de datos' };
+      }
+
+      console.log(`[Conversation Import] Grabación importada: ${folderName} (${segments.length} segmentos)`);
+      return { success: true, recording: { id: dbResult.id, relative_path: folderName } };
+
+    } catch (err) {
+      console.error('[Conversation Import] Error guardando conversación:', err);
+      return { success: false, error: err.message };
     }
   });
 

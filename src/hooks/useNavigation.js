@@ -1,5 +1,8 @@
 import { useState, useCallback } from 'react';
 
+const VALID_SETTINGS_TABS = ['agents', 'general', 'experts'];
+const DEFAULT_SETTINGS_TAB = 'agents';
+
 /**
  * Hook para gestionar la navegación y el estado de las vistas de la aplicación.
  */
@@ -8,7 +11,9 @@ export const useNavigation = () => {
   const [selectedRecording, setSelectedRecording] = useState(null);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
-  const [settingsInitialTab, setSettingsInitialTab] = useState('agents');
+  const [selectedSpeakerId, setSelectedSpeakerId] = useState(null);
+  const [settingsInitialTab, setSettingsInitialTab] = useState(DEFAULT_SETTINGS_TAB);
+  const [settingsTargetElement, setSettingsTargetElement] = useState(null);
 
   /**
    * Navegación avanzada a una grabación específica, buscando su objeto completo.
@@ -46,15 +51,24 @@ export const useNavigation = () => {
     setSettingsInitialTab('agents');
   }, []);
 
+  const handleNavigateToSpeaker = useCallback((speakerId) => {
+    setSelectedSpeakerId(speakerId);
+    setCurrentView('speaker-detail');
+  }, []);
+
   const handleBack = useCallback(() => {
     if (currentView === 'recording-detail' && selectedProject) {
       setCurrentView('project-detail');
       setSelectedRecording(null);
+    } else if (currentView === 'speaker-detail') {
+      setCurrentView('speakers');
+      setSelectedSpeakerId(null);
     } else {
       setCurrentView('home');
       setSelectedRecording(null);
       setSelectedProject(null);
       setSelectedProjectId(null);
+      setSelectedSpeakerId(null);
       setSettingsInitialTab('agents');
     }
   }, [currentView, selectedProject]);
@@ -69,10 +83,15 @@ export const useNavigation = () => {
       setSelectedProject(null);
       setSelectedProjectId(null);
     }
+    if (view === 'speakers') {
+      setSelectedSpeakerId(null);
+    }
   }, []);
 
-  const handleOpenSettings = useCallback((tab = 'agents') => {
-    setSettingsInitialTab(tab);
+  const handleOpenSettings = useCallback((tab = DEFAULT_SETTINGS_TAB, targetElement = null) => {
+    const safeTab = VALID_SETTINGS_TABS.includes(tab) ? tab : DEFAULT_SETTINGS_TAB;
+    setSettingsInitialTab(safeTab);
+    setSettingsTargetElement(targetElement || null);
     setCurrentView('settings');
   }, []);
 
@@ -92,10 +111,14 @@ export const useNavigation = () => {
     setSelectedRecording,
     selectedProjectId,
     selectedProject,
+    selectedSpeakerId,
+    setSelectedSpeakerId,
     settingsInitialTab,
     setSettingsInitialTab,
+    settingsTargetElement,
     handleNavigateToRecording,
     handleNavigateToProject,
+    handleNavigateToSpeaker,
     handleBack,
     navigateTo,
     handleOpenSettings,
