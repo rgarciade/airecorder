@@ -94,7 +94,7 @@ const LocalAiInfoStep = ({ t, onNext, onBack, StepProgressComponent }) => {
                     <h4 className="font-bold text-slate-800 dark:text-content-primary text-sm mb-1">{t('onboarding.aiInfo.normalModels')}</h4>
                     <p className="text-xs text-slate-500 dark:text-content-secondary leading-relaxed">{t('onboarding.aiInfo.normalModelsDesc')}</p>
                     <div className="mt-2 flex gap-2">
-                      <span className="text-[10px] font-mono bg-slate-100 dark:bg-surface-tertiary px-2 py-1 rounded text-slate-600 dark:text-content-secondary">llama3</span>
+                      <span className="text-[10px] font-mono bg-slate-100 dark:bg-surface-tertiary px-2 py-1 rounded text-slate-600 dark:text-content-secondary">gemma4:e4b</span>
                       <span className="text-[10px] font-mono bg-slate-100 dark:bg-surface-tertiary px-2 py-1 rounded text-slate-600 dark:text-content-secondary">qwen2</span>
                     </div>
                   </div>
