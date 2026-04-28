@@ -91,7 +91,7 @@ export default function LocalProvidersSection() {
                     {
                       title: t('modelInfo.generalModel'),
                       items: [
-                        { icon: '⭐', label: t('modelInfo.bestPerformance'), value: 'deepseek-r1:8b' },
+                        { icon: '⭐', label: t('modelInfo.bestPerformance'), value: 'gemma4:e4b' },
                         { icon: '🪶', label: t('modelInfo.lessResources'), value: 'gemma-7b-it' },
                       ],
                     },
@@ -266,7 +266,7 @@ export default function LocalProvidersSection() {
                     {
                       title: t('modelInfo.generalModel'),
                       items: [
-                        { icon: '⭐', label: t('modelInfo.bestPerformance'), value: 'deepseek-r1:8b' },
+                        { icon: '⭐', label: t('modelInfo.bestPerformance'), value: 'gemma4:e4b' },
                         { icon: '🪶', label: t('modelInfo.lessResources'), value: 'gemma-7b-it' },
                       ],
                     },
