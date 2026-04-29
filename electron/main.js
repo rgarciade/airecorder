@@ -320,6 +320,8 @@ function showMicNotification(mainWindow) {
   const notifOpts = {
     title: 'AIRecorder',
     body: 'Se detectó actividad en el micrófono. ¿Querés empezar a grabar?',
+    urgencyLevel: 'critical',
+    timeoutType: 'never'
   };
 
   if (supportsActions) {
