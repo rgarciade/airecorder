@@ -519,11 +519,15 @@ function resolveFromSegments(segments, recordingId = null) {
     }
   }
 
-  // Recopilar IDs únicos de hablante que aparecen en los segmentos
+  // Recopilar IDs únicos de hablante que aparecen en los segmentos.
+  // Filtrar labels placeholder que no representan hablantes reales:
+  //   - "SISTEMA": marcador de canal de audio, no un hablante.
+  //   - "USUARIO": se mantiene porque puede ser útil para el micrófono.
+  const PLACEHOLDER_SPEAKERS = new Set(['SISTEMA', 'sistema', 'SYSTEM', 'system']);
   const uniqueSpeakerIds = [...new Set(
     segments
       .map((s) => s.speaker)
-      .filter((id) => typeof id === 'string' && id.trim() !== '')
+      .filter((id) => typeof id === 'string' && id.trim() !== '' && !PLACEHOLDER_SPEAKERS.has(id))
   )];
 
   if (uniqueSpeakerIds.length === 0) {
