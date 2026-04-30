@@ -43,6 +43,7 @@ const { registerSystemHandlers } = require('./ipc-handlers/system');
 const { registerAttachmentsHandlers } = require('./ipc-handlers/attachments');
 const { registerExpertsHandlers } = require('./ipc-handlers/experts');
 const { registerSpeakersHandlers } = require('./ipc-handlers/speakers');
+const { registerTemplatesHandlers } = require('./ipc-handlers/templates');
 
 // ========================================
 // 1.5 REDIRIGIR LOGS DEL MAIN AL RENDERER (DevTools)
@@ -117,6 +118,7 @@ function registerIpcHandlers() {
   registerAttachmentsHandlers();
   registerExpertsHandlers();
   registerSpeakersHandlers();
+  registerTemplatesHandlers();
 }
 
 async function checkMicrophonePermission() {

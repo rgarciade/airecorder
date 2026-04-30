@@ -1,0 +1,203 @@
+.container {
+  padding: 24px;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.generateBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background-color: var(--color-primary-bg);
+  border: 1px solid var(--color-status-inprogress-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.generateBtn:hover {
+  background-color: var(--color-status-inprogress-bg);
+}
+
+.loadingContainer,
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  color: var(--color-text-secondary);
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border-secondary);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.errorContainer {
+  color: var(--color-danger);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  text-align: center;
+}
+
+.emptyText {
+  color: var(--color-text-tertiary);
+  margin-bottom: 16px;
+  font-size: 1rem;
+}
+
+.notesList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.noteCard {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.noteHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: var(--color-bg-tertiary);
+  border-bottom: 1px solid var(--color-border-secondary);
+}
+
+.noteMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.noteIcon {
+  font-size: 1.25rem;
+}
+
+.noteTemplateName {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.noteDate {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+  margin-left: 8px;
+}
+
+.noteActions {
+  display: flex;
+  gap: 4px;
+}
+
+.actionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  color: var(--color-text-tertiary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.actionBtn:hover {
+  background-color: var(--color-border-subtle);
+  color: var(--color-text-secondary);
+}
+
+.noteContent {
+  padding: 16px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* Markdown styles */
+.mdP {
+  margin: 0 0 12px 0;
+}
+
+.mdH2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 24px 0 12px 0;
+}
+
+.mdH3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 20px 0 10px 0;
+}
+
+.mdUl,
+.mdOl {
+  margin: 0 0 12px 0;
+  padding-left: 24px;
+}
+
+.mdLi {
+  margin-bottom: 4px;
+}
+
+.mdBlockquote {
+  border-left: 3px solid var(--color-primary);
+  margin: 12px 0;
+  padding-left: 12px;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.mdCode {
+  background-color: var(--color-bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.85em;
+}

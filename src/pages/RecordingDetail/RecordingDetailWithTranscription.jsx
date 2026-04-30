@@ -14,13 +14,16 @@ import ragService from '../../services/ragService';
 import recordingAiService from '../../services/recordingAiService';
 import chatPendingService from '../../services/chatPendingService';
 import { checkModelVisionSupport } from '../../services/ai/huggingFaceService';
+import { generateFromTemplate } from '../../services/noteTemplateService';
 
 import styles from './RecordingDetail.module.css';
 import OverviewTab from './components/OverviewTab/OverviewTab';
 import TranscriptionChatTab from './components/TranscriptionChatTab/TranscriptionChatTab';
 import EpicsTab from './components/EpicsTab/EpicsTab';
 import AttachmentsTab from './components/AttachmentsTab/AttachmentsTab';
+import NotesTab from './components/NotesTab/NotesTab';
 import AIErrorModal from '../../components/AIErrorModal/AIErrorModal';
+import TemplateSelectorModal from '../../components/templates/TemplateSelectorModal';
 import { getAttachments, pickAndAddAttachment, readAttachmentContent, estimateAttachmentTokens } from '../../services/attachmentsService';
 
 // Icons
@@ -38,7 +41,8 @@ import {
   MdFolderOpen,
   MdTranslate,
   MdSync,
-  MdMoreVert
+  MdMoreVert,
+  MdAutoAwesome
 } from 'react-icons/md';
 
 const whisperModels = [
@@ -172,6 +176,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     transcription: true,
     participants: true
   });
+
+  // Template Modal
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [isGeneratingNote, setIsGeneratingNote] = useState(false);
+  const [notesTabRefresh, setNotesTabRefresh] = useState(0);
   
   // Ref para evitar indexación o generación duplicada en mount
   const isIndexingRef = useRef(false);
@@ -1306,6 +1315,55 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
   };
 
+  // --- TEMPLATE HANDLERS ---
+
+  const handleOpenTemplateModal = () => {
+    setShowTemplateModal(true);
+  };
+
+  const handleCloseTemplateModal = () => {
+    setShowTemplateModal(false);
+  };
+
+  const handleSelectTemplate = (template) => {
+    handleGenerateFromTemplate(template.slug);
+  };
+
+  const handleCreateCustomTemplate = () => {
+    // TODO: Implement custom template creation flow
+    setShowTemplateModal(false);
+    alert('Custom template creation coming soon!');
+  };
+
+  const handleGenerateFromTemplate = async (templateSlug) => {
+    if (!currentRecordingDbId) return;
+    
+    setShowTemplateModal(false);
+    setIsGeneratingNote(true);
+
+    try {
+      const result = await generateFromTemplate({
+        recordingId: currentRecordingDbId,
+        templateSlug,
+        lang: 'es'
+      });
+
+      // Switch to notes tab to show the generated note
+      setActiveTab('notes');
+
+      // Force NotesTab to reload by incrementing refresh counter
+      setNotesTabRefresh(prev => prev + 1);
+
+      // Show success feedback
+      console.log('Note generated:', result.noteId);
+    } catch (error) {
+      console.error('Error generating from template:', error);
+      alert('Error generating note: ' + error.message);
+    } finally {
+      setIsGeneratingNote(false);
+    }
+  };
+
   // --- RENDER ---
 
   if (!recording) return null;
@@ -1539,6 +1597,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                     Re-transcribir
                   </button>
                 )}
+                <div className={styles.actionsMenuDivider} />
+                <button
+                  className={`${styles.actionsMenuItem} ${styles.actionsMenuItemPrimary}`}
+                  onClick={() => { handleOpenTemplateModal(); setShowActionsMenu(false); }}
+                >
+                  <MdAutoAwesome size={16} />
+                  Generar desde plantilla
+                </button>
               </div>
             )}
           </div>
@@ -1570,6 +1636,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           onClick={() => setActiveTab('attachments')}
         >
           Adjuntos{recordAttachments.length > 0 ? ` (${recordAttachments.length})` : ''}
+        </button>
+        <button
+          className={`${styles.tabButton} ${activeTab === 'notes' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('notes')}
+        >
+          Notas
         </button>
       </nav>
 
@@ -1666,6 +1738,13 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             onAddToProject={activeProjectId ? handleAddToProject : undefined}
             onRemoveFromProject={activeProjectId ? handleRemoveFromProject : undefined}
             activeProjectId={activeProjectId}
+          />
+        )}
+        {activeTab === 'notes' && (
+          <NotesTab
+            key={`notes-${currentRecordingDbId}-${notesTabRefresh}`}
+            recordingId={currentRecordingDbId}
+            onGenerateClick={handleOpenTemplateModal}
           />
         )}
       </div>
@@ -2013,6 +2092,25 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           tokenHint={aiError.tokenHint}
           onClose={() => setAiError(null)}
         />
+      )}
+
+      {/* Template Selector Modal */}
+      <TemplateSelectorModal
+        isOpen={showTemplateModal}
+        onClose={handleCloseTemplateModal}
+        onSelectTemplate={handleSelectTemplate}
+        onCreateCustom={handleCreateCustomTemplate}
+      />
+
+      {/* Generating Note Indicator */}
+      {isGeneratingNote && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent} style={{ textAlign: 'center' }}>
+            <div className={styles.spinning} style={{ margin: '0 auto 16px' }}></div>
+            <p className={styles.modalTitle}>Generando nota...</p>
+            <p className={styles.modalText}>Esto puede tomar unos segundos.</p>
+          </div>
+        </div>
       )}
 
     </div>
