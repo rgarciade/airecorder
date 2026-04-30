@@ -26,6 +26,7 @@ dataFileDatabase
 *.sw?
 devfiles/
 .agents/
+plans/
 opencode.json
 python-dist/
 python/build/

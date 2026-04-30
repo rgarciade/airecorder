@@ -517,5 +517,79 @@ SELECT id, display_name, created_at, updated_at FROM speakers ORDER BY display_n
 ```
 Se usa exclusivamente como fuente de datos para el autocompletado de alias en `SpeakerLabel` y `MergeSpeakersModal`.
 
-## 8. `projectsDatabase.README.md`
+## 8. Plantillas de Notas (`templates` + `recording_notes`)
+
+Sistema de generación de notas estructuradas basadas en plantillas predefinidas o personalizadas.
+
+### Nuevas Tablas SQLite
+
+#### `note_templates`
+Almacena las plantillas de notas (tanto predefinidas como personalizadas).
+
+| Columna | Tipo | Descripción |
+|---------|------|-------------|
+| `slug` | TEXT (PK) | Identificador único (ej. `standup`, `one-on-one`, `custom-abc123`) |
+| `name` | TEXT | Nombre visible (ej. "Standup", "Daily Journal") |
+| `icon` | TEXT | Emoji o nombre de icono |
+| `description` | TEXT | Descripción breve |
+| `expert_id` | TEXT | Experto por defecto para generar notas (ej. `general`, `developer`) |
+| `sections_json` | TEXT | Array de secciones en JSON (ver tipos abajo) |
+| `is_builtin` | INTEGER | `1` = predefinida, `0` = personalizada |
+| `enabled` | INTEGER | `1` = activa, `0` = deshabilitada |
+| `created_at` | DATETIME | Fecha de creación |
+| `updated_at` | DATETIME | Fecha de última modificación |
+
+#### `recording_notes`
+Almacena las notas generadas para cada grabación.
+
+| Columna | Tipo | Descripción |
+|---------|------|-------------|
+| `id` | INTEGER (PK) | Autoincremental |
+| `recording_id` | INTEGER (FK) | Referencia a `recordings(id)`, `ON DELETE CASCADE` |
+| `template_slug` | TEXT | Slug de la plantilla usada |
+| `content_md` | TEXT | Contenido en Markdown generado |
+| `created_at` | DATETIME | Fecha de creación |
+
+### Tipos de Sección
+Cada plantilla tiene un array de secciones con estos tipos:
+- `text` — Texto libre
+- `list` — Lista con bullet points
+- `checklist` — Lista de checkboxes
+- `table` — Tabla estructurada
+- `qa` — Pregunta y respuesta
+- `summary` — Resumen ejecutivo
+- `action_items` — Elementos de acción/tareas
+- `custom` — Sección libre con instrucciones custom
+
+### Handlers IPC (`ipc-handlers/templates.js`)
+
+| Canal IPC | Payload | Descripción |
+|-----------|---------|-------------|
+| `templates:list` | — | Lista todas las plantillas habilitadas (builtin + custom) |
+| `templates:getBySlug` | `slug` | Obtiene una plantilla por su slug |
+| `templates:create` | `{ slug, name, icon, description, expert_id, sections_json }` | Crea plantilla personalizada |
+| `templates:update` | `slug, { data }` | Actualiza plantilla personalizada |
+| `templates:delete` | `slug` | Elimina plantilla personalizada |
+| `templates:toggleEnabled` | `slug, enabled` | Habilita/deshabilita plantilla |
+| `templates:getNotesForRecording` | `recordingId` | Obtiene todas las notas de una grabación |
+| `templates:saveNote` | `{ recordingId, templateSlug, contentMd }` | Guarda nueva nota |
+| `templates:updateNote` | `id, contentMd` | Actualiza contenido de nota |
+| `templates:deleteNote` | `id` | Elimina una nota |
+
+### Métodos expuestos en `preload.js`
+
+| Método | Descripción |
+|--------|-------------|
+| `templates.list()` | Lista plantillas habilitadas |
+| `templates.getBySlug(slug)` | Obtiene plantilla por slug |
+| `templates.create(data)` | Crea plantilla personalizada |
+| `templates.update(slug, data)` | Actualiza plantilla |
+| `templates.delete(slug)` | Elimina plantilla |
+| `templates.toggleEnabled(slug, enabled)` | Habilita/deshabilita |
+| `templates.getNotesForRecording(recordingId)` | Notas de una grabación |
+| `templates.saveNote(data)` | Guarda nota |
+| `templates.updateNote(id, contentMd)` | Actualiza nota |
+| `templates.deleteNote(id)` | Elimina nota |
+
+## 9. `projectsDatabase.README.md`
 Existe un archivo adicional en esta carpeta (`projectsDatabase.README.md`) que detalla un motor de base de datos específico en JSON que sirve de legado o apoyo para ciertos datos de proyecto. Revísalo si vas a tocar `projectsDatabase.js`.
