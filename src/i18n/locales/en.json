@@ -726,9 +726,13 @@
     "mergeError": "Error merging: {{error}}",
     "sameSpeakerError": "Source and target cannot be the same speaker",
     "selectBothError": "Select both speakers to continue",
+    "typeWithAudio": "With audio",
+    "typeTextOnly": "Text only",
     "prevPage": "Previous page",
     "nextPage": "Next page",
-    "page": "Page"
+    "page": "Page",
+    "pageOf": "Page",
+    "of": "of"
   },
   "speakerDetail": {
     "title": "Speaker Detail",

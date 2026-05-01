@@ -37,9 +37,11 @@ class RecordingsDbService extends BaseDbService {
 
   // ── Grabaciones ────────────────────────────────────────────────────────────
 
-  saveRecording(relativePath, duration, status = 'recorded', createdAt = null, transcriptionModel = null) {
+  saveRecording(relativePath, duration, status = 'recorded', createdAt = null, transcriptionModel = null, source = null) {
     const date = createdAt || new Date().toISOString();
-    const result = this._insert(INSERT_OR_UPDATE_RECORDING, [relativePath, duration, status, transcriptionModel, date]);
+    // Default para source: 'audio' si no se especifica (para grabaciones normales)
+    const sourceValue = source || 'audio';
+    const result = this._insert(INSERT_OR_UPDATE_RECORDING, [relativePath, duration, status, transcriptionModel, sourceValue, date]);
     if (!result.success) return result;
 
     let id = result.id;

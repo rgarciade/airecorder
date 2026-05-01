@@ -476,12 +476,16 @@ Si no hay `diarization.json` o no tiene `speaker_embeddings`, el campo `speakerR
 | `assign-alias` | `{ speakerId?, alias, embedding?, recordingId?, ephemeralId? }` | `{ success, speakerId?, displayName?, error? }` |
 | `get-all-speakers` | *(sin payload)* | `{ success, data: [{ id, display_name, created_at, updated_at }] }` |
 | `merge-similar-speaker` | `{ targetSpeakerId, sourceSpeakerId }` | `{ success: true, mergedName }` o `{ success: false, error }` |
+| `preview-merge-speakers` | `{ sourceSpeakerId, targetSpeakerId }` | `{ success: true, data: { finalSourceId, finalTargetId, swapped, sourceEmbeddings, targetEmbeddings, warnings[] } }` o `{ success: false, error }` |
 | `get-speaker-first-segment-time` | `{ speakerId, recordingId }` | `{ success: true, data: { startTime, ephemeralId } }` o `{ success: false, error }` |
 | `delete-speaker-recording-resolution` | `{ speakerId, recordingId }` | `{ success: true, deletedCount, deletedEmbeddings, deletedResolutions }` o `{ success: false, error }` |
 
 > `assign-alias` acepta un `speakerId` opcional. Si `alias` coincide con un hablante ya existente, el backend remapea el speaker actual a ese perfil persistente y actualiza también `recording_speaker_resolutions`. La UI no debe asumir éxito optimista: solo refleja la respuesta confirmada por BD.
 > `get-all-speakers` se llama al montar `TranscriptionViewer` para poblar el autocompletado y pre-cargar aliases.
+> `preview-merge-speakers` permite validar un merge manual antes de ejecutarlo: si el usuario elige una dirección que perdería embeddings, el backend devuelve `swapped: true` y ajusta `finalSourceId/finalTargetId` para preservar los embeddings. La UI debe mostrar también `warnings[]` para que el usuario verifique qué embeddings se van a reasignar. Si origen y destino son el mismo speaker, el handler devuelve error y no genera preview.
 > `delete-speaker-recording-resolution` elimina en una **transacción atómica** la relación hablante-grabación: borra embeddings de `speaker_embeddings` para `(speakerId, recordingId)` y resoluciones de `recording_speaker_resolutions` para la misma clave. Si algo falla, se revierte todo.
+> En `resolveFromSegments` (fallback sin `speaker_embeddings`, como `conversation-import`), también se persiste `recording_speaker_resolutions` para cada `ephemeralId`. Esto garantiza que el detalle de hablante muestre tanto grabaciones con audio como grabaciones solo texto.
+> `save-conversation-import` ejecuta también la resolución de speakers sobre los segmentos normalizados y persiste `recording_speaker_resolutions` en el momento de importar, evitando que las grabaciones solo texto queden huérfanas en la vista de detalle de hablantes.
 
 #### `get-transcription` (Phase 5 — resolución automática)
 
@@ -506,6 +510,7 @@ El campo `speakerResolution` es `{}` si no existe `diarization.json` o no tiene 
 | `resolveSpeakers(params)` | Resuelve el mapa de hablantes efímeros a UUIDs persistentes |
 | `assignSpeakerAlias(params)` | Persiste un alias personalizado y opcionalmente el embedding |
 | `getAllSpeakers()` | Devuelve todos los hablantes de BD (para autocompletado en UI) |
+| `previewMergeSpeakers(params)` | Previsualiza un merge y avisa si la dirección elegida reasigna embeddings |
 | `confirmSpeakerSuggestion(params)` | Confirma una sugerencia pendiente: reasigna embeddings y actualiza BD |
 | `deleteSpeakerRecordingResolution(params)` | Elimina relación hablante-grabación de forma atómica (resolución + embeddings por grabación) |
 
