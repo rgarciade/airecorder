@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import speakersService from '../../services/speakersService';
 import SpeakerDropdown from '../../components/Speakers/SpeakerDropdown';
+import useSpeakerList from '../../hooks/useSpeakerList';
+import useSpeakerMerge from '../../hooks/useSpeakerMerge';
 import styles from './SpeakersPage.module.css';
 
 /**
@@ -13,18 +15,6 @@ const SpeakersPage = ({ onNavigateToSpeaker, onNavigateToSettings, diarizationEn
   const { t } = useTranslation();
   const [speakers, setSpeakers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [embeddingFilter, setEmbeddingFilter] = useState('all'); // 'all' | 'with-embeddings' | 'no-embeddings'
-  const itemsPerPage = 10;
-
-  // Estado del modal de fusión
-  const [mergeModalOpen, setMergeModalOpen] = useState(false);
-  const [mergeSourceId, setMergeSourceId] = useState(null);
-  const [mergeTargetId, setMergeTargetId] = useState(null);
-  const [mergeInProgress, setMergeInProgress] = useState(false);
-  const [mergeModalError, setMergeModalError] = useState(null);
-  const [mergeStatus, setMergeStatus] = useState(null); // { success, message }
 
   // Si la diarización está desactivada, mostrar mensaje y botón para ir a ajustes
   if (diarizationEnabled === false) {
@@ -72,112 +62,52 @@ const SpeakersPage = ({ onNavigateToSpeaker, onNavigateToSettings, diarizationEn
     loadSpeakers();
   }, [loadSpeakers]);
 
-  // Auto-ocultar banner de estado tras 4 segundos
-  useEffect(() => {
-    if (mergeStatus) {
-      const timer = setTimeout(() => setMergeStatus(null), 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [mergeStatus]);
+  const {
+    searchTerm,
+    setSearchTerm,
+    setCurrentPage,
+    embeddingFilter,
+    setEmbeddingFilter,
+    filteredSpeakers,
+    totalPages,
+    safePage,
+    paginatedSpeakers,
+    mergeSpeakers,
+    withEmbeddingsCount,
+    noEmbeddingsCount
+  } = useSpeakerList({ speakers });
 
-  // Resetear a página 1 cuando cambia la búsqueda
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
+  const {
+    mergeModalOpen,
+    mergeSourceId,
+    setMergeSourceId,
+    mergeTargetId,
+    setMergeTargetId,
+    mergeInProgress,
+    mergeModalError,
+    mergeStatus,
+    preview,
+    mergeSourceSpeaker,
+    mergeTargetSpeaker,
+    canMerge,
+    handleOpenMergeModal,
+    handleCloseMergeModal,
+    handleMerge,
+    clearMergeModalError
+  } = useSpeakerMerge({
+    speakers: mergeSpeakers,
+    loadSpeakers,
+    setCurrentPage,
+    t
+  });
 
-  // Cerrar dropdowns al hacer clic fuera
-  useEffect(() => {
-    // SpeakerDropdown maneja su propio click-outside internamente
-  }, []);
+  const previewSourceSpeaker = preview?.finalSourceId
+    ? mergeSpeakers.find((speaker) => speaker.id === preview.finalSourceId)
+    : mergeSourceSpeaker;
 
-  const filteredSpeakers = speakers
-    .filter((speaker) => {
-      // Filtro de búsqueda
-      const matchesSearch = (speaker.displayName || '').toLowerCase().includes(searchTerm.toLowerCase());
-      if (!matchesSearch) return false;
-
-      // Filtro de embeddings
-      const hasEmbeddings = (speaker.embeddingsCount || 0) > 0;
-      if (embeddingFilter === 'with-embeddings' && !hasEmbeddings) return false;
-      if (embeddingFilter === 'no-embeddings' && hasEmbeddings) return false;
-
-      return true;
-    })
-    .sort((a, b) => {
-      // Ordenar por created_at descendente (más recientes primero)
-      const dateA = new Date(a.createdAt || 0);
-      const dateB = new Date(b.createdAt || 0);
-      return dateB - dateA;
-    });
-
-  // Paginación
-  const totalPages = Math.max(1, Math.ceil(filteredSpeakers.length / itemsPerPage));
-  const safePage = Math.min(currentPage, totalPages);
-  const paginatedSpeakers = filteredSpeakers.slice(
-    (safePage - 1) * itemsPerPage,
-    safePage * itemsPerPage
-  );
-
-  // Lista completa de hablantes elegibles para el modal de fusión
-  // Incluye tanto hablantes con audio como solo texto.
-  const mergeSpeakers = speakers
-    .sort((a, b) => {
-      const dateA = new Date(a.createdAt || 0);
-      const dateB = new Date(b.createdAt || 0);
-      return dateB - dateA;
-    });
-
-  const mergeSourceSpeaker = mergeSpeakers.find((s) => s.id === mergeSourceId);
-  const mergeTargetSpeaker = mergeSpeakers.find((s) => s.id === mergeTargetId);
-
-  const canMerge = mergeSourceId && mergeTargetId && mergeSourceId !== mergeTargetId;
-
-  const handleOpenMergeModal = () => {
-    setMergeSourceId(null);
-    setMergeTargetId(null);
-    setMergeModalError(null);
-    setMergeModalOpen(true);
-  };
-
-  const handleCloseMergeModal = () => {
-    if (mergeInProgress) return;
-    setMergeModalOpen(false);
-    setMergeModalError(null);
-  };
-
-  const handleMerge = async () => {
-    if (!mergeSourceId || !mergeTargetId) {
-      setMergeModalError(t('speakers.selectBothError'));
-      return;
-    }
-    if (mergeSourceId === mergeTargetId) {
-      setMergeModalError(t('speakers.sameSpeakerError'));
-      return;
-    }
-
-    setMergeInProgress(true);
-    setMergeModalError(null);
-
-    const sourceName = mergeSourceSpeaker?.displayName || mergeSourceId;
-    const targetName = mergeTargetSpeaker?.displayName || mergeTargetId;
-
-    // targetSpeakerId absorbe a sourceSpeakerId
-    const result = await speakersService.mergeSimilarSpeaker(mergeTargetId, mergeSourceId);
-
-    setMergeInProgress(false);
-
-    if (result.success) {
-      setMergeModalOpen(false);
-      setMergeStatus({
-        success: true,
-        message: t('speakers.mergeSuccess', { source: sourceName, target: result.mergedName || targetName })
-      });
-      setCurrentPage(1);
-      await loadSpeakers();
-    } else {
-      setMergeModalError(t('speakers.mergeError', { error: result.error || 'Error desconocido' }));
-    }
-  };
+  const previewTargetSpeaker = preview?.finalTargetId
+    ? mergeSpeakers.find((speaker) => speaker.id === preview.finalTargetId)
+    : mergeTargetSpeaker;
 
   if (loading) {
     return (
@@ -216,14 +146,14 @@ const SpeakersPage = ({ onNavigateToSpeaker, onNavigateToSettings, diarizationEn
               onClick={() => setEmbeddingFilter('with-embeddings')}
             >
               {t('speakers.filterWithEmbeddings', 'Con embeddings')}
-              <span className={styles.filterBadge}>{speakers.filter(s => (s.embeddingsCount || 0) > 0).length}</span>
+              <span className={styles.filterBadge}>{withEmbeddingsCount}</span>
             </button>
             <button
               className={`${styles.filterBtn} ${embeddingFilter === 'no-embeddings' ? styles.filterBtnActive : ''}`}
               onClick={() => setEmbeddingFilter('no-embeddings')}
             >
               {t('speakers.filterNoEmbeddings', 'Sin embeddings')}
-              <span className={`${styles.filterBadge} ${styles.filterBadgeWarning}`}>{speakers.filter(s => (s.embeddingsCount || 0) === 0).length}</span>
+              <span className={`${styles.filterBadge} ${styles.filterBadgeWarning}`}>{noEmbeddingsCount}</span>
             </button>
           </div>
           {mergeSpeakers.length >= 2 && (
@@ -374,7 +304,7 @@ const SpeakersPage = ({ onNavigateToSpeaker, onNavigateToSettings, diarizationEn
               <SpeakerDropdown
                 speakers={mergeSpeakers}
                 selectedSpeaker={mergeSourceSpeaker}
-                onSelect={(s) => { setMergeSourceId(s.id); setMergeModalError(null); }}
+                onSelect={(speaker) => { setMergeSourceId(speaker.id); clearMergeModalError(); }}
                 placeholder={t('speakers.mergeSourcePlaceholder')}
                 disabledIds={mergeTargetId ? [mergeTargetId] : []}
                 disabledLabel={t('speakers.mergeTargetLabel')}
@@ -395,7 +325,7 @@ const SpeakersPage = ({ onNavigateToSpeaker, onNavigateToSettings, diarizationEn
               <SpeakerDropdown
                 speakers={mergeSpeakers}
                 selectedSpeaker={mergeTargetSpeaker}
-                onSelect={(s) => { setMergeTargetId(s.id); setMergeModalError(null); }}
+                onSelect={(speaker) => { setMergeTargetId(speaker.id); clearMergeModalError(); }}
                 placeholder={t('speakers.mergeTargetPlaceholder')}
                 disabledIds={mergeSourceId ? [mergeSourceId] : []}
                 disabledLabel={t('speakers.mergeSourceLabel')}
@@ -406,15 +336,37 @@ const SpeakersPage = ({ onNavigateToSpeaker, onNavigateToSettings, diarizationEn
             {canMerge && (
               <div className={styles.mergePreview}>
                 <span className={styles.mergePreviewSource}>
-                  {mergeSourceSpeaker?.displayName || t('speakers.unknown')}
+                  {previewSourceSpeaker?.displayName || t('speakers.unknown')}
                 </span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                   <polyline points="12 5 19 12 12 19"></polyline>
                 </svg>
                 <span className={styles.mergePreviewTarget}>
-                  {mergeTargetSpeaker?.displayName || t('speakers.unknown')}
+                  {previewTargetSpeaker?.displayName || t('speakers.unknown')}
                 </span>
+              </div>
+            )}
+
+            {preview?.swapped && (
+              <div className={styles.mergeModalError}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                {t('speakers.mergePreviewAutoSwap', 'La dirección del merge se ajustó automáticamente para preservar embeddings.')}
+              </div>
+            )}
+
+            {Array.isArray(preview?.warnings) && preview.warnings.length > 0 && (
+              <div className={styles.mergeModalError}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                {preview.warnings.join(' ')}
               </div>
             )}
 
