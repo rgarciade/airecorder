@@ -45,6 +45,15 @@ El contenido de usuario (transcripción, resumen, etc.) siempre se pasa **por se
 > ```
 > Si `JSON.parse` falla en el caller (`handleImportConversation` en `Home.jsx`), se usa un segmento de fallback con el texto crudo completo. El campo `source: "conversation-import"` distingue estos segmentos de los generados por Whisper.
 
+### Prompt Builder de Note Templates (`src/prompts/common/templatePrompts.js`)
+
+`templatePrompts.js` centraliza la construcción de prompts para notas por plantilla y expone:
+
+- `buildTemplateSystemPrompt(template, lang, specialtyPrompt)` — genera el system prompt con reglas de formato por tipo de sección, idioma obligatorio y política de campos requeridos/opcionales.
+- `buildTemplateUserContent(transcript, existingSummary)` — arma el contenido de usuario con resumen previo (si existe) + transcripción completa.
+
+Este builder se usa exclusivamente por `src/services/noteTemplateService.js`.
+
 ### Reglas Críticas al Modificar Prompts
 1.  **Idioma dinámico:** Usar `langName(lang)` para que el idioma respete la configuración del usuario.
 2.  **Formato de Puntos Clave:** El prompt de puntos clave **DEBE EXIGIR** estrictamente el formato:
@@ -244,6 +253,8 @@ Cuando el usuario hace clic en "Analizar Grabación" (desde `RecordingDetail.jsx
 ## 5. Plantillas de Notas (Note Templates)
 
 Sistema de generación de notas estructuradas basadas en plantillas predefinidas o personalizadas. El flujo reutiliza el sistema de providers existente y los prompts de expertos.
+
+El orquestador frontend de este flujo es `src/services/noteTemplateService.js`, que coordina la carga de plantilla, recuperación de contexto (transcripción + resumen AI), construcción de prompts, llamada al proveedor y persistencia final de la nota.
 
 ### Arquitectura
 

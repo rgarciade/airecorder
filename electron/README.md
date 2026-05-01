@@ -95,6 +95,7 @@ La captura de audio del sistema usa el paquete `electron-audio-loopback` (requie
 *   **Auto-migraciones:** Al iniciar, se ejecutan las migraciones:
     *   Crea tablas con `CREATE TABLE IF NOT EXISTS`.
     *   Añade columnas nuevas dinámicamente usando `ALTER TABLE`.
+    *   `recordings.source` se agrega automáticamente si no existe para distinguir el origen de la grabación (`audio` vs `conversation-import`).
 *   **Estados atascados:** Restablece tareas con estado `processing` en la cola a `pending` o `failed` si la app se cerró de forma inesperada.
 *   **Ruta configurable:** La BD se inicializa con la ruta que `main.js` le pasa (por defecto `{userData}/recordings.db`, o la personalizada de `settings.databasePath`). El singleton `DbService` expone:
     *   `init(dbPath)` — abre/crea la BD en la ruta indicada y registra `this.dbPath`.
@@ -521,6 +522,13 @@ Añadida en `electron/database/dbService.js`. Ejecuta:
 SELECT id, display_name, created_at, updated_at FROM speakers ORDER BY display_name ASC
 ```
 Se usa exclusivamente como fuente de datos para el autocompletado de alias en `SpeakerLabel` y `MergeSpeakersModal`.
+
+### Función `dbService.getSpeakerEmbeddingCount(speakerId)`
+
+Añadida en `electron/database/dbService.js` como proxy al dominio de speakers para soportar validaciones previas de merge.
+
+- Devuelve `number` con el total de embeddings asociados al hablante.
+- Se usa en `ipc-handlers/speakers.js` dentro de `preview-merge-speakers` para detectar si la dirección elegida provocaría pérdida de embeddings y activar el auto-swap (`swapped: true`) cuando corresponde.
 
 ## 8. Plantillas de Notas (`templates` + `recording_notes`)
 
