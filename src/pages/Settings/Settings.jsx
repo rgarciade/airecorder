@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import {
-  MdMic, MdClose, MdSmartToy, MdSettings, MdPsychology
+  MdMic, MdClose, MdSmartToy, MdSettings, MdPsychology, MdDescription
 } from 'react-icons/md';
 import { useTranslation } from 'react-i18next';
 import styles from './Settings.module.css';
@@ -8,9 +8,10 @@ import IntegrationsTab from './components/IntegrationsTab/IntegrationsTab';
 import ExpertsTab from './components/ExpertsTab/ExpertsTab';
 import AgentsTab from './components/AgentsTab/AgentsTab';
 import GeneralTab from './components/GeneralTab/GeneralTab';
+import TemplatesSettings from '../../components/settings/TemplatesSettings';
 import { SettingsProvider, useSettings } from './SettingsContext';
 
-const VALID_TABS = ['agents', 'general', 'experts'];
+const VALID_TABS = ['agents', 'general', 'experts', 'templates'];
 const DEFAULT_TAB = 'agents';
 
 function SettingsContent({ onBack, safeInitialTab, targetElement }) {
@@ -124,6 +125,13 @@ function SettingsContent({ onBack, safeInitialTab, targetElement }) {
               <MdPsychology className={styles.tabIcon} />
               {t('settings.tabs.experts')}
             </button>
+            <button
+              className={`${styles.tab} ${activeTab === 'templates' ? styles.tabActive : ''}`}
+              onClick={() => setActiveTab('templates')}
+            >
+              <MdDescription className={styles.tabIcon} />
+              Plantillas
+            </button>
             {/*
             <button
               className={`${styles.tab} ${activeTab === 'integrations' ? styles.tabActive : ''}`}
@@ -141,6 +149,8 @@ function SettingsContent({ onBack, safeInitialTab, targetElement }) {
             <ExpertsTab />
           ) : activeTab === 'agents' ? (
             <AgentsTab />
+          ) : activeTab === 'templates' ? (
+            <TemplatesSettings />
           ) : (
             <GeneralTab />
           )}

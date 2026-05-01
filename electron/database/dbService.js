@@ -10,6 +10,8 @@ const IntegrationsDbService = require('./integrations/dbService');
 
 // Queries
 const expertQueries = require('./experts/queries');
+const templateQueries = require('./templates/queries');
+const { seedBuiltinTemplates } = require('./templates/builtinTemplates');
 
 class DbService {
   constructor() {
@@ -73,6 +75,12 @@ class DbService {
 
       // ── Expert Customizations ───────────────────────────────────────────────
       this.db.exec(expertQueries.CREATE_TABLE_EXPERT_CUSTOMIZATIONS);
+
+      // ── Note Templates ───────────────────────────────────────────────────────
+      this.db.exec(templateQueries.CREATE_TABLE_NOTE_TEMPLATES);
+      this.db.exec(templateQueries.CREATE_TABLE_RECORDING_NOTES);
+      this.db.exec(templateQueries.CREATE_INDEX_RECORDING_NOTES);
+      seedBuiltinTemplates(this.db);
 
       // ── Migraciones de columnas (solo si existen en recordings) ──────────────
       this._runMigrations();
@@ -227,6 +235,17 @@ class DbService {
     } catch (e) {
       console.error('[DB] Error migrando rag_status:', e);
     }
+
+    // Migración: source en recordings (conversation-import vs audio)
+    try {
+      const recInfo = this.db.prepare("PRAGMA table_info(recordings)").all();
+      if (!recInfo.some(c => c.name === 'source')) {
+        console.log('[DB] Añadiendo columna source a recordings...');
+        this.db.prepare("ALTER TABLE recordings ADD COLUMN source TEXT").run();
+      }
+    } catch (e) {
+      console.error('[DB] Error migrando source:', e);
+    }
   }
 
   // ── Expert Customizations (delegado al domain service inline) ──────────────
@@ -374,6 +393,7 @@ class DbService {
   getSpeakerRecordings(...args) { return this.speakers?.getSpeakerRecordings(...args) ?? null; }
   getSimilarSpeakers(...args) { return this.speakers?.getSimilarSpeakers(...args) ?? []; }
   async getSpeakerFirstSegmentTime(...args) { return this.speakers?.getSpeakerFirstSegmentTime(...args) ?? null; }
+  getSpeakerEmbeddingCount(...args) { return this.speakers?.getSpeakerEmbeddingCount(...args) ?? 0; }
 
   // Integrations
   savePlatformConnection(...args) { return this.integrations?.savePlatformConnection(...args) ?? { success: false }; }
@@ -386,6 +406,125 @@ class DbService {
   getProjectIntegrations(...args) { return this.integrations?.getProjectIntegrations(...args) ?? []; }
   getChatIntegrations(...args) { return this.integrations?.getChatIntegrations(...args) ?? []; }
   deleteProjectIntegration(...args) { return this.integrations?.deleteProjectIntegration(...args) ?? { success: false }; }
+
+  // ── Note Templates ──────────────────────────────────────────────────────────
+  listTemplates(...args) {
+    if (!this.db) return [];
+    try {
+      return this.db.prepare(templateQueries.LIST_TEMPLATES).all();
+    } catch (e) {
+      console.error('[DB] Error listTemplates:', e);
+      return [];
+    }
+  }
+
+  getTemplateBySlug(...args) {
+    if (!this.db) return null;
+    try {
+      return this.db.prepare(templateQueries.GET_TEMPLATE_BY_SLUG).get(...args);
+    } catch (e) {
+      console.error('[DB] Error getTemplateBySlug:', e);
+      return null;
+    }
+  }
+
+  createUserTemplate(...args) {
+    if (!this.db) return { success: false };
+    try {
+      const result = this.db.prepare(templateQueries.CREATE_USER_TEMPLATE).run(...args);
+      return { success: true, id: result.lastInsertRowid };
+    } catch (e) {
+      console.error('[DB] Error createUserTemplate:', e);
+      return { success: false, error: e.message };
+    }
+  }
+
+  updateUserTemplate(...args) {
+    if (!this.db) return { success: false };
+    try {
+      this.db.prepare(templateQueries.UPDATE_USER_TEMPLATE).run(...args);
+      return { success: true };
+    } catch (e) {
+      console.error('[DB] Error updateUserTemplate:', e);
+      return { success: false, error: e.message };
+    }
+  }
+
+  deleteUserTemplate(...args) {
+    if (!this.db) return { success: false };
+    try {
+      this.db.prepare(templateQueries.DELETE_USER_TEMPLATE).run(...args);
+      return { success: true };
+    } catch (e) {
+      console.error('[DB] Error deleteUserTemplate:', e);
+      return { success: false, error: e.message };
+    }
+  }
+
+  toggleTemplateEnabled(...args) {
+    if (!this.db) return { success: false };
+    try {
+      this.db.prepare(templateQueries.TOGGLE_TEMPLATE_ENABLED).run(...args);
+      return { success: true };
+    } catch (e) {
+      console.error('[DB] Error toggleTemplateEnabled:', e);
+      return { success: false, error: e.message };
+    }
+  }
+
+  // ── Recording Notes ────────────────────────────────────────────────────────
+  getNotesForRecording(...args) {
+    if (!this.db) return [];
+    try {
+      return this.db.prepare(templateQueries.GET_NOTES_FOR_RECORDING).all(...args);
+    } catch (e) {
+      console.error('[DB] Error getNotesForRecording:', e);
+      return [];
+    }
+  }
+
+  getNoteById(...args) {
+    if (!this.db) return null;
+    try {
+      return this.db.prepare(templateQueries.GET_NOTE_BY_ID).get(...args);
+    } catch (e) {
+      console.error('[DB] Error getNoteById:', e);
+      return null;
+    }
+  }
+
+  saveNote(...args) {
+    if (!this.db) return { success: false };
+    try {
+      const result = this.db.prepare(templateQueries.INSERT_NOTE).run(...args);
+      return { success: true, id: result.lastInsertRowid };
+    } catch (e) {
+      console.error('[DB] Error saveNote:', e);
+      return { success: false, error: e.message };
+    }
+  }
+
+  updateNoteContent(...args) {
+    if (!this.db) return { success: false };
+    try {
+      this.db.prepare(templateQueries.UPDATE_NOTE_CONTENT).run(...args);
+      return { success: true };
+    } catch (e) {
+      console.error('[DB] Error updateNoteContent:', e);
+      return { success: false, error: e.message };
+    }
+  }
+
+  deleteNote(...args) {
+    if (!this.db) return { success: false };
+    try {
+      this.db.prepare(templateQueries.DELETE_NOTE).run(...args);
+      return { success: true };
+    } catch (e) {
+      console.error('[DB] Error deleteNote:', e);
+      return { success: false, error: e.message };
+    }
+  }
 }
 
 module.exports = new DbService();

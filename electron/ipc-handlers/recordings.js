@@ -82,6 +82,7 @@ module.exports.registerRecordingsHandlers = () => {
                 status: status,
                 duration: dbEntry ? dbEntry.duration : 0,
                 transcriptionModel: dbEntry ? dbEntry.transcription_model : null,
+                source: dbEntry ? dbEntry.source : null,
                 project: project ? { id: project.id, name: project.name } : null,
                 queueStatus: queueStatus
               });

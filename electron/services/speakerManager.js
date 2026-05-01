@@ -547,6 +547,13 @@ function resolveFromSegments(segments, recordingId = null) {
           displayName: existing.display_name,
           isNew: false,
         };
+
+        // Persistir relación recording↔speaker también en flujos sin embeddings
+        // (p. ej. conversation-import) para que aparezca en el detalle de grabaciones.
+        if (recordingId != null) {
+          dbService.upsertRecordingSpeakerResolution(recordingId, ephemeralId, existing.id);
+        }
+
         console.log(
           `[SpeakerManager] ${ephemeralId} → perfil existente "${existing.display_name}" (UUID: ${existing.id})`
         );
@@ -563,6 +570,12 @@ function resolveFromSegments(segments, recordingId = null) {
           displayName: speaker.display_name || ephemeralId,
           isNew: true,
         };
+
+        // Persistir relación recording↔speaker también en flujos sin embeddings.
+        if (recordingId != null) {
+          dbService.upsertRecordingSpeakerResolution(recordingId, ephemeralId, speaker.id);
+        }
+
         console.log(
           `[SpeakerManager] ${ephemeralId} → nuevo perfil creado (UUID: ${speaker.id})`
         );

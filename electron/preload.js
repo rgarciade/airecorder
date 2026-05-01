@@ -299,6 +299,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   mergeSimilarSpeaker: (params) => ipcRenderer.invoke('merge-similar-speaker', params),
 
   /**
+    * Previsualiza un merge entre dos hablantes.
+    * Devuelve origen/destino finales (con auto-swap), recuentos de embeddings y advertencias.
+    *
+    * @param {{ sourceSpeakerId: string, targetSpeakerId: string }} params
+    * @returns {Promise<{ success: boolean, data?: { finalSourceId: string, finalTargetId: string, swapped: boolean, sourceEmbeddings: number, targetEmbeddings: number, warnings: string[] }, error?: string }>}
+    */
+  previewMergeSpeakers: (params) => ipcRenderer.invoke('preview-merge-speakers', params),
+
+  /**
    * Devuelve el timestamp del primer segmento de un hablante en una grabación.
    * Se usa para hacer seek al punto exacto donde ese hablante empieza a hablar.
    *
@@ -315,4 +324,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
    * @returns {Promise<{ success: boolean, deletedCount?: number, error?: string }>}
    */
   deleteSpeakerRecordingResolution: (params) => ipcRenderer.invoke('delete-speaker-recording-resolution', params),
+
+  // ── Note Templates ─────────────────────────────────────────────────────────
+  templates: {
+    // Template CRUD
+    list: () => ipcRenderer.invoke('templates:list'),
+    getBySlug: (slug) => ipcRenderer.invoke('templates:getBySlug', slug),
+    create: (data) => ipcRenderer.invoke('templates:create', data),
+    update: (slug, data) => ipcRenderer.invoke('templates:update', slug, data),
+    delete: (slug) => ipcRenderer.invoke('templates:delete', slug),
+    toggleEnabled: (slug, enabled) => ipcRenderer.invoke('templates:toggleEnabled', slug, enabled),
+
+    // Recording Notes
+    getNotesForRecording: (id) => ipcRenderer.invoke('templates:getNotesForRecording', id),
+    saveNote: (data) => ipcRenderer.invoke('templates:saveNote', data),
+    updateNote: (id, content) => ipcRenderer.invoke('templates:updateNote', id, content),
+    deleteNote: (id) => ipcRenderer.invoke('templates:deleteNote', id)
+  }
 });

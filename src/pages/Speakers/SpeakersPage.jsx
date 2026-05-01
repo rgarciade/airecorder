@@ -1,6 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import speakersService from '../../services/speakersService';
+import SpeakerDropdown from '../../components/Speakers/SpeakerDropdown';
+import useSpeakerList from '../../hooks/useSpeakerList';
+import useSpeakerMerge from '../../hooks/useSpeakerMerge';
 import styles from './SpeakersPage.module.css';
 
 /**
@@ -12,24 +15,6 @@ const SpeakersPage = ({ onNavigateToSpeaker, onNavigateToSettings, diarizationEn
   const { t } = useTranslation();
   const [speakers, setSpeakers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
-  // Estado del modal de fusión
-  const [mergeModalOpen, setMergeModalOpen] = useState(false);
-  const [mergeSourceId, setMergeSourceId] = useState(null);
-  const [mergeTargetId, setMergeTargetId] = useState(null);
-  const [mergeSourceFilter, setMergeSourceFilter] = useState('');
-  const [mergeTargetFilter, setMergeTargetFilter] = useState('');
-  const [mergeSourceOpen, setMergeSourceOpen] = useState(false);
-  const [mergeTargetOpen, setMergeTargetOpen] = useState(false);
-  const [mergeInProgress, setMergeInProgress] = useState(false);
-  const [mergeModalError, setMergeModalError] = useState(null);
-  const [mergeStatus, setMergeStatus] = useState(null); // { success, message }
-
-  const sourceDropdownRef = useRef(null);
-  const targetDropdownRef = useRef(null);
 
   // Si la diarización está desactivada, mostrar mensaje y botón para ir a ajustes
   if (diarizationEnabled === false) {
@@ -77,114 +62,52 @@ const SpeakersPage = ({ onNavigateToSpeaker, onNavigateToSettings, diarizationEn
     loadSpeakers();
   }, [loadSpeakers]);
 
-  // Auto-ocultar banner de estado tras 4 segundos
-  useEffect(() => {
-    if (mergeStatus) {
-      const timer = setTimeout(() => setMergeStatus(null), 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [mergeStatus]);
+  const {
+    searchTerm,
+    setSearchTerm,
+    setCurrentPage,
+    embeddingFilter,
+    setEmbeddingFilter,
+    filteredSpeakers,
+    totalPages,
+    safePage,
+    paginatedSpeakers,
+    mergeSpeakers,
+    withEmbeddingsCount,
+    noEmbeddingsCount
+  } = useSpeakerList({ speakers });
 
-  // Resetear a página 1 cuando cambia la búsqueda
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
+  const {
+    mergeModalOpen,
+    mergeSourceId,
+    setMergeSourceId,
+    mergeTargetId,
+    setMergeTargetId,
+    mergeInProgress,
+    mergeModalError,
+    mergeStatus,
+    preview,
+    mergeSourceSpeaker,
+    mergeTargetSpeaker,
+    canMerge,
+    handleOpenMergeModal,
+    handleCloseMergeModal,
+    handleMerge,
+    clearMergeModalError
+  } = useSpeakerMerge({
+    speakers: mergeSpeakers,
+    loadSpeakers,
+    setCurrentPage,
+    t
+  });
 
-  // Cerrar dropdowns al hacer clic fuera
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (sourceDropdownRef.current && !sourceDropdownRef.current.contains(e.target)) {
-        setMergeSourceOpen(false);
-      }
-      if (targetDropdownRef.current && !targetDropdownRef.current.contains(e.target)) {
-        setMergeTargetOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const previewSourceSpeaker = preview?.finalSourceId
+    ? mergeSpeakers.find((speaker) => speaker.id === preview.finalSourceId)
+    : mergeSourceSpeaker;
 
-  const filteredSpeakers = speakers
-    .filter((speaker) => (speaker.recordingsCount || 0) > 0 && (speaker.embeddingsCount || 0) > 0)
-    .filter((speaker) =>
-      (speaker.display_name || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-  // Paginación
-  const totalPages = Math.max(1, Math.ceil(filteredSpeakers.length / itemsPerPage));
-  const safePage = Math.min(currentPage, totalPages);
-  const paginatedSpeakers = filteredSpeakers.slice(
-    (safePage - 1) * itemsPerPage,
-    safePage * itemsPerPage
-  );
-
-  // Lista completa de hablantes elegibles para el modal de fusión
-  const mergeSpeakers = speakers.filter(
-    (speaker) => (speaker.recordingsCount || 0) > 0 && (speaker.embeddingsCount || 0) > 0
-  );
-
-  const mergeSourceSpeaker = mergeSpeakers.find((s) => s.id === mergeSourceId);
-  const mergeTargetSpeaker = mergeSpeakers.find((s) => s.id === mergeTargetId);
-
-  const filteredSourceSpeakers = mergeSpeakers.filter((s) =>
-    (s.display_name || '').toLowerCase().includes(mergeSourceFilter.toLowerCase())
-  );
-  const filteredTargetSpeakers = mergeSpeakers.filter((s) =>
-    (s.display_name || '').toLowerCase().includes(mergeTargetFilter.toLowerCase())
-  );
-
-  const canMerge = mergeSourceId && mergeTargetId && mergeSourceId !== mergeTargetId;
-
-  const handleOpenMergeModal = () => {
-    setMergeSourceId(null);
-    setMergeTargetId(null);
-    setMergeSourceFilter('');
-    setMergeTargetFilter('');
-    setMergeSourceOpen(false);
-    setMergeTargetOpen(false);
-    setMergeModalError(null);
-    setMergeModalOpen(true);
-  };
-
-  const handleCloseMergeModal = () => {
-    if (mergeInProgress) return;
-    setMergeModalOpen(false);
-    setMergeModalError(null);
-  };
-
-  const handleMerge = async () => {
-    if (!mergeSourceId || !mergeTargetId) {
-      setMergeModalError(t('speakers.selectBothError'));
-      return;
-    }
-    if (mergeSourceId === mergeTargetId) {
-      setMergeModalError(t('speakers.sameSpeakerError'));
-      return;
-    }
-
-    setMergeInProgress(true);
-    setMergeModalError(null);
-
-    const sourceName = mergeSourceSpeaker?.display_name || mergeSourceId;
-    const targetName = mergeTargetSpeaker?.display_name || mergeTargetId;
-
-    // targetSpeakerId absorbe a sourceSpeakerId
-    const result = await speakersService.mergeSimilarSpeaker(mergeTargetId, mergeSourceId);
-
-    setMergeInProgress(false);
-
-    if (result.success) {
-      setMergeModalOpen(false);
-      setMergeStatus({
-        success: true,
-        message: t('speakers.mergeSuccess', { source: sourceName, target: result.mergedName || targetName })
-      });
-      setCurrentPage(1);
-      await loadSpeakers();
-    } else {
-      setMergeModalError(t('speakers.mergeError', { error: result.error || 'Error desconocido' }));
-    }
-  };
+  const previewTargetSpeaker = preview?.finalTargetId
+    ? mergeSpeakers.find((speaker) => speaker.id === preview.finalTargetId)
+    : mergeTargetSpeaker;
 
   if (loading) {
     return (
@@ -209,6 +132,29 @@ const SpeakersPage = ({ onNavigateToSpeaker, onNavigateToSettings, diarizationEn
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+          </div>
+          <div className={styles.embeddingFilter}>
+            <button
+              className={`${styles.filterBtn} ${embeddingFilter === 'all' ? styles.filterBtnActive : ''}`}
+              onClick={() => setEmbeddingFilter('all')}
+            >
+              {t('speakers.filterAll', 'Todos')}
+              <span className={styles.filterBadge}>{speakers.length}</span>
+            </button>
+            <button
+              className={`${styles.filterBtn} ${embeddingFilter === 'with-embeddings' ? styles.filterBtnActive : ''}`}
+              onClick={() => setEmbeddingFilter('with-embeddings')}
+            >
+              {t('speakers.filterWithEmbeddings', 'Con embeddings')}
+              <span className={styles.filterBadge}>{withEmbeddingsCount}</span>
+            </button>
+            <button
+              className={`${styles.filterBtn} ${embeddingFilter === 'no-embeddings' ? styles.filterBtnActive : ''}`}
+              onClick={() => setEmbeddingFilter('no-embeddings')}
+            >
+              {t('speakers.filterNoEmbeddings', 'Sin embeddings')}
+              <span className={`${styles.filterBadge} ${styles.filterBadgeWarning}`}>{noEmbeddingsCount}</span>
+            </button>
           </div>
           {mergeSpeakers.length >= 2 && (
             <button
@@ -267,11 +213,16 @@ const SpeakersPage = ({ onNavigateToSpeaker, onNavigateToSettings, diarizationEn
               onClick={() => onNavigateToSpeaker(speaker.id)}
             >
               <div className={styles.speakerAvatar}>
-                {(speaker.display_name || '?').charAt(0).toUpperCase()}
+                {(speaker.displayName || '?').charAt(0).toUpperCase()}
               </div>
               <div className={styles.speakerInfo}>
                 <span className={styles.speakerName}>
-                  {speaker.display_name || t('speakers.unknown', 'Desconocido')}
+                  {speaker.displayName || t('speakers.unknown', 'Desconocido')}
+                  {(speaker.embeddingsCount || 0) === 0 && (
+                    <span className={styles.noEmbeddingBadge} title={t('speakers.noEmbeddingsTooltip', 'Sin embeddings de audio')}>
+                      {t('speakers.noEmbeddings', 'Sin audio')}
+                    </span>
+                  )}
                 </span>
                 <span className={styles.speakerStats}>
                   {speaker.recordingsCount || 0} {t('speakers.recordings')}
@@ -300,18 +251,9 @@ const SpeakersPage = ({ onNavigateToSpeaker, onNavigateToSettings, diarizationEn
                 <polyline points="15 18 9 12 15 6"></polyline>
               </svg>
             </button>
-            <div className={styles.paginationPages}>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <button
-                  key={page}
-                  className={`${styles.paginationPage} ${page === safePage ? styles.paginationPageActive : ''}`}
-                  onClick={() => setCurrentPage(page)}
-                  aria-label={t('speakers.page', 'Página') + ' ' + page}
-                >
-                  {page}
-                </button>
-              ))}
-            </div>
+            <span className={styles.paginationInfo}>
+              {t('speakers.pageOf', 'Página')} {safePage} {t('speakers.of', 'de')} {totalPages}
+            </span>
             <button
               className={styles.paginationBtn}
               disabled={safePage >= totalPages}
@@ -359,69 +301,14 @@ const SpeakersPage = ({ onNavigateToSpeaker, onNavigateToSettings, diarizationEn
             {/* Selector origen */}
             <div className={styles.mergeField}>
               <label className={styles.mergeFieldLabel}>{t('speakers.mergeSourceLabel')}</label>
-              <div className={styles.mergeDropdownWrapper} ref={sourceDropdownRef}>
-                <button
-                  className={`${styles.mergeDropdownTrigger} ${mergeSourceSpeaker ? styles.mergeDropdownSelected : ''}`}
-                  onClick={() => { setMergeSourceOpen((v) => !v); setMergeTargetOpen(false); }}
-                  type="button"
-                >
-                  {mergeSourceSpeaker ? (
-                    <span className={styles.mergeDropdownSelectedName}>
-                      <span className={styles.mergeDropdownAvatar}>
-                        {(mergeSourceSpeaker.display_name || '?').charAt(0).toUpperCase()}
-                      </span>
-                      {mergeSourceSpeaker.display_name || t('speakers.unknown')}
-                    </span>
-                  ) : (
-                    <span className={styles.mergeDropdownPlaceholder}>{t('speakers.mergeSourcePlaceholder')}</span>
-                  )}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
-                {mergeSourceOpen && (
-                  <div className={styles.mergeDropdownPanel}>
-                    <input
-                      className={styles.mergeDropdownSearch}
-                      type="text"
-                      placeholder={t('common.search', 'Buscar...')}
-                      value={mergeSourceFilter}
-                      onChange={(e) => setMergeSourceFilter(e.target.value)}
-                      autoFocus
-                    />
-                    <ul className={styles.mergeDropdownList}>
-                      {filteredSourceSpeakers.length === 0 ? (
-                        <li className={styles.mergeDropdownEmpty}>{t('speakers.noResults')}</li>
-                      ) : (
-                        filteredSourceSpeakers.map((s) => (
-                          <li
-                            key={s.id}
-                            className={`${styles.mergeDropdownOption} ${s.id === mergeSourceId ? styles.mergeDropdownOptionActive : ''} ${s.id === mergeTargetId ? styles.mergeDropdownOptionDisabled : ''}`}
-                            onClick={() => {
-                              if (s.id === mergeTargetId) return;
-                              setMergeSourceId(s.id);
-                              setMergeSourceFilter('');
-                              setMergeSourceOpen(false);
-                              setMergeModalError(null);
-                            }}
-                          >
-                            <span className={styles.mergeDropdownOptionAvatar}>
-                              {(s.display_name || '?').charAt(0).toUpperCase()}
-                            </span>
-                            <span className={styles.mergeDropdownOptionInfo}>
-                              <span className={styles.mergeDropdownOptionName}>{s.display_name || t('speakers.unknown')}</span>
-                              <span className={styles.mergeDropdownOptionMeta}>{s.recordingsCount || 0} {t('speakers.recordings')}</span>
-                            </span>
-                            {s.id === mergeTargetId && (
-                              <span className={styles.mergeDropdownOptionTag}>{t('speakers.mergeTargetLabel')}</span>
-                            )}
-                          </li>
-                        ))
-                      )}
-                    </ul>
-                  </div>
-                )}
-              </div>
+              <SpeakerDropdown
+                speakers={mergeSpeakers}
+                selectedSpeaker={mergeSourceSpeaker}
+                onSelect={(speaker) => { setMergeSourceId(speaker.id); clearMergeModalError(); }}
+                placeholder={t('speakers.mergeSourcePlaceholder')}
+                disabledIds={mergeTargetId ? [mergeTargetId] : []}
+                disabledLabel={t('speakers.mergeTargetLabel')}
+              />
             </div>
 
             {/* Flecha visual entre origen y destino */}
@@ -435,84 +322,51 @@ const SpeakersPage = ({ onNavigateToSpeaker, onNavigateToSettings, diarizationEn
             {/* Selector destino */}
             <div className={styles.mergeField}>
               <label className={styles.mergeFieldLabel}>{t('speakers.mergeTargetLabel')}</label>
-              <div className={styles.mergeDropdownWrapper} ref={targetDropdownRef}>
-                <button
-                  className={`${styles.mergeDropdownTrigger} ${mergeTargetSpeaker ? styles.mergeDropdownSelected : ''}`}
-                  onClick={() => { setMergeTargetOpen((v) => !v); setMergeSourceOpen(false); }}
-                  type="button"
-                >
-                  {mergeTargetSpeaker ? (
-                    <span className={styles.mergeDropdownSelectedName}>
-                      <span className={styles.mergeDropdownAvatar}>
-                        {(mergeTargetSpeaker.display_name || '?').charAt(0).toUpperCase()}
-                      </span>
-                      {mergeTargetSpeaker.display_name || t('speakers.unknown')}
-                    </span>
-                  ) : (
-                    <span className={styles.mergeDropdownPlaceholder}>{t('speakers.mergeTargetPlaceholder')}</span>
-                  )}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
-                {mergeTargetOpen && (
-                  <div className={styles.mergeDropdownPanel}>
-                    <input
-                      className={styles.mergeDropdownSearch}
-                      type="text"
-                      placeholder={t('common.search', 'Buscar...')}
-                      value={mergeTargetFilter}
-                      onChange={(e) => setMergeTargetFilter(e.target.value)}
-                      autoFocus
-                    />
-                    <ul className={styles.mergeDropdownList}>
-                      {filteredTargetSpeakers.length === 0 ? (
-                        <li className={styles.mergeDropdownEmpty}>{t('speakers.noResults')}</li>
-                      ) : (
-                        filteredTargetSpeakers.map((s) => (
-                          <li
-                            key={s.id}
-                            className={`${styles.mergeDropdownOption} ${s.id === mergeTargetId ? styles.mergeDropdownOptionActive : ''} ${s.id === mergeSourceId ? styles.mergeDropdownOptionDisabled : ''}`}
-                            onClick={() => {
-                              if (s.id === mergeSourceId) return;
-                              setMergeTargetId(s.id);
-                              setMergeTargetFilter('');
-                              setMergeTargetOpen(false);
-                              setMergeModalError(null);
-                            }}
-                          >
-                            <span className={styles.mergeDropdownOptionAvatar}>
-                              {(s.display_name || '?').charAt(0).toUpperCase()}
-                            </span>
-                            <span className={styles.mergeDropdownOptionInfo}>
-                              <span className={styles.mergeDropdownOptionName}>{s.display_name || t('speakers.unknown')}</span>
-                              <span className={styles.mergeDropdownOptionMeta}>{s.recordingsCount || 0} {t('speakers.recordings')}</span>
-                            </span>
-                            {s.id === mergeSourceId && (
-                              <span className={styles.mergeDropdownOptionTag}>{t('speakers.mergeSourceLabel')}</span>
-                            )}
-                          </li>
-                        ))
-                      )}
-                    </ul>
-                  </div>
-                )}
-              </div>
+              <SpeakerDropdown
+                speakers={mergeSpeakers}
+                selectedSpeaker={mergeTargetSpeaker}
+                onSelect={(speaker) => { setMergeTargetId(speaker.id); clearMergeModalError(); }}
+                placeholder={t('speakers.mergeTargetPlaceholder')}
+                disabledIds={mergeSourceId ? [mergeSourceId] : []}
+                disabledLabel={t('speakers.mergeSourceLabel')}
+              />
             </div>
 
             {/* Vista previa de la fusión */}
             {canMerge && (
               <div className={styles.mergePreview}>
                 <span className={styles.mergePreviewSource}>
-                  {mergeSourceSpeaker?.display_name || t('speakers.unknown')}
+                  {previewSourceSpeaker?.displayName || t('speakers.unknown')}
                 </span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                   <polyline points="12 5 19 12 12 19"></polyline>
                 </svg>
                 <span className={styles.mergePreviewTarget}>
-                  {mergeTargetSpeaker?.display_name || t('speakers.unknown')}
+                  {previewTargetSpeaker?.displayName || t('speakers.unknown')}
                 </span>
+              </div>
+            )}
+
+            {preview?.swapped && (
+              <div className={styles.mergeModalError}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                {t('speakers.mergePreviewAutoSwap', 'La dirección del merge se ajustó automáticamente para preservar embeddings.')}
+              </div>
+            )}
+
+            {Array.isArray(preview?.warnings) && preview.warnings.length > 0 && (
+              <div className={styles.mergeModalError}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                {preview.warnings.join(' ')}
               </div>
             )}
 

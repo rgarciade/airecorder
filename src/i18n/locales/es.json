@@ -743,9 +743,13 @@
     "mergeError": "Error al fusionar: {{error}}",
     "sameSpeakerError": "El origen y el destino no pueden ser el mismo hablante",
     "selectBothError": "Selecciona ambos hablantes para continuar",
+    "typeWithAudio": "Con audio",
+    "typeTextOnly": "Solo texto",
     "prevPage": "Página anterior",
     "nextPage": "Página siguiente",
-    "page": "Página"
+    "page": "Página",
+    "pageOf": "Página",
+    "of": "de"
   },
   "speakerDetail": {
     "title": "Detalle del Hablante",
@@ -835,6 +839,90 @@
         "label": "Generación de Tareas",
         "hint": "Instrucciones para la generación automática de tareas desde la transcripción.",
         "placeholder": "Ej: Las tareas siempre deben tener un responsable asignado y una fecha estimada..."
+      }
+    }
+  },
+  "templates": {
+    "modal": {
+      "title": "Generar notas desde plantilla",
+      "useButton": "Usar",
+      "createCustom": "+ Crear plantilla personalizada",
+      "sectionsCount": "{{count}} secciones",
+      "loading": "Cargando plantillas...",
+      "empty": "No hay plantillas disponibles"
+    },
+    "tab": {
+      "title": "Notas",
+      "generateButton": "Generar desde plantilla",
+      "empty": "Aún no hay notas generadas para esta grabación.",
+      "generatedAt": "Generado el {{date}} con plantilla \"{{template}}\""
+    },
+    "actions": {
+      "edit": "Editar",
+      "exportPdf": "Exportar PDF",
+      "exportDocx": "Exportar DOCX",
+      "copy": "Copiar",
+      "copySuccess": "¡Copiado al portapapeles!",
+      "delete": "Borrar",
+      "deleteConfirm": "¿Eliminar esta nota? Esta acción no se puede deshacer.",
+      "generating": "Generando notas..."
+    },
+    "settings": {
+      "title": "Plantillas de notas",
+      "builtinSection": "Plantillas predefinidas",
+      "customSection": "Mis plantillas",
+      "duplicate": "Duplicar y personalizar",
+      "newCustom": "+ Nueva plantilla",
+      "deleteConfirm": "¿Eliminar esta plantilla? Las notas generadas con ella se conservarán."
+    },
+    "editor": {
+      "newTitle": "Nueva plantilla",
+      "editTitle": "Editar plantilla",
+      "name": "Nombre",
+      "icon": "Icono",
+      "description": "Descripción",
+      "expert": "Experto por defecto",
+      "sections": "Secciones",
+      "addSection": "+ Añadir sección",
+      "sectionTitle": "Título de la sección",
+      "sectionType": "Tipo",
+      "sectionInstructions": "Instrucciones",
+      "required": "Obligatoria",
+      "preview": "Vista previa",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "validateMinSections": "Añade al menos una sección",
+      "validateTitle": "Cada sección necesita un título",
+      "validateType": "Cada sección necesita un tipo"
+    },
+    "builtin": {
+      "standup": {
+        "name": "Standup",
+        "description": "Notas de daily standup con Yesterday/Today/Blockers"
+      },
+      "one-on-one": {
+        "name": "1:1 Meeting",
+        "description": "Reunión one-on-one con logros, preocupaciones y acciones"
+      },
+      "customer-interview": {
+        "name": "Entrevista de cliente",
+        "description": "Pain points, citas, JTBD y próximos pasos"
+      },
+      "sales-discovery": {
+        "name": "Discovery comercial",
+        "description": "Calificación BANT con objeciones y próximo paso"
+      },
+      "daily-journal": {
+        "name": "Diario personal",
+        "description": "Reflexión diaria con mood, gratitud y focos"
+      },
+      "lecture-notes": {
+        "name": "Notas de clase",
+        "description": "Temas, definiciones, ejemplos y preguntas abiertas"
+      },
+      "brainstorm": {
+        "name": "Brainstorm",
+        "description": "Pool de ideas, temas, top picks y riesgos"
       }
     }
   }

@@ -451,3 +451,5 @@ RULES — follow every rule strictly:
 --- RAW CONVERSATION TRANSCRIPT ---
 ${rawContent}
 --- END OF TRANSCRIPT ---`;
+
+export { langName };

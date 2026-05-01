@@ -458,8 +458,8 @@
     "unassignConfirm": "Are you sure you want to unassign \"{{recordingName}}\" from project \"{{projectName}}\"?",
     "unassign": "Unassign",
     "page": "Page {{current}} de {{total}}"
-    },
-    "recordingDetail": {
+  },
+  "recordingDetail": {
     "overview": {
       "detailedSummary": "Detailed Summary",
       "notesAndInstructions": "Notes & Instructions",
@@ -478,8 +478,8 @@
       "noTranscription": "No transcription yet",
       "noTranscriptionDesc": "AI needs the transcription to generate the summary and key topics."
     }
-    },
-    "participantsList": {
+  },
+  "participantsList": {
     "title": "Participants",
     "add": "Add",
     "name": "Name",
@@ -487,8 +487,8 @@
     "noParticipants": "No participants detected.",
     "aiSuggested": "AI",
     "aiSuggestedTooltip": "Suggested by AI"
-    },
-    "newSessionCard": {
+  },
+  "newSessionCard": {
     "title": "New Session",
     "description": "Start recording instantly. Our AI will handle transcription, summarization, and key point extraction automatically.",
     "changeMic": "Change Microphone",
@@ -726,9 +726,13 @@
     "mergeError": "Error merging: {{error}}",
     "sameSpeakerError": "Source and target cannot be the same speaker",
     "selectBothError": "Select both speakers to continue",
+    "typeWithAudio": "With audio",
+    "typeTextOnly": "Text only",
     "prevPage": "Previous page",
     "nextPage": "Next page",
-    "page": "Page"
+    "page": "Page",
+    "pageOf": "Page",
+    "of": "of"
   },
   "speakerDetail": {
     "title": "Speaker Detail",
@@ -818,6 +822,90 @@
         "label": "Task Generation",
         "hint": "Instructions for automatic task generation from the transcription.",
         "placeholder": "E.g.: Tasks should always have an assigned owner and an estimated date..."
+      }
+    }
+  },
+  "templates": {
+    "modal": {
+      "title": "Generate notes from template",
+      "useButton": "Use",
+      "createCustom": "+ Create custom template",
+      "sectionsCount": "{{count}} sections",
+      "loading": "Loading templates...",
+      "empty": "No templates available"
+    },
+    "tab": {
+      "title": "Notes",
+      "generateButton": "Generate from template",
+      "empty": "No notes generated for this recording yet.",
+      "generatedAt": "Generated on {{date}} with template \"{{template}}\""
+    },
+    "actions": {
+      "edit": "Edit",
+      "exportPdf": "Export PDF",
+      "exportDocx": "Export DOCX",
+      "copy": "Copy",
+      "copySuccess": "Copied to clipboard!",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this note? This action cannot be undone.",
+      "generating": "Generating notes..."
+    },
+    "settings": {
+      "title": "Note Templates",
+      "builtinSection": "Built-in Templates",
+      "customSection": "My Templates",
+      "duplicate": "Duplicate and customize",
+      "newCustom": "+ New template",
+      "deleteConfirm": "Delete this template? Notes generated with it will be preserved."
+    },
+    "editor": {
+      "newTitle": "New Template",
+      "editTitle": "Edit Template",
+      "name": "Name",
+      "icon": "Icon",
+      "description": "Description",
+      "expert": "Default Expert",
+      "sections": "Sections",
+      "addSection": "+ Add section",
+      "sectionTitle": "Section title",
+      "sectionType": "Type",
+      "sectionInstructions": "Instructions",
+      "required": "Required",
+      "preview": "Preview",
+      "save": "Save",
+      "cancel": "Cancel",
+      "validateMinSections": "Add at least one section",
+      "validateTitle": "Each section needs a title",
+      "validateType": "Each section needs a type"
+    },
+    "builtin": {
+      "standup": {
+        "name": "Standup",
+        "description": "Daily standup notes with Yesterday/Today/Blockers"
+      },
+      "one-on-one": {
+        "name": "1:1 Meeting",
+        "description": "One-on-one meeting with achievements, concerns and actions"
+      },
+      "customer-interview": {
+        "name": "Customer Interview",
+        "description": "Pain points, quotes, JTBD and next steps"
+      },
+      "sales-discovery": {
+        "name": "Sales Discovery",
+        "description": "BANT qualification with objections and next step"
+      },
+      "daily-journal": {
+        "name": "Daily Journal",
+        "description": "Daily reflection with mood, gratitude and focus areas"
+      },
+      "lecture-notes": {
+        "name": "Lecture Notes",
+        "description": "Topics, definitions, examples and open questions"
+      },
+      "brainstorm": {
+        "name": "Brainstorm",
+        "description": "Idea pool, themes, top picks and risks"
       }
     }
   }
