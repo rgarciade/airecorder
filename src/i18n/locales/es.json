@@ -743,9 +743,13 @@
     "mergeError": "Error al fusionar: {{error}}",
     "sameSpeakerError": "El origen y el destino no pueden ser el mismo hablante",
     "selectBothError": "Selecciona ambos hablantes para continuar",
+    "typeWithAudio": "Con audio",
+    "typeTextOnly": "Solo texto",
     "prevPage": "Página anterior",
     "nextPage": "Página siguiente",
-    "page": "Página"
+    "page": "Página",
+    "pageOf": "Página",
+    "of": "de"
   },
   "speakerDetail": {
     "title": "Detalle del Hablante",

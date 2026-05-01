@@ -299,6 +299,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   mergeSimilarSpeaker: (params) => ipcRenderer.invoke('merge-similar-speaker', params),
 
   /**
+    * Previsualiza un merge entre dos hablantes.
+    * Devuelve origen/destino finales (con auto-swap), recuentos de embeddings y advertencias.
+    *
+    * @param {{ sourceSpeakerId: string, targetSpeakerId: string }} params
+    * @returns {Promise<{ success: boolean, data?: { finalSourceId: string, finalTargetId: string, swapped: boolean, sourceEmbeddings: number, targetEmbeddings: number, warnings: string[] }, error?: string }>}
+    */
+  previewMergeSpeakers: (params) => ipcRenderer.invoke('preview-merge-speakers', params),
+
+  /**
    * Devuelve el timestamp del primer segmento de un hablante en una grabación.
    * Se usa para hacer seek al punto exacto donde ese hablante empieza a hablar.
    *

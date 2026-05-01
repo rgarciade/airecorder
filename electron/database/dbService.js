@@ -235,6 +235,17 @@ class DbService {
     } catch (e) {
       console.error('[DB] Error migrando rag_status:', e);
     }
+
+    // Migración: source en recordings (conversation-import vs audio)
+    try {
+      const recInfo = this.db.prepare("PRAGMA table_info(recordings)").all();
+      if (!recInfo.some(c => c.name === 'source')) {
+        console.log('[DB] Añadiendo columna source a recordings...');
+        this.db.prepare("ALTER TABLE recordings ADD COLUMN source TEXT").run();
+      }
+    } catch (e) {
+      console.error('[DB] Error migrando source:', e);
+    }
   }
 
   // ── Expert Customizations (delegado al domain service inline) ──────────────
@@ -382,6 +393,7 @@ class DbService {
   getSpeakerRecordings(...args) { return this.speakers?.getSpeakerRecordings(...args) ?? null; }
   getSimilarSpeakers(...args) { return this.speakers?.getSimilarSpeakers(...args) ?? []; }
   async getSpeakerFirstSegmentTime(...args) { return this.speakers?.getSpeakerFirstSegmentTime(...args) ?? null; }
+  getSpeakerEmbeddingCount(...args) { return this.speakers?.getSpeakerEmbeddingCount(...args) ?? 0; }
 
   // Integrations
   savePlatformConnection(...args) { return this.integrations?.savePlatformConnection(...args) ?? { success: false }; }

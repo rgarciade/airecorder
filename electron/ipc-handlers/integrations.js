@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const dbService = require('../database/dbService');
+const speakerManager = require('../services/speakerManager');
 const { getRecordingsPath } = require('../utils/paths');
 const { buildTranscriptionJson, buildTranscriptionTxt } = require('../integrations/chatSyncUtils');
 
@@ -218,9 +219,17 @@ module.exports.registerIntegrationsHandlers = () => {
 
       // Registrar en la base de datos
       const createdAt = new Date().toISOString();
-      const dbResult = dbService.saveRecording(folderName, duration, 'transcribed', createdAt, 'conversation-import');
+      const dbResult = dbService.saveRecording(folderName, duration, 'transcribed', createdAt, 'conversation-import', 'conversation-import');
       if (!dbResult.success) {
         return { success: false, error: 'Error guardando la grabación en la base de datos' };
+      }
+
+      // Persistir resolución speaker↔recording también en imports sin audio.
+      // Esto permite que SpeakerDetail liste correctamente estas grabaciones.
+      try {
+        speakerManager.resolveFromSegments(normalizedSegments, dbResult.id);
+      } catch (resolveErr) {
+        console.warn('[Conversation Import] No se pudo persistir speakerResolution en import:', resolveErr);
       }
 
       console.log(`[Conversation Import] Grabación importada: ${folderName} (${segments.length} segmentos)`);
