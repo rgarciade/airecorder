@@ -95,12 +95,12 @@ class SpeakersService {
     }
   }
 
-  /**
-   * Fusiona un speaker similar en el speaker actual
-   * @param {string} targetSpeakerId - UUID del speaker que absorbe
-   * @param {string} sourceSpeakerId - UUID del speaker que se fusiona
-   * @returns {Promise<{ success: boolean, mergedName?: string, error?: string }>}
-   */
+/**
+    * Fusiona un speaker similar en el speaker actual
+    * @param {string} targetSpeakerId - UUID del speaker que absorbe
+    * @param {string} sourceSpeakerId - UUID del speaker que se fusiona
+    * @returns {Promise<{ success: boolean, mergedName?: string, error?: string }>}
+    */
   async mergeSimilarSpeaker(targetSpeakerId, sourceSpeakerId) {
     try {
       if (!window.electronAPI?.mergeSimilarSpeaker) {
@@ -110,6 +110,27 @@ class SpeakersService {
       return result;
     } catch (error) {
       console.error('Error fusionando hablantes:', error);
+      return { success: false, error: error.message || String(error) };
+    }
+  }
+
+  /**
+    * Previsualiza un merge entre dos hablantes.
+    * Devuelve origen/destino finales (con auto-swap), recuentos de embeddings y advertencias.
+    *
+    * @param {string} sourceSpeakerId - UUID del speaker de origen
+    * @param {string} targetSpeakerId - UUID del speaker de destino
+    * @returns {Promise<{ success: boolean, data?: { finalSourceId: string, finalTargetId: string, swapped: boolean, sourceEmbeddings: number, targetEmbeddings: number, warnings: string[] }, error?: string }>}
+    */
+  async previewMergeSpeakers(sourceSpeakerId, targetSpeakerId) {
+    try {
+      if (!window.electronAPI?.previewMergeSpeakers) {
+        throw new Error('API de Electron no disponible');
+      }
+      const result = await window.electronAPI.previewMergeSpeakers({ sourceSpeakerId, targetSpeakerId });
+      return result;
+    } catch (error) {
+      console.error('Error en previsualización de merge:', error);
       return { success: false, error: error.message || String(error) };
     }
   }

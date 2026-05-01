@@ -12,12 +12,13 @@ module.exports = {
   `,
 
   INSERT_OR_UPDATE_RECORDING: `
-    INSERT INTO recordings (relative_path, duration, status, transcription_model, created_at)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO recordings (relative_path, duration, status, transcription_model, source, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(relative_path) DO UPDATE SET
       duration = excluded.duration,
       status = excluded.status,
-      transcription_model = COALESCE(excluded.transcription_model, recordings.transcription_model);
+      transcription_model = COALESCE(excluded.transcription_model, recordings.transcription_model),
+      source = COALESCE(excluded.source, recordings.source);
   `,
 
   UPDATE_STATUS: `

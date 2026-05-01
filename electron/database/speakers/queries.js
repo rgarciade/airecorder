@@ -172,5 +172,10 @@ module.exports = {
 
   GET_SPEAKER_BY_ID: `
     SELECT id, display_name, created_at FROM speakers WHERE id = ?;
+  `,
+
+  // ── Conteo de embeddings por speaker ─────────────────────────────────────────
+  COUNT_SPEAKER_EMBEDDINGS: `
+    SELECT COUNT(*) as count FROM speaker_embeddings WHERE speaker_id = ?
   `
 };

@@ -45,6 +45,15 @@ El contenido de usuario (transcripción, resumen, etc.) siempre se pasa **por se
 > ```
 > Si `JSON.parse` falla en el caller (`handleImportConversation` en `Home.jsx`), se usa un segmento de fallback con el texto crudo completo. El campo `source: "conversation-import"` distingue estos segmentos de los generados por Whisper.
 
+### Prompt Builder de Note Templates (`src/prompts/common/templatePrompts.js`)
+
+`templatePrompts.js` centraliza la construcción de prompts para notas por plantilla y expone:
+
+- `buildTemplateSystemPrompt(template, lang, specialtyPrompt)` — genera el system prompt con reglas de formato por tipo de sección, idioma obligatorio y política de campos requeridos/opcionales.
+- `buildTemplateUserContent(transcript, existingSummary)` — arma el contenido de usuario con resumen previo (si existe) + transcripción completa.
+
+Este builder se usa exclusivamente por `src/services/noteTemplateService.js`.
+
 ### Reglas Críticas al Modificar Prompts
 1.  **Idioma dinámico:** Usar `langName(lang)` para que el idioma respete la configuración del usuario.
 2.  **Formato de Puntos Clave:** El prompt de puntos clave **DEBE EXIGIR** estrictamente el formato:
@@ -240,3 +249,96 @@ Cuando el usuario hace clic en "Analizar Grabación" (desde `RecordingDetail.jsx
 3.  **Resumen breve + Puntos clave** en paralelo (via `Promise.all`), usando el resumen detallado como contexto.
 4.  **Participantes** (system: instrucciones + suffix, user: texto a analizar).
 5.  **Ensamblaje y guardado** en `analysis/ai_summary.json` vía `window.electronAPI.saveAiSummary()`.
+
+## 5. Plantillas de Notas (Note Templates)
+
+Sistema de generación de notas estructuradas basadas en plantillas predefinidas o personalizadas. El flujo reutiliza el sistema de providers existente y los prompts de expertos.
+
+El orquestador frontend de este flujo es `src/services/noteTemplateService.js`, que coordina la carga de plantilla, recuperación de contexto (transcripción + resumen AI), construcción de prompts, llamada al proveedor y persistencia final de la nota.
+
+### Arquitectura
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    NoteTemplateService                      │
+│                   (src/services/noteTemplateService.js)      │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+          ┌───────────┴───────────┐
+          │                       │
+    callProvider()         Provider Router
+    (analysis mode)        (providerRouter.js)
+          │                       │
+          │              ┌────────┴────────┐
+          │              │                 │
+    templatePrompts.js   Gemini   Ollama   DeepSeek
+          │              (cloud)   (local)  (cloud)
+          │
+    Expert Prompts
+    (aiPrompts.js)
+```
+
+### Flujo de Generación
+
+1. **Usuario selecciona plantilla** → `NoteTemplateModal` permite elegir entre plantillas predefinidas o personalizadas.
+2. **Carga de plantilla** → Se obtiene la plantilla via IPC `templates:getBySlug`.
+3. **Construcción de prompt** → `templatePrompts.js` construye el prompt dinámico según las secciones de la plantilla:
+   - Cada sección tiene `type` (text, list, checklist, table, qa, summary, action_items, custom) y `instructions`.
+   - El prompt pide al LLM devolver un JSON con el contenido de cada sección.
+4. **Selección de experto** → Se usa el `expert_id` de la plantilla (ej. `general`, `developer`) para cargar el system prompt del experto desde `aiPrompts.js`.
+5. **Llamada al provider** → Se usa `callProvider()` (modo análisis) con el prompt construido + el system prompt del experto.
+6. **Parseo y guardado** → El contenido se parsea desde JSON a Markdown y se guarda en `recording_notes` via IPC `templates:saveNote`.
+
+### Prompt Builder (`src/prompts/common/templatePrompts.js`)
+
+Construye prompts dinámicos basados en la estructura de la plantilla:
+
+```js
+// Ejemplo de secciones con tipos
+const sections = [
+  { id: "yesterday", title: "Yesterday", type: "list", instructions: "What was accomplished yesterday?", required: true },
+  { id: "today", title: "Today", type: "list", instructions: "What will be done today?", required: true },
+  { id: "blockers", title: "Blockers", type: "text", instructions: "Any blockers or impediments?", required: false }
+];
+
+// El prompt pediría:
+/*
+Genera notas en JSON con las siguientes secciones:
+- yesterday (type: list): What was accomplished yesterday?
+- today (type: list): What will be done today?
+- blockers (type: text, optional): Any blockers?
+
+Devuelve JSON con keys: yesterday, today, blockers (si blockers no aplica, null)
+*/
+```
+
+### Sección de Tipos de Plantilla
+
+| Tipo | Descripción | Uso típico |
+|------|-------------|------------|
+| `standup` | Daily standup: Yesterday/Today/Blockers | Reuniones diarias de equipo |
+| `one-on-one` | 1:1 Meeting: Logros, preocupaciones, acciones | Reuniones 1:1 con manager |
+| `customer-interview` | Entrevista cliente: Pain points, citas, JTBD, next steps | Descubrimiento de cliente |
+| `sales-discovery` | Discovery comercial: BANT, objeciones, próximo paso | Calificación de oportunidades |
+| `daily-journal` | Diario personal: Mood, gratitud, focos | Reflexión personal |
+| `lecture-notes` | Notas de clase: Temas, definiciones, ejemplos, preguntas | Estudio |
+| `brainstorm` | Brainstorm: Idea pool, temas, top picks, risks | Sesiones de ideación |
+| `custom` | Plantilla personalizada | Creada por el usuario |
+
+### Integración con Expertos
+
+Cada plantilla especifica un `expert_id` que se usa para cargar el system prompt del experto correspondiente. Por ejemplo:
+- Plantilla `standup` → `expert_id: 'developer'` → usa `developerSystemPrompt()` de `aiPrompts.js`
+- Plantilla `daily-journal` → `expert_id: 'general'` → usa el prompt base general
+
+Esto permite que las notas generadas respeten el contexto y tono del experto activo.
+
+### Internacionalización (i18n)
+
+Las traducciones de la UI de plantillas están en `src/i18n/locales/{es,en}.json` bajo la clave `templates`:
+- `templates.modal.*` — Modal de selección de plantilla
+- `templates.tab.*` — Pestaña de notas en RecordingDetail
+- `templates.actions.*` — Acciones sobre notas (editar, exportar, copiar, eliminar)
+- `templates.settings.*` — Página de gestión de plantillas
+- `templates.editor.*` — Editor de plantilla (crear/editar)
+- `templates.builtin.*` — Metadatos de plantillas predefinidas

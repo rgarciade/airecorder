@@ -357,6 +357,68 @@ function renderMarkdownToPdf(doc, text, margin, maxWidth, startY, pageHeight) {
 function registerExportHandlers() {
   ipcMain.handle('export-document', async (event, { data, format }) => {
     try {
+      // ── Handle note export ───────────────────────────────────────────────────────
+      if (data.type === 'note') {
+        const { contentMd } = data;
+        const defaultPath = `Note_${Date.now()}.${format}`;
+
+        const { canceled, filePath } = await dialog.showSaveDialog({
+          title: 'Export Note',
+          defaultPath: defaultPath,
+          filters: [
+            { name: format.toUpperCase(), extensions: [format] }
+          ]
+        });
+
+        if (canceled || !filePath) {
+          return { success: true, canceled: true };
+        }
+
+        // Markdown export
+        if (format === 'md') {
+          fs.writeFileSync(filePath, contentMd, 'utf-8');
+        }
+        // DOCX export
+        else if (format === 'docx') {
+          const paragraphs = parseMarkdownToDocxParagraphs(contentMd);
+          const doc = new Document({
+            numbering: {
+              config: [{
+                reference: 'default-numbering',
+                levels: [{
+                  level: 0,
+                  format: 'decimal',
+                  text: '%1.',
+                  alignment: 'start',
+                }]
+              }]
+            },
+            sections: [{
+              properties: {},
+              children: paragraphs
+            }]
+          });
+          const buffer = await Packer.toBuffer(doc);
+          fs.writeFileSync(filePath, buffer);
+        }
+        // PDF export
+        else if (format === 'pdf') {
+          const doc = new jsPDF();
+          let y = 20;
+          const pageHeight = doc.internal.pageSize.height;
+          const margin = 20;
+          const maxWidth = 170;
+
+          y = renderMarkdownToPdf(doc, contentMd, margin, maxWidth, y, pageHeight);
+
+          const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+          fs.writeFileSync(filePath, pdfBuffer);
+        }
+
+        return { success: true, filePath };
+      }
+
+      // ── Handle recording/project export (existing logic) ───────────────────────
       const { title, date, participants, summary, detailedSummary, highlights, transcription } = data;
       
       const defaultPath = `Export_${title.replace(/[^a-z0-9]/gi, '_')}.${format}`;
