@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSelector } from 'react-redux';
+import { selectSpeakersMap } from '../../store/slices/speakersSlice';
 import recordingsService from '../../services/recordingsService';
 import projectsService from '../../services/projectsService';
 import { getSettings, updateSettings, addSettingsListener, removeSettingsListener } from '../../services/settingsService';
@@ -80,6 +82,9 @@ function parseTimestampToSeconds(ts) {
 
 export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject }) {
   const persistentRecordingId = recording?.dbId ?? recording?.id ?? null;
+
+  // ── Redux: mapa de hablantes con ediciones del usuario ──
+  const reduxSpeakersMap = useSelector(selectSpeakersMap);
 
   // --- STATE MANAGEMENT ---
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'transcription' | 'tasks'
@@ -1456,11 +1461,18 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       }
       if (exportOptions.transcription && transcription?.segments) {
         // Formatear transcripción para exportar
+        // Combinar speakerResolution (backend) con Redux (ediciones del usuario, prioridad)
+        const backendResolution = transcription.speakerResolution || {};
         data.transcription = transcription.segments.map(s => {
           const m = Math.floor(s.start / 60);
           const sec = Math.floor(s.start % 60).toString().padStart(2, '0');
+          const speakerKey = s.speaker || 'SPEAKER_00';
+          // Redux tiene prioridad (nombres editados por el usuario), fallback al backend
+          const speakerName = reduxSpeakersMap[speakerKey]?.displayName
+            || backendResolution[speakerKey]?.displayName
+            || speakerKey;
           return {
-            speaker: s.speaker || 'Speaker',
+            speaker: speakerName,
             timestamp: `${m}:${sec}`,
             text: s.text.trim()
           };
