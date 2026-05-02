@@ -43,6 +43,11 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
   const [importModal, setImportModal] = useState(null);
   const [importName, setImportName] = useState('');
 
+  // Paste Conversation Modal
+  const [showPasteModal, setShowPasteModal] = useState(false);
+  const [pasteTitle, setPasteTitle] = useState('');
+  const [pastedText, setPastedText] = useState('');
+
   const reloadTimeoutRef = useRef(null);
 
   const enrichRecordingsWithRuntimeState = useCallback(async (list) => {
@@ -340,6 +345,74 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
     }
   };
 
+  const handleOpenPasteModal = async () => {
+    const validation = await validateProviderConfig();
+    if (!validation.valid) {
+      alert(t('home.importConversation.noProvider'));
+      return;
+    }
+    setPasteTitle('');
+    setPastedText('');
+    setShowPasteModal(true);
+  };
+
+  const handleSubmitPaste = async () => {
+    if (!pastedText.trim()) return;
+
+    // Capturar texto y título, cerrar modal inmediatamente
+    const text = pastedText.trim();
+    const title = pasteTitle.trim();
+    setShowPasteModal(false);
+    setPasteTitle('');
+    setPastedText('');
+
+    try {
+      const prompt = conversationNormalizationPrompt(text);
+      const aiResponse = await callProvider(prompt, { queueMeta: { type: 'conversation-import' } });
+
+      let parsedData;
+      try {
+        const fenceMatch = aiResponse.text.match(/```(?:json)?\s*([\s\S]*?)```/);
+        const jsonString = fenceMatch ? fenceMatch[1] : aiResponse.text;
+        parsedData = JSON.parse(jsonString);
+      } catch {
+        parsedData = {
+          segments: [{ id: 0, start: 0, end: 3, speaker: 'Speaker 1', text, source: 'conversation-import' }]
+        };
+      }
+
+      if (!parsedData.segments || parsedData.segments.length === 0) {
+        alert(t('home.importConversation.noSegments'));
+        return;
+      }
+
+      const fileName = title ? `${title}.txt` : 'conversacion_pegada.txt';
+
+      const saveResult = await window.electronAPI.saveConversationImport({
+        fileName,
+        raw: text,
+        ext: 'txt',
+        segments: parsedData.segments,
+        ...(title ? { customFolderName: title } : {})
+      });
+
+      if (saveResult?.success && saveResult?.recording) {
+        const list = await loadRecordings();
+        if (onRecordingSelect) {
+          const rec = list.find(r => r.id === saveResult.recording.relative_path || r.dbId === saveResult.recording.id);
+          if (rec) {
+            onRecordingSelect(rec);
+          }
+        }
+        alert(t('home.importConversation.success'));
+      } else {
+        alert(t('home.errorImportingConversation', { error: saveResult?.error || 'Error desconocido' }));
+      }
+    } catch (err) {
+      alert(t('home.errorImportingConversation', { error: err.message }));
+    }
+  };
+
   const handleImportAudio = async () => {
     try {
       const result = await window.electronAPI.importAudioFile();
@@ -530,6 +603,7 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
         onImport={handleImportTeams}
         onImportAudio={handleImportAudio}
         onImportConversation={handleImportConversation}
+        onPasteConversation={handleOpenPasteModal}
         microphoneLabel={currentMicLabel}
         languageLabel={currentLangLabel}
         onOpenSettings={() => onSettings('general')}
@@ -618,6 +692,55 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
                 onClick={handleConfirmImport}
               >
                 {t('home.importAudio.startTranscription')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para pegar conversación */}
+      {showPasteModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowPasteModal(false)}>
+          <div className={`${styles.modalContent} ${styles.pasteModalContent}`} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.modalTitle}>{t('home.pasteConversation.title')}</h3>
+            <p className={styles.modalText}>
+              {t('home.pasteConversation.description')}
+            </p>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>{t('home.pasteConversation.titleLabel')}</label>
+              <input
+                type="text"
+                className={styles.input}
+                value={pasteTitle}
+                onChange={(e) => setPasteTitle(e.target.value)}
+                placeholder={t('home.pasteConversation.titlePlaceholder')}
+                maxLength={200}
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>{t('home.pasteConversation.contentLabel')}</label>
+              <textarea
+                className={styles.pasteTextarea}
+                value={pastedText}
+                onChange={(e) => setPastedText(e.target.value)}
+                placeholder={t('home.pasteConversation.placeholder')}
+                autoFocus
+                rows={10}
+              />
+            </div>
+            <div className={styles.buttonGroup}>
+              <button
+                className={styles.cancelBtn}
+                onClick={() => setShowPasteModal(false)}
+              >
+                {t('home.pasteConversation.cancel')}
+              </button>
+              <button
+                className={styles.confirmBtn}
+                onClick={handleSubmitPaste}
+                disabled={!pastedText.trim()}
+              >
+                {t('home.pasteConversation.submit')}
               </button>
             </div>
           </div>

@@ -211,6 +211,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteAttachment: (recordingId, filename) => ipcRenderer.invoke('delete-attachment', recordingId, filename),
   readAttachmentContent: (recordingId, filename) => ipcRenderer.invoke('read-attachment-content', recordingId, filename),
   getAttachmentThumbnail: (recordingId, filename) => ipcRenderer.invoke('get-attachment-thumbnail', recordingId, filename),
+  savePastedText: (recordingId, text, filename) => ipcRenderer.invoke('save-pasted-text', recordingId, text, filename),
 
   // Abrir URLs en el navegador predeterminado del sistema
   openExternal: (url) => shell.openExternal(url),

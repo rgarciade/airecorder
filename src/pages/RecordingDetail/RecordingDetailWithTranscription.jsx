@@ -26,7 +26,7 @@ import AttachmentsTab from './components/AttachmentsTab/AttachmentsTab';
 import NotesTab from './components/NotesTab/NotesTab';
 import AIErrorModal from '../../components/AIErrorModal/AIErrorModal';
 import TemplateSelectorModal from '../../components/templates/TemplateSelectorModal';
-import { getAttachments, pickAndAddAttachment, readAttachmentContent, estimateAttachmentTokens } from '../../services/attachmentsService';
+import { getAttachments, pickAndAddAttachment, readAttachmentContent, estimateAttachmentTokens, savePastedText } from '../../services/attachmentsService';
 
 // Icons
 import { 
@@ -822,6 +822,19 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       // Seleccionar automáticamente el archivo recién subido
       handleActiveAttachmentsChange([...activeAttachments, ...result.attachments]);
     }
+  };
+
+  // Handler para pegar texto como archivo .txt
+  const handlePasteAttachment = async (text, filename) => {
+    const attachment = await savePastedText(recording.id, text, filename);
+    if (attachment) {
+      // Añadir a la lista de adjuntos de la grabación
+      setRecordAttachments(prev => [...prev, attachment]);
+      // Auto-seleccionar el archivo
+      handleActiveAttachmentsChange([...activeAttachments, attachment]);
+      return attachment;
+    }
+    return null;
   };
 
   const handleSessionModelChange = async (model) => {
@@ -1719,6 +1732,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
               // Adjuntos
               recordAttachments,
               onPickNewAttachment: handlePickNewAttachment,
+              onPasteAttachment: handlePasteAttachment,
               activeAttachments,
               onActiveAttachmentsChange: handleActiveAttachmentsChange,
             }}
