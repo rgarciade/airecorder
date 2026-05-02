@@ -2,50 +2,12 @@ const { ipcMain, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { getRecordingsPath, getFolderPathFromId } = require('../utils/paths');
-
-// Extensiones soportadas
-const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
-const TEXT_EXTENSIONS = ['.txt', '.md'];
-const PDF_EXTENSIONS = ['.pdf'];
-const EXCEL_EXTENSIONS = ['.xlsx', '.xls'];
-const SUPPORTED_EXTENSIONS = [...IMAGE_EXTENSIONS, ...TEXT_EXTENSIONS, ...PDF_EXTENSIONS, ...EXCEL_EXTENSIONS];
-
-function getAttachmentType(filename) {
-  const ext = path.extname(filename).toLowerCase();
-  if (IMAGE_EXTENSIONS.includes(ext)) return 'image';
-  if (PDF_EXTENSIONS.includes(ext)) return 'pdf';
-  if (TEXT_EXTENSIONS.includes(ext)) return 'text';
-  if (EXCEL_EXTENSIONS.includes(ext)) return 'excel';
-  return 'unknown';
-}
+const { SUPPORTED_EXTENSIONS, getAttachmentType, resolveFilename } = require('../utils/fileUtils');
 
 async function getAttachmentsDir(recordingId) {
   const recordingsBase = await getRecordingsPath();
   const folderName = await getFolderPathFromId(recordingId);
   return path.join(recordingsBase, folderName, 'attachments');
-}
-
-// Función auxiliar para sanitizar nombre de archivo y resolver colisiones
-function resolveFilename(baseFilename, attachmentsDir) {
-  // 1. Sanitizar: eliminar caracteres inválidos para nombres de archivo en sistemas de archivos
-  let sanitized = baseFilename.replace(/[<>:"/\\|?*]/g, '').trim();
-  // 2. Si vacío, usar default
-  if (!sanitized) {
-    sanitized = 'Conversacion pegada';
-  }
-  // 3. Forzar extensión .txt
-  const nameWithoutExt = sanitized.replace(/\.txt$/i, '');
-  const finalName = `${nameWithoutExt}.txt`;
-  // 4. Resolver colisiones
-  let finalFilename = finalName;
-  let destPath = path.join(attachmentsDir, finalFilename);
-  let counter = 1;
-  while (fs.existsSync(destPath)) {
-    finalFilename = `${nameWithoutExt}_${counter}.txt`;
-    destPath = path.join(attachmentsDir, finalFilename);
-    counter++;
-  }
-  return finalFilename;
 }
 
 module.exports.registerAttachmentsHandlers = () => {
