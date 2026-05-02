@@ -22,7 +22,8 @@ export default function TemplateSelectorModal({
       setLoading(true);
       setError(null);
       try {
-        const list = await window.electronAPI.templates.list();
+        // Use listEnabled to only show enabled templates for note creation
+        const list = await window.electronAPI.templates.listEnabled();
         setTemplates(list || []);
       } catch (err) {
         console.error('Error loading templates:', err);

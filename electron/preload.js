@@ -329,7 +329,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ── Note Templates ─────────────────────────────────────────────────────────
   templates: {
     // Template CRUD
-    list: () => ipcRenderer.invoke('templates:list'),
+    list: () => ipcRenderer.invoke('templates:list'), // All templates (for settings)
+    listEnabled: () => ipcRenderer.invoke('templates:listEnabled'), // Only enabled (for note creation)
     getBySlug: (slug) => ipcRenderer.invoke('templates:getBySlug', slug),
     create: (data) => ipcRenderer.invoke('templates:create', data),
     update: (slug, data) => ipcRenderer.invoke('templates:update', slug, data),

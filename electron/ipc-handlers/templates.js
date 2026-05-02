@@ -31,9 +31,14 @@ function validateSectionsJson(sections) {
 function registerTemplatesHandlers() {
   // ── Template CRUD ─────────────────────────────────────────────────────────
 
-  // List all enabled templates (builtin + custom)
+  // List ALL templates (for settings UI - includes disabled)
   ipcMain.handle('templates:list', () => {
     return dbService.listTemplates();
+  });
+
+  // List only enabled templates (for note creation selector)
+  ipcMain.handle('templates:listEnabled', () => {
+    return dbService.listEnabledTemplates();
   });
 
   // Get template by slug

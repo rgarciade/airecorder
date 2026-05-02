@@ -30,7 +30,7 @@ export default function TemplatesSettings() {
   }, [loadTemplates]);
 
   const handleToggleEnabled = async (template) => {
-    const newEnabled = template.enabled !== 1;
+    const newEnabled = template.is_enabled !== 1;
     setTogglingId(template.slug);
     try {
       await window.electronAPI.templates.toggleEnabled(template.slug, newEnabled);
@@ -213,7 +213,7 @@ function TemplateCard({
   onDuplicate,
   onDelete,
 }) {
-  const enabled = template.enabled === 1;
+  const enabled = template.is_enabled === 1;
 
   return (
     <div className={`${styles.templateCard} ${!enabled ? styles.templateCardDisabled : ''}`}>
@@ -232,15 +232,18 @@ function TemplateCard({
             Guardado
           </span>
         )}
-        <label className={styles.toggle}>
-          <input
-            type="checkbox"
-            checked={enabled}
-            onChange={onToggle}
-            disabled={isToggling}
-          />
-          <span className={styles.toggleSlider} />
-        </label>
+        {/* Toggle: only for custom templates, not built-in */}
+        {!isBuiltin && (
+          <label className={styles.toggle}>
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={onToggle}
+              disabled={isToggling}
+            />
+            <span className={styles.toggleSlider} />
+          </label>
+        )}
         {isBuiltin ? (
           <button
             type="button"

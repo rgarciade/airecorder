@@ -40,7 +40,14 @@ module.exports = {
 
   // ── Template Queries ───────────────────────────────────────────────────────
 
+  // Returns ALL templates (for settings UI)
   LIST_TEMPLATES: `
+    SELECT * FROM note_templates
+    ORDER BY is_builtin DESC, name ASC;
+  `,
+
+  // Returns only enabled templates (for note creation selector)
+  LIST_ENABLED_TEMPLATES: `
     SELECT * FROM note_templates
     WHERE is_enabled = 1
     ORDER BY is_builtin DESC, name ASC;
