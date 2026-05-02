@@ -2114,13 +2114,29 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         onCreateCustom={handleCreateCustomTemplate}
       />
 
-      {/* Generating Note Indicator */}
+      {/* Generating Note Indicator - Non-blocking */}
       {isGeneratingNote && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent} style={{ textAlign: 'center' }}>
+        <div 
+          className={styles.modalOverlay} 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsGeneratingNote(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setIsGeneratingNote(false);
+          }}
+          tabIndex={-1}
+        >
+          <div className={styles.modalContent} style={{ textAlign: 'center', minWidth: 300 }}>
             <div className={styles.spinning} style={{ margin: '0 auto 16px' }}></div>
             <p className={styles.modalTitle}>Generando nota...</p>
             <p className={styles.modalText}>Esto puede tomar unos segundos.</p>
+            <button 
+              className={styles.cancelButton} 
+              onClick={() => setIsGeneratingNote(false)}
+              style={{ marginTop: 16 }}
+            >
+              Cancelar
+            </button>
           </div>
         </div>
       )}
