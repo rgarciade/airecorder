@@ -102,3 +102,19 @@ export function estimateAttachmentTokens(content) {
   }
   return 0;
 }
+
+/**
+ * Guarda texto como archivo .txt en la carpeta de adjuntos de la grabación.
+ * @param {number|string} recordingId
+ * @param {string} text - Contenido del archivo
+ * @param {string} filename - Nombre base del archivo (sin extensión)
+ * @returns {Promise<{filename, type, size, mimeType, createdAt}|null>}
+ */
+export async function savePastedText(recordingId, text, filename) {
+  const result = await window.electronAPI.savePastedText(recordingId, text, filename);
+  if (!result.success) {
+    console.error('Error guardando texto pegado:', result.error);
+    return null;
+  }
+  return result.attachment;
+}

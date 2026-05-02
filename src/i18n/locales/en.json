@@ -70,11 +70,22 @@
     },
     "importConversation": {
       "title": "Import external conversation",
-      "largeFileWarning": "The file exceeds 50KB. The AI may not be able to process it fully. Do you want to continue?",
-      "noSegments": "No segments could be extracted from the conversation. Make sure the file contains a valid conversation.",
-      "noProvider": "No AI provider is configured. Please set one up in Settings before importing.",
+      "largeFileWarning": "The file exceeds 50KB. AI may not be able to process it completely. Continue?",
+      "noSegments": "Could not extract segments from the conversation. Verify the file contains a valid conversation.",
+      "noProvider": "No AI provider configured. Set one up in Settings before importing.",
       "processing": "Normalizing conversation with AI...",
       "success": "Conversation imported successfully"
+    },
+    "pasteConversation": {
+      "title": "Paste conversation",
+      "description": "Paste the text of a conversation. AI will identify speakers, timestamps, and structure.",
+      "titleLabel": "Title (optional)",
+      "titlePlaceholder": "e.g. Planning meeting",
+      "contentLabel": "Conversation text",
+      "placeholder": "Paste the conversation text here...",
+      "cancel": "Cancel",
+      "submit": "Import with AI",
+      "processing": "Processing..."
     }
   },
   "recordButton": {
@@ -498,7 +509,9 @@
     "teams": "Teams",
     "audio": "Audio",
     "importConversation": "Import with AI",
-    "importConversationDescription": "Upload text, srt, or vtt files. AI will normalize the format automatically.",
+    "importConversationDescription": "Upload files or paste text. AI will normalize the format automatically.",
+    "uploadFile": "Upload file",
+    "pasteConversation": "Paste conversation",
     "importTeamsDescription": "Import Microsoft Teams transcriptions (.docx).",
     "importAudioDescription": "Upload audio files (mp3, wav, ogg...) to transcribe."
   },
