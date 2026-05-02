@@ -161,7 +161,7 @@ module.exports.registerIntegrationsHandlers = () => {
     try {
       const sanitized = (name) => name
         .replace(/[^a-zA-Z0-9_\-áéíóúüñÁÉÍÓÚÜÑ]/g, '_')
-        .slice(0, 60);
+        .slice(0, 200); // límite seguro para evitar rutas >255 en ext4
 
       const folderName = customFolderName
         ? `${sanitized(customFolderName)}_${Date.now()}`
