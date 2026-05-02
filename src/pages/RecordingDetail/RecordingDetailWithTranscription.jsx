@@ -824,13 +824,16 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
   };
 
-  // Handler para pegar texto como archivo .txt
+  // Función pura: solo guarda el texto pegado y retorna el attachment
   const handlePasteAttachment = async (text, filename) => {
-    const attachment = await savePastedText(recording.id, text, filename);
+    return await savePastedText(recording.id, text, filename);
+  };
+
+  // Wrapper que coordina las actualizaciones de estado tras pegar un archivo
+  const handlePasteAttachmentComplete = async (text, filename) => {
+    const attachment = await handlePasteAttachment(text, filename);
     if (attachment) {
-      // Añadir a la lista de adjuntos de la grabación
       setRecordAttachments(prev => [...prev, attachment]);
-      // Auto-seleccionar el archivo
       handleActiveAttachmentsChange([...activeAttachments, attachment]);
       return attachment;
     }
@@ -1733,7 +1736,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
               // Adjuntos
               recordAttachments,
               onPickNewAttachment: handlePickNewAttachment,
-              onPasteAttachment: handlePasteAttachment,
+              onPasteAttachment: handlePasteAttachmentComplete,
               activeAttachments,
               onActiveAttachmentsChange: handleActiveAttachmentsChange,
             }}
