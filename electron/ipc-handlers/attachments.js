@@ -27,7 +27,7 @@ async function getAttachmentsDir(recordingId) {
 
 // Función auxiliar para sanitizar nombre de archivo y resolver colisiones
 function resolveFilename(baseFilename, attachmentsDir) {
-  // 1. Sanitizar: eliminar caracteres inválidos para文件名 en sistemas de archivos
+  // 1. Sanitizar: eliminar caracteres inválidos para nombres de archivo en sistemas de archivos
   let sanitized = baseFilename.replace(/[<>:"/\\|?*]/g, '').trim();
   // 2. Si vacío, usar default
   if (!sanitized) {
