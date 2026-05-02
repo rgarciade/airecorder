@@ -755,3 +755,175 @@
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
+
+/* ── Modal de Pegar Conversación ── */
+.pasteModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.pasteModal {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px var(--color-shadow-md);
+}
+
+.pasteModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border-secondary);
+}
+
+.pasteModalHeader h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.pasteModalClose {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.pasteModalClose:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+}
+
+.pasteModalBody {
+  padding: 20px;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pasteModalField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pasteModalField label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.pasteModalInput {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.pasteModalInput:focus {
+  border-color: var(--color-primary);
+}
+
+.pasteModalInput::placeholder {
+  color: var(--color-text-muted);
+}
+
+.pasteModalTextarea {
+  padding: 12px;
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+  outline: none;
+  transition: border-color 0.2s;
+  resize: vertical;
+  min-height: 200px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.pasteModalTextarea:focus {
+  border-color: var(--color-primary);
+}
+
+.pasteModalTextarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.pasteModalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--color-border-secondary);
+}
+
+.pasteModalCancel {
+  padding: 10px 20px;
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pasteModalCancel:hover:not(:disabled) {
+  background: var(--color-bg-tertiary);
+}
+
+.pasteModalCancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pasteModalSave {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: white;
+  background: var(--color-primary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pasteModalSave:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.pasteModalSave:disabled {
+  background: var(--color-border-secondary);
+  cursor: not-allowed;
+}

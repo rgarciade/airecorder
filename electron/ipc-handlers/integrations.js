@@ -157,12 +157,15 @@ module.exports.registerIntegrationsHandlers = () => {
   });
 
   // Guardar conversación importada como nueva grabación
-  ipcMain.handle('save-conversation-import', async (event, { fileName, raw, ext, segments }) => {
+  ipcMain.handle('save-conversation-import', async (event, { fileName, raw, ext, segments, customFolderName }) => {
     try {
-      const baseName = path.basename(fileName, path.extname(fileName))
+      const sanitized = (name) => name
         .replace(/[^a-zA-Z0-9_\-áéíóúüñÁÉÍÓÚÜÑ]/g, '_')
         .slice(0, 60);
-      const folderName = `conv_import_${baseName}_${Date.now()}`;
+
+      const folderName = customFolderName
+        ? `${sanitized(customFolderName)}_${Date.now()}`
+        : `conv_import_${sanitized(path.basename(fileName, path.extname(fileName)))}_${Date.now()}`;
 
       const recordingsDir = await getRecordingsPath();
       const analysisDir = path.join(recordingsDir, folderName, 'analysis');

@@ -25,7 +25,66 @@ async function getAttachmentsDir(recordingId) {
   return path.join(recordingsBase, folderName, 'attachments');
 }
 
+// Función auxiliar para sanitizar nombre de archivo y resolver colisiones
+function resolveFilename(baseFilename, attachmentsDir) {
+  // 1. Sanitizar: eliminar caracteres inválidos para文件名 en sistemas de archivos
+  let sanitized = baseFilename.replace(/[<>:"/\\|?*]/g, '').trim();
+  // 2. Si vacío, usar default
+  if (!sanitized) {
+    sanitized = 'Conversacion pegada';
+  }
+  // 3. Forzar extensión .txt
+  const nameWithoutExt = sanitized.replace(/\.txt$/i, '');
+  const finalName = `${nameWithoutExt}.txt`;
+  // 4. Resolver colisiones
+  let finalFilename = finalName;
+  let destPath = path.join(attachmentsDir, finalFilename);
+  let counter = 1;
+  while (fs.existsSync(destPath)) {
+    finalFilename = `${nameWithoutExt}_${counter}.txt`;
+    destPath = path.join(attachmentsDir, finalFilename);
+    counter++;
+  }
+  return finalFilename;
+}
+
 module.exports.registerAttachmentsHandlers = () => {
+
+  // Guardar texto pegado como archivo .txt
+  ipcMain.handle('save-pasted-text', async (_event, recordingId, text, filename) => {
+    try {
+      if (!text || typeof text !== 'string') {
+        return { success: false, error: 'El texto está vacío o no es válido' };
+      }
+
+      const attachmentsDir = await getAttachmentsDir(recordingId);
+      if (!fs.existsSync(attachmentsDir)) {
+        await fs.promises.mkdir(attachmentsDir, { recursive: true });
+      }
+
+      // Resolver nombre de archivo (sanitizar + extensión + colisiones)
+      const finalFilename = resolveFilename(filename || '', attachmentsDir);
+      const filePath = path.join(attachmentsDir, finalFilename);
+
+      // Escribir el archivo
+      await fs.promises.writeFile(filePath, text, 'utf8');
+
+      const stats = await fs.promises.stat(filePath);
+
+      const attachment = {
+        filename: finalFilename,
+        type: getAttachmentType(finalFilename),
+        size: stats.size,
+        mimeType: getMimeType(finalFilename),
+        createdAt: stats.birthtime.toISOString()
+      };
+
+      return { success: true, attachment };
+    } catch (error) {
+      console.error('Error guardando texto pegado:', error);
+      return { success: false, error: error.message };
+    }
+  });
 
   // Obtener lista de adjuntos de una grabación
   ipcMain.handle('get-attachments', async (_event, recordingId) => {

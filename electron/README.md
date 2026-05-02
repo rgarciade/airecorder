@@ -289,6 +289,7 @@ Gestiona archivos adjuntos (imágenes y documentos) asociados a cada grabación.
 | `delete-attachment(recordingId, filename)` | Elimina un adjunto del disco |
 | `read-attachment-content(recordingId, filename)` | Lee el contenido: `{type: 'image'|'text', data, mimeType}` |
 | `get-attachment-thumbnail(recordingId, filename)` | Retorna `data:image/...;base64,...` para preview de imágenes |
+| `save-pasted-text(recordingId, text, filename)` | Guarda texto como archivo `.txt` en `attachments/`. Devuelve `{attachment: {...}}` |
 
 ### Métodos expuestos en `preload.js`
 | Método | Descripción |
@@ -298,6 +299,14 @@ Gestiona archivos adjuntos (imágenes y documentos) asociados a cada grabación.
 | `deleteAttachment(recordingId, filename)` | Eliminar adjunto |
 | `readAttachmentContent(recordingId, filename)` | Leer contenido (base64 o texto) |
 | `getAttachmentThumbnail(recordingId, filename)` | Data URL para thumbnail de imagen |
+| `savePastedText(recordingId, text, filename)` | Guardar texto pegado como archivo `.txt` |
+
+### Estrategia de naming y colisiones
+El handler `save-pasted-text` implementa las siguientes reglas:
+1. **Sanitización:** Elimina caracteres inválidos (`<>:"/\|?*`) del nombre proporcionado.
+2. **Default:** Si el nombre está vacío, usa `Conversacion pegada`.
+3. **Extensión:** Fuerza automáticamente la extensión `.txt`.
+4. **Colisiones:** Si el archivo ya existe, añade sufijo numérico: `nombre_1.txt`, `nombre_2.txt`, etc.
 
 ### Integración con IA
 - **Imágenes:** Se convierten a base64 y se pasan como `options.images` en `callProvider`/`callProviderStreaming`. Gemini y Ollama (modelos de visión como LLaVA) los procesan como partes multimodales.
