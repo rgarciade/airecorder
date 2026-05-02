@@ -408,12 +408,25 @@ class DbService {
   deleteProjectIntegration(...args) { return this.integrations?.deleteProjectIntegration(...args) ?? { success: false }; }
 
   // ── Note Templates ──────────────────────────────────────────────────────────
+
+  // Returns ALL templates (for settings UI)
   listTemplates(...args) {
     if (!this.db) return [];
     try {
       return this.db.prepare(templateQueries.LIST_TEMPLATES).all();
     } catch (e) {
       console.error('[DB] Error listTemplates:', e);
+      return [];
+    }
+  }
+
+  // Returns only enabled templates (for note creation selector)
+  listEnabledTemplates(...args) {
+    if (!this.db) return [];
+    try {
+      return this.db.prepare(templateQueries.LIST_ENABLED_TEMPLATES).all();
+    } catch (e) {
+      console.error('[DB] Error listEnabledTemplates:', e);
       return [];
     }
   }

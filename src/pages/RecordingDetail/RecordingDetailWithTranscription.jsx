@@ -80,7 +80,7 @@ function parseTimestampToSeconds(ts) {
   return 0;
 }
 
-export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject }) {
+export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject, onNavigateToSettings }) {
   const persistentRecordingId = recording?.dbId ?? recording?.id ?? null;
 
   // ── Redux: mapa de hablantes con ediciones del usuario ──
@@ -1348,9 +1348,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   };
 
   const handleCreateCustomTemplate = () => {
-    // TODO: Implement custom template creation flow
     setShowTemplateModal(false);
-    alert('Custom template creation coming soon!');
+    if (onNavigateToSettings) {
+      onNavigateToSettings('templates');
+    }
   };
 
   const handleGenerateFromTemplate = async (templateSlug) => {
