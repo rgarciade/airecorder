@@ -5,6 +5,7 @@ const { spawn } = require('child_process');
 const dbService = require('../database/dbService');
 const speakerManager = require('../services/speakerManager');
 const { getRecordingsPath } = require('../utils/paths');
+const { sanitizeFolderName } = require('../utils/fileUtils');
 const { buildTranscriptionJson, buildTranscriptionTxt } = require('../integrations/chatSyncUtils');
 
 module.exports.registerIntegrationsHandlers = () => {
@@ -157,12 +158,11 @@ module.exports.registerIntegrationsHandlers = () => {
   });
 
   // Guardar conversación importada como nueva grabación
-  ipcMain.handle('save-conversation-import', async (event, { fileName, raw, ext, segments }) => {
+  ipcMain.handle('save-conversation-import', async (event, { fileName, raw, ext, segments, customFolderName }) => {
     try {
-      const baseName = path.basename(fileName, path.extname(fileName))
-        .replace(/[^a-zA-Z0-9_\-áéíóúüñÁÉÍÓÚÜÑ]/g, '_')
-        .slice(0, 60);
-      const folderName = `conv_import_${baseName}_${Date.now()}`;
+      const folderName = customFolderName
+        ? `${sanitizeFolderName(customFolderName)}_${Date.now()}`
+        : `conv_import_${sanitizeFolderName(path.basename(fileName, path.extname(fileName)))}_${Date.now()}`;
 
       const recordingsDir = await getRecordingsPath();
       const analysisDir = path.join(recordingsDir, folderName, 'analysis');

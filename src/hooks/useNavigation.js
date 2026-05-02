@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-const VALID_SETTINGS_TABS = ['agents', 'general', 'experts'];
+const VALID_SETTINGS_TABS = ['agents', 'general', 'experts', 'templates'];
 const DEFAULT_SETTINGS_TAB = 'agents';
 
 /**

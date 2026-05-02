@@ -203,6 +203,7 @@ export default function App() {
             recording={selectedRecording} 
             onBack={handleBack}
             onNavigateToProject={handleNavigateToProject}
+            onNavigateToSettings={(tab) => handleOpenSettings(tab)}
           />
         )}
         {currentView === 'queue' && (

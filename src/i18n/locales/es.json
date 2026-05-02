@@ -92,6 +92,17 @@
       "noProvider": "No hay proveedor de IA configurado. Configura uno en Ajustes antes de importar.",
       "processing": "Normalizando conversación con IA...",
       "success": "Conversación importada correctamente"
+    },
+    "pasteConversation": {
+      "title": "Pegar conversación",
+      "description": "Pega el texto de una conversación. La IA identificará hablantes, timestamps y estructura.",
+      "titleLabel": "Título (opcional)",
+      "titlePlaceholder": "Ej: Reunión de planificación",
+      "contentLabel": "Texto de la conversación",
+      "placeholder": "Pega aquí el texto de la conversación...",
+      "cancel": "Cancelar",
+      "submit": "Importar con IA",
+      "processing": "Procesando..."
     }
   },
   "recordButton": {
@@ -515,7 +526,9 @@
     "teams": "Teams",
     "audio": "Audio",
     "importConversation": "Importar con IA",
-    "importConversationDescription": "Sube archivos de texto, srt o vtt. La IA normalizará el formato automáticamente.",
+    "importConversationDescription": "Sube archivos o pega texto. La IA normalizará el formato automáticamente.",
+    "uploadFile": "Subir archivo",
+    "pasteConversation": "Pegar conversación",
     "importTeamsDescription": "Importa transcripciones de Microsoft Teams (.docx).",
     "importAudioDescription": "Sube archivos de audio (mp3, wav, ogg...) para transcribir."
   },
