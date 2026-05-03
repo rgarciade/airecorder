@@ -1115,6 +1115,243 @@
     }
 
     /* =============================================
+       FEATURES — Expandible
+    ============================================= */
+    .features-more {
+      text-align: center;
+      margin-top: 32px;
+    }
+
+    .features-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--color-white);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-pill);
+      padding: 12px 24px;
+      font-family: var(--font-family);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: var(--transition);
+      white-space: nowrap;
+    }
+
+    .features-toggle:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+      box-shadow: 0 2px 8px var(--color-primary-glow);
+    }
+
+    .features-toggle .chevron {
+      width: 16px;
+      height: 16px;
+      transition: transform 0.3s ease;
+    }
+
+    .features-toggle.open .chevron {
+      transform: rotate(180deg);
+    }
+
+    .features-more-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-top: 0;
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.5s ease, opacity 0.4s ease, margin-top 0.4s ease;
+    }
+
+    .features-more-grid.open {
+      max-height: 2000px;
+      opacity: 1;
+      margin-top: 24px;
+    }
+
+    /* =============================================
+       CTA BAND (intermedia)
+    ============================================= */
+    .cta-band {
+      background: linear-gradient(135deg, var(--color-primary) 0%, #2563EB 100%);
+      padding: 56px 0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-band::before {
+      content: '';
+      position: absolute;
+      top: -30%;
+      right: -10%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .cta-band-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .cta-band-title {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--color-white);
+      margin-bottom: 12px;
+      line-height: 1.3;
+    }
+
+    .cta-band-subtitle {
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.75);
+      margin-bottom: 28px;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .cta-band .btn {
+      background: var(--color-white);
+      color: var(--color-primary);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .cta-band .btn:hover {
+      background: var(--color-bg);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+      color: var(--color-primary);
+    }
+
+    /* =============================================
+       FAQ
+    ============================================= */
+    .faq {
+      background: var(--color-bg);
+    }
+
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .faq-item {
+      background: var(--color-white);
+      border: 1px solid var(--color-card-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      transition: var(--transition);
+    }
+
+    .faq-question {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 20px;
+      background: none;
+      font-family: var(--font-family);
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--color-text);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .faq-question .chevron {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      transition: transform 0.3s ease;
+      color: var(--color-text-muted);
+    }
+
+    .faq-item.open .faq-question .chevron {
+      transform: rotate(180deg);
+    }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease, padding 0.35s ease;
+    }
+
+    .faq-item.open .faq-answer {
+      max-height: 300px;
+    }
+
+    .faq-answer-inner {
+      padding: 0 20px 20px;
+      font-size: 0.9rem;
+      color: var(--color-text-secondary);
+      line-height: 1.7;
+    }
+
+    /* =============================================
+       FLOATING CTA (móvil / tablet)
+    ============================================= */
+    .floating-cta {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 900;
+      background: var(--color-primary);
+      color: var(--color-white);
+      font-family: var(--font-family);
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 14px 24px;
+      border-radius: var(--radius-pill);
+      box-shadow: 0 8px 30px rgba(57, 148, 239, 0.5);
+      cursor: pointer;
+      transition: var(--transition);
+      white-space: nowrap;
+      border: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .floating-cta:hover {
+      background: var(--color-primary-hover);
+      transform: translateX(-50%) translateY(-2px);
+      box-shadow: 0 12px 35px rgba(57, 148, 239, 0.55);
+    }
+
+    .floating-cta svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    @media (min-width: 1024px) {
+      .floating-cta { display: none !important; }
+    }
+
+    @media (max-width: 1023px) {
+      .features-more-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 767px) {
+      .features-more-grid { grid-template-columns: 1fr; }
+      .faq-question { padding: 16px; font-size: 0.9rem; }
+      .faq-answer-inner { padding: 0 16px 16px; }
+      .cta-band { padding: 40px 0; }
+      .cta-band-title { font-size: 1.35rem; }
+      .floating-cta { padding: 12px 20px; font-size: 0.85rem; bottom: 16px; }
+    }
+
+    /* =============================================
        MODAL DESCARGA
     ============================================= */
     .modal-overlay {
@@ -1499,6 +1736,7 @@
         </p>
       </div>
 
+      <!-- 8 funciones principales -->
       <div class="features-grid">
 
         <!-- Grabación dual -->
@@ -1516,7 +1754,7 @@
         </div>
 
         <!-- Transcripción -->
-        <div class="feature-card animate-on-scroll delay-2">
+        <div class="feature-card animate-on-scroll delay-1">
           <div class="feature-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -1531,7 +1769,7 @@
         </div>
 
         <!-- Identificación de Hablantes -->
-        <div class="feature-card animate-on-scroll delay-3">
+        <div class="feature-card animate-on-scroll delay-2">
           <div class="feature-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -1545,7 +1783,7 @@
         </div>
 
         <!-- Análisis IA -->
-        <div class="feature-card animate-on-scroll delay-4">
+        <div class="feature-card animate-on-scroll delay-2">
           <div class="feature-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"/>
@@ -1559,7 +1797,7 @@
         </div>
 
         <!-- Chat interactivo -->
-        <div class="feature-card animate-on-scroll delay-4">
+        <div class="feature-card animate-on-scroll delay-3">
           <div class="feature-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -1567,100 +1805,6 @@
           </div>
           <h3 class="feature-title" data-i18n="feat4Title">Chat interactivo</h3>
           <p class="feature-desc" data-i18n="feat4Desc">Pregunta a la IA directamente sobre el contenido de cualquier reunión. Extrae información, fechas, compromisos o cualquier detalle.</p>
-        </div>
-
-        <!-- Exportación -->
-        <div class="feature-card animate-on-scroll delay-5">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-          </div>
-          <h3 class="feature-title" data-i18n="feat5Title">Exportación de documentos</h3>
-          <p class="feature-desc" data-i18n="feat5Desc">Exporta transcripciones y resúmenes a DOCX, PDF o Markdown con un clic. Comparte actas de reunión sin esfuerzo.</p>
-        </div>
-
-        <!-- Proyectos -->
-        <div class="feature-card animate-on-scroll delay-6">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-            </svg>
-          </div>
-          <h3 class="feature-title" data-i18n="feat6Title">Gestión de proyectos</h3>
-          <p class="feature-desc" data-i18n="feat6Desc">Organiza tus grabaciones en proyectos. Dashboard con estadísticas de horas, reuniones y estado de transcripciones.</p>
-        </div>
-
-        <!-- Múltiples proveedores -->
-        <div class="feature-card animate-on-scroll delay-7">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
-              <path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/>
-            </svg>
-          </div>
-          <h3 class="feature-title" data-i18n="feat7Title">Múltiples modelos de IA</h3>
-          <p class="feature-desc" data-i18n="feat7Desc">Compatible con Gemini, DeepSeek, Kimi en la nube, y con Ollama y LM Studio para análisis completamente local.</p>
-        </div>
-
-        <!-- Offline -->
-        <div class="feature-card animate-on-scroll delay-8">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="1" y1="1" x2="23" y2="23"/>
-              <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
-              <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
-              <path d="M10.71 5.05A16 16 0 0 1 22.56 9"/>
-              <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
-              <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
-              <line x1="12" y1="20" x2="12.01" y2="20"/>
-            </svg>
-          </div>
-          <h3 class="feature-title" data-i18n="feat8Title">Funciona sin conexión</h3>
-          <p class="feature-desc" data-i18n="feat8Desc">Con Ollama o LM Studio, toda la cadena, grabación, transcripción y análisis, funciona sin internet ni suscripciones.</p>
-        </div>
-
-        <!-- Importación de transcripciones Teams/Zoom/Meet -->
-        <div class="feature-card animate-on-scroll delay-1">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="12" y1="18" x2="12" y2="12"/>
-              <line x1="9" y1="15" x2="15" y2="15"/>
-            </svg>
-          </div>
-          <h3 class="feature-title" data-i18n="feat9Title">Importa transcripciones de Teams</h3>
-          <p class="feature-desc" data-i18n="feat9Desc">¿Tu reunión fue grabada en Microsoft Teams? Importa el archivo de transcripción directamente y analízalo con IA como si lo hubieras grabado tú mismo.</p>
-        </div>
-
-        <!-- Importar chat/conversación analizada por IA -->
-        <div class="feature-card animate-on-scroll delay-2">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              <line x1="12" y1="9" x2="12" y2="13"/>
-              <line x1="10" y1="11" x2="14" y2="11"/>
-            </svg>
-          </div>
-          <h3 class="feature-title" data-i18n="featChatImportTitle">Importa conversaciones de chat con IA</h3>
-          <p class="feature-desc" data-i18n="featChatImportDesc">Importa archivos de conversaciones o chats analizados por IA y tratalos como cualquier grabación: resumen, tareas, búsqueda semántica y chat interactivo sobre el contenido.</p>
-        </div>
-
-        <!-- Subida de audio externo -->
-        <div class="feature-card animate-on-scroll delay-3">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="16 16 12 12 8 16"/>
-              <line x1="12" y1="12" x2="12" y2="21"/>
-              <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
-            </svg>
-          </div>
-          <h3 class="feature-title" data-i18n="feat10Title">Sube audio de dispositivos externos</h3>
-          <p class="feature-desc" data-i18n="feat10Desc">Grabaste con una grabadora, móvil o cualquier otro dispositivo. Sube el archivo de audio y AIRecorder lo transcribe y analiza automáticamente.</p>
         </div>
 
         <!-- Tareas con IA y Kanban -->
@@ -1690,43 +1834,162 @@
           <p class="feature-desc" data-i18n="feat12Desc">Las transcripciones se indexan con embeddings vectoriales en LanceDB. El chat usa RAG para encontrar exactamente el fragmento relevante, incluso en proyectos con horas de grabaciones.</p>
         </div>
 
-        <!-- Adjuntos como contexto -->
-        <div class="feature-card animate-on-scroll delay-5">
+        <!-- Offline -->
+        <div class="feature-card animate-on-scroll delay-4">
           <div class="feature-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+              <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+              <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+              <path d="M10.71 5.05A16 16 0 0 1 22.56 9"/>
+              <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+              <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+              <line x1="12" y1="20" x2="12.01" y2="20"/>
             </svg>
           </div>
-          <h3 class="feature-title" data-i18n="feat13Title">Adjuntos como contexto para la IA</h3>
-          <p class="feature-desc" data-i18n="feat13Desc">Adjunta imágenes, PDFs, documentos o Excel a cualquier grabación o proyecto. La IA los incorpora como contexto en el chat, con soporte de visión para modelos compatibles.</p>
+          <h3 class="feature-title" data-i18n="feat8Title">Funciona sin conexión</h3>
+          <p class="feature-desc" data-i18n="feat8Desc">Con Ollama o LM Studio, toda la cadena, grabación, transcripción y análisis, funciona sin internet ni suscripciones.</p>
         </div>
 
-        <!-- Reproductor sincronizado -->
-        <div class="feature-card animate-on-scroll delay-6">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="5 3 19 12 5 21 5 3"/>
-              <line x1="19" y1="3" x2="19" y2="21"/>
-            </svg>
+      </div>
+
+      <!-- Expandible: +9 funciones -->
+      <div class="features-more animate-on-scroll delay-5">
+        <button class="features-toggle" id="featuresToggle" onclick="toggleFeatures()" aria-expanded="false">
+          <span data-i18n="featShowAll">Ver todas las funciones</span>
+          <span class="count">(+9)</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="features-more-grid" id="featuresMoreGrid">
+
+          <!-- Exportación -->
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </div>
+            <h3 class="feature-title" data-i18n="feat5Title">Exportación de documentos</h3>
+            <p class="feature-desc" data-i18n="feat5Desc">Exporta transcripciones y resúmenes a DOCX, PDF o Markdown con un clic. Comparte actas de reunión sin esfuerzo.</p>
           </div>
-          <h3 class="feature-title" data-i18n="feat14Title">Reproductor sincronizado con la transcripción</h3>
-          <p class="feature-desc" data-i18n="feat14Desc">Haz clic en cualquier frase de la transcripción para saltar al instante exacto del audio. Reproduce micrófono y sistema como pistas independientes con control de velocidad.</p>
-        </div>
 
-        <!-- Prompts de Experto -->
-        <div class="feature-card animate-on-scroll delay-7">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-              <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-              <line x1="12" y1="12" x2="12" y2="16"/>
-              <line x1="10" y1="14" x2="14" y2="14"/>
-            </svg>
+          <!-- Proyectos -->
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+            </div>
+            <h3 class="feature-title" data-i18n="feat6Title">Gestión de proyectos</h3>
+            <p class="feature-desc" data-i18n="feat6Desc">Organiza tus grabaciones en proyectos. Dashboard con estadísticas de horas, reuniones y estado de transcripciones.</p>
           </div>
-          <h3 class="feature-title" data-i18n="featExpertsTitle">Prompts de Experto</h3>
-          <p class="feature-desc" data-i18n="featExpertsDesc">Activa perfiles especializados de Desarrollador de Software o Psicólogo para que la IA adapte su análisis al contexto exacto de tu reunión. Incluye un asistente general para cualquier tipo de conversación.</p>
-        </div>
 
+          <!-- Múltiples proveedores -->
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/>
+              </svg>
+            </div>
+            <h3 class="feature-title" data-i18n="feat7Title">Múltiples modelos de IA</h3>
+            <p class="feature-desc" data-i18n="feat7Desc">Compatible con Gemini, DeepSeek, Kimi en la nube, y con Ollama y LM Studio para análisis completamente local.</p>
+          </div>
+
+          <!-- Importa transcripciones Teams -->
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <line x1="9" y1="15" x2="15" y2="15"/>
+              </svg>
+            </div>
+            <h3 class="feature-title" data-i18n="feat9Title">Importa transcripciones de Teams</h3>
+            <p class="feature-desc" data-i18n="feat9Desc">¿Tu reunión fue grabada en Microsoft Teams? Importa el archivo de transcripción directamente y analízalo con IA como si lo hubieras grabado tú mismo.</p>
+          </div>
+
+          <!-- Reproductor sincronizado -->
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+                <line x1="19" y1="3" x2="19" y2="21"/>
+              </svg>
+            </div>
+            <h3 class="feature-title" data-i18n="feat14Title">Reproductor sincronizado con la transcripción</h3>
+            <p class="feature-desc" data-i18n="feat14Desc">Haz clic en cualquier frase de la transcripción para saltar al instante exacto del audio. Reproduce micrófono y sistema como pistas independientes con control de velocidad.</p>
+          </div>
+
+          <!-- Sube audio externo -->
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 16 12 12 8 16"/>
+                <line x1="12" y1="12" x2="12" y2="21"/>
+                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+              </svg>
+            </div>
+            <h3 class="feature-title" data-i18n="feat10Title">Sube audio de dispositivos externos</h3>
+            <p class="feature-desc" data-i18n="feat10Desc">Grabaste con una grabadora, móvil o cualquier otro dispositivo. Sube el archivo de audio y AIRecorder lo transcribe y analiza automáticamente.</p>
+          </div>
+
+          <!-- Importar chat IA -->
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="10" y1="11" x2="14" y2="11"/>
+              </svg>
+            </div>
+            <h3 class="feature-title" data-i18n="featChatImportTitle">Importa conversaciones de chat con IA</h3>
+            <p class="feature-desc" data-i18n="featChatImportDesc">Importa archivos de conversaciones o chats analizados por IA y tratalos como cualquier grabación: resumen, tareas, búsqueda semántica y chat interactivo sobre el contenido.</p>
+          </div>
+
+          <!-- Adjuntos como contexto -->
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+              </svg>
+            </div>
+            <h3 class="feature-title" data-i18n="feat13Title">Adjuntos como contexto para la IA</h3>
+            <p class="feature-desc" data-i18n="feat13Desc">Adjunta imágenes, PDFs, documentos o Excel a cualquier grabación o proyecto. La IA los incorpora como contexto en el chat, con soporte de visión para modelos compatibles.</p>
+          </div>
+
+          <!-- Prompts de Experto -->
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                <line x1="12" y1="12" x2="12" y2="16"/>
+                <line x1="10" y1="14" x2="14" y2="14"/>
+              </svg>
+            </div>
+            <h3 class="feature-title" data-i18n="featExpertsTitle">Prompts de Experto</h3>
+            <p class="feature-desc" data-i18n="featExpertsDesc">Activa perfiles especializados de Desarrollador de Software o Psicólogo para que la IA adapte su análisis al contexto exacto de tu reunión. Incluye un asistente general para cualquier tipo de conversación.</p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================
+       CTA INTERMEDIA
+  =========================================== -->
+  <section class="cta-band">
+    <div class="container">
+      <div class="cta-band-inner animate-on-scroll">
+        <h2 class="cta-band-title" data-i18n="ctaMidTitle">¿Listo para tomar el control de tus reuniones?</h2>
+        <p class="cta-band-subtitle" data-i18n="ctaMidSubtitle">Descarga AIRecorder gratis. Sin registros, sin servidores, sin letra pequeña.</p>
+        <a href="#" class="btn" onclick="openDownloadModal(event)" data-i18n="ctaMidBtn">Descargar ahora</a>
       </div>
     </div>
   </section>
@@ -1890,6 +2153,63 @@
   </section>
 
   <!-- ==========================================
+       FAQ
+  =========================================== -->
+  <section class="section faq" id="faq">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label animate-on-scroll">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span data-i18n="faqLabel">FAQ</span>
+        </div>
+        <h2 class="section-title animate-on-scroll delay-1" data-i18n="faqTitle">Preguntas frecuentes</h2>
+      </div>
+
+      <div class="faq-list animate-on-scroll delay-2">
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+            <span data-i18n="faq1Q">¿Por qué AIRecorder frente a Otter o Fireflies?</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq1A">AIRecorder es la única opción 100% local. Otter y Fireflies suben tu audio a sus servidores para procesarlo. Con AIRecorder, tus datos nunca salen de tu equipo. Además, es gratuito y open source.</div></div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+            <span data-i18n="faq2Q">¿Necesito conexión a internet?</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq2A">No. Con Ollama o LM Studio puedes grabar, transcribir y analizar completamente offline. Si usas proveedores cloud como Gemini, solo necesitas internet para la parte de análisis; la transcripción con Whisper siempre es local.</div></div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+            <span data-i18n="faq3Q">¿Qué necesito para usarlo?</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq3A">Un Mac con Apple Silicon (M1/M2/M3/M4) y macOS 13+. Para transcripción, Whisper se instala automáticamente. Para análisis con IA, puedes usar Ollama (gratuito, local) o conectarlo a Gemini/DeepSeek con tu propia API key.</div></div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+            <span data-i18n="faq4Q">¿Es realmente gratis?</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq4A">Sí. AIRecorder es completamente gratuito y open source (MIT). No hay planes de pago, suscripciones ni funcionalidades premium. Si quieres apoyar el proyecto, puedes invitarme a un café en Ko-fi.</div></div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+            <span data-i18n="faq5Q">¿Qué idiomas soporta la transcripción?</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq5A">Whisper soporta más de 90 idiomas con alta precisión, incluyendo español, inglés, francés, alemán, portugués, italiano y muchos más. Puedes elegir el modelo y el idioma para cada grabación.</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================
        DESCARGA
   =========================================== -->
   <section class="section download" id="descarga">
@@ -1928,6 +2248,16 @@
       </div>
     </div>
   </section>
+
+  <!-- ==========================================
+       FLOATING CTA (móvil / tablet)
+  =========================================== -->
+  <button class="floating-cta" id="floatingCta" onclick="openDownloadModal(event)" aria-label="Descargar AIRecorder">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+    </svg>
+    <span data-i18n="floatingCta">Descargar gratis</span>
+  </button>
 
   <!-- ==========================================
        FOOTER
@@ -2000,6 +2330,43 @@
       const d = (Math.random() * 2).toFixed(2) + 's';
       bar.style.setProperty('animation-delay', d);
     });
+
+    // === Toggle funciones expandibles ===
+    function toggleFeatures() {
+      const btn = document.getElementById('featuresToggle');
+      const grid = document.getElementById('featuresMoreGrid');
+      const isOpen = btn.classList.toggle('open');
+      grid.classList.toggle('open', isOpen);
+      btn.setAttribute('aria-expanded', isOpen);
+      if (!isOpen) {
+        setTimeout(() => {
+          grid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+      }
+    }
+
+    // === FAQ Accordion ===
+    function toggleFaq(questionEl) {
+      const item = questionEl.closest('.faq-item');
+      const isOpen = item.classList.toggle('open');
+      questionEl.setAttribute('aria-expanded', isOpen);
+    }
+
+    // === Floating CTA: ocultar cuando el footer es visible ===
+    (function setupFloatingCta() {
+      const floatBtn = document.getElementById('floatingCta');
+      const footer = document.querySelector('.footer');
+      if (!floatBtn || !footer) return;
+
+      const footerObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          floatBtn.style.opacity = entry.isIntersecting ? '0' : '1';
+          floatBtn.style.pointerEvents = entry.isIntersecting ? 'none' : 'auto';
+        });
+      }, { threshold: 0 });
+
+      footerObserver.observe(footer);
+    })();
 
     // === Modal Descarga ===
     function openDownloadModal(e) {
@@ -2079,6 +2446,22 @@
         featChatImportTitle: 'Importa conversaciones de chat con IA', featChatImportDesc: 'Importa archivos de conversaciones o chats analizados por IA y tratalos como cualquier grabación: resumen, tareas, búsqueda semántica y chat interactivo sobre el contenido.',
         featSpeakersTitle: 'Identificación de Hablantes', featSpeakersDesc: 'Diarización automática que detecta quién habla en cada segmento. Gestiona, fusiona y nombra hablantes entre grabaciones. La IA reconoce a cada persona y enriquece el análisis con su voz.',
         featExpertsTitle: 'Prompts de Experto', featExpertsDesc: 'Activa perfiles especializados de Desarrollador de Software o Psicólogo para que la IA adapte su análisis al contexto exacto de tu reunión. Incluye un asistente general para cualquier tipo de conversación.',
+        featShowAll: 'Ver todas las funciones', featShowLess: 'Mostrar menos',
+        ctaMidTitle: '¿Listo para tomar el control de tus reuniones?',
+        ctaMidSubtitle: 'Descarga AIRecorder gratis. Sin registros, sin servidores, sin letra pequeña.',
+        ctaMidBtn: 'Descargar ahora',
+        faqLabel: 'FAQ', faqTitle: 'Preguntas frecuentes',
+        faq1Q: '¿Por qué AIRecorder frente a Otter o Fireflies?',
+        faq1A: 'AIRecorder es la única opción 100% local. Otter y Fireflies suben tu audio a sus servidores para procesarlo. Con AIRecorder, tus datos nunca salen de tu equipo. Además, es gratuito y open source.',
+        faq2Q: '¿Necesito conexión a internet?',
+        faq2A: 'No. Con Ollama o LM Studio puedes grabar, transcribir y analizar completamente offline. Si usas proveedores cloud como Gemini, solo necesitas internet para la parte de análisis; la transcripción con Whisper siempre es local.',
+        faq3Q: '¿Qué necesito para usarlo?',
+        faq3A: 'Un Mac con Apple Silicon (M1/M2/M3/M4) y macOS 13+. Para transcripción, Whisper se instala automáticamente. Para análisis con IA, puedes usar Ollama (gratuito, local) o conectarlo a Gemini/DeepSeek con tu propia API key.',
+        faq4Q: '¿Es realmente gratis?',
+        faq4A: 'Sí. AIRecorder es completamente gratuito y open source (MIT). No hay planes de pago, suscripciones ni funcionalidades premium. Si quieres apoyar el proyecto, puedes invitarme a un café en Ko-fi.',
+        faq5Q: '¿Qué idiomas soporta la transcripción?',
+        faq5A: 'Whisper soporta más de 90 idiomas con alta precisión, incluyendo español, inglés, francés, alemán, portugués, italiano y muchos más. Puedes elegir el modelo y el idioma para cada grabación.',
+        floatingCta: 'Descargar gratis',
         privLabel: 'Privacidad',
         privTitle: 'Tu privacidad,<br>nuestra prioridad',
         privSubtitle: 'Tus reuniones contienen información sensible. AIRecorder está diseñado para que tus datos nunca salgan de tu equipo.',
@@ -2141,6 +2524,22 @@
         featChatImportTitle: 'Import AI-analyzed chat conversations', featChatImportDesc: 'Import conversation or AI-analyzed chat files and treat them like any recording: summary, tasks, semantic search, and interactive chat over the content.',
         featSpeakersTitle: 'Speaker Identification', featSpeakersDesc: 'Automatic diarization that detects who speaks in each segment. Manage, merge, and name speakers across recordings. The AI recognizes each person and enriches the analysis with their voice.',
         featExpertsTitle: 'Expert Prompts', featExpertsDesc: 'Activate specialized profiles — Software Developer or Psychologist — so the AI adapts its analysis to the exact context of your meeting. Includes a general assistant for any type of conversation.',
+        featShowAll: 'See all features', featShowLess: 'Show less',
+        ctaMidTitle: 'Ready to take control of your meetings?',
+        ctaMidSubtitle: 'Download AIRecorder for free. No sign-ups, no servers, no fine print.',
+        ctaMidBtn: 'Download now',
+        faqLabel: 'FAQ', faqTitle: 'Frequently Asked Questions',
+        faq1Q: 'Why AIRecorder vs Otter or Fireflies?',
+        faq1A: "AIRecorder is the only 100% local option. Otter and Fireflies upload your audio to their servers for processing. With AIRecorder, your data never leaves your machine. Plus, it's free and open source.",
+        faq2Q: 'Do I need an internet connection?',
+        faq2A: 'No. With Ollama or LM Studio you can record, transcribe, and analyze completely offline. If you use cloud providers like Gemini, you only need internet for the analysis part; transcription with Whisper is always local.',
+        faq3Q: 'What do I need to run it?',
+        faq3A: 'A Mac with Apple Silicon (M1/M2/M3/M4) and macOS 13+. For transcription, Whisper installs automatically. For AI analysis, you can use Ollama (free, local) or connect to Gemini/DeepSeek with your own API key.',
+        faq4Q: 'Is it really free?',
+        faq4A: 'Yes. AIRecorder is completely free and open source (MIT). There are no paid plans, subscriptions, or premium features. If you want to support the project, you can buy me a coffee on Ko-fi.',
+        faq5Q: 'What languages does transcription support?',
+        faq5A: 'Whisper supports over 90 languages with high accuracy, including Spanish, English, French, German, Portuguese, Italian, and many more. You can choose the model and language for each recording.',
+        floatingCta: 'Download free',
         privLabel: 'Privacy',
         privTitle: 'Your privacy,<br>our priority',
         privSubtitle: 'Your meetings contain sensitive information. AIRecorder is designed so your data never leaves your machine.',
