@@ -65,7 +65,7 @@ const Sidebar = ({ currentView, onViewChange, queueCount = 0, diarizationEnabled
           className={styles.navItem}
           onClick={() => {
             if (window.electronAPI && window.electronAPI.openExternal) {
-              window.electronAPI.openExternal('https://rgarciade.github.io/airecorder/wiki.html');
+              window.electronAPI.openExternal('https://rgarciade.github.io/airecorder/vp/');
             }
           }}
           title={t('sidebar.wiki')}

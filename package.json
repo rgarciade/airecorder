@@ -1,7 +1,7 @@
 {
   "name": "airecorder",
   "private": true,
-  "version": "0.4.1",
+  "version": "0.5.1",
   "main": "electron/main.js",
   "scripts": {
     "dev": "cross-env NODE_ENV=development concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
@@ -23,7 +23,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:unit": "vitest run",
-    "web:dev": "npx serve docs -l 3000"
+    "web:dev": "npm run docs:build && npx serve docs -l 4000",
+    "docs:dev": "vitepress dev docs --port 3001",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs --port 3001"
   },
   "build": {
     "appId": "com.airecorder.app",
@@ -149,6 +152,7 @@
     "tailwindcss": "^3.4.1",
     "vite": "^5.1.6",
     "vitest": "^4.1.5",
+    "vitepress": "^1.5.0",
     "wait-on": "^8.0.3"
   }
 }

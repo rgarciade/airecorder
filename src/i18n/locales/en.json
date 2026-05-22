@@ -78,11 +78,13 @@
     },
     "pasteConversation": {
       "title": "Paste conversation",
-      "description": "Paste the text of a conversation. AI will identify speakers, timestamps, and structure.",
+      "description": "Paste your conversation text. AI will normalize it and extract segments automatically.",
       "titleLabel": "Title (optional)",
-      "titlePlaceholder": "e.g. Planning meeting",
-      "contentLabel": "Conversation text",
-      "placeholder": "Paste the conversation text here...",
+      "titlePlaceholder": "E.g.: Client meeting 22/05",
+      "contentLabel": "Conversation",
+      "placeholder": "Paste your conversation text here...",
+      "projectLabel": "Assign to project (optional)",
+      "projectPlaceholder": "No project",
       "cancel": "Cancel",
       "submit": "Import with AI",
       "processing": "Processing..."
@@ -513,7 +515,9 @@
     "uploadFile": "Upload file",
     "pasteConversation": "Paste conversation",
     "importTeamsDescription": "Import Microsoft Teams transcriptions (.docx).",
-    "importAudioDescription": "Upload audio files (mp3, wav, ogg...) to transcribe."
+    "importAudioDescription": "Upload audio files (mp3, wav, ogg...) to transcribe.",
+    "uploadFile": "Upload file",
+    "pasteConversation": "Paste conversation"
   },
   "statsRow": {
     "thisWeek": "This Week",

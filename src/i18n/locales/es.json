@@ -95,11 +95,13 @@
     },
     "pasteConversation": {
       "title": "Pegar conversación",
-      "description": "Pega el texto de una conversación. La IA identificará hablantes, timestamps y estructura.",
+      "description": "Pega el texto de tu conversación. La IA lo normalizará y extraerá los segmentos automáticamente.",
       "titleLabel": "Título (opcional)",
-      "titlePlaceholder": "Ej: Reunión de planificación",
-      "contentLabel": "Texto de la conversación",
+      "titlePlaceholder": "Ej: Reunión con cliente 22/05",
+      "contentLabel": "Conversación",
       "placeholder": "Pega aquí el texto de la conversación...",
+      "projectLabel": "Asignar a proyecto (opcional)",
+      "projectPlaceholder": "Sin proyecto",
       "cancel": "Cancelar",
       "submit": "Importar con IA",
       "processing": "Procesando..."
@@ -530,7 +532,9 @@
     "uploadFile": "Subir archivo",
     "pasteConversation": "Pegar conversación",
     "importTeamsDescription": "Importa transcripciones de Microsoft Teams (.docx).",
-    "importAudioDescription": "Sube archivos de audio (mp3, wav, ogg...) para transcribir."
+    "importAudioDescription": "Sube archivos de audio (mp3, wav, ogg...) para transcribir.",
+    "uploadFile": "Subir archivo",
+    "pasteConversation": "Pegar conversación"
   },
   "statsRow": {
     "thisWeek": "Esta Semana",

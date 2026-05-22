@@ -7,7 +7,6 @@ export default function NewSessionCard({ onStart, microphoneLabel, languageLabel
   const [showImportMenu, setShowImportMenu] = useState(false);
   const importMenuRef = useRef(null);
 
-  // Cerrar menú al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (importMenuRef.current && !importMenuRef.current.contains(event.target)) {
