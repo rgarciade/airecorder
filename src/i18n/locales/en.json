@@ -75,6 +75,18 @@
       "noProvider": "No AI provider is configured. Please set one up in Settings before importing.",
       "processing": "Normalizing conversation with AI...",
       "success": "Conversation imported successfully"
+    },
+    "pasteConversation": {
+      "title": "Paste conversation",
+      "description": "Paste your conversation text. AI will normalize it and extract segments automatically.",
+      "titleLabel": "Title (optional)",
+      "titlePlaceholder": "E.g.: Client meeting 22/05",
+      "contentLabel": "Conversation",
+      "placeholder": "Paste your conversation text here...",
+      "projectLabel": "Assign to project (optional)",
+      "projectPlaceholder": "No project",
+      "cancel": "Cancel",
+      "submit": "Import with AI"
     }
   },
   "recordButton": {
@@ -500,7 +512,9 @@
     "importConversation": "Import with AI",
     "importConversationDescription": "Upload text, srt, or vtt files. AI will normalize the format automatically.",
     "importTeamsDescription": "Import Microsoft Teams transcriptions (.docx).",
-    "importAudioDescription": "Upload audio files (mp3, wav, ogg...) to transcribe."
+    "importAudioDescription": "Upload audio files (mp3, wav, ogg...) to transcribe.",
+    "uploadFile": "Upload file",
+    "pasteConversation": "Paste conversation"
   },
   "statsRow": {
     "thisWeek": "This Week",
