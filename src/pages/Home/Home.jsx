@@ -47,6 +47,8 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [pasteTitle, setPasteTitle] = useState('');
   const [pastedText, setPastedText] = useState('');
+  const [pasteProjectId, setPasteProjectId] = useState('');
+  const [availableProjects, setAvailableProjects] = useState([]);
 
   const reloadTimeoutRef = useRef(null);
 
@@ -353,18 +355,22 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
     }
     setPasteTitle('');
     setPastedText('');
+    setPasteProjectId('');
+    const projectsResult = await window.electronAPI.getProjects().catch(() => null);
+    setAvailableProjects(projectsResult?.projects || []);
     setShowPasteModal(true);
   };
 
   const handleSubmitPaste = async () => {
     if (!pastedText.trim()) return;
 
-    // Capturar texto y título, cerrar modal inmediatamente
     const text = pastedText.trim();
     const title = pasteTitle.trim();
+    const projectId = pasteProjectId || null;
     setShowPasteModal(false);
     setPasteTitle('');
     setPastedText('');
+    setPasteProjectId('');
 
     try {
       const prompt = conversationNormalizationPrompt(text);
@@ -386,17 +392,20 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
         return;
       }
 
-      const fileName = title ? `${title}.txt` : 'conversacion_pegada.txt';
+      const fileName = title ? `${title}.txt` : 'conversacion-pegada.txt';
 
       const saveResult = await window.electronAPI.saveConversationImport({
         fileName,
         raw: text,
         ext: 'txt',
         segments: parsedData.segments,
-        ...(title ? { customFolderName: title } : {})
+        ...(title ? { customName: title } : {})
       });
 
       if (saveResult?.success && saveResult?.recording) {
+        if (projectId && saveResult.recording.id) {
+          await window.electronAPI.addRecordingToProject(projectId, saveResult.recording.id).catch(() => null);
+        }
         const list = await loadRecordings();
         if (onRecordingSelect) {
           const rec = list.find(r => r.id === saveResult.recording.relative_path || r.dbId === saveResult.recording.id);
@@ -655,6 +664,70 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
           >
             <MdChevronRight size={20} />
           </button>
+        </div>
+      )}
+
+      {/* Modal para pegar conversación */}
+      {showPasteModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowPasteModal(false)}>
+          <div className={`${styles.modalContent} ${styles.pasteModalContent}`} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.modalTitle}>{t('home.pasteConversation.title')}</h3>
+            <p className={styles.modalText}>
+              {t('home.pasteConversation.description')}
+            </p>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>{t('home.pasteConversation.titleLabel')}</label>
+              <input
+                type="text"
+                className={styles.input}
+                value={pasteTitle}
+                onChange={(e) => setPasteTitle(e.target.value)}
+                placeholder={t('home.pasteConversation.titlePlaceholder')}
+                maxLength={200}
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>{t('home.pasteConversation.contentLabel')}</label>
+              <textarea
+                className={styles.pasteTextarea}
+                value={pastedText}
+                onChange={(e) => setPastedText(e.target.value)}
+                placeholder={t('home.pasteConversation.placeholder')}
+                autoFocus
+                rows={10}
+              />
+            </div>
+            {availableProjects.length > 0 && (
+              <div className={styles.formGroup}>
+                <label className={styles.label}>{t('home.pasteConversation.projectLabel')}</label>
+                <select
+                  className={styles.input}
+                  value={pasteProjectId}
+                  onChange={(e) => setPasteProjectId(e.target.value)}
+                >
+                  <option value="">{t('home.pasteConversation.projectPlaceholder')}</option>
+                  {availableProjects.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className={styles.buttonGroup}>
+              <button
+                className={styles.cancelBtn}
+                onClick={() => setShowPasteModal(false)}
+              >
+                {t('home.pasteConversation.cancel')}
+              </button>
+              <button
+                className={styles.confirmBtn}
+                onClick={handleSubmitPaste}
+                disabled={!pastedText.trim()}
+              >
+                {t('home.pasteConversation.submit')}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

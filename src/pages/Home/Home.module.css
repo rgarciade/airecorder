@@ -309,3 +309,28 @@
   font-weight: 500;
   color: var(--color-text-tertiary);
 }
+
+.pasteModalContent {
+  max-width: 560px;
+}
+
+.pasteTextarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  background: var(--color-bg-input);
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+  line-height: 1.5;
+  min-height: 150px;
+}
+
+.pasteTextarea:focus {
+  border-color: var(--color-primary);
+}
