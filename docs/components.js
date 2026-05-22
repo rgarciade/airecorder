@@ -15,9 +15,9 @@ class AppHeader extends HTMLElement {
             <li><a href="index.html#funciones" data-i18n="navFeatures">Funciones</a></li>
             <li><a href="index.html#privacidad" data-i18n="navPrivacy">Privacidad</a></li>
             <li><a href="index.html#proveedores" data-i18n="navProviders">Proveedores IA</a></li>
-            <li><a href="docs.html" ${currentPath === 'docs.html' ? 'class="active"' : ''} data-i18n="navDocs">Guía IA Local</a></li>
-            <li><a href="wiki.html" ${currentPath === 'wiki.html' ? 'class="active"' : ''} data-i18n="navWiki">Wiki</a></li>
-            <li><a href="changelog.html" ${currentPath === 'changelog.html' ? 'class="active"' : ''} data-i18n="navChangelog">Novedades</a></li>
+            <li><a href="/airecorder/vp/guide/local-ai" ${currentPath.startsWith('vp/guide/local-ai') ? 'class="active"' : ''} data-i18n="navDocs">Guía IA Local</a></li>
+            <li><a href="/airecorder/vp/" ${currentPath.startsWith('vp/') ? 'class="active"' : ''} data-i18n="navWiki">Wiki</a></li>
+            <li><a href="/airecorder/changelog.html" ${currentPath === 'changelog.html' ? 'class="active"' : ''} data-i18n="navChangelog">Novedades</a></li>
             <li>
               <div class="lang-toggle" role="group" aria-label="Idioma">
                 <button class="lang-btn ${currentLang === 'es' ? 'active' : ''}" data-lang="es" onclick="window.setLang('es')">ES</button>
@@ -38,8 +38,8 @@ class AppHeader extends HTMLElement {
         <a href="index.html#funciones" data-i18n="navFeatures">Funciones</a>
         <a href="index.html#privacidad" data-i18n="navPrivacy">Privacidad</a>
         <a href="index.html#proveedores" data-i18n="navProviders">Proveedores IA</a>
-        <a href="docs.html" data-i18n="navDocs">Guía IA Local</a>
-        <a href="wiki.html" data-i18n="navWiki">Wiki</a>
+        <a href="/airecorder/vp/guide/local-ai" data-i18n="navDocs">Guía IA Local</a>
+        <a href="/airecorder/vp/" data-i18n="navWiki">Wiki</a>
         <a href="changelog.html" data-i18n="navChangelog">Novedades</a>
         <a href="index.html#descarga" class="nav-cta" data-i18n="navDownload">Descargar</a>
         <div class="lang-toggle">
@@ -127,7 +127,7 @@ class AppFooter extends HTMLElement {
               <span>·</span>
               <a href="https://github.com/rgarciade/airecorder/releases" target="_blank" rel="noopener" data-i18n="footerReleases">Releases</a>
               <span>·</span>
-              <a href="changelog.html" data-i18n="navChangelog">Novedades</a>
+        <a href="/airecorder/changelog.html" data-i18n="navChangelog">Novedades</a>
               <span>·</span>
               <a href="https://github.com/rgarciade/airecorder/issues" target="_blank" rel="noopener" data-i18n="footerIssues">Reportar un problema</a>
               <span>·</span>
