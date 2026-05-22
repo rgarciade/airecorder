@@ -5,7 +5,7 @@ import OnboardingFooter from './OnboardingFooter';
 const LocalAiInfoStep = ({ t, onNext, onBack, StepProgressComponent }) => {
   const handleOpenDocs = (e) => {
     e.preventDefault();
-    const url = 'https://rgarciade.github.io/airecorder/docs.html';
+    const url = 'https://rgarciade.github.io/airecorder/vp/guide/local-ai';
     if (window.electronAPI && window.electronAPI.openExternal) {
       window.electronAPI.openExternal(url);
     } else {
