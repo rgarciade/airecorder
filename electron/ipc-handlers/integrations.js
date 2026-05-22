@@ -156,12 +156,15 @@ module.exports.registerIntegrationsHandlers = () => {
   });
 
   // Guardar conversación importada como nueva grabación
-  ipcMain.handle('save-conversation-import', async (event, { fileName, raw, ext, segments }) => {
+  ipcMain.handle('save-conversation-import', async (event, { fileName, raw, ext, segments, customName }) => {
     try {
       const baseName = path.basename(fileName, path.extname(fileName))
-        .replace(/[^a-zA-Z0-9_\-áéíóúüñÁÉÍÓÚÜÑ]/g, '_')
-        .slice(0, 60);
-      const folderName = `conv_import_${baseName}_${Date.now()}`;
+        .replace(/[^a-zA-Z0-9\-áéíóúüñÁÉÍÓÚÜÑ]/g, '-')
+        .replace(/-{2,}/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 50);
+      const shortTs = Date.now().toString().slice(-8);
+      const folderName = `${baseName}-${shortTs}`;
 
       const recordingsDir = await getRecordingsPath();
       const analysisDir = path.join(recordingsDir, folderName, 'analysis');
@@ -205,14 +208,16 @@ module.exports.registerIntegrationsHandlers = () => {
 
       // Guardar metadata.json en la raíz de la sesión
       const duration = segments.length > 0 ? (segments[segments.length - 1].end || 0) : 0;
+      const metadataObj = {
+        importedAt: new Date().toISOString(),
+        originalFileName: fileName,
+        segmentCount: segments.length,
+        source: 'conversation-import',
+      };
+      if (customName) metadataObj.customName = customName;
       await fs.promises.writeFile(
         path.join(recordingsDir, folderName, 'metadata.json'),
-        JSON.stringify({
-          importedAt: new Date().toISOString(),
-          originalFileName: fileName,
-          segmentCount: segments.length,
-          source: 'conversation-import',
-        }, null, 2),
+        JSON.stringify(metadataObj, null, 2),
         'utf-8'
       );
 
