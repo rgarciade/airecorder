@@ -4,8 +4,7 @@
   min-height: 100vh;
   box-sizing: border-box;
   font-family: "Plus Jakarta Sans", "Noto Sans", sans-serif;
-  max-width: 1200px;
-  margin: 0;
+  width: 100%;
 }
 
 .header {
