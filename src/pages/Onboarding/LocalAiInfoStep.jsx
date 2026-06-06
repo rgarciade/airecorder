@@ -2,10 +2,12 @@ import React from 'react';
 import { FaRobot, FaServer, FaExternalLinkAlt, FaBrain, FaSearch, FaArrowRight, FaShieldAlt } from 'react-icons/fa';
 import OnboardingFooter from './OnboardingFooter';
 
+const WIKI_BASE_URL = import.meta.env.VITE_WIKI_URL || 'https://rgarciade.github.io/airecorder/vp/';
+
 const LocalAiInfoStep = ({ t, onNext, onBack, StepProgressComponent }) => {
   const handleOpenDocs = (e) => {
     e.preventDefault();
-    const url = 'https://rgarciade.github.io/airecorder/vp/guide/local-ai';
+    const url = `${WIKI_BASE_URL}guide/local-ai`;
     if (window.electronAPI && window.electronAPI.openExternal) {
       window.electronAPI.openExternal(url);
     } else {
