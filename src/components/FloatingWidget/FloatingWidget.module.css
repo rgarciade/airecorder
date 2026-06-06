@@ -1,0 +1,111 @@
+.widget {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px 0 8px;
+  height: 48px;
+  background: rgba(22, 22, 22, 0.97);
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  -webkit-app-region: drag;
+  user-select: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dragZone {
+  width: 5px;
+  height: 18px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+  cursor: grab;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 5px #ef4444;
+  flex-shrink: 0;
+  animation: blink 2s ease-in-out infinite;
+  -webkit-app-region: no-drag;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.time {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 0.4px;
+  min-width: 40px;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.09);
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  -webkit-app-region: no-drag;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.btnMuted {
+  background: rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+}
+
+.btnMuted:hover {
+  background: rgba(239, 68, 68, 0.38);
+}
+
+.btnDiscard {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.btnDiscard:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.btnStop {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.btnStop:hover {
+  background: #dc2626;
+}
+
+.btnCollapse {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.btnCollapse:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.8);
+}

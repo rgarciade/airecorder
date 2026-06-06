@@ -7,7 +7,7 @@ import ProjectSelector from '../ProjectSelector/ProjectSelector';
 import projectsService from '../../services/projectsService';
 import recordingsService from '../../services/recordingsService';
 import { getSettings } from '../../services/settingsService';
-import { MdStop, MdExpandMore, MdDeleteOutline, MdMic, MdMicOff } from 'react-icons/md';
+import { MdStop, MdExpandMore, MdDeleteOutline, MdMic, MdMicOff, MdPictureInPicture } from 'react-icons/md';
 
 const RecordingOverlay = ({ recorder, onFinish }) => {
   const dispatch = useDispatch();
@@ -31,6 +31,9 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
   // Expanded State
   const [isExpanded, setIsExpanded] = useState(false);
   const interactionTimerRef = useRef(null);
+
+  // Floating widget state — true until user collapses it
+  const [isFloatingVisible, setIsFloatingVisible] = useState(true);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -66,6 +69,44 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
     };
   }, [isExpanded]);
 
+  // Show floating window on mount, hide on unmount
+  useEffect(() => {
+    window.electronAPI?.showFloatingWindow?.({ elapsed: 0, muted: false });
+    return () => {
+      window.electronAPI?.hideFloatingWindow?.();
+    };
+  }, []);
+
+  // Listen for floating window collapsed by user
+  useEffect(() => {
+    if (!window.electronAPI?.onFloatingWindowHidden) return;
+    return window.electronAPI.onFloatingWindowHidden(() => setIsFloatingVisible(false));
+  }, []);
+
+  // Listen for mute relay from floating widget
+  useEffect(() => {
+    if (!window.electronAPI?.onRelayToggleMute) return;
+    return window.electronAPI.onRelayToggleMute(() => {
+      if (recorder && recorder.toggleMute) {
+        const muted = recorder.toggleMute();
+        setIsMuted(muted);
+        window.electronAPI?.notifyMuteState?.(muted);
+      }
+    });
+  }, [recorder]);
+
+  // Listen for stop relay from floating widget
+  useEffect(() => {
+    if (!window.electronAPI?.onRelayStopRecording) return;
+    return window.electronAPI.onRelayStopRecording(() => handleFinish());
+  }, []);
+
+  // Listen for discard relay from floating widget — shows confirm dialog in main window
+  useEffect(() => {
+    if (!window.electronAPI?.onRelayDiscardRecording) return;
+    return window.electronAPI.onRelayDiscardRecording(() => handleDiscard(null));
+  }, []);
+
   const formatTime = (seconds) => {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -82,6 +123,7 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
     if (recorder && recorder.toggleMute) {
       const muted = recorder.toggleMute();
       setIsMuted(muted);
+      window.electronAPI?.notifyMuteState?.(muted);
     }
   };
 
@@ -229,6 +271,19 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
                 </div>
                 <div className={styles.headerRight}>
                   <span className={styles.timerBadge}>{formatTime(time)}</span>
+                  {!isFloatingVisible && (
+                    <button
+                      className={styles.collapseBtn}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.electronAPI?.showFloatingWindow({ elapsed: time, muted: isMuted });
+                        setIsFloatingVisible(true);
+                      }}
+                      title="Mostrar widget flotante"
+                    >
+                      <MdPictureInPicture size={17} />
+                    </button>
+                  )}
                   <button
                     className={styles.collapseBtn}
                     onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }}
@@ -288,6 +343,19 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
               >
                 <MdStop size={24} />
               </button>
+              {!isFloatingVisible && (
+                <button
+                  className={styles.btnFloatRound}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.electronAPI?.showFloatingWindow({ elapsed: time, muted: isMuted });
+                    setIsFloatingVisible(true);
+                  }}
+                  title="Mostrar widget flotante"
+                >
+                  <MdPictureInPicture size={15} />
+                </button>
+              )}
             </div>
           )}
         </div>
