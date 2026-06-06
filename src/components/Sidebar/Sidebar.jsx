@@ -7,6 +7,8 @@ import {
 import { aiQueueService } from '../../services/ai/aiQueueService';
 import BugReportButton from '../BugReportButton/BugReportButton';
 
+const WIKI_URL = import.meta.env.VITE_WIKI_URL || 'https://rgarciade.github.io/airecorder/vp/';
+
 const Sidebar = ({ currentView, onViewChange, queueCount = 0, diarizationEnabled = false }) => {
   const { t } = useTranslation();
   const [aiQueueCount, setAiQueueCount] = useState(0);
@@ -65,7 +67,7 @@ const Sidebar = ({ currentView, onViewChange, queueCount = 0, diarizationEnabled
           className={styles.navItem}
           onClick={() => {
             if (window.electronAPI && window.electronAPI.openExternal) {
-              window.electronAPI.openExternal('https://rgarciade.github.io/airecorder/vp/');
+              window.electronAPI.openExternal(WIKI_URL);
             }
           }}
           title={t('sidebar.wiki')}
