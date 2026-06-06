@@ -138,13 +138,20 @@ class DiarizationService {
 
       // 3b. Fallback: diarización existe pero sin embeddings. Usar segments del propio archivo.
       if (diarizationData.segments && diarizationData.segments.length > 0) {
-        const resolutionMap = speakerManager.resolveFromSegments(
+        const { resolutionMap, pendingSuggestions } = speakerManager.resolveFromSegments(
           diarizationData.segments,
           recordingId
         );
+
+        // Enriquecer suggestions con timestamps si es necesario
+        const enrichedSuggestions = this._enrichSuggestionsWithTimestamps(
+          pendingSuggestions,
+          diarizationData.segments
+        );
+
         return {
           resolutionMap,
-          pendingSuggestions: [],
+          pendingSuggestions: enrichedSuggestions,
           _source: 'diarization',
         };
       }
@@ -159,10 +166,20 @@ class DiarizationService {
 
     // 4. No existe diarization.json → fallback a transcription segments
     if (transcriptionSegments && transcriptionSegments.length > 0) {
-      const resolutionMap = speakerManager.resolveFromSegments(transcriptionSegments, recordingId);
+      const { resolutionMap, pendingSuggestions } = speakerManager.resolveFromSegments(
+        transcriptionSegments,
+        recordingId
+      );
+
+      // Enriquecer suggestions con timestamps
+      const enrichedSuggestions = this._enrichSuggestionsWithTimestamps(
+        pendingSuggestions,
+        transcriptionSegments
+      );
+
       return {
         resolutionMap,
-        pendingSuggestions: [],
+        pendingSuggestions: enrichedSuggestions,
         _source: 'segments',
       };
     }
