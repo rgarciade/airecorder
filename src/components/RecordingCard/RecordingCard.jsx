@@ -74,6 +74,13 @@ export default function RecordingCard({ recording, onClick, onTranscribe }) {
               <line x1="12" y1="3" x2="12" y2="15"/>
             </svg>
           </div>
+        ) : recording.transcriptionModel === 'conversation-import' ? (
+          // Conversación importada como texto
+          <div className={`${styles.icon} ${styles.iconConversation}`}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
         ) : (
           // Grabado con la app
           <div className={styles.icon}>

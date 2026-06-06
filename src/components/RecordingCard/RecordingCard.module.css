@@ -43,6 +43,11 @@
   color: var(--color-success);
 }
 
+.iconConversation {
+  background-color: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
 .headerRight {
   display: flex;
   align-items: center;
