@@ -15,7 +15,7 @@
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0;
-  color: var(--color-text, #1a1a2e);
+  color: var(--color-text-primary);
 }
 
 .headerActions {
@@ -32,18 +32,18 @@
 .searchInput {
   width: 100%;
   padding: 10px 16px;
-  border: 1px solid var(--color-border, #e2e8f0);
+  border: 1px solid var(--color-border-primary);
   border-radius: 8px;
   font-size: 0.9rem;
-  background: var(--color-bg-input, #ffffff);
-  color: var(--color-text, #1a1a2e);
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
   outline: none;
   transition: border-color 0.2s;
   box-sizing: border-box;
 }
 
 .searchInput:focus {
-  border-color: var(--color-primary, #6366f1);
+  border-color: var(--color-primary);
 }
 
 /* Filtro de embeddings */
@@ -51,7 +51,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  background: var(--color-bg-input, #f1f5f9);
+  background: var(--color-bg-tertiary);
   padding: 3px;
   border-radius: 8px;
   flex-shrink: 0;
@@ -65,7 +65,7 @@
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted);
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
@@ -74,13 +74,13 @@
 }
 
 .filterBtn:hover {
-  background: var(--color-bg-hover, #e2e8f0);
-  color: var(--color-text, #1a1a2e);
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
 }
 
 .filterBtnActive {
-  background: var(--color-bg-card, #ffffff);
-  color: var(--color-text, #1a1a2e);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
@@ -92,8 +92,8 @@
   height: 18px;
   padding: 0 5px;
   border-radius: 9px;
-  background: var(--color-bg-hover, #e2e8f0);
-  color: var(--color-text-muted, #64748b);
+  background: var(--color-bg-hover);
+  color: var(--color-text-muted);
   font-size: 0.7rem;
   font-weight: 600;
 }
@@ -217,9 +217,9 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border: 1px solid var(--color-border, #e2e8f0);
+  border: 1px solid var(--color-border-primary);
   border-radius: 10px;
-  background: var(--color-bg-card, #ffffff);
+  background: var(--color-bg-secondary);
   cursor: pointer;
   text-align: left;
   width: 100%;
@@ -227,8 +227,8 @@
 }
 
 .speakerCard:hover {
-  background: var(--color-bg-hover, #f8fafc);
-  border-color: var(--color-primary, #6366f1);
+  background: var(--color-bg-hover);
+  border-color: var(--color-primary);
   transform: translateY(-1px);
 }
 
@@ -260,7 +260,7 @@
   gap: 8px;
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--color-text, #1a1a2e);
+  color: var(--color-text-primary);
   min-width: 0;
 }
 
@@ -296,7 +296,7 @@
   gap: 6px;
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid var(--color-border, #e2e8f0);
+  border-top: 1px solid var(--color-border-primary);
 }
 
 .paginationBtn {
@@ -305,18 +305,18 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid var(--color-border, #e2e8f0);
+  border: 1px solid var(--color-border-primary);
   border-radius: 6px;
-  background: var(--color-bg-card, #ffffff);
-  color: var(--color-text-secondary, #64748b);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: background-color 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .paginationBtn:hover:not(:disabled) {
-  background: var(--color-bg-hover, #f8fafc);
-  color: var(--color-text, #1a1a2e);
-  border-color: var(--color-primary, #6366f1);
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  border-color: var(--color-primary);
 }
 
 .paginationBtn:disabled {
@@ -330,7 +330,7 @@
   padding: 0 12px;
   font-size: 0.9rem;
   font-weight: 500;
-  color: var(--color-text, #1a1a2e);
+  color: var(--color-text-primary);
   white-space: nowrap;
 }
 
@@ -350,7 +350,7 @@
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
-  color: var(--color-text-secondary, #64748b);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
@@ -358,8 +358,8 @@
 }
 
 .paginationPage:hover {
-  background: var(--color-bg-hover, #f8fafc);
-  color: var(--color-text, #1a1a2e);
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
 }
 
 .paginationPageActive {
@@ -394,7 +394,7 @@
 }
 
 .mergeModal {
-  background: var(--color-bg-card, #ffffff);
+  background: var(--color-bg-secondary);
   border-radius: 14px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   width: 100%;
@@ -413,7 +413,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 18px 20px 14px;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  border-bottom: 1px solid var(--color-border-primary);
 }
 
 .mergeModalTitle {
@@ -423,7 +423,7 @@
   font-size: 1.05rem;
   font-weight: 700;
   margin: 0;
-  color: var(--color-text, #1a1a2e);
+  color: var(--color-text-primary);
 }
 
 .mergeModalClose {
@@ -441,8 +441,8 @@
 }
 
 .mergeModalClose:hover {
-  background: var(--color-bg-hover, #f1f5f9);
-  color: var(--color-text, #1a1a2e);
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
 }
 
 .mergeModalClose:disabled {
@@ -505,7 +505,7 @@
 
 .mergePreviewSource {
   font-weight: 600;
-  color: var(--color-text, #1a1a2e);
+  color: var(--color-text-primary);
   max-width: 140px;
   white-space: nowrap;
   overflow: hidden;
@@ -543,16 +543,16 @@
   justify-content: flex-end;
   gap: 10px;
   padding: 14px 20px;
-  border-top: 1px solid var(--color-border, #e2e8f0);
-  background: var(--color-bg-secondary, #f8fafc);
+  border-top: 1px solid var(--color-border-primary);
+  background: var(--color-bg-tertiary);
 }
 
 .mergeModalCancelBtn {
   padding: 9px 18px;
-  border: 1px solid var(--color-border, #e2e8f0);
+  border: 1px solid var(--color-border-primary);
   border-radius: 8px;
   background: transparent;
-  color: var(--color-text-secondary, #64748b);
+  color: var(--color-text-secondary);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -560,8 +560,8 @@
 }
 
 .mergeModalCancelBtn:hover:not(:disabled) {
-  background: var(--color-bg-hover, #f1f5f9);
-  color: var(--color-text, #1a1a2e);
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
 }
 
 .mergeModalCancelBtn:disabled {

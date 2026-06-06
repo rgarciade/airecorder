@@ -498,15 +498,16 @@ function assignAlias(speakerId, alias, embedding = null, recordingId = null, eph
  * Para cada ID de hablante único en los segmentos:
  *   1. Busca si ya existe un perfil con ese display_name en la BD.
  *   2. Si no existe, crea un perfil nuevo usando el propio ID como alias inicial.
- *   3. Devuelve el mapa de resolución con UUIDs persistentes.
+ *   3. Devuelve { resolutionMap, pendingSuggestions: [] }.
+ *      El usuario puede vincular hablantes usando SpeakerLabel (autocompletado inline).
  *
  * @param {Array<{speaker: string}>} segments - Segmentos de la transcripción.
  * @param {number|null} [recordingId=null] - ID numérico de la grabación.
- * @returns {Object} Mapa `{ ephemeralId: { speakerId, displayName, isNew } }`.
+ * @returns {{ resolutionMap: Object, pendingSuggestions: Array }}
  */
 function resolveFromSegments(segments, recordingId = null) {
   if (!Array.isArray(segments) || segments.length === 0) {
-    return {};
+    return { resolutionMap: {}, pendingSuggestions: [] };
   }
 
   // Si la grabación ya tiene resoluciones persistidas, la BD es la fuente de verdad.
@@ -515,7 +516,7 @@ function resolveFromSegments(segments, recordingId = null) {
   if (recordingId != null) {
     const cached = dbService.getRecordingSpeakerResolutions(recordingId);
     if (cached && Object.keys(cached).length > 0) {
-      return cached;
+      return { resolutionMap: cached, pendingSuggestions: [] };
     }
   }
 
@@ -531,7 +532,7 @@ function resolveFromSegments(segments, recordingId = null) {
   )];
 
   if (uniqueSpeakerIds.length === 0) {
-    return {};
+    return { resolutionMap: {}, pendingSuggestions: [] };
   }
 
   const resolutionMap = {};
@@ -585,7 +586,7 @@ function resolveFromSegments(segments, recordingId = null) {
     }
   }
 
-  return resolutionMap;
+  return { resolutionMap, pendingSuggestions: [] };
 }
 
 /**
