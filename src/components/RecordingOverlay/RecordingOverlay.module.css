@@ -128,6 +128,27 @@
   transform: scale(1.05);
 }
 
+.btnFloatRound {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background-color: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: 4px;
+  transition: all 0.2s;
+}
+
+.btnFloatRound:hover {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
 /* Expanded State */
 .overlayExpanded .container {
   border-radius: 32px; /* Más redondeado */

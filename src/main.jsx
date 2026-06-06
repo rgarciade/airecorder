@@ -6,6 +6,15 @@ import { store } from './store/store'
 import i18n from './i18n/index.js'
 import './index.css'
 import App from './App.jsx'
+import FloatingWidget from './components/FloatingWidget/FloatingWidget.jsx'
+
+const isFloatingView = new URLSearchParams(window.location.search).get('view') === 'floating';
+
+if (isFloatingView) {
+  const s = document.createElement('style');
+  s.textContent = 'html,body,#root{background:transparent!important;margin:0!important;padding:0!important;overflow:hidden!important;}';
+  document.head.appendChild(s);
+}
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -44,12 +53,16 @@ class ErrorBoundary extends Component {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <I18nextProvider i18n={i18n}>
-      <Provider store={store}>
-        <ErrorBoundary>
-          <App />
-        </ErrorBoundary>
-      </Provider>
-    </I18nextProvider>
+    {isFloatingView ? (
+      <FloatingWidget />
+    ) : (
+      <I18nextProvider i18n={i18n}>
+        <Provider store={store}>
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
+        </Provider>
+      </I18nextProvider>
+    )}
   </StrictMode>,
 )

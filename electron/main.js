@@ -44,6 +44,7 @@ const { registerAttachmentsHandlers } = require('./ipc-handlers/attachments');
 const { registerExpertsHandlers } = require('./ipc-handlers/experts');
 const { registerSpeakersHandlers } = require('./ipc-handlers/speakers');
 const { registerTemplatesHandlers } = require('./ipc-handlers/templates');
+const { registerFloatingHandlers } = require('./ipc-handlers/floating');
 
 // ========================================
 // 1.5 REDIRIGIR LOGS DEL MAIN AL RENDERER (DevTools)
@@ -301,6 +302,8 @@ async function initApp() {
   ipcMain.handle('set-app-recording-state', (_event, recording) => {
     isAppRecording = recording;
   });
+
+  registerFloatingHandlers();
 
   if (process.platform === 'darwin' || process.platform === 'win32') {
     microphoneMonitor.on('activated', () => {
