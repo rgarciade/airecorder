@@ -258,3 +258,4 @@ docs/vp-src/reference/rag.md
 .engram/chunks/02359549.jsonl.gz
 .atl/.skill-registry.cache.json
 .atl/
+.atl/skill-registry.md
