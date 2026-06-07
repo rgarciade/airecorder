@@ -65,8 +65,7 @@ module.exports.registerAnalysisHandlers = () => {
   // Guardar histórico de preguntas
   ipcMain.handle('save-question-history', async (event, recordingId, qa) => {
     try {
-      // recordingId es el nombre de la carpeta física (folderName)
-      const folderName = recordingId;
+      const folderName = await getFolderPathFromId(recordingId);
       const baseOutputDir = await getRecordingsPath();
       const analysisDir = path.join(baseOutputDir, folderName, 'analysis');
       
@@ -98,7 +97,7 @@ module.exports.registerAnalysisHandlers = () => {
   // Actualizar la última entrada del histórico (reemplaza respuesta null por la real)
   ipcMain.handle('update-last-question-history', async (event, recordingId, qa) => {
     try {
-      const folderName = recordingId;
+      const folderName = await getFolderPathFromId(recordingId);
       const baseOutputDir = await getRecordingsPath();
       const filePath = path.join(baseOutputDir, folderName, 'analysis', 'questions_history.json');
 
@@ -128,8 +127,7 @@ module.exports.registerAnalysisHandlers = () => {
   // Obtener histórico de preguntas
   ipcMain.handle('get-question-history', async (event, recordingId) => {
     try {
-      // recordingId es el nombre de la carpeta física (folderName)
-      const folderName = recordingId;
+      const folderName = await getFolderPathFromId(recordingId);
       const baseOutputDir = await getRecordingsPath();
       const filePath = path.join(baseOutputDir, folderName, 'analysis', 'questions_history.json');
       
@@ -154,8 +152,7 @@ module.exports.registerAnalysisHandlers = () => {
   ipcMain.handle('clear-question-history', async (event, recordingId) => {
     console.log(`[Main] clear-question-history: Solicitud recibida. ID: ${recordingId}`);
     try {
-      // recordingId es el nombre de la carpeta física (folderName)
-      const folderName = recordingId;
+      const folderName = await getFolderPathFromId(recordingId);
       const baseOutputDir = await getRecordingsPath();
       const analysisDir = path.join(baseOutputDir, folderName, 'analysis');
       const filePath = path.join(analysisDir, 'questions_history.json');

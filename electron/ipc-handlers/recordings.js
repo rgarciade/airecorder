@@ -4,6 +4,7 @@ const path = require('path');
 const dbService = require('../database/dbService');
 const speakerManager = require('../services/speakerManager');
 const diarizationService = require('../services/diarizationService');
+const { resolveSpeakersInText } = require('../services/speakerResolver');
 const { getRecordingsPath, getFolderPathFromId, settingsPath } = require('../utils/paths');
 
 module.exports.registerRecordingsHandlers = () => {
@@ -238,7 +239,9 @@ module.exports.registerRecordingsHandlers = () => {
         return { success: false, error: 'Archivo TXT no encontrado' };
       }
       const txtData = await fs.promises.readFile(txtPath, 'utf8');
-      return { success: true, text: txtData };
+      const numericId = dbService.getRecording(folderName)?.id;
+      const resolvedText = resolveSpeakersInText(numericId, txtData, dbService);
+      return { success: true, text: resolvedText };
     } catch (error) {
       console.error('Error leyendo TXT de transcripción:', error);
       return { success: false, error: error.message };
