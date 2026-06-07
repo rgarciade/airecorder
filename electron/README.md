@@ -507,6 +507,21 @@ Desde Phase 5, `get-transcription` (`ipc-handlers/recordings.js`) incluye la res
 
 El campo `speakerResolution` es `{}` si no existe `diarization.json` o no tiene `speaker_embeddings`. `_pendingSuggestions` es un array vacío `[]` si no hay sugerencias pendientes.
 
+#### `get-transcription-txt` — resolución de nombres de hablantes (issue #64)
+
+El handler `get-transcription-txt` (`ipc-handlers/recordings.js`) aplica resolución de nombres antes de retornar el texto plano al renderer. Los tokens de diarización (`SPEAKER_XX`) se sustituyen por sus `display_name` persistidos en BD sin modificar el archivo en disco.
+
+| Canal IPC | Payload | Respuesta |
+|-----------|---------|-----------|
+| `get-transcription-txt` | `recordingId` | `{ success: true, text: string }` — `text` contiene nombres legibles en lugar de `SPEAKER_XX` cuando existen resoluciones en BD |
+
+**Comportamiento:**
+- Llama a `dbService.getRecording(folderName)` para obtener el `id` numérico de la grabación.
+- Invoca `resolveSpeakersInText(numericId, txtData, dbService)` (`electron/services/speakerResolver.js`).
+- Si no existen resoluciones (`null`) o el mapa está vacío, retorna el texto crudo sin cambios.
+- El archivo `transcripcion_combinada.txt` en disco nunca es modificado.
+- Las resoluciones se leen frescas de BD en cada llamada (sin caché en memoria).
+
 #### `confirm-speaker-suggestion` (Phase 6 — confirmación manual)
 
 | Canal IPC | Payload | Respuesta |
