@@ -724,7 +724,6 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         }
 
         let systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, chatSystemPrompt(context || 'No context available.', uiLanguage, docContext));
-        if (schemaContext) systemContent += `\n\n${schemaContext}`;
         sentCharsEstimate = systemContent.length;
 
         const attachmentTokens = attachmentImages.length * 256;

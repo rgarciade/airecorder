@@ -381,7 +381,12 @@ class ProjectAiService {
       // 2a. Modo RAG V2 — system prompt con chunks + historial completo nativo
       if (allChunks.length > 0) {
         console.log(`[ProjectAI V2] RAG: ${allChunks.length} chunks de ${recordingIds.length} grabaciones`);
-        const systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, projectRagSystemPrompt(allChunks, options.extraContext || ''));
+
+        // Inject schemas from all recordings as additional context
+        const schemasBlock = await this._buildSchemasContext(recordingIds, recordingTitles);
+
+        let systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, projectRagSystemPrompt(allChunks, options.extraContext || ''));
+        if (schemasBlock) systemContent += `\n\n${schemasBlock}`;
         const historyMessages = mapHistoryToMessages(chatHistory);
         const messages = [
           { role: 'system', content: systemContent },
@@ -547,6 +552,41 @@ class ProjectAiService {
   async regenerateAnalysis(projectId) {
     this.analysisCache.delete(projectId);
     return this._ensureAnalysis(projectId, true);
+  }
+
+  async _buildSchemasContext(recordingIds, recordingTitles = {}) {
+    const formatTs = (s) => {
+      const t = Math.floor(s);
+      return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+    };
+    function renderNodes(nodes, depth) {
+      const indent = '  '.repeat(depth);
+      return (nodes || []).flatMap(n => {
+        const ts = n.start != null ? ` [${formatTs(n.start)}]` : '';
+        const line = `${indent}- ${n.label || n.title || ''}${ts}`;
+        return [line, ...renderNodes(n.children || n.items || [], depth + 1)];
+      });
+    }
+
+    const blocks = [];
+    for (const recId of recordingIds) {
+      try {
+        const result = await window.electronAPI.getRecordingSchema(recId);
+        if (!result?.success || !result.schema?.branches?.length) continue;
+        const title = recordingTitles[recId] || recId;
+        const lines = [`## ${title}`];
+        for (const branch of result.schema.branches) {
+          lines.push(`### ${branch.title}`);
+          lines.push(...renderNodes(branch.children || branch.items || [], 0));
+        }
+        blocks.push(lines.join('\n'));
+      } catch {
+        // Recording has no schema — skip silently
+      }
+    }
+
+    if (!blocks.length) return '';
+    return `--- MEETING SCHEMAS / MIND-MAPS ---\n${blocks.join('\n\n')}\n--- END SCHEMAS ---`;
   }
 }
 

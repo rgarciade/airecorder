@@ -119,53 +119,32 @@ const SchemaMindMap = forwardRef(function SchemaMindMap({ branches = [], onSeek 
   }, [onSeek]);
 
   useImperativeHandle(ref, () => ({
-    exportPng(filename = 'esquema.png') {
+    async exportPng(filename = 'esquema.png') {
       const svg = svgRef.current;
       if (!svg) return;
 
-      const clone = svg.cloneNode(true);
-      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-
-      let w, h;
+      // markmap uses foreignObject for text — XMLSerializer + canvas fails silently.
+      // Use Electron's native capturePage instead: screenshot the exact SVG bounding rect.
+      const rect = svg.getBoundingClientRect();
       try {
-        const bbox = svg.getBBox();
-        w = bbox.width || svg.clientWidth || 1100;
-        h = bbox.height || svg.clientHeight || 600;
-      } catch {
-        w = svg.clientWidth || 1100;
-        h = svg.clientHeight || 600;
+        const result = await window.electronAPI.captureAreaPng({
+          x: rect.left,
+          y: rect.top,
+          width: rect.width,
+          height: rect.height,
+        });
+        if (!result.success) throw new Error(result.error);
+
+        const blob = new Blob([result.buffer], { type: 'image/png' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } catch (err) {
+        console.error('[exportPng] Error:', err);
       }
-      clone.setAttribute('width', w);
-      clone.setAttribute('height', h);
-
-      const serializer = new XMLSerializer();
-      const svgStr = serializer.serializeToString(clone);
-      const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-
-      const img = new Image();
-      img.onload = () => {
-        const scale = 2;
-        const canvas = document.createElement('canvas');
-        canvas.width = w * scale;
-        canvas.height = h * scale;
-        const ctx = canvas.getContext('2d');
-        ctx.scale(scale, scale);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, w, h);
-        ctx.drawImage(img, 0, 0);
-        URL.revokeObjectURL(url);
-
-        canvas.toBlob((pngBlob) => {
-          const a = document.createElement('a');
-          a.href = URL.createObjectURL(pngBlob);
-          a.download = filename;
-          a.click();
-          setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-        }, 'image/png');
-      };
-      img.onerror = () => URL.revokeObjectURL(url);
-      img.src = url;
     }
   }));
 
