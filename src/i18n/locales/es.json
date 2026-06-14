@@ -539,7 +539,9 @@
     "noTranscription": "Se necesita la transcripción para generar el esquema.",
     "seekTo": "Ir al minuto {{time}}",
     "generateError": "No se pudo generar el esquema. Intentá de nuevo.",
-    "tabLabel": "Esquema"
+    "tabLabel": "Esquema",
+    "viewOutline": "Vista de lista",
+    "viewMindmap": "Vista de mapa mental"
   },
   "recordingDetail": {
     "overview": {

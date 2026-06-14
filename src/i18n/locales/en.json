@@ -542,7 +542,9 @@
     "noTranscription": "A transcription is required to generate the outline.",
     "seekTo": "Jump to {{time}}",
     "generateError": "Could not generate the outline. Please try again.",
-    "tabLabel": "Outline"
+    "tabLabel": "Outline",
+    "viewOutline": "List view",
+    "viewMindmap": "Mind-map view"
   },
   "participantsList": {
     "title": "Participants",
