@@ -71,6 +71,43 @@ ipcMain.handle('mi-evento', async (event, params) => {
 *   **Puente Seguro:** `preload.js` expone de forma segura (Context Bridge) las funciones necesarias al renderizador, mapeándolas con `ipcRenderer.invoke()`.
 *   **Backend al React:** El backend puede enviar eventos no solicitados (como actualizaciones de estado de transcripción) utilizando `win.webContents.send('evento-nombre', datos)`. El frontend debe tener listeners (ej. `window.electronAPI.onQueueUpdate()`).
 
+### IPC: Wiki de Proyecto
+
+Se añadió un nuevo handler `electron/ipc-handlers/wiki.js` y una API segura en `preload.js` bajo `window.electronAPI.wiki`.
+
+| Canal IPC | Payload | Respuesta |
+|-----------|---------|-----------|
+| `wiki:list-pages` | `projectId` | `{ success: true, pages: WikiPage[] }` |
+| `wiki:create-page` | `{ project_id, title, slug? }` | `{ success: true, page }` |
+| `wiki:update-page` | `id, { title, slug, content_md }` | `{ success: true, page }` |
+| `wiki:delete-page` | `id` | `{ success: true }` |
+| `wiki:generate-starter-page` | `projectId, { language, projectName? }` | `{ success: true, page }` \| `{ success: true, skipped: true }` \| `{ success: true, error: 'no_analysis' }` |
+
+Métodos expuestos en preload:
+
+```js
+window.electronAPI.wiki = {
+  listPages(projectId),
+  createPage(data),
+  updatePage(id, data),
+  deletePage(id),
+  generateStarterPage(projectId, options),
+}
+```
+
+### Bundle budget (NFR-WIKI-004)
+
+Medición realizada con `npm run build` (2026-06-14):
+
+- `dist/assets/index-BG7mzrvb.js` → **660.69 kB gzip**
+- `dist/assets/index-C3wqrVIJ.css` → **57.78 kB gzip**
+
+Observaciones:
+
+- El código de Wiki (incluyendo `@uiw/react-md-editor`) está dentro del chunk principal `index-BG7mzrvb.js`.
+- No hay chunk lazy dedicado para el editor en el build actual.
+- Por lo tanto, el incremento atribuible a Wiki no puede aislarse con precisión desde este build monolítico; el límite de **100 kB gzip** para la feature queda **en riesgo / no demostrable** y debe tratarse como **NFR no verificado (potencial FAIL)** hasta separar el editor en carga diferida.
+
 ### Captura de Audio del Sistema (`electron-audio-loopback`)
 
 La captura de audio del sistema usa el paquete `electron-audio-loopback` (requiere Electron >= 31). Este paquete evita la necesidad del permiso de "Grabación de pantalla" en macOS:
@@ -101,6 +138,27 @@ La captura de audio del sistema usa el paquete `electron-audio-loopback` (requie
     *   `init(dbPath)` — abre/crea la BD en la ruta indicada y registra `this.dbPath`.
     *   `close()` — cierra la conexión actual (necesario antes de cambiar la ruta en caliente).
     *   `getCurrentPath()` — devuelve la ruta activa de la BD.
+
+### Tabla `project_wiki_pages`
+
+Tabla para páginas Markdown de wiki por proyecto.
+
+| Columna | Tipo | Restricción |
+|---------|------|-------------|
+| `id` | INTEGER | `PRIMARY KEY AUTOINCREMENT` |
+| `project_id` | INTEGER | `NOT NULL`, FK a `projects(id)` con `ON DELETE CASCADE` |
+| `slug` | TEXT | `NOT NULL` |
+| `title` | TEXT | `NOT NULL` |
+| `content_md` | TEXT | `DEFAULT ''` |
+| `source_recording_ids` | TEXT | `DEFAULT '[]'` (JSON en texto) |
+| `version` | INTEGER | `DEFAULT 1` |
+| `is_verified` | INTEGER | `DEFAULT 0` |
+| `created_at` | TEXT | `DEFAULT CURRENT_TIMESTAMP` |
+| `updated_at` | TEXT | `DEFAULT CURRENT_TIMESTAMP` |
+
+Restricciones extra:
+- `UNIQUE(project_id, slug)`
+- FK `project_id -> projects(id)` con borrado en cascada
 
 ### Almacenamiento Dual (Dual Storage)
 El sistema guarda metadatos en la base de datos (ID, duración, estados), pero el contenido pesado (archivos WAV, archivos JSON de los resúmenes de IA, transcripciones txt) reside en el sistema de archivos (Filesystem).
