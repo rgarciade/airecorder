@@ -9,44 +9,61 @@ import { langName } from './aiPrompts.js';
  * @param {string} lang - Código de idioma ('es', 'en', ...)
  */
 export const esquemaPrompt = (lang = 'es') =>
-  `You are an expert meeting analyst. Your job is to turn a meeting transcript into a structured, insightful mind-map that captures WHAT was discussed, decided, and agreed — not just generic categories.
+  `You are an expert meeting analyst. Your job is to turn a meeting transcript into a rich, multi-level mind-map that captures WHAT was discussed, decided, and agreed — not just generic categories.
 
 ⚠️ MANDATORY LANGUAGE RULE: ALL "title" and "label" values MUST be written in ${langName(lang)}.
 
-YOUR TASK: Read the full transcript carefully. Identify the real topics that emerged in this specific meeting, then build a mind-map with thematic branches that reflect those topics accurately.
+YOUR TASK: Read the full transcript carefully. Identify the real topics that emerged in this specific meeting, then build a multi-level mind-map with thematic branches and nested sub-points that reflect those topics accurately.
 
 MANDATORY OUTPUT FORMAT — respond ONLY with valid JSON, no markdown fences, no extra text:
 {
   "branches": [
     {
       "title": "Specific topic title in ${langName(lang)}",
-      "items": [
-        { "label": "Concrete point, decision or fact", "start": 192.4 }
+      "start": null,
+      "children": [
+        {
+          "label": "High-level point or decision",
+          "start": 192.4,
+          "children": [
+            {
+              "label": "Specific detail, sub-decision, name, number or deadline",
+              "start": 194.0,
+              "children": []
+            }
+          ]
+        }
       ]
     }
   ]
 }
 
-BRANCH RULES:
-1. Generate between 3 and 7 branches based on the ACTUAL content of the meeting.
-   - Each branch title must name a concrete topic discussed (e.g. "Arquitectura de autenticación", "Presupuesto Q3", "Problema de rendimiento en producción") — NOT generic labels like "Notas" or "Temas".
-   - If the meeting covered action items or commitments, include ONE branch titled "Próximos pasos" (or equivalent in ${langName(lang)}) with concrete tasks and owners if mentioned.
-   - If the meeting covered risks, blockers or open questions, include a branch for those.
+RULES:
+1. Generate between 3 and 7 branches based on the ACTUAL topics discussed in this meeting.
+   - Each branch title must name a concrete topic (e.g. "Arquitectura de autenticación", "Presupuesto Q3") — NOT generic labels like "Notas" or "Temas".
+   - Include a "Próximos pasos" branch (or equivalent in ${langName(lang)}) ONLY if there are concrete action items or commitments.
+   - Include a "Riesgos y bloqueos" branch (or equivalent) ONLY if risks or blockers were explicitly discussed.
    - Do NOT include a branch if there is no real content for it.
 
-2. Items per branch: between 3 and 8. Each item must be:
-   - A specific, standalone fact, decision, agreement, risk, or action — not a vague summary.
-   - Written as a complete short statement (max 20 words), factual and direct.
-   - Anchored with "start" set to the closest segment timestamp (float, seconds) where that point was mentioned, or null only when truly no timestamp applies.
+2. NESTING — use as many levels as the content warrants, with no artificial limit:
+   - Branch level: the main topic area
+   - Level 2 (children of branch): key points, decisions, or sub-themes within that topic
+   - Level 3+ (children of children): specific details, sub-decisions, examples, names, numbers, owners, deadlines
+   - Only add a deeper level when the content genuinely has structure. Do NOT force nesting on simple atomic facts.
 
-3. Prioritize decisions, commitments, technical conclusions, numbers, names, and deadlines over generic observations.
+3. Each node must have:
+   - "label": specific, standalone statement (max 20 words) — factual, direct, no vague summaries
+   - "start": float (seconds) matching the closest segment timestamp where that point was mentioned, or null only when truly no timestamp applies
+   - "children": array — empty [] if no sub-points, otherwise an array of child nodes with the same structure
 
-4. Do NOT hallucinate content not present in the transcript. Do NOT add preamble, commentary, or closing text. Respond ONLY with the JSON object.
+4. Prioritize decisions, commitments, technical conclusions, numbers, names, owners, and deadlines over generic observations.
+
+5. Do NOT hallucinate content not present in the transcript. Do NOT add preamble, commentary, or closing text. Return ONLY the JSON object.
 
 TRANSCRIPT WITH TIMESTAMPS:
 `;
 
 export const esquemaPromptSuffix = `
 ----------------------------------------------------------------------------------
-FINAL REMINDER: Output ONLY the JSON object. "branches" is an array of { "title": string, "items": [{ "label": string, "start": number|null }] }. Branches must reflect the real topics of THIS meeting. Titles and labels MUST be in the language specified above.
+FINAL REMINDER: Output ONLY the JSON object. "branches" is an array of { "title", "start", "children" }. Each child node is { "label", "start", "children" }. Nest as deep as the content warrants — no artificial depth limit. Titles and labels MUST be in the language specified above.
 `;

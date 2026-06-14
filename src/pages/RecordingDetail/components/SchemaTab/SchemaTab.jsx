@@ -61,14 +61,21 @@ export default function SchemaTab({ recordingId, hasTranscription, onSeek }) {
   const handleExportMarkdown = () => {
     if (!schema) return;
     const lines = ['# Meeting Outline\n'];
+
+    function renderChildrenMd(children, depth) {
+      const indent = '  '.repeat(depth);
+      for (const child of children) {
+        const ts = child.start != null
+          ? `[${String(Math.floor(child.start / 60)).padStart(2, '0')}:${String(Math.floor(child.start) % 60).padStart(2, '0')}] `
+          : '';
+        lines.push(`${indent}- ${ts}${child.label}`);
+        if (child.children?.length) renderChildrenMd(child.children, depth + 1);
+      }
+    }
+
     for (const branch of schema.branches || []) {
       lines.push(`## ${branch.title}`);
-      for (const item of branch.items || []) {
-        const ts = item.start != null
-          ? `[${String(Math.floor(item.start / 60)).padStart(2, '0')}:${String(Math.floor(item.start) % 60).padStart(2, '0')}] `
-          : '';
-        lines.push(`- ${ts}${item.label}`);
-      }
+      renderChildrenMd(branch.children || branch.items || [], 0);
       lines.push('');
     }
     const content = lines.join('\n');
@@ -198,48 +205,62 @@ export default function SchemaTab({ recordingId, hasTranscription, onSeek }) {
 
       {schema && !generating && viewMode === 'outline' && (
         <div className={styles.outline}>
-          {(schema.branches || []).map((branch, idx) => (
-            <div key={idx} className={styles.branch}>
-              <button
-                className={styles.branchHeader}
-                onClick={() => toggleBranch(idx)}
-              >
-                <span className={styles.branchTitle}>{branch.title}</span>
-                <span className={styles.branchCount}>{branch.items?.length ?? 0}</span>
-                {collapsedBranches[idx]
-                  ? <MdExpandMore size={18} className={styles.chevron} />
-                  : <MdExpandLess size={18} className={styles.chevron} />
-                }
-              </button>
+          {(schema.branches || []).map((branch, idx) => {
+            const nodes = branch.children || branch.items || [];
 
-              {!collapsedBranches[idx] && (
-                <ul className={styles.itemList}>
-                  {(branch.items || []).map((item, iIdx) => {
-                    const ts = formatSeconds(item.start);
-                    return (
-                      <li key={iIdx} className={styles.item}>
-                        {ts !== null && (
-                          <button
-                            className={styles.seekBtn}
-                            onClick={() => onSeek?.(item.start)}
-                            title={t('schema.seekTo', { time: ts })}
-                            aria-label={t('schema.seekTo', { time: ts })}
-                          >
-                            <MdPlayArrow size={14} />
-                            <span className={styles.timestamp}>{ts}</span>
-                          </button>
-                        )}
-                        {ts === null && (
-                          <span className={styles.noTimestamp} aria-hidden="true" />
-                        )}
-                        <span className={styles.itemLabel}>{item.label}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          ))}
+            function renderItems(children, depth) {
+              return children.map((item, iIdx) => {
+                const ts = formatSeconds(item.start);
+                return (
+                  <React.Fragment key={iIdx}>
+                    <li
+                      className={styles.item}
+                      style={depth > 0 ? { paddingLeft: `${16 + depth * 20}px` } : undefined}
+                    >
+                      {ts !== null && (
+                        <button
+                          className={styles.seekBtn}
+                          onClick={() => onSeek?.(item.start)}
+                          title={t('schema.seekTo', { time: ts })}
+                          aria-label={t('schema.seekTo', { time: ts })}
+                        >
+                          <MdPlayArrow size={14} />
+                          <span className={styles.timestamp}>{ts}</span>
+                        </button>
+                      )}
+                      {ts === null && (
+                        <span className={styles.noTimestamp} aria-hidden="true" />
+                      )}
+                      <span className={styles.itemLabel}>{item.label}</span>
+                    </li>
+                    {item.children?.length > 0 && renderItems(item.children, depth + 1)}
+                  </React.Fragment>
+                );
+              });
+            }
+
+            return (
+              <div key={idx} className={styles.branch}>
+                <button
+                  className={styles.branchHeader}
+                  onClick={() => toggleBranch(idx)}
+                >
+                  <span className={styles.branchTitle}>{branch.title}</span>
+                  <span className={styles.branchCount}>{nodes.length}</span>
+                  {collapsedBranches[idx]
+                    ? <MdExpandMore size={18} className={styles.chevron} />
+                    : <MdExpandLess size={18} className={styles.chevron} />
+                  }
+                </button>
+
+                {!collapsedBranches[idx] && (
+                  <ul className={styles.itemList}>
+                    {renderItems(nodes, 0)}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
