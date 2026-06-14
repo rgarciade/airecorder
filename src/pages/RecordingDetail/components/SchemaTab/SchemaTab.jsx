@@ -21,7 +21,7 @@ export default function SchemaTab({ recordingId, hasTranscription, onSeek }) {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
   const [collapsedBranches, setCollapsedBranches] = useState({});
-  const [viewMode, setViewMode] = useState('outline'); // 'outline' | 'mindmap'
+  const [viewMode, setViewMode] = useState('mindmap'); // 'outline' | 'mindmap'
   const mindmapRef = useRef(null);
 
   const loadSchema = useCallback(async () => {

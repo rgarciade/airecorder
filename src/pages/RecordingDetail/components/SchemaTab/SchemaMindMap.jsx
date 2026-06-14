@@ -81,26 +81,41 @@ const SchemaMindMap = forwardRef(function SchemaMindMap({ branches = [], onSeek 
     }
   }, [branches]);
 
-  // Click → seek: find the closest markmap node, extract label, look up in map
+  // Click → seek + hover cursor: only on nodes with a timestamp in seekMap
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
 
-    const handleClick = (e) => {
+    const getNodeLabel = (e) => {
       const nodeEl = e.target.closest('g.markmap-node');
-      if (!nodeEl) return;
-
-      // markmap renders node text inside <text> or <foreignObject>
+      if (!nodeEl) return null;
       const textEl = nodeEl.querySelector('text') || nodeEl.querySelector('foreignObject');
-      if (!textEl) return;
+      if (!textEl) return null;
+      return labelFromNodeText(textEl.textContent || '');
+    };
 
-      const label = labelFromNodeText(textEl.textContent || '');
+    const handleClick = (e) => {
+      const label = getNodeLabel(e);
+      if (label == null) return;
       const seconds = seekMapRef.current.get(label);
       if (seconds != null) onSeek?.(seconds);
     };
 
+    const handleMouseOver = (e) => {
+      const label = getNodeLabel(e);
+      svg.style.cursor = (label != null && seekMapRef.current.has(label)) ? 'pointer' : 'default';
+    };
+
+    const handleMouseOut = () => { svg.style.cursor = 'default'; };
+
     svg.addEventListener('click', handleClick);
-    return () => svg.removeEventListener('click', handleClick);
+    svg.addEventListener('mouseover', handleMouseOver);
+    svg.addEventListener('mouseout', handleMouseOut);
+    return () => {
+      svg.removeEventListener('click', handleClick);
+      svg.removeEventListener('mouseover', handleMouseOver);
+      svg.removeEventListener('mouseout', handleMouseOut);
+    };
   }, [onSeek]);
 
   useImperativeHandle(ref, () => ({
