@@ -541,7 +541,9 @@
     "generateError": "No se pudo generar el esquema. Intentá de nuevo.",
     "tabLabel": "Esquema",
     "viewOutline": "Vista de lista",
-    "viewMindmap": "Vista de mapa mental"
+    "viewMindmap": "Vista de mapa mental",
+    "exportMarkdown": "Exportar como Markdown",
+    "exportPng": "Exportar como PNG (activar vista mapa mental primero)"
   },
   "recordingDetail": {
     "overview": {

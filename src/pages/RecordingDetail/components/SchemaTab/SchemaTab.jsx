@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MdPlayArrow, MdAutoAwesome, MdRefresh, MdExpandMore, MdExpandLess, MdViewList, MdAccountTree } from 'react-icons/md';
+import { MdPlayArrow, MdAutoAwesome, MdRefresh, MdExpandMore, MdExpandLess, MdViewList, MdAccountTree, MdDownload } from 'react-icons/md';
 import recordingAiService from '../../../../services/recordingAiService';
 import recordingsService from '../../../../services/recordingsService';
 import SchemaMindMap from './SchemaMindMap';
@@ -22,6 +22,7 @@ export default function SchemaTab({ recordingId, hasTranscription, onSeek }) {
   const [error, setError] = useState(null);
   const [collapsedBranches, setCollapsedBranches] = useState({});
   const [viewMode, setViewMode] = useState('outline'); // 'outline' | 'mindmap'
+  const mindmapRef = useRef(null);
 
   const loadSchema = useCallback(async () => {
     setLoading(true);
@@ -54,6 +55,35 @@ export default function SchemaTab({ recordingId, hasTranscription, onSeek }) {
       setError(err.message);
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleExportMarkdown = () => {
+    if (!schema) return;
+    const lines = ['# Meeting Outline\n'];
+    for (const branch of schema.branches || []) {
+      lines.push(`## ${branch.title}`);
+      for (const item of branch.items || []) {
+        const ts = item.start != null
+          ? `[${String(Math.floor(item.start / 60)).padStart(2, '0')}:${String(Math.floor(item.start) % 60).padStart(2, '0')}] `
+          : '';
+        lines.push(`- ${ts}${item.label}`);
+      }
+      lines.push('');
+    }
+    const content = lines.join('\n');
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'esquema.md';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const handleExportPng = () => {
+    if (mindmapRef.current) {
+      mindmapRef.current.exportPng('esquema.png');
     }
   };
 
@@ -95,6 +125,23 @@ export default function SchemaTab({ recordingId, hasTranscription, onSeek }) {
                   <MdAccountTree size={16} />
                 </button>
               </div>
+              <button
+                className={styles.regenerateBtn}
+                onClick={handleExportMarkdown}
+                title={t('schema.exportMarkdown')}
+              >
+                <MdDownload size={15} />
+                .md
+              </button>
+              <button
+                className={styles.regenerateBtn}
+                onClick={handleExportPng}
+                title={t('schema.exportPng')}
+                disabled={viewMode !== 'mindmap'}
+              >
+                <MdDownload size={15} />
+                .png
+              </button>
               <button
                 className={styles.regenerateBtn}
                 onClick={handleGenerate}
@@ -142,6 +189,7 @@ export default function SchemaTab({ recordingId, hasTranscription, onSeek }) {
 
       {schema && !generating && viewMode === 'mindmap' && (
         <SchemaMindMap
+          ref={mindmapRef}
           branches={schema.branches || []}
           title=""
           onSeek={onSeek}
