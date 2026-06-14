@@ -470,7 +470,47 @@
     "unassignTitle": "Unassign from Project?",
     "unassignConfirm": "Are you sure you want to unassign \"{{recordingName}}\" from project \"{{projectName}}\"?",
     "unassign": "Unassign",
-    "page": "Page {{current}} de {{total}}"
+    "page": "Page {{current}} de {{total}}",
+    "wiki": {
+      "tab": "Wiki",
+      "emptyState": {
+        "title": "No pages yet",
+        "description": "Start documenting the project.",
+        "createFirst": "Create first page"
+      },
+      "list": {
+        "newPage": "New page",
+        "deleteConfirm": "Delete this page?"
+      },
+      "editor": {
+        "save": "Save",
+        "cancel": "Cancel",
+        "titlePlaceholder": "Page title",
+        "errorBanner": "Error saving page",
+        "dismiss": "Dismiss",
+        "close": "Close editor",
+        "closeConfirmTitle": "Unsaved changes",
+        "closeConfirmMessage": "You have unsaved changes on this page. Close anyway?",
+        "closeConfirmDiscard": "Yes, discard",
+        "closeConfirmKeep": "Keep editing"
+      },
+      "viewer": {
+        "edit": "Edit",
+        "verified": "Verified",
+        "unverified": "Unverified"
+      },
+      "generation": {
+        "title": "Generating project summary…",
+        "error": "Could not generate the starter page. Try again or create one manually.",
+        "retry": "Retry",
+        "createManually": "Create manually",
+        "defaultTitle": "Project summary"
+      },
+      "page": {
+        "verified": "Verified",
+        "lastEdited": "Last edited"
+      }
+    }
   },
   "recordingDetail": {
     "overview": {
