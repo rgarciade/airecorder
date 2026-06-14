@@ -57,10 +57,11 @@ La pestaña principal donde configuras el motor de IA.
 | **Hilos CPU** | Núcleos usados para transcribir. Más hilos = más rápido, pero consume más CPU. |
 | **Auto-transcripción** | Si está activo, al detener una grabación se lanza la transcripción automáticamente. |
 | **Auto-análisis IA** | Si está activo, tras la transcripción se generan automáticamente resumen, tareas y puntos clave. Requiere IA configurada. |
+| **Auto-generar Esquema** | Si está activo, al completar el análisis IA se genera el esquema/mind-map automáticamente (si no existe). Requiere auto-análisis activo. |
 
 ::: tip Flujo automático completo
 Con **Auto-transcripción** + **Auto-análisis IA** activados: grabas → detienes → la IA transcribe y analiza todo sin que toques nada más.
-:::
+::: 
 
 ### Diarización de Interlocutores ⚡ Experimental
 
@@ -115,6 +116,7 @@ La pestaña Experts permite configurar prompts personalizados y ajustes avanzado
 
 ## Ver también
 
+- [Esquema](/guide/schema) — Mind-map interactivo generado por IA
 - [IA Local](/guide/local-ai) — Configurar Ollama o LM Studio
 - [Diarización](/reference/diarization) — Detalles técnicos del reconocimiento de hablantes
 - [Sistema RAG](/reference/rag) — Cómo funciona la búsqueda semántica

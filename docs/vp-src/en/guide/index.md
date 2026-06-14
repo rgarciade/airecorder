@@ -14,6 +14,7 @@ New to AIRecorder? Start here:
 - **[Record Audio](/en/guide/recording)** - Set up your audio sources and start recording
 - **[Transcription](/en/guide/transcription)** - Convert your audio to editable text
 - **[AI Chat](/en/guide/chat)** - Ask questions about your recordings
+- **[Schema](/en/guide/schema)** - AI-generated interactive mind-map
 
 ## Main Features
 
@@ -22,8 +23,9 @@ New to AIRecorder? Start here:
 | **Recording** | Microphone and system audio |
 | **Transcription** | Local or cloud Whisper |
 | **RAG Chat** | Conversational AI with your audio |
+| **Schema** | Interactive mind-map with timestamps |
 | **Diarization** | Speaker identification |
-| **Export** | PDF, DOCX, TXT, JSON |
+| **Export** | PDF, DOCX, TXT, JSON, MD, PNG |
 
 ## Frequently Asked Questions
 

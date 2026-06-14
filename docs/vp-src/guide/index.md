@@ -14,6 +14,7 @@ Bienvenido a la documentación de AIRecorder. Aquí encontrarás todo lo que nec
 - **[Grabar Audio](/guide/recording)** - Configura tus fuentes de audio y comienza a grabar
 - **[Transcripción](/guide/transcription)** - Convierte tu audio en texto editable
 - **[Chat IA](/guide/chat)** - Haz preguntas sobre tus grabaciones
+- **[Esquema](/guide/schema)** - Mind-map interactivo generado por IA
 
 ## Funciones Principales
 
@@ -22,8 +23,9 @@ Bienvenido a la documentación de AIRecorder. Aquí encontrarás todo lo que nec
 | **Grabación** | Audio del micrófono y sistema |
 | **Transcripción** | Whisper local o en la nube |
 | **Chat RAG** | IA conversacional con tu audio |
+| **Esquema** | Mind-map interactivo con timestamps |
 | **Diarización** | Identificación de hablantes |
-| **Exportación** | PDF, DOCX, TXT, JSON |
+| **Exportación** | PDF, DOCX, TXT, JSON, MD, PNG |
 
 ## Preguntas Frecuentes
 

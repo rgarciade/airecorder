@@ -26,8 +26,9 @@ AIRecorder includes a chat assistant that can answer questions about your transc
 When you ask a question, AIRecorder:
 
 1. **Searches** the most relevant fragments of your transcription using embeddings
-2. **Sends** those fragments along with your question to the AI model
-3. **Responds** based solely on your audio content
+2. **Adds the schema** of the recording (if it exists) as additional context about the overall structure
+3. **Sends** the fragments, the schema, and your question to the AI model
+4. **Responds** based on your audio content
 
 ::: warning
 The chat needs an AI provider configured. Check [Local AI](/en/guide/local-ai) to set up Ollama or LM Studio.
@@ -43,5 +44,6 @@ In **Settings > AI Agents** you can configure:
 
 ## See also
 
+- [Schema](/en/guide/schema) - Interactive recording mind-map
 - [Transcription](/en/guide/transcription) - Generate transcriptions
 - [RAG (Technical Reference)](/en/reference/rag) - How the system works

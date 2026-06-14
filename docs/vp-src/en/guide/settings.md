@@ -57,10 +57,11 @@ The main tab where you configure the AI engine.
 | **CPU threads** | Cores used for transcription. More threads = faster, but uses more CPU. |
 | **Auto-transcription** | If enabled, transcription starts automatically when you stop recording. |
 | **Auto AI-analysis** | If enabled, summary, tasks, and key points are generated automatically after transcription. Requires configured AI. |
+| **Auto-Generate Schema** | If enabled, after the initial AI analysis completes, the schema/mind-map is generated automatically (if it doesn't exist). Requires auto-analysis enabled. |
 
 ::: tip Full automatic flow
 With **Auto-transcription** + **Auto AI-analysis** enabled: record → stop → AI transcribes and analyzes everything without you touching anything else.
-:::
+::: 
 
 ### Speaker Diarization ⚡ Experimental
 
@@ -115,6 +116,7 @@ The Experts tab allows configuring custom prompts and advanced AI settings. (Thi
 
 ## See also
 
+- [Schema](/en/guide/schema) — AI-generated interactive mind-map
 - [Local AI](/en/guide/local-ai) — Setting up Ollama or LM Studio
 - [Diarization](/en/reference/diarization) — Technical details on speaker recognition
 - [RAG System](/en/reference/rag) — How semantic search works

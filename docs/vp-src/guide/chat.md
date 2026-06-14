@@ -26,8 +26,9 @@ AIRecorder incluye un asistente de chat que puede responder preguntas sobre tus 
 Cuando haces una pregunta, AIRecorder:
 
 1. **Busca** los fragmentos más relevantes de tu transcripción usando embeddings
-2. **Envía** esos fragmentos junto con tu pregunta al modelo de IA
-3. **Responde** basándose únicamente en el contenido de tu audio
+2. **Añade el esquema** de la grabación (si existe) como contexto adicional sobre la estructura general
+3. **Envía** los fragmentos, el esquema y tu pregunta al modelo de IA
+4. **Responde** basándose en el contenido de tu audio
 
 ::: warning
 El chat necesita un proveedor de IA configurado. Consulta [IA Local](/guide/local-ai) para configurar Ollama o LM Studio.
@@ -43,5 +44,6 @@ En **Ajustes > Agentes IA** puedes configurar:
 
 ## Ver también
 
+- [Esquema](/guide/schema) - Mind-map interactivo de la grabación
 - [Transcripción](/guide/transcription) - Generar transcripciones
 - [RAG (Referencia técnica)](/reference/rag) - Cómo funciona el sistema
