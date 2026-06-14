@@ -11,6 +11,7 @@ import { AI_TASK_TYPES } from './ai/aiQueueService';
 import { cleanAiResponse, normalizeAiSummaryText, parseJsonArray, parseJsonObject } from '../utils/aiResponseParser';
 import { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt, participantsPrompt, participantsPromptSuffix, taskSuggestionsPrompt, taskSuggestionsPromptSuffix, taskImprovementSystemPrompt, taskImprovementUserContent, consolidateSummaryPrompt } from '../prompts/aiPrompts';
 import { buildSystemPrompt, FEATURE_TYPES } from './ai/promptBuilder';
+import { esquemaPrompt, esquemaPromptSuffix } from '../prompts/common/esquemaPrompts';
 
 class RecordingAiService {
   constructor() {
@@ -742,6 +743,95 @@ class RecordingAiService {
     } catch (error) {
       console.error('Error mejorando tarea:', error);
       return task;
+    }
+  }
+
+  /**
+   * Genera el esquema/mind-map de una grabación con puntos clave timestamped.
+   *
+   * Usa la transcripción con segmentos para que la IA pueda anclar cada punto
+   * al segundo exacto del audio. Si hay resumen detallado se incluye como contexto
+   * adicional para mejorar la calidad del esquema.
+   *
+   * @param {string} recordingId
+   * @param {Object} providerOverrides - Override temporal de proveedor/modelo { providerOverride, model }
+   * @returns {Promise<{branches: Array}|null>} Esquema parseado o null si falla
+   */
+  async generateEsquema(recordingId, providerOverrides = {}) {
+    try {
+      const recName = await this._getRecordingName(recordingId);
+
+      // Obtener segmentos con timestamps desde la transcripción
+      const transcription = await recordingsService.getTranscription(recordingId);
+      const segments = transcription?.segments || [];
+
+      if (segments.length === 0) {
+        throw new Error('No hay segmentos de transcripción con timestamps disponibles');
+      }
+
+      // Serializar segmentos en texto legible para la IA
+      // Formato: [HH:MM:SS] Speaker: text  — permite que la IA lea timestamps fácilmente
+      const segmentsText = segments.map(seg => {
+        const totalSecs = Math.floor(seg.start || 0);
+        const hh = String(Math.floor(totalSecs / 3600)).padStart(2, '0');
+        const mm = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0');
+        const ss = String(totalSecs % 60).padStart(2, '0');
+        const speakerPrefix = seg.speaker ? `${seg.speaker}: ` : '';
+        return `[${hh}:${mm}:${ss}|${seg.start?.toFixed(1) ?? '0.0'}s] ${speakerPrefix}${seg.text}`;
+      }).join('\n');
+
+      // Añadir resumen detallado como contexto extra si existe
+      let contextExtra = '';
+      try {
+        const summary = await this.getRecordingSummary(recordingId);
+        if (summary?.resumen_detallado && summary.resumen_detallado.length > 50) {
+          contextExtra = `\n\n--- MEETING SUMMARY (for additional context) ---\n${summary.resumen_detallado}\n--- END SUMMARY ---`;
+        }
+      } catch {
+        // Continuar sin resumen
+      }
+
+      const settings = await getSettings();
+      const lang = settings.uiLanguage || 'es';
+
+      // Respetar límite de contexto del proveedor activo
+      const maxChars = await this._calculateMaxContextChars(settings, 1000);
+      let inputText = segmentsText + contextExtra;
+      if (inputText.length > maxChars) {
+        console.warn(`⚠️ Transcripción larga para esquema (${inputText.length} > ${maxChars}). Truncando...`);
+        inputText = segmentsText.substring(0, maxChars);
+      }
+
+      const systemPrompt = await buildSystemPrompt(FEATURE_TYPES.ESQUEMA, esquemaPrompt(lang), lang);
+      const userContent = `${inputText}\n${esquemaPromptSuffix}`;
+
+      const response = await this._callAiProvider(systemPrompt, userContent, {
+        ...providerOverrides,
+        queueMeta: { name: `Esquema: ${recName}`, type: AI_TASK_TYPES.ESQUEMA },
+      });
+
+      const parsed = parseJsonObject(response.text);
+
+      if (!parsed || !Array.isArray(parsed.branches) || parsed.branches.length === 0) {
+        console.error('[generateEsquema] Respuesta IA no parseada correctamente:', response.text?.substring(0, 200));
+        return null;
+      }
+
+      // Normalizar: garantizar que start sea number o null, nunca undefined
+      const normalized = {
+        branches: parsed.branches.map(branch => ({
+          title: branch.title || '',
+          items: (branch.items || []).map(item => ({
+            label: item.label || '',
+            start: typeof item.start === 'number' ? item.start : null,
+          })),
+        })),
+      };
+
+      return normalized;
+    } catch (error) {
+      console.error('[generateEsquema] Error:', error);
+      return null;
     }
   }
 

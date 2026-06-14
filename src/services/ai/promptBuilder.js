@@ -28,6 +28,7 @@ export const FEATURE_TYPES = {
   KEY_POINTS:    'key_points',
   CHAT:          'chat',
   TASKS:         'tasks',
+  ESQUEMA:       'esquema',
 };
 
 // ── Cache de customizaciones en memoria ──────────────────────────────────────
