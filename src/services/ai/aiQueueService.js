@@ -50,6 +50,7 @@ export const AI_TASK_TYPES = {
   PROJECT_ANALYSIS: 'project-analysis',
   CHAT: 'chat',
   GENERAL: 'general',
+  ESQUEMA: 'esquema',
 };
 
 class AiQueueService {
