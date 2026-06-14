@@ -54,6 +54,30 @@ El contenido de usuario (transcripción, resumen, etc.) siempre se pasa **por se
 
 Este builder se usa exclusivamente por `src/services/noteTemplateService.js`.
 
+### Prompt para Wiki Inicial (`src/prompts/common/wikiPrompts.js`)
+
+Se agregó `wikiStarterPagePrompt(projectName, analysisContent, language)` para generar la primera página de Wiki de un proyecto.
+
+- **Cuándo se usa:** al abrir la pestaña Wiki por primera vez si el proyecto no tiene páginas y existe `projects_analysis/{projectId}.json`.
+- **Inputs:**
+  - `projectName`: nombre del proyecto
+  - `analysisContent`: JSON de análisis del proyecto (persistido previamente)
+  - `language`: idioma de UI (`es` / `en`)
+- **Output esperado:** string en Markdown (sin JSON ni bloques de código) para persistir como página “Resumen del proyecto” / “Project summary”.
+
+### Bundle size (NFR-WIKI-004)
+
+Medición de referencia (build de producción con `npm run build`, 2026-06-14):
+
+- `dist/assets/index-BG7mzrvb.js`: **660.69 kB gzip**
+- `dist/assets/index-C3wqrVIJ.css`: **57.78 kB gzip**
+
+Para la feature Wiki:
+
+- `@uiw/react-md-editor` quedó empaquetado dentro del chunk JS principal (no se generó chunk lazy específico).
+- Con este empaquetado, no se puede demostrar un delta aislado < 100 kB gzip para Wiki.
+- Estado NFR-WIKI-004: **no verificado / potencial incumplimiento** hasta aplicar lazy-loading real del editor y volver a medir.
+
 ### Reglas Críticas al Modificar Prompts
 1.  **Idioma dinámico:** Usar `langName(lang)` para que el idioma respete la configuración del usuario.
 2.  **Formato de Puntos Clave:** El prompt de puntos clave **DEBE EXIGIR** estrictamente el formato:
