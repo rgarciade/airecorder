@@ -35,6 +35,9 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
   // Floating widget state — true until user collapses it
   const [isFloatingVisible, setIsFloatingVisible] = useState(true);
 
+  // Ref always pointing to latest handleFinish — fixes stale closure in relay listener
+  const handleFinishRef = useRef(null);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setTime(prev => prev + 1);
@@ -98,7 +101,9 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
   // Listen for stop relay from floating widget
   useEffect(() => {
     if (!window.electronAPI?.onRelayStopRecording) return;
-    return window.electronAPI.onRelayStopRecording(() => handleFinish());
+    return window.electronAPI.onRelayStopRecording(() => {
+      handleFinishRef.current?.();
+    });
   }, []);
 
   // Listen for discard relay from floating widget — shows confirm dialog in main window
@@ -135,6 +140,9 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
     setNewName(defaultName);
     handleSave(defaultName);
   };
+
+  // Keep ref current on every render so relay listener always calls latest handleFinish
+  handleFinishRef.current = handleFinish;
 
   const handleSave = async (nameToSave) => {
     setShowSaveDialog(false);

@@ -9,6 +9,7 @@ const FloatingWidget = () => {
 
   const [time, setTime] = useState(initialElapsed);
   const [isMuted, setIsMuted] = useState(initialMuted);
+  const [isStopping, setIsStopping] = useState(false);
 
   useEffect(() => {
     document.documentElement.style.background = 'transparent';
@@ -45,6 +46,7 @@ const FloatingWidget = () => {
 
   const handleStop = (e) => {
     e.stopPropagation();
+    setIsStopping(true);
     window.electronAPI?.floatingStopRecording();
   };
 
@@ -73,7 +75,12 @@ const FloatingWidget = () => {
       <button className={`${styles.btn} ${styles.btnDiscard}`} onClick={handleDiscard} title="Descartar grabación">
         <MdDeleteOutline size={14} />
       </button>
-      <button className={`${styles.btn} ${styles.btnStop}`} onClick={handleStop} title="Detener y guardar">
+      <button
+        className={`${styles.btn} ${styles.btnStop}`}
+        onClick={handleStop}
+        disabled={isStopping}
+        title="Detener y guardar"
+      >
         <MdStop size={15} />
       </button>
       <button className={`${styles.btn} ${styles.btnCollapse}`} onClick={handleCollapse} title="Ocultar widget">
