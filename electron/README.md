@@ -160,6 +160,37 @@ Restricciones extra:
 - `UNIQUE(project_id, slug)`
 - FK `project_id -> projects(id)` con borrado en cascada
 
+### IPC: Esquema / Mind-Map de Grabación
+
+Dos handlers en `electron/ipc-handlers/analysis.js`. El esquema se persiste como JSON en el sistema de archivos (mismo patrón que `ai_summary.json`).
+
+| Canal IPC | Payload | Respuesta |
+|-----------|---------|-----------|
+| `save-recording-schema` | `recordingId, schema` | `{ success: true }` |
+| `get-recording-schema` | `recordingId` | `{ success: true, schema }` \| `{ success: false, error }` |
+
+Archivo en disco: `<recordings>/<folderName>/analysis/recording_schema.json`
+
+Formato del esquema:
+```json
+{
+  "branches": [
+    { "title": "Información de la reunión", "items": [ { "label": "...", "start": null } ] },
+    { "title": "Notas", "items": [ { "label": "...", "start": 192.4 } ] },
+    { "title": "Próximos pasos", "items": [ { "label": "...", "start": 750.0 } ] },
+    { "title": "Sugerencias de IA", "items": [ { "label": "...", "start": null } ] }
+  ]
+}
+```
+
+Métodos expuestos en preload:
+```js
+window.electronAPI.saveRecordingSchema(recordingId, schema)  // → Promise<{ success, error? }>
+window.electronAPI.getRecordingSchema(recordingId)           // → Promise<{ success, schema?, error? }>
+```
+
+Frontend: `src/services/recordingsService.js` expone `saveRecordingSchema(id, schema)` y `getRecordingSchema(id)`.
+
 ### Almacenamiento Dual (Dual Storage)
 El sistema guarda metadatos en la base de datos (ID, duración, estados), pero el contenido pesado (archivos WAV, archivos JSON de los resúmenes de IA, transcripciones txt) reside en el sistema de archivos (Filesystem).
 *   *Importante:* El ID de la grabación (`recordingId`) en la base de datos es numérico. En el disco, las carpetas de las grabaciones usan strings (`relative_path`). La función `getFolderPathFromId()` se utiliza para traducir el ID numérico a la ruta correcta en disco.
