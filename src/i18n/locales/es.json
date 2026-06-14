@@ -487,7 +487,47 @@
     "unassignTitle": "¿Desasignar del Proyecto?",
     "unassignConfirm": "¿Seguro que quieres desasignar \"{{recordingName}}\" del proyecto \"{{projectName}}\"?",
     "unassign": "Desasignar",
-    "page": "Página {{current}} de {{total}}"
+    "page": "Página {{current}} de {{total}}",
+    "wiki": {
+      "tab": "Wiki",
+      "emptyState": {
+        "title": "No hay páginas todavía",
+        "description": "Empezá a documentar el proyecto.",
+        "createFirst": "Crear primera página"
+      },
+      "list": {
+        "newPage": "Nueva página",
+        "deleteConfirm": "¿Eliminar esta página?"
+      },
+      "editor": {
+        "save": "Guardar",
+        "cancel": "Cancelar",
+        "titlePlaceholder": "Título de la página",
+        "errorBanner": "Error al guardar la página",
+        "dismiss": "Cerrar",
+        "close": "Cerrar editor",
+        "closeConfirmTitle": "Cambios sin guardar",
+        "closeConfirmMessage": "Tenés cambios sin guardar en esta página. ¿Cerrar de todos modos?",
+        "closeConfirmDiscard": "Sí, descartar",
+        "closeConfirmKeep": "Seguir editando"
+      },
+      "viewer": {
+        "edit": "Editar",
+        "verified": "Verificada",
+        "unverified": "Sin verificar"
+      },
+      "generation": {
+        "title": "Generando resumen del proyecto…",
+        "error": "No se pudo generar la página inicial. Probá de nuevo o creá una manualmente.",
+        "retry": "Reintentar",
+        "createManually": "Crear manualmente",
+        "defaultTitle": "Resumen del proyecto"
+      },
+      "page": {
+        "verified": "Verificado",
+        "lastEdited": "Última edición"
+      }
+    }
   },
   "recordingDetail": {
     "overview": {
