@@ -73,6 +73,24 @@ class DbService {
       this.speakers.init();
       this.integrations.init();
 
+      // ── Project Wiki Pages ───────────────────────────────────────────────────
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS project_wiki_pages (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          project_id INTEGER NOT NULL,
+          slug TEXT NOT NULL,
+          title TEXT NOT NULL,
+          content_md TEXT DEFAULT '',
+          source_recording_ids TEXT DEFAULT '[]',
+          version INTEGER DEFAULT 1,
+          is_verified INTEGER DEFAULT 0,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+          UNIQUE(project_id, slug)
+        );
+      `);
+
       // ── Expert Customizations ───────────────────────────────────────────────
       this.db.exec(expertQueries.CREATE_TABLE_EXPERT_CUSTOMIZATIONS);
 
