@@ -529,6 +529,18 @@
       }
     }
   },
+  "schema": {
+    "title": "Esquema",
+    "generate": "Generar esquema",
+    "regenerate": "Regenerar",
+    "generating": "Generando esquema...",
+    "loading": "Cargando esquema...",
+    "empty": "Aún no hay esquema para esta grabación.",
+    "noTranscription": "Se necesita la transcripción para generar el esquema.",
+    "seekTo": "Ir al minuto {{time}}",
+    "generateError": "No se pudo generar el esquema. Intentá de nuevo.",
+    "tabLabel": "Esquema"
+  },
   "recordingDetail": {
     "overview": {
       "detailedSummary": "Resumen Detallado",

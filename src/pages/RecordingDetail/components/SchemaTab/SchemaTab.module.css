@@ -1,0 +1,244 @@
+.container {
+  padding: 24px;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.headerActions {
+  display: flex;
+  gap: 8px;
+}
+
+.generateBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background-color: var(--color-primary-bg);
+  border: 1px solid var(--color-primary);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.generateBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.regenerateBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background-color: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.regenerateBtn:hover:not(:disabled) {
+  background-color: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.regenerateBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── States ──────────────────────────────────────────────────────────────── */
+
+.loadingState,
+.generatingState {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  padding: 16px 0;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.emptyIcon {
+  color: var(--color-text-tertiary);
+}
+
+.emptyText {
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.emptyHint {
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+  margin: 0;
+}
+
+.errorBanner {
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  background-color: var(--color-error-bg, #fff1f0);
+  border: 1px solid var(--color-error-border, #ffccc7);
+  color: var(--color-error, #cf1322);
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+/* ── Outline ─────────────────────────────────────────────────────────────── */
+
+.outline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.branch {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.branchHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  background-color: var(--color-surface-secondary);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s;
+}
+
+.branchHeader:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.branchTitle {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.branchCount {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+  background-color: var(--color-surface-tertiary, var(--color-border));
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+.chevron {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.itemList {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color 0.15s;
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.item:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.seekBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  background-color: var(--color-primary-bg);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s;
+  white-space: nowrap;
+}
+
+.seekBtn:hover {
+  background-color: var(--color-primary);
+  color: #fff;
+}
+
+.timestamp {
+  font-variant-numeric: tabular-nums;
+}
+
+.noTimestamp {
+  display: inline-block;
+  width: 56px;
+  flex-shrink: 0;
+}
+
+.itemLabel {
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  line-height: 1.4;
+}

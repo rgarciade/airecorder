@@ -24,6 +24,7 @@ import TranscriptionChatTab from './components/TranscriptionChatTab/Transcriptio
 import EpicsTab from './components/EpicsTab/EpicsTab';
 import AttachmentsTab from './components/AttachmentsTab/AttachmentsTab';
 import NotesTab from './components/NotesTab/NotesTab';
+import SchemaTab from './components/SchemaTab/SchemaTab';
 import AIErrorModal from '../../components/AIErrorModal/AIErrorModal';
 import TemplateSelectorModal from '../../components/templates/TemplateSelectorModal';
 import { getAttachments, pickAndAddAttachment, readAttachmentContent, estimateAttachmentTokens, savePastedText } from '../../services/attachmentsService';
@@ -1336,6 +1337,13 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
   };
 
+  // --- SCHEMA HANDLERS ---
+
+  const handleSeekToTranscription = (seconds) => {
+    setInitialSeekSeconds(seconds);
+    setActiveTab('transcription');
+  };
+
   // --- TEMPLATE HANDLERS ---
 
   const handleOpenTemplateModal = () => {
@@ -1672,6 +1680,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         >
           Notas
         </button>
+        <button
+          className={`${styles.tabButton} ${activeTab === 'schema' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('schema')}
+        >
+          Esquema
+        </button>
       </nav>
 
       {/* Main Content */}
@@ -1775,6 +1789,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             key={`notes-${currentRecordingDbId}-${notesTabRefresh}`}
             recordingId={currentRecordingDbId}
             onGenerateClick={handleOpenTemplateModal}
+          />
+        )}
+        {activeTab === 'schema' && (
+          <SchemaTab
+            key={`schema-${currentRecordingDbId}`}
+            recordingId={currentRecordingDbId}
+            hasTranscription={!!transcription}
+            onSeek={handleSeekToTranscription}
           />
         )}
       </div>
