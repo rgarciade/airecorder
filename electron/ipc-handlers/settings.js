@@ -26,7 +26,9 @@ module.exports.registerSettingsHandlers = () => {
   // Manejador para guardar configuración
   ipcMain.handle('save-settings', async (event, settings) => {
     try {
-      await fs.promises.writeFile(settingsPath, JSON.stringify(settings, null, 2));
+      const tmpPath = settingsPath + '.tmp';
+      await fs.promises.writeFile(tmpPath, JSON.stringify(settings, null, 2));
+      await fs.promises.rename(tmpPath, settingsPath);
       notificationService.updateSettings(settings); // Actualizar servicio en vivo
       
       // Actualizar la ruta base del transcriptionManager al vuelo
@@ -52,6 +54,10 @@ module.exports.registerSettingsHandlers = () => {
       return { success: true, settings: null };
     } catch (error) {
       console.error('Error loading settings:', error);
+      try {
+        fs.renameSync(settingsPath, settingsPath + '.corrupt.bak');
+        console.warn('[Settings] settings.json corrupto — renombrado a .corrupt.bak para regenerar');
+      } catch {}
       return { success: false, error: error.message };
     }
   });
@@ -103,7 +109,9 @@ module.exports.registerSettingsHandlers = () => {
         } catch (_) {}
       }
       settings.databasePath = newPath;
-      fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+      const tmpPath = settingsPath + '.tmp';
+      fs.writeFileSync(tmpPath, JSON.stringify(settings, null, 2));
+      fs.renameSync(tmpPath, settingsPath);
 
       // Actualizar flag de fallback — ya no usamos fallback
       global.usingFallbackDb = false;

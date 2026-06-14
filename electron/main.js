@@ -43,6 +43,9 @@ const { registerSystemHandlers } = require('./ipc-handlers/system');
 const { registerAttachmentsHandlers } = require('./ipc-handlers/attachments');
 const { registerExpertsHandlers } = require('./ipc-handlers/experts');
 const { registerSpeakersHandlers } = require('./ipc-handlers/speakers');
+const { registerTemplatesHandlers } = require('./ipc-handlers/templates');
+const { registerWikiHandlers } = require('./ipc-handlers/wiki');
+const { registerFloatingHandlers } = require('./ipc-handlers/floating');
 
 // ========================================
 // 1.5 REDIRIGIR LOGS DEL MAIN AL RENDERER (DevTools)
@@ -117,6 +120,8 @@ function registerIpcHandlers() {
   registerAttachmentsHandlers();
   registerExpertsHandlers();
   registerSpeakersHandlers();
+  registerTemplatesHandlers();
+  registerWikiHandlers(ipcMain);
 }
 
 async function checkMicrophonePermission() {
@@ -300,6 +305,8 @@ async function initApp() {
     isAppRecording = recording;
   });
 
+  registerFloatingHandlers();
+
   if (process.platform === 'darwin' || process.platform === 'win32') {
     microphoneMonitor.on('activated', () => {
       if (isAppRecording) return;
@@ -320,6 +327,8 @@ function showMicNotification(mainWindow) {
   const notifOpts = {
     title: 'AIRecorder',
     body: 'Se detectó actividad en el micrófono. ¿Querés empezar a grabar?',
+    urgencyLevel: 'critical',
+    timeoutType: 'never'
   };
 
   if (supportsActions) {

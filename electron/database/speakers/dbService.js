@@ -24,7 +24,8 @@ const {
   GET_RECENT_SPEAKERS,
   GET_SPEAKERS_WITH_RECORDING_COUNT,
   GET_SPEAKER_RECORDINGS,
-  GET_SPEAKER_BY_ID
+  GET_SPEAKER_BY_ID,
+  COUNT_SPEAKER_EMBEDDINGS
 } = require('./queries');
 
 /**
@@ -402,9 +403,25 @@ class SpeakersDbService extends BaseDbService {
     }
   }
 
+/**
+    * Devuelve el número de embeddings de un hablante.
+    * @param {string} speakerId - UUID del hablante
+    * @returns {number}
+    */
+  getSpeakerEmbeddingCount(speakerId) {
+    if (!this.db || !speakerId) return 0;
+    try {
+      const row = this.db.prepare(COUNT_SPEAKER_EMBEDDINGS).get(speakerId);
+      return row?.count ?? 0;
+    } catch (error) {
+      this._log('Error getSpeakerEmbeddingCount:', error);
+      return 0;
+    }
+  }
+
   /**
-   * Devuelve el start_time del primer segmento de un hablante en una grabación,
-   * leyendo directamente del archivo transcripcion_combinada.json.
+    * Devuelve el start_time del primer segmento de un hablante en una grabación,
+    * leyendo directamente del archivo transcripcion_combinada.json.
    *
    * Flujo:
    *   1. Obtener el ephemeral_id del hablante en esa grabación desde recording_speaker_resolutions

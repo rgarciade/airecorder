@@ -5,7 +5,7 @@ import {
 import styles from '../../Settings.module.css';
 import { useSettings } from '../../SettingsContext';
 
-const WIKI_URL = 'https://rgarciade.github.io/airecorder/vp/';
+const WIKI_URL = import.meta.env.VITE_WIKI_URL || 'https://rgarciade.github.io/airecorder/vp/';
 
 export default function CloudProvidersSection() {
   const {

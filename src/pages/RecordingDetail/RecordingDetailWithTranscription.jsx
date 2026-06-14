@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSelector } from 'react-redux';
+import { selectSpeakersMap } from '../../store/slices/speakersSlice';
 import recordingsService from '../../services/recordingsService';
 import projectsService from '../../services/projectsService';
 import { getSettings, updateSettings, addSettingsListener, removeSettingsListener } from '../../services/settingsService';
@@ -14,14 +16,17 @@ import ragService from '../../services/ragService';
 import recordingAiService from '../../services/recordingAiService';
 import chatPendingService from '../../services/chatPendingService';
 import { checkModelVisionSupport } from '../../services/ai/huggingFaceService';
+import { generateFromTemplate } from '../../services/noteTemplateService';
 
 import styles from './RecordingDetail.module.css';
 import OverviewTab from './components/OverviewTab/OverviewTab';
 import TranscriptionChatTab from './components/TranscriptionChatTab/TranscriptionChatTab';
 import EpicsTab from './components/EpicsTab/EpicsTab';
 import AttachmentsTab from './components/AttachmentsTab/AttachmentsTab';
+import NotesTab from './components/NotesTab/NotesTab';
 import AIErrorModal from '../../components/AIErrorModal/AIErrorModal';
-import { getAttachments, pickAndAddAttachment, readAttachmentContent, estimateAttachmentTokens } from '../../services/attachmentsService';
+import TemplateSelectorModal from '../../components/templates/TemplateSelectorModal';
+import { getAttachments, pickAndAddAttachment, readAttachmentContent, estimateAttachmentTokens, savePastedText } from '../../services/attachmentsService';
 
 // Icons
 import { 
@@ -38,7 +43,8 @@ import {
   MdFolderOpen,
   MdTranslate,
   MdSync,
-  MdMoreVert
+  MdMoreVert,
+  MdAutoAwesome
 } from 'react-icons/md';
 
 const whisperModels = [
@@ -74,8 +80,11 @@ function parseTimestampToSeconds(ts) {
   return 0;
 }
 
-export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject }) {
+export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject, onNavigateToSettings }) {
   const persistentRecordingId = recording?.dbId ?? recording?.id ?? null;
+
+  // ── Redux: mapa de hablantes con ediciones del usuario ──
+  const reduxSpeakersMap = useSelector(selectSpeakersMap);
 
   // --- STATE MANAGEMENT ---
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'transcription' | 'tasks'
@@ -172,6 +181,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     transcription: true,
     participants: true
   });
+
+  // Template Modal
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [isGeneratingNote, setIsGeneratingNote] = useState(false);
+  const [notesTabRefresh, setNotesTabRefresh] = useState(0);
   
   // Ref para evitar indexación o generación duplicada en mount
   const isIndexingRef = useRef(false);
@@ -810,6 +824,22 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
   };
 
+  // Función pura: solo guarda el texto pegado y retorna el attachment
+  const handlePasteAttachment = async (text, filename) => {
+    return await savePastedText(recording.id, text, filename);
+  };
+
+  // Wrapper que coordina las actualizaciones de estado tras pegar un archivo
+  const handlePasteAttachmentComplete = async (text, filename) => {
+    const attachment = await handlePasteAttachment(text, filename);
+    if (attachment) {
+      setRecordAttachments(prev => [...prev, attachment]);
+      handleActiveAttachmentsChange([...activeAttachments, attachment]);
+      return attachment;
+    }
+    return null;
+  };
+
   const handleSessionModelChange = async (model) => {
     setSessionModel(model);
     
@@ -1306,6 +1336,56 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
   };
 
+  // --- TEMPLATE HANDLERS ---
+
+  const handleOpenTemplateModal = () => {
+    setShowTemplateModal(true);
+  };
+
+  const handleCloseTemplateModal = () => {
+    setShowTemplateModal(false);
+  };
+
+  const handleSelectTemplate = (template) => {
+    handleGenerateFromTemplate(template.slug);
+  };
+
+  const handleCreateCustomTemplate = () => {
+    setShowTemplateModal(false);
+    if (onNavigateToSettings) {
+      onNavigateToSettings('templates');
+    }
+  };
+
+  const handleGenerateFromTemplate = async (templateSlug) => {
+    if (!currentRecordingDbId) return;
+    
+    setShowTemplateModal(false);
+    setIsGeneratingNote(true);
+
+    try {
+      const result = await generateFromTemplate({
+        recordingId: currentRecordingDbId,
+        templateSlug,
+        lang: 'es'
+      });
+
+      // Switch to notes tab to show the generated note
+      setActiveTab('notes');
+
+      // Force NotesTab to reload by incrementing refresh counter
+      setNotesTabRefresh(prev => prev + 1);
+
+      // Show success feedback
+      console.log('Note generated:', result.noteId);
+    } catch (error) {
+      console.error('Error generating from template:', error);
+      alert('Error generating note: ' + error.message);
+    } finally {
+      setIsGeneratingNote(false);
+    }
+  };
+
   // --- RENDER ---
 
   if (!recording) return null;
@@ -1398,11 +1478,18 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       }
       if (exportOptions.transcription && transcription?.segments) {
         // Formatear transcripción para exportar
+        // Combinar speakerResolution (backend) con Redux (ediciones del usuario, prioridad)
+        const backendResolution = transcription.speakerResolution || {};
         data.transcription = transcription.segments.map(s => {
           const m = Math.floor(s.start / 60);
           const sec = Math.floor(s.start % 60).toString().padStart(2, '0');
+          const speakerKey = s.speaker || 'SPEAKER_00';
+          // Redux tiene prioridad (nombres editados por el usuario), fallback al backend
+          const speakerName = reduxSpeakersMap[speakerKey]?.displayName
+            || backendResolution[speakerKey]?.displayName
+            || speakerKey;
           return {
-            speaker: s.speaker || 'Speaker',
+            speaker: speakerName,
             timestamp: `${m}:${sec}`,
             text: s.text.trim()
           };
@@ -1539,6 +1626,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                     Re-transcribir
                   </button>
                 )}
+                <div className={styles.actionsMenuDivider} />
+                <button
+                  className={`${styles.actionsMenuItem} ${styles.actionsMenuItemPrimary}`}
+                  onClick={() => { handleOpenTemplateModal(); setShowActionsMenu(false); }}
+                >
+                  <MdAutoAwesome size={16} />
+                  Generar desde plantilla
+                </button>
               </div>
             )}
           </div>
@@ -1570,6 +1665,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           onClick={() => setActiveTab('attachments')}
         >
           Adjuntos{recordAttachments.length > 0 ? ` (${recordAttachments.length})` : ''}
+        </button>
+        <button
+          className={`${styles.tabButton} ${activeTab === 'notes' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('notes')}
+        >
+          Notas
         </button>
       </nav>
 
@@ -1635,6 +1736,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
               // Adjuntos
               recordAttachments,
               onPickNewAttachment: handlePickNewAttachment,
+              onPasteAttachment: handlePasteAttachmentComplete,
               activeAttachments,
               onActiveAttachmentsChange: handleActiveAttachmentsChange,
             }}
@@ -1666,6 +1768,13 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             onAddToProject={activeProjectId ? handleAddToProject : undefined}
             onRemoveFromProject={activeProjectId ? handleRemoveFromProject : undefined}
             activeProjectId={activeProjectId}
+          />
+        )}
+        {activeTab === 'notes' && (
+          <NotesTab
+            key={`notes-${currentRecordingDbId}-${notesTabRefresh}`}
+            recordingId={currentRecordingDbId}
+            onGenerateClick={handleOpenTemplateModal}
           />
         )}
       </div>
@@ -2013,6 +2122,41 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           tokenHint={aiError.tokenHint}
           onClose={() => setAiError(null)}
         />
+      )}
+
+      {/* Template Selector Modal */}
+      <TemplateSelectorModal
+        isOpen={showTemplateModal}
+        onClose={handleCloseTemplateModal}
+        onSelectTemplate={handleSelectTemplate}
+        onCreateCustom={handleCreateCustomTemplate}
+      />
+
+      {/* Generating Note Indicator - Non-blocking */}
+      {isGeneratingNote && (
+        <div 
+          className={styles.modalOverlay} 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsGeneratingNote(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setIsGeneratingNote(false);
+          }}
+          tabIndex={-1}
+        >
+          <div className={styles.modalContent} style={{ textAlign: 'center', minWidth: 300 }}>
+            <div className={styles.spinning} style={{ margin: '0 auto 16px' }}></div>
+            <p className={styles.modalTitle}>Generando nota...</p>
+            <p className={styles.modalText}>Esto puede tomar unos segundos.</p>
+            <button 
+              className={styles.cancelButton} 
+              onClick={() => setIsGeneratingNote(false)}
+              style={{ marginTop: 16 }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
       )}
 
     </div>

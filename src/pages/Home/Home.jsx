@@ -770,6 +770,55 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
           </div>
         </div>
       )}
+
+      {/* Modal para pegar conversación */}
+      {showPasteModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowPasteModal(false)}>
+          <div className={`${styles.modalContent} ${styles.pasteModalContent}`} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.modalTitle}>{t('home.pasteConversation.title')}</h3>
+            <p className={styles.modalText}>
+              {t('home.pasteConversation.description')}
+            </p>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>{t('home.pasteConversation.titleLabel')}</label>
+              <input
+                type="text"
+                className={styles.input}
+                value={pasteTitle}
+                onChange={(e) => setPasteTitle(e.target.value)}
+                placeholder={t('home.pasteConversation.titlePlaceholder')}
+                maxLength={200}
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>{t('home.pasteConversation.contentLabel')}</label>
+              <textarea
+                className={styles.pasteTextarea}
+                value={pastedText}
+                onChange={(e) => setPastedText(e.target.value)}
+                placeholder={t('home.pasteConversation.placeholder')}
+                autoFocus
+                rows={10}
+              />
+            </div>
+            <div className={styles.buttonGroup}>
+              <button
+                className={styles.cancelBtn}
+                onClick={() => setShowPasteModal(false)}
+              >
+                {t('home.pasteConversation.cancel')}
+              </button>
+              <button
+                className={styles.confirmBtn}
+                onClick={handleSubmitPaste}
+                disabled={!pastedText.trim()}
+              >
+                {t('home.pasteConversation.submit')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import speakersService from '../../services/speakersService';
 import recordingsService from '../../services/recordingsService';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
+import MergeSpeakerDialog from '../../components/Speakers/MergeSpeakerDialog';
 import styles from './SpeakerDetail.module.css';
 
 /**
@@ -22,6 +23,9 @@ const SpeakerDetail = ({ speakerId, onBack, onNavigateToRecording, onNavigateToS
   const [mergeModal, setMergeModal] = useState(null); // { similar } — null = cerrado
   const [deleteModal, setDeleteModal] = useState(null); // { recording } — null = cerrado
   const [deleteStatus, setDeleteStatus] = useState(null); // { success, message }
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [allSpeakers, setAllSpeakers] = useState([]);
+  const [allSpeakersLoading, setAllSpeakersLoading] = useState(false);
   const audioRef = useRef(null);
 
   const loadData = useCallback(async () => {
@@ -107,6 +111,30 @@ const SpeakerDetail = ({ speakerId, onBack, onNavigateToRecording, onNavigateToS
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handleOpenLinkDialog = () => {
+    if (!speaker?.id) return;
+    setLinkDialogOpen(true);
+  };
+
+  // Cargar todos los speakers disponibles para el diálogo de vinculación
+  useEffect(() => {
+    const loadAllSpeakers = async () => {
+      setAllSpeakersLoading(true);
+      try {
+        const speakers = await speakersService.getSpeakersWithRecordings();
+        setAllSpeakers(speakers);
+      } catch (err) {
+        console.warn('[SpeakerDetail] No se pudieron cargar los speakers:', err);
+      } finally {
+        setAllSpeakersLoading(false);
+      }
+    };
+    loadAllSpeakers();
+  }, []);
+
+  const availableLinkTargets = allSpeakers.filter((item) => item.id !== speakerId);
+  const linkDisabled = allSpeakersLoading || availableLinkTargets.length === 0;
 
   // Limpiar audio al cambiar de speaker o desmontar
   useEffect(() => {
@@ -354,7 +382,31 @@ const SpeakerDetail = ({ speakerId, onBack, onNavigateToRecording, onNavigateToS
             </span>
           </div>
         </div>
+        <div className={styles.headerActions}>
+          <button
+            className={styles.linkBtn}
+            onClick={handleOpenLinkDialog}
+            disabled={linkDisabled || loading}
+            title={linkDisabled || loading
+              ? t('speakerDetail.linkDisabled', 'Cargando hablantes disponibles o no hay candidatos para vincular')
+              : t('speakerDetail.linkBtn', 'Vincular')}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+            {loading ? t('common.loading', 'Cargando...') : t('speakerDetail.linkBtn', 'Vincular')}
+          </button>
+        </div>
       </div>
+
+      {linkDisabled && (
+        <div className={styles.linkHint}>
+          {allSpeakersLoading
+            ? t('speakerDetail.linkLoading', 'Cargando hablantes disponibles...')
+            : t('speakerDetail.linkNoCandidates', 'No hay otros hablantes disponibles para vincular.')}
+        </div>
+      )}
 
       <div className={styles.recordingsSection}>
         <h2 className={styles.sectionTitle}>{t('speakerDetail.recordingsList')}</h2>
@@ -579,6 +631,28 @@ const SpeakerDetail = ({ speakerId, onBack, onNavigateToRecording, onNavigateToS
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteModal(null)}
         isDanger={true}
+      />
+    )}
+
+    {linkDialogOpen && (
+      <MergeSpeakerDialog
+        isOpen={true}
+        sourceSpeaker={speaker}
+        availableSpeakers={availableLinkTargets}
+        onConfirm={(result) => {
+          setLinkDialogOpen(false);
+          setMergeStatus({
+            success: true,
+            message: t('speakerDetail.linkSuccess', {
+              target: result.mergedName
+            })
+          });
+          // Navegar al listado de hablantes después del merge
+          if (onBack) {
+            onBack();
+          }
+        }}
+        onCancel={() => setLinkDialogOpen(false)}
       />
     )}
     </>

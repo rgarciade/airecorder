@@ -1,6 +1,6 @@
 {
-  "version": "0.5.1",
-  "releaseDate": "2026-04-28",
+  "version": "0.6.1",
+  "releaseDate": "2026-06-14",
   "i18n": {
     "es": {
       "modalTitle": "Novedades de esta versión",
@@ -13,9 +13,9 @@
       "pageSubheading": "Todos los cambios y mejoras de cada versión",
       "pageVersionLabel": "Versión",
       "pageReleaseDateLabel": "Fecha de lanzamiento",
-      "releaseTitle": "Hablantes, Auto-análisis IA y Prompts de Experto",
-      "releaseDateFormatted": "Abril 2026",
-      "catNew": "Nuevas funciones"
+      "releaseTitle": "Wiki por Proyectos, Widget Flotante y Correcciones",
+      "releaseDateFormatted": "Junio 2026",
+      "catNew": "Nuevas funciones y correcciones"
     },
     "en": {
       "modalTitle": "What's New",
@@ -28,94 +28,82 @@
       "pageSubheading": "All changes and improvements for each version",
       "pageVersionLabel": "Version",
       "pageReleaseDateLabel": "Release date",
-      "releaseTitle": "Speakers, Auto-Analysis AI & Expert Prompts",
-      "releaseDateFormatted": "April 2026",
-      "catNew": "New Features"
+      "releaseTitle": "Project Wiki, Floating Widget & Fixes",
+      "releaseDateFormatted": "June 2026",
+      "catNew": "New features & fixes"
     }
   },
   "changes": [
     {
-      "id": "speaker-identification",
-      "icon": "🗣️",
+      "id": "project-wiki",
+      "icon": "📓",
       "es": {
-        "title": "Identificación de Hablantes",
-        "desc": "Nueva página de Hablantes con gestión completa: diarización automática para identificar quién habla en cada segmento, umbral de similitud configurable, fusión de hablantes con autocompletado, y posibilidad de desvincular un hablante de una grabación."
+        "title": "Wiki por proyectos",
+        "desc": "Nueva sección Wiki dentro de cada proyecto. Permite crear, editar y organizar páginas de documentación vinculadas al proyecto."
       },
       "en": {
-        "title": "Speaker Identification",
-        "desc": "New Speakers page with full management: automatic diarization to identify who speaks in each segment, configurable similarity threshold, speaker merging with autocomplete, and the ability to unlink a speaker from a recording."
+        "title": "Project Wiki",
+        "desc": "New Wiki section inside each project. Create, edit and organize documentation pages linked to the project."
       }
     },
     {
-      "id": "expert-prompts",
-      "icon": "🧑‍💼",
+      "id": "floating-widget",
+      "icon": "🎛️",
       "es": {
-        "title": "Prompts de Experto",
-        "desc": "Nuevos perfiles de experto para el chat con IA: Desarrollador de Software y Psicólogo. Cada perfil ajusta el comportamiento del asistente para ofrecer respuestas especializadas según el contexto de la grabación. También se añade un asistente general para conversaciones sin contexto específico."
+        "title": "Widget flotante de grabación",
+        "desc": "Nuevo widget flotante que muestra el estado de la grabación activa y permite controlarla sin necesitar abrir la ventana principal."
       },
       "en": {
-        "title": "Expert Prompts",
-        "desc": "New expert profiles for the AI chat: Software Developer and Psychologist. Each profile adapts the assistant's behavior to deliver specialized responses based on the recording's context. A general assistant is also added for conversations without a specific context."
+        "title": "Floating Recording Widget",
+        "desc": "New floating widget showing active recording status with controls, without needing to open the main window."
       }
     },
     {
-      "id": "auto-analysis",
-      "icon": "🤖",
-      "es": {
-        "title": "Auto-análisis IA configurable",
-        "desc": "Activá el auto-análisis desde los ajustes y, al finalizar cada grabación, la IA la analizará automáticamente: genera el resumen, extrae participantes y tareas sin intervención manual. Podés añadir instrucciones personalizadas por grabación para guiar el análisis. También se puede configurar la auto-transcripción para que el proceso completo ocurra de forma desatendida."
-      },
-      "en": {
-        "title": "Configurable Auto-Analysis AI",
-        "desc": "Enable auto-analysis in settings and, when each recording ends, the AI will analyze it automatically: generating the summary, extracting participants and tasks without manual intervention. You can add per-recording custom instructions to guide the analysis. Auto-transcription can also be configured so the full pipeline runs unattended."
-      }
-    },
-    {
-      "id": "chat-import",
+      "id": "paste-conversations",
       "icon": "💬",
       "es": {
-        "title": "Importa conversaciones de chat con IA",
-        "desc": "Importa archivos de conversaciones o chats analizados por IA y tratalos como cualquier grabación: resumen automático, extracción de tareas, búsqueda semántica y chat interactivo sobre el contenido."
+        "title": "Importar conversaciones",
+        "desc": "Soporte para pegar o importar conversaciones de chat (texto plano, archivos, o conversaciones analizadas por IA) directamente en una grabación."
       },
       "en": {
-        "title": "Import AI-analyzed chat conversations",
-        "desc": "Import conversation or AI-analyzed chat files and treat them like any recording: automatic summary, task extraction, semantic search, and interactive chat over the content."
+        "title": "Import Conversations",
+        "desc": "Support for pasting or importing chat conversations (plain text, files, or AI-analyzed conversations) directly into a recording."
       }
     },
     {
-      "id": "mic-monitor",
-      "icon": "🎙️",
+      "id": "template-editor",
+      "icon": "✏️",
       "es": {
-        "title": "Monitor de Micrófono",
-        "desc": "Nuevo monitor de micrófono en segundo plano: cuando se detecta actividad de audio, AIRecorder lanza una notificación para avisarte. Vos decidís si iniciás la grabación o la ignorás. Ideal para no perder conversaciones inesperadas."
+        "title": "Editor de plantillas",
+        "desc": "Nuevo editor y selector modal de plantillas para personalizar los prompts usados en el análisis y chat con IA."
       },
       "en": {
-        "title": "Microphone Monitor",
-        "desc": "New background microphone monitor: when audio activity is detected, AIRecorder sends a notification to alert you. You decide whether to start recording or dismiss it. Ideal for not missing unexpected conversations."
+        "title": "Template Editor",
+        "desc": "New template editor and selector modal to customize the prompts used in AI analysis and chat."
       }
     },
     {
-      "id": "general-settings",
-      "icon": "⚙️",
+      "id": "speaker-improvements",
+      "icon": "🗣️",
       "es": {
-        "title": "Ajustes Generales Reorganizados",
-        "desc": "La sección de Ajustes cuenta ahora con una pestaña General completamente rediseñada con secciones para Apariencia, Audio, Proyectos, Almacenamiento, Sistema, Permisos y Transcripción."
+        "title": "Mejoras en gestión de hablantes",
+        "desc": "Nuevo selector de hablantes, hooks dedicados para lista y fusión, y resolución correcta de segmentos heredados del sistema de diarización."
       },
       "en": {
-        "title": "Redesigned General Settings",
-        "desc": "The Settings section now has a completely redesigned General tab with sections for Appearance, Audio, Projects, Storage, System, Permissions, and Transcription."
+        "title": "Speaker Management Improvements",
+        "desc": "New speaker dropdown, dedicated hooks for listing and merging speakers, and correct resolution of legacy diarization system segments."
       }
     },
     {
-      "id": "general-improvements",
-      "icon": "✨",
+      "id": "stability-fixes",
+      "icon": "🐛",
       "es": {
-        "title": "Mejoras generales",
-        "desc": "Soporte para ReactMarkdown en resúmenes, conversión de LaTeX a Unicode en el chat, acceso a la wiki desde la barra lateral y ajustes, y soporte para donaciones en Ko-fi."
+        "title": "Correcciones de estabilidad",
+        "desc": "Se corrigen 4 bugs: el monitor de micrófono fallaba al compilar su binario en la app distribuida; settings.json podía corromperse por escrituras concurrentes; el historial de chat fallaba para grabaciones con ID numérico; stale closure en el widget flotante al detener la grabación."
       },
       "en": {
-        "title": "General Improvements",
-        "desc": "ReactMarkdown support in summaries, LaTeX-to-Unicode conversion in chat, wiki access from sidebar and settings, and Ko-fi donation support."
+        "title": "Stability Fixes",
+        "desc": "Fixed 4 bugs: microphone monitor failed to compile its binary in the distributed app; settings.json could get corrupted by concurrent writes causing recordings not to load; chat history failed for recordings with numeric IDs; stale closure in the floating widget when stopping a recording."
       }
     }
   ]

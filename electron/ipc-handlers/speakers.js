@@ -167,13 +167,21 @@ function registerSpeakersHandlers() {
    *
    * Respuesta: {
    *   success: true,
-   *   data: [{ id, display_name, recordingsCount, embeddingsCount }, ...]
+   *   data: [{ id, displayName, recordingsCount, embeddingsCount }, ...]
    * }
    */
   ipcMain.handle('get-speakers-with-recordings', async (_event) => {
     try {
       const speakers = dbService.getSpeakersWithRecordingCount();
-      return { success: true, data: speakers };
+      // Normalizar a camelCase
+      const normalized = speakers.map(s => ({
+        id: s.id,
+        displayName: s.display_name,
+        createdAt: s.created_at,
+        recordingsCount: s.recordingsCount,
+        embeddingsCount: s.embeddingsCount
+      }));
+      return { success: true, data: normalized };
     } catch (error) {
       console.error('[IPC:get-speakers-with-recordings] Error:', error);
       return { success: false, error: error.message || String(error), data: [] };
@@ -308,11 +316,93 @@ function registerSpeakersHandlers() {
     }
   });
 
+/**
+    * `preview-merge-speakers`
+    *
+    * Devuelve una vista previa de un merge entre dos hablantes, incluyendo:
+    * - origen y destino finales (con auto-swap si origen tiene embeddings y destino no)
+    * - advertencias de embeddings que se reasignarán
+    *
+    * Payload: { sourceSpeakerId: string, targetSpeakerId: string }
+    *
+    * Respuesta: {
+    *   success: true,
+    *   data: {
+    *     finalSourceId: string,
+    *     finalTargetId: string,
+    *     swapped: boolean,
+    *     sourceEmbeddings: number,
+    *     targetEmbeddings: number,
+    *     warnings: string[]
+    *   }
+    * } | { success: false, error }
+    */
+  ipcMain.handle('preview-merge-speakers', async (_event, { sourceSpeakerId, targetSpeakerId } = {}) => {
+    try {
+      if (!sourceSpeakerId || !targetSpeakerId) {
+        return { success: false, error: 'sourceSpeakerId y targetSpeakerId son requeridos' };
+      }
+
+      if (sourceSpeakerId === targetSpeakerId) {
+        return { success: false, error: 'No se puede fusionar un hablante consigo mismo' };
+      }
+
+      // Obtener el número de embeddings de cada hablante
+      const sourceEmbeddings = dbService.getSpeakerEmbeddingCount(sourceSpeakerId);
+      const targetEmbeddings = dbService.getSpeakerEmbeddingCount(targetSpeakerId);
+
+      // Obtener datos de los speakers
+      const allSpeakers = dbService.getAllSpeakers();
+      const sourceSpeaker = allSpeakers.find(s => s.id === sourceSpeakerId);
+      const targetSpeaker = allSpeakers.find(s => s.id === targetSpeakerId);
+
+      if (!sourceSpeaker || !targetSpeaker) {
+        return { success: false, error: 'Uno o ambos hablantes no existen' };
+      }
+
+      // Auto-swap: si origen tiene embeddings y destino NO, invertimos roles
+      // para preservar los embeddings en el destino
+      let finalSourceId = sourceSpeakerId;
+      let finalTargetId = targetSpeakerId;
+      let swapped = false;
+      let warnings = [];
+
+      if (sourceEmbeddings > 0 && targetEmbeddings === 0) {
+        // Auto-swap para preservar embeddings
+        finalSourceId = targetSpeakerId;
+        finalTargetId = sourceSpeakerId;
+        swapped = true;
+        warnings.push(`Los ${sourceEmbeddings} embeddings del hablante "${sourceSpeaker.display_name}" se reasignarán a "${targetSpeaker.display_name}"`);
+      } else if (sourceEmbeddings > 0 && targetEmbeddings > 0) {
+        // Ambos tienen embeddings - advertencia
+        warnings.push(`Ambos hablantes tienen embeddings (${sourceEmbeddings} y ${targetEmbeddings}). Los embeddings del hablante de origen se reasignarán al de destino.`);
+      } else if (sourceEmbeddings === 0 && targetEmbeddings === 0) {
+        // Ninguno tiene embeddings
+        warnings.push('Ninguno de los dos hablantes tiene embeddings. La fusión es segura.');
+      }
+
+      return {
+        success: true,
+        data: {
+          finalSourceId,
+          finalTargetId,
+          swapped,
+          sourceEmbeddings: swapped ? targetEmbeddings : sourceEmbeddings,
+          targetEmbeddings: swapped ? sourceEmbeddings : targetEmbeddings,
+          warnings
+        }
+      };
+    } catch (error) {
+      console.error('[IPC:preview-merge-speakers] Error:', error);
+      return { success: false, error: error.message || String(error) };
+    }
+  });
+
   /**
-   * `delete-speaker-recording-resolution`
-   *
-   * Elimina la relación entre un hablante y una grabación específica.
-   * Esto elimina tanto la resolución (la asociación) como el embedding para esa grabación.
+    * `delete-speaker-recording-resolution`
+    *
+    * Elimina la relación entre un hablante y una grabación específica.
+    * Esto elimina tanto la resolución (la asociación) como el embedding para esa grabación.
    *
    * Payload: { speakerId: string, recordingId: number }
    *

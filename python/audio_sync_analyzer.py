@@ -799,11 +799,21 @@ class AudioSyncAnalyzer:
             for s in sys_result.get("segments", []):
                 speaker = "SISTEMA"
                 if external_diarization:
+                    # Encontrar el segmento de diarización más cercano por midpoint.
+                    # Usamos distancia de midpoint en lugar de contención estricta
+                    # para evitar que segmentos de Whisper en bordes o huecos de la
+                    # diarización se queden con el label fantasma "SISTEMA".
                     mid = (s["start"] + s["end"]) / 2
+                    closest = None
+                    closest_dist = float('inf')
                     for d in external_diarization:
-                        if d["start"] <= mid <= d["end"]:
-                            speaker = d["speaker"]
-                            break
+                        d_mid = (d["start"] + d["end"]) / 2
+                        dist = abs(mid - d_mid)
+                        if dist < closest_dist:
+                            closest_dist = dist
+                            closest = d
+                    if closest:
+                        speaker = closest["speaker"]
 
                 all_segments_raw.append(
                     {
