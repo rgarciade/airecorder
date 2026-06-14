@@ -52,13 +52,19 @@ class MicrophoneMonitor extends EventEmitter {
     const swiftSrc = path.join(__dirname, '../native/mic-check.swift');
     if (!fs.existsSync(swiftSrc)) throw new Error(`Swift source not found: ${swiftSrc}`);
 
+    // swiftc is an external process — it cannot read paths inside .asar archives.
+    // Extract source to userData first so swiftc can access it as a real file.
+    const tmpSrc = binaryPath + '.swift';
+    fs.writeFileSync(tmpSrc, fs.readFileSync(swiftSrc, 'utf8'));
+
     console.log('[MicrophoneMonitor] Compilando binario Swift en:', binaryPath);
     await new Promise((resolve, reject) => {
       exec(
-        `/usr/bin/swiftc "${swiftSrc}" -o "${binaryPath}"`,
+        `/usr/bin/swiftc "${tmpSrc}" -o "${binaryPath}"`,
         { timeout: 30000 },
         (err, _stdout, stderr) => {
           this._compiling = false;
+          try { fs.unlinkSync(tmpSrc); } catch {}
           if (err) {
             console.error('[MicrophoneMonitor] Error compilación:', stderr || err.message);
             reject(new Error(stderr || err.message));

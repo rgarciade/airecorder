@@ -19,6 +19,10 @@ async function getRecordingsPath() {
     }
   } catch (error) {
     console.error('Error leyendo configuración para ruta:', error);
+    try {
+      fs.renameSync(settingsPath, settingsPath + '.corrupt.bak');
+      console.warn('[Paths] settings.json corrupto — renombrado a .corrupt.bak para regenerar');
+    } catch {}
   }
   
   // COMPATIBILIDAD
@@ -30,7 +34,7 @@ async function getRecordingsPath() {
 async function getFolderPathFromId(recordingId) {
   if (typeof recordingId === 'number' || !isNaN(Number(recordingId))) {
     const dbEntry = dbService.db.prepare("SELECT relative_path FROM recordings WHERE id = ?").get(recordingId);
-    return dbEntry ? dbEntry.relative_path : recordingId.toString();
+    return (dbEntry && dbEntry.relative_path) ? dbEntry.relative_path : recordingId.toString();
   }
   return recordingId;
 }
