@@ -32,10 +32,15 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install --no-package-lock
+        run: npm install
+        working-directory: docs
 
       - name: Build VitePress docs
-        run: npm run docs:build
+        run: npx vitepress build .
+        working-directory: docs
+
+      - name: Remove node_modules before upload
+        run: rm -rf docs/node_modules
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
