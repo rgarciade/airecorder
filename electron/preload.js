@@ -133,6 +133,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Obtener duración total del proyecto
   getProjectTotalDuration: (projectId) => ipcRenderer.invoke('get-project-total-duration', projectId),
 
+  // Wiki de proyecto
+  wiki: {
+    listPages: (projectId) => ipcRenderer.invoke('wiki:list-pages', projectId),
+    createPage: (data) => ipcRenderer.invoke('wiki:create-page', data),
+    updatePage: (id, data) => ipcRenderer.invoke('wiki:update-page', id, data),
+    deletePage: (id) => ipcRenderer.invoke('wiki:delete-page', id),
+    generateStarterPage: (projectId, options) => ipcRenderer.invoke('wiki:generate-starter-page', projectId, options),
+  },
+
   // Guardar y leer análisis de proyecto
   saveProjectAnalysis: (projectId, analysis) => ipcRenderer.invoke('save-project-analysis', projectId, analysis),
   getProjectAnalysis: (projectId) => ipcRenderer.invoke('get-project-analysis', projectId),
