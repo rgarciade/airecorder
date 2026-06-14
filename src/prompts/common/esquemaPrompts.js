@@ -9,40 +9,44 @@ import { langName } from './aiPrompts.js';
  * @param {string} lang - Código de idioma ('es', 'en', ...)
  */
 export const esquemaPrompt = (lang = 'es') =>
-  `You are an AI assistant expert at structuring meeting content into navigable outlines.
+  `You are an expert meeting analyst. Your job is to turn a meeting transcript into a structured, insightful mind-map that captures WHAT was discussed, decided, and agreed — not just generic categories.
 
-⚠️ MANDATORY LANGUAGE RULE: ALL "title", "label", and "description" VALUES MUST be written in ${langName(lang)}. DO NOT USE ANY OTHER LANGUAGE FOR THOSE FIELDS.
+⚠️ MANDATORY LANGUAGE RULE: ALL "title" and "label" values MUST be written in ${langName(lang)}.
 
-YOUR TASK: Analyze the meeting transcript below (which includes timestamps per segment) and generate a structured outline (esquema/mind-map) with key points anchored to their audio timestamp.
+YOUR TASK: Read the full transcript carefully. Identify the real topics that emerged in this specific meeting, then build a mind-map with thematic branches that reflect those topics accurately.
 
-MANDATORY OUTPUT FORMAT — respond ONLY with a valid JSON object, no markdown fences, no extra text:
+MANDATORY OUTPUT FORMAT — respond ONLY with valid JSON, no markdown fences, no extra text:
 {
   "branches": [
     {
-      "title": "Branch title in ${langName(lang)}",
+      "title": "Specific topic title in ${langName(lang)}",
       "items": [
-        { "label": "Key point text", "start": 192.4 }
+        { "label": "Concrete point, decision or fact", "start": 192.4 }
       ]
     }
   ]
 }
 
-BRANCH STRUCTURE RULES:
-1. Always include exactly these four branches (in this order):
-   - "Información de la reunión" (or equivalent in ${langName(lang)}): date, participants, context — items with start: null when no timestamp applies.
-   - "Notas" (or equivalent): main discussion points, decisions made — use segment timestamps.
-   - "Próximos pasos" (or equivalent): agreed actions, tasks, follow-ups — use segment timestamps.
-   - "Sugerencias de IA" (or equivalent): AI-generated insights, risks, recommendations — use segment timestamps when possible, null otherwise.
-2. Each branch must have between 2 and 6 items. No empty branches.
-3. The "start" field MUST be a float (seconds) matching the closest segment start time from the transcript, or null if no timestamp is relevant.
-4. Labels must be concise (max 15 words), factual, and in ${langName(lang)}.
-5. Do NOT add personal commentary, preamble, or closing phrases.
-6. Respond ONLY with the JSON object — nothing before or after.
+BRANCH RULES:
+1. Generate between 3 and 7 branches based on the ACTUAL content of the meeting.
+   - Each branch title must name a concrete topic discussed (e.g. "Arquitectura de autenticación", "Presupuesto Q3", "Problema de rendimiento en producción") — NOT generic labels like "Notas" or "Temas".
+   - If the meeting covered action items or commitments, include ONE branch titled "Próximos pasos" (or equivalent in ${langName(lang)}) with concrete tasks and owners if mentioned.
+   - If the meeting covered risks, blockers or open questions, include a branch for those.
+   - Do NOT include a branch if there is no real content for it.
 
-BELOW IS THE TRANSCRIPT WITH TIMESTAMPS:
+2. Items per branch: between 3 and 8. Each item must be:
+   - A specific, standalone fact, decision, agreement, risk, or action — not a vague summary.
+   - Written as a complete short statement (max 20 words), factual and direct.
+   - Anchored with "start" set to the closest segment timestamp (float, seconds) where that point was mentioned, or null only when truly no timestamp applies.
+
+3. Prioritize decisions, commitments, technical conclusions, numbers, names, and deadlines over generic observations.
+
+4. Do NOT hallucinate content not present in the transcript. Do NOT add preamble, commentary, or closing text. Respond ONLY with the JSON object.
+
+TRANSCRIPT WITH TIMESTAMPS:
 `;
 
 export const esquemaPromptSuffix = `
 ----------------------------------------------------------------------------------
-FINAL REMINDER: Return ONLY the JSON object with a "branches" array. Each branch has "title" (string) and "items" (array of {"label": string, "start": number|null}). Use segment timestamps from the transcript for "start" values. Titles and labels MUST be in the language specified above.
+FINAL REMINDER: Output ONLY the JSON object. "branches" is an array of { "title": string, "items": [{ "label": string, "start": number|null }] }. Branches must reflect the real topics of THIS meeting. Titles and labels MUST be in the language specified above.
 `;
