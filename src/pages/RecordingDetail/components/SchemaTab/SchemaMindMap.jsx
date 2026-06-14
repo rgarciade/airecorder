@@ -72,10 +72,6 @@ const SchemaMindMap = forwardRef(function SchemaMindMap({ branches = [], onSeek 
         autoFit: true,
         duration: 300,
         maxWidth: 320,
-        color: ({ depth }) => {
-          const palette = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6'];
-          return palette[depth % palette.length];
-        },
       }, root);
     }
   }, [branches]);
