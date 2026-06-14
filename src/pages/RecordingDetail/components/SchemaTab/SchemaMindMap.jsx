@@ -45,9 +45,10 @@ function buildMarkdown(branches = []) {
 /**
  * Given a markmap node's textContent, extract the raw label
  * by stripping the trailing " (MM:SS)" that markmap renders from italic markdown.
+ * \d+ (not \d{2}) so labels from recordings longer than 60 minutes still match.
  */
 function labelFromNodeText(text = '') {
-  return text.replace(/\s*\(\d{2}:\d{2}\)\s*$/, '').trim();
+  return text.replace(/\s*\(\d+:\d{2}\)\s*$/, '').trim();
 }
 
 /**
@@ -125,13 +126,15 @@ const SchemaMindMap = forwardRef(function SchemaMindMap({ branches = [], onSeek 
 
       // markmap uses foreignObject for text — XMLSerializer + canvas fails silently.
       // Use Electron's native capturePage instead: screenshot the exact SVG bounding rect.
+      // capturePage() expects page-content coordinates (scrollX/scrollY included),
+      // so we add window.scrollX/Y to the viewport-relative getBoundingClientRect().
       const rect = svg.getBoundingClientRect();
       try {
         const result = await window.electronAPI.captureAreaPng({
-          x: rect.left,
-          y: rect.top,
-          width: rect.width,
-          height: rect.height,
+          x: Math.round(rect.left + window.scrollX),
+          y: Math.round(rect.top + window.scrollY),
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
         });
         if (!result.success) throw new Error(result.error);
 

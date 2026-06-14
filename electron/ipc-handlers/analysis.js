@@ -474,7 +474,14 @@ module.exports.registerAnalysisHandlers = () => {
       }
 
       const data = await fs.promises.readFile(filePath, 'utf8');
-      return { success: true, schema: JSON.parse(data) };
+      let parsed;
+      try {
+        parsed = JSON.parse(data);
+      } catch (parseErr) {
+        console.error('Error parseando JSON del esquema de grabación:', parseErr);
+        return { success: false, error: 'El archivo de esquema está corrupto (JSON inválido)' };
+      }
+      return { success: true, schema: parsed };
     } catch (error) {
       console.error('Error leyendo esquema de grabación:', error);
       return { success: false, error: error.message };
