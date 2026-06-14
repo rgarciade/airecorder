@@ -807,12 +807,18 @@ class RecordingAiService {
       const settings = await getSettings();
       const lang = settings.uiLanguage || 'es';
 
-      // Respetar límite de contexto del proveedor activo
+      // Respetar límite de contexto del proveedor activo.
+      // Reservamos hasta 2000 chars para contextExtra y truncamos los segmentos al resto,
+      // de forma que el input total (segments + contextExtra) nunca supere maxChars.
       const maxChars = await this._calculateMaxContextChars(settings, 1000);
-      let inputText = segmentsText + contextExtra;
-      if (inputText.length > maxChars) {
-        console.warn(`⚠️ Transcripción larga para esquema (${inputText.length} > ${maxChars}). Truncando...`);
-        inputText = segmentsText.substring(0, maxChars);
+      const contextReserve = Math.min(contextExtra.length, 2000);
+      const maxForSegments = Math.max(1000, maxChars - contextReserve);
+      let inputText;
+      if (segmentsText.length > maxForSegments) {
+        console.warn(`⚠️ Transcripción larga para esquema (${segmentsText.length} > ${maxForSegments}). Truncando segmentos para dejar espacio al resumen...`);
+        inputText = segmentsText.substring(0, maxForSegments) + contextExtra;
+      } else {
+        inputText = segmentsText + contextExtra;
       }
 
       const systemPrompt = await buildSystemPrompt(FEATURE_TYPES.ESQUEMA, esquemaPrompt(lang), lang);

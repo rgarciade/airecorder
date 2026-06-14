@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { selectSpeakersMap } from '../../store/slices/speakersSlice';
 import recordingsService from '../../services/recordingsService';
 import projectsService from '../../services/projectsService';
@@ -82,6 +83,7 @@ function parseTimestampToSeconds(ts) {
 }
 
 export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject, onNavigateToSettings }) {
+  const { t } = useTranslation();
   const persistentRecordingId = recording?.dbId ?? recording?.id ?? null;
 
   // ── Redux: mapa de hablantes con ediciones del usuario ──
@@ -1695,7 +1697,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           className={`${styles.tabButton} ${activeTab === 'schema' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('schema')}
         >
-          Esquema
+          {t('schema.tabLabel')}
         </button>
         <button
           className={`${styles.tabButton} ${activeTab === 'transcription' ? styles.activeTab : ''}`}

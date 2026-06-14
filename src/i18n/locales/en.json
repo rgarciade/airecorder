@@ -548,7 +548,9 @@
     "generateError": "Could not generate the outline. Please try again.",
     "tabLabel": "Outline",
     "viewOutline": "List view",
-    "viewMindmap": "Mind-map view"
+    "viewMindmap": "Mind-map view",
+    "exportMarkdown": "Export as Markdown",
+    "exportPng": "Export as PNG (switch to mind-map view first)"
   },
   "participantsList": {
     "title": "Participants",
