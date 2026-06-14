@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { selectSpeakersMap } from '../../store/slices/speakersSlice';
 import recordingsService from '../../services/recordingsService';
 import projectsService from '../../services/projectsService';
@@ -24,6 +25,7 @@ import TranscriptionChatTab from './components/TranscriptionChatTab/Transcriptio
 import EpicsTab from './components/EpicsTab/EpicsTab';
 import AttachmentsTab from './components/AttachmentsTab/AttachmentsTab';
 import NotesTab from './components/NotesTab/NotesTab';
+import SchemaTab from './components/SchemaTab/SchemaTab';
 import AIErrorModal from '../../components/AIErrorModal/AIErrorModal';
 import TemplateSelectorModal from '../../components/templates/TemplateSelectorModal';
 import { getAttachments, pickAndAddAttachment, readAttachmentContent, estimateAttachmentTokens, savePastedText } from '../../services/attachmentsService';
@@ -81,6 +83,7 @@ function parseTimestampToSeconds(ts) {
 }
 
 export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject, onNavigateToSettings }) {
+  const { t } = useTranslation();
   const persistentRecordingId = recording?.dbId ?? recording?.id ?? null;
 
   // ── Redux: mapa de hablantes con ediciones del usuario ──
@@ -102,6 +105,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [detailedSummary, setDetailedSummary] = useState('');
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [extraInstructions, setExtraInstructions] = useState('');
+  const [recordingSchema, setRecordingSchema] = useState(null);
 
   // Tasks State
   const [tasks, setTasks] = useState([]);
@@ -427,6 +431,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         const instructions = await recordingsService.getExtraInstructions(recording.dbId || recording.id);
         setExtraInstructions(instructions || '');
 
+        // Load Schema
+        try {
+          const schema = await recordingsService.getRecordingSchema(recording.id);
+          setRecordingSchema(schema || null);
+        } catch {
+          setRecordingSchema(null);
+        }
+
         // Load Summary
         const existing = await recordingAiService.getRecordingSummary(recording.id);
         const hasSummary = existing && existing.resumen_breve;
@@ -600,6 +612,31 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       }
     }
 
+    // Build schema context block for AI if schema is available
+    const buildSchemaContext = (schema) => {
+      if (!schema?.branches?.length) return '';
+      const lines = ['--- MEETING SCHEMA / MIND-MAP ---'];
+      const formatTs = (s) => {
+        const t = Math.floor(s);
+        return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+      };
+      function renderNodes(nodes, depth) {
+        const indent = '  '.repeat(depth);
+        for (const n of nodes) {
+          const ts = n.start != null ? ` [${formatTs(n.start)}]` : '';
+          lines.push(`${indent}- ${n.label || n.title || ''}${ts}`);
+          if (n.children?.length) renderNodes(n.children, depth + 1);
+        }
+      }
+      for (const branch of schema.branches) {
+        lines.push(`## ${branch.title}`);
+        renderNodes(branch.children || branch.items || [], 0);
+      }
+      lines.push('--- END SCHEMA ---');
+      return lines.join('\n');
+    };
+    const schemaContext = buildSchemaContext(recordingSchema);
+
     try {
       // Usar estado local actualizado por el listener (más fiable y rápido)
       const provider = aiProvider;
@@ -641,7 +678,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         // --- MODO RAG V2: array de mensajes nativo con system prompt ---
         console.log(`🔍 [RAG V2] Usando ${ragChunks.length} chunks relevantes`);
 
-        const systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, ragSystemPrompt(ragChunks, docContext));
+        let systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, ragSystemPrompt(ragChunks, docContext));
+        if (schemaContext) systemContent += `\n\n${schemaContext}`;
         sentCharsEstimate = systemContent.length + docContext.length;
 
         const attachmentTokens = attachmentImages.length * 256;
@@ -687,7 +725,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           context = await recordingsService.getTranscriptionTxt(recording.id);
         }
 
-        const systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, chatSystemPrompt(context || 'No context available.', uiLanguage, docContext));
+        let systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, chatSystemPrompt(context || 'No context available.', uiLanguage, docContext));
         sentCharsEstimate = systemContent.length;
 
         const attachmentTokens = attachmentImages.length * 256;
@@ -1336,6 +1374,13 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
   };
 
+  // --- SCHEMA HANDLERS ---
+
+  const handleSeekToTranscription = (seconds) => {
+    setInitialSeekSeconds(seconds);
+    setActiveTab('transcription');
+  };
+
   // --- TEMPLATE HANDLERS ---
 
   const handleOpenTemplateModal = () => {
@@ -1642,11 +1687,17 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
       {/* Tabs Navigation */}
       <nav className={styles.tabsNav}>
-        <button 
+        <button
           className={`${styles.tabButton} ${activeTab === 'overview' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('overview')}
         >
           Overview
+        </button>
+        <button
+          className={`${styles.tabButton} ${activeTab === 'schema' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('schema')}
+        >
+          {t('schema.tabLabel')}
         </button>
         <button
           className={`${styles.tabButton} ${activeTab === 'transcription' ? styles.activeTab : ''}`}
@@ -1775,6 +1826,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             key={`notes-${currentRecordingDbId}-${notesTabRefresh}`}
             recordingId={currentRecordingDbId}
             onGenerateClick={handleOpenTemplateModal}
+          />
+        )}
+        {activeTab === 'schema' && (
+          <SchemaTab
+            key={`schema-${currentRecordingDbId}`}
+            recordingId={currentRecordingDbId}
+            hasTranscription={!!transcription}
+            onSeek={handleSeekToTranscription}
           />
         )}
       </div>

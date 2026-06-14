@@ -255,6 +255,35 @@ class RecordingsService {
   }
 
   /**
+   * Guarda el esquema/mind-map de la grabación
+   */
+  async saveRecordingSchema(recordingId, schema) {
+    try {
+      if (!window.electronAPI?.saveRecordingSchema) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.saveRecordingSchema(recordingId, schema);
+      return result.success;
+    } catch (error) {
+      console.error('Error guardando esquema de grabación:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Lee el esquema/mind-map de la grabación
+   */
+  async getRecordingSchema(recordingId) {
+    try {
+      if (!window.electronAPI?.getRecordingSchema) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.getRecordingSchema(recordingId);
+      if (!result.success) return null;
+      return result.schema;
+    } catch (error) {
+      console.error('Error leyendo esquema de grabación:', error);
+      return null;
+    }
+  }
+
+  /**
    * Guarda una pregunta/respuesta en el histórico
    */
   async saveQuestionHistory(recordingId, qa) {

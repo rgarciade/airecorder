@@ -73,6 +73,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Guardar y leer resumen de Gemini
   saveAiSummary: (recordingId, summaryJson) => ipcRenderer.invoke('save-ai-summary', recordingId, summaryJson),
   getAiSummary: (recordingId) => ipcRenderer.invoke('get-ai-summary', recordingId),
+  // Guardar y leer esquema/mind-map de grabación
+  saveRecordingSchema: (recordingId, schema) => ipcRenderer.invoke('save-recording-schema', recordingId, schema),
+  getRecordingSchema: (recordingId) => ipcRenderer.invoke('get-recording-schema', recordingId),
+  captureAreaPng: (rect) => ipcRenderer.invoke('capture-area-png', rect),
   // Guardar y leer histórico de preguntas
   saveQuestionHistory: (recordingId, qa) => ipcRenderer.invoke('save-question-history', recordingId, qa),
   updateLastQuestionHistory: (recordingId, qa) => ipcRenderer.invoke('update-last-question-history', recordingId, qa),

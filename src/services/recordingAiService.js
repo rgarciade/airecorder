@@ -11,6 +11,7 @@ import { AI_TASK_TYPES } from './ai/aiQueueService';
 import { cleanAiResponse, normalizeAiSummaryText, parseJsonArray, parseJsonObject } from '../utils/aiResponseParser';
 import { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt, participantsPrompt, participantsPromptSuffix, taskSuggestionsPrompt, taskSuggestionsPromptSuffix, taskImprovementSystemPrompt, taskImprovementUserContent, consolidateSummaryPrompt } from '../prompts/aiPrompts';
 import { buildSystemPrompt, FEATURE_TYPES } from './ai/promptBuilder';
+import { esquemaPrompt, esquemaPromptSuffix } from '../prompts/common/esquemaPrompts';
 
 class RecordingAiService {
   constructor() {
@@ -440,11 +441,27 @@ class RecordingAiService {
 
       // Guardar en disco
       await recordingsService.saveAiSummary(recordingId, finalSummary);
-      
+
       // Actualizar caché
       this.summaryCache.set(recordingId, finalSummary);
 
-      // 6. Limpiar estado de generación
+      // 6. Auto-generar esquema si está habilitado en ajustes y no existe aún
+      if (settings.autoGenerateSchema === true) {
+        try {
+          const existingSchema = await recordingsService.getRecordingSchema(recordingId);
+          if (!existingSchema) {
+            console.log(`🗂️ Auto-generando esquema para ${recordingId}...`);
+            const schema = await this.generateEsquema(recordingId, providerOverrides);
+            if (schema) {
+              await recordingsService.saveRecordingSchema(recordingId, schema);
+            }
+          }
+        } catch (schemaErr) {
+          console.warn('[_performGeneration] Error auto-generando esquema (no bloquea):', schemaErr);
+        }
+      }
+
+      // 7. Limpiar estado de generación
       await this._clearGeneratingState(recordingId);
 
       return finalSummary;
@@ -742,6 +759,105 @@ class RecordingAiService {
     } catch (error) {
       console.error('Error mejorando tarea:', error);
       return task;
+    }
+  }
+
+  /**
+   * Genera el esquema/mind-map de una grabación con puntos clave timestamped.
+   *
+   * Usa la transcripción con segmentos para que la IA pueda anclar cada punto
+   * al segundo exacto del audio. Si hay resumen detallado se incluye como contexto
+   * adicional para mejorar la calidad del esquema.
+   *
+   * @param {string} recordingId
+   * @param {Object} providerOverrides - Override temporal de proveedor/modelo { providerOverride, model }
+   * @returns {Promise<{branches: Array}|null>} Esquema parseado o null si falla
+   */
+  async generateEsquema(recordingId, providerOverrides = {}) {
+    try {
+      const recName = await this._getRecordingName(recordingId);
+
+      // Obtener segmentos con timestamps desde la transcripción
+      const transcription = await recordingsService.getTranscription(recordingId);
+      const segments = transcription?.segments || [];
+
+      if (segments.length === 0) {
+        throw new Error('No hay segmentos de transcripción con timestamps disponibles');
+      }
+
+      // Serializar segmentos en texto legible para la IA
+      // Formato: [Xs] Speaker: text — solo segundos para evitar que la IA confunda
+      // minutos/horas con el valor de "start" que debe devolver en el JSON.
+      const segmentsText = segments.map(seg => {
+        const speakerPrefix = seg.speaker ? `${seg.speaker}: ` : '';
+        return `[${(seg.start ?? 0).toFixed(1)}s] ${speakerPrefix}${seg.text}`;
+      }).join('\n');
+
+      // Añadir resumen detallado como contexto extra si existe
+      let contextExtra = '';
+      try {
+        const summary = await this.getRecordingSummary(recordingId);
+        if (summary?.resumen_detallado && summary.resumen_detallado.length > 50) {
+          contextExtra = `\n\n--- MEETING SUMMARY (for additional context) ---\n${summary.resumen_detallado}\n--- END SUMMARY ---`;
+        }
+      } catch {
+        // Continuar sin resumen
+      }
+
+      const settings = await getSettings();
+      const lang = settings.uiLanguage || 'es';
+
+      // Respetar límite de contexto del proveedor activo.
+      // Reservamos hasta 2000 chars para contextExtra y truncamos los segmentos al resto,
+      // de forma que el input total (segments + contextExtra) nunca supere maxChars.
+      const maxChars = await this._calculateMaxContextChars(settings, 1000);
+      const contextReserve = Math.min(contextExtra.length, 2000);
+      const maxForSegments = Math.max(1000, maxChars - contextReserve);
+      let inputText;
+      if (segmentsText.length > maxForSegments) {
+        console.warn(`⚠️ Transcripción larga para esquema (${segmentsText.length} > ${maxForSegments}). Truncando segmentos para dejar espacio al resumen...`);
+        inputText = segmentsText.substring(0, maxForSegments) + contextExtra;
+      } else {
+        inputText = segmentsText + contextExtra;
+      }
+
+      const systemPrompt = await buildSystemPrompt(FEATURE_TYPES.ESQUEMA, esquemaPrompt(lang), lang);
+      const userContent = `${inputText}\n${esquemaPromptSuffix}`;
+
+      const response = await this._callAiProvider(systemPrompt, userContent, {
+        ...providerOverrides,
+        queueMeta: { name: `Esquema: ${recName}`, type: AI_TASK_TYPES.ESQUEMA },
+      });
+
+      const parsed = parseJsonObject(response.text);
+
+      if (!parsed || !Array.isArray(parsed.branches) || parsed.branches.length === 0) {
+        console.error('[generateEsquema] Respuesta IA no parseada correctamente:', response.text?.substring(0, 200));
+        return null;
+      }
+
+      // Normalizar recursivamente: start = number|null, children siempre array
+      function normalizeNode(node) {
+        return {
+          label: node.label || '',
+          start: typeof node.start === 'number' ? node.start : null,
+          children: (node.children || []).map(normalizeNode),
+        };
+      }
+
+      const normalized = {
+        branches: parsed.branches.map(branch => ({
+          title: branch.title || '',
+          start: typeof branch.start === 'number' ? branch.start : null,
+          // branch.items: compatibilidad con esquemas guardados antes de la migración a children
+          children: (branch.children || branch.items || []).map(normalizeNode),
+        })),
+      };
+
+      return normalized;
+    } catch (error) {
+      console.error('[generateEsquema] Error:', error);
+      return null;
     }
   }
 

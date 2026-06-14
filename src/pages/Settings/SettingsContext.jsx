@@ -52,6 +52,7 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [autoTranscribe, setAutoTranscribe] = useState(true);
   const [autoAnalyze, setAutoAnalyze] = useState(true);
+  const [autoGenerateSchema, setAutoGenerateSchema] = useState(false);
   const [enableDiarization, setEnableDiarization] = useState(false);
   const [hfToken, setHfToken] = useState('');
   const [speakerSimilarityThreshold, setSpeakerSimilarityThreshold] = useState(0.85);
@@ -173,6 +174,7 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
         setNotificationsEnabled(savedSettings.notificationsEnabled !== false); // Default true
         setAutoTranscribe(savedSettings.autoTranscribe !== false); // Default true
         setAutoAnalyze(savedSettings.autoAnalyze !== false); // Default true
+        setAutoGenerateSchema(savedSettings.autoGenerateSchema === true); // Default false
         setEnableDiarization(savedSettings.enableDiarization || false);
         setHfToken(savedSettings.hfToken || '');
         setSpeakerSimilarityThreshold(savedSettings.speakerSimilarityThreshold ?? 0.85);
@@ -530,6 +532,7 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
         notificationsEnabled: notificationsEnabled,
         autoTranscribe: autoTranscribe,
         autoAnalyze: autoAnalyze,
+        autoGenerateSchema: autoGenerateSchema,
         enableDiarization: enableDiarization,
         hfToken: hfToken,
         speakerSimilarityThreshold: speakerSimilarityThreshold,
@@ -666,6 +669,7 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
     maxCpuThreads,
     autoTranscribe, setAutoTranscribe,
     autoAnalyze, setAutoAnalyze,
+    autoGenerateSchema, setAutoGenerateSchema,
     enableDiarization, setEnableDiarization,
     hfToken, setHfToken,
     speakerSimilarityThreshold, setSpeakerSimilarityThreshold,

@@ -290,6 +290,10 @@
         "title": "Análisis IA Automático",
         "desc": "Generar resúmenes e insights con IA al terminar la transcripción"
       },
+      "autoGenerateSchema": {
+        "title": "Generar Esquema Automáticamente",
+        "desc": "Generar el esquema/mapa mental junto con el análisis IA inicial"
+      },
       "devTools": {
         "title": "Herramientas de Desarrollo",
         "desc": "Abrir consola de depuración de Chromium"
@@ -528,6 +532,22 @@
         "lastEdited": "Última edición"
       }
     }
+  },
+  "schema": {
+    "title": "Esquema",
+    "generate": "Generar esquema",
+    "regenerate": "Regenerar",
+    "generating": "Generando esquema...",
+    "loading": "Cargando esquema...",
+    "empty": "Aún no hay esquema para esta grabación.",
+    "noTranscription": "Se necesita la transcripción para generar el esquema.",
+    "seekTo": "Ir al minuto {{time}}",
+    "generateError": "No se pudo generar el esquema. Intentá de nuevo.",
+    "tabLabel": "Esquema",
+    "viewOutline": "Vista de lista",
+    "viewMindmap": "Vista de mapa mental",
+    "exportMarkdown": "Exportar como Markdown",
+    "exportPng": "Exportar como PNG (activar vista mapa mental primero)"
   },
   "recordingDetail": {
     "overview": {

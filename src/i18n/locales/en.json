@@ -273,6 +273,10 @@
         "title": "Auto AI Analysis",
         "desc": "Automatically generate AI summaries and insights when transcription finishes"
       },
+      "autoGenerateSchema": {
+        "title": "Auto-Generate Schema",
+        "desc": "Generate the mind-map schema alongside the initial AI analysis"
+      },
       "devTools": {
         "title": "Developer Tools",
         "desc": "Open Chromium debugging console"
@@ -531,6 +535,22 @@
       "noTranscription": "No transcription yet",
       "noTranscriptionDesc": "AI needs the transcription to generate the summary and key topics."
     }
+  },
+  "schema": {
+    "title": "Outline",
+    "generate": "Generate outline",
+    "regenerate": "Regenerate",
+    "generating": "Generating outline...",
+    "loading": "Loading outline...",
+    "empty": "No outline generated yet for this recording.",
+    "noTranscription": "A transcription is required to generate the outline.",
+    "seekTo": "Jump to {{time}}",
+    "generateError": "Could not generate the outline. Please try again.",
+    "tabLabel": "Outline",
+    "viewOutline": "List view",
+    "viewMindmap": "Mind-map view",
+    "exportMarkdown": "Export as Markdown",
+    "exportPng": "Export as PNG (switch to mind-map view first)"
   },
   "participantsList": {
     "title": "Participants",

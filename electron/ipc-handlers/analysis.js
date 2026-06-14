@@ -1,4 +1,4 @@
-const { ipcMain } = require('electron');
+const { ipcMain, BrowserWindow } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const dbService = require('../database/dbService');
@@ -438,6 +438,70 @@ module.exports.registerAnalysisHandlers = () => {
       return { success: true, text };
     } catch (error) {
       console.error('Error getting extra instructions:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Guardar esquema/mind-map de una grabación
+  ipcMain.handle('save-recording-schema', async (event, recordingId, schema) => {
+    try {
+      const folderName = await getFolderPathFromId(recordingId);
+      const baseOutputDir = await getRecordingsPath();
+      const analysisDir = path.join(baseOutputDir, folderName, 'analysis');
+
+      if (!fs.existsSync(analysisDir)) {
+        fs.mkdirSync(analysisDir, { recursive: true });
+      }
+
+      const filePath = path.join(analysisDir, 'recording_schema.json');
+      await fs.promises.writeFile(filePath, JSON.stringify(schema, null, 2), 'utf8');
+      return { success: true };
+    } catch (error) {
+      console.error('Error guardando esquema de grabación:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Obtener esquema/mind-map de una grabación
+  ipcMain.handle('get-recording-schema', async (event, recordingId) => {
+    try {
+      const folderName = await getFolderPathFromId(recordingId);
+      const baseOutputDir = await getRecordingsPath();
+      const filePath = path.join(baseOutputDir, folderName, 'analysis', 'recording_schema.json');
+
+      if (!fs.existsSync(filePath)) {
+        return { success: false, error: 'Esquema no encontrado' };
+      }
+
+      const data = await fs.promises.readFile(filePath, 'utf8');
+      let parsed;
+      try {
+        parsed = JSON.parse(data);
+      } catch (parseErr) {
+        console.error('Error parseando JSON del esquema de grabación:', parseErr);
+        return { success: false, error: 'El archivo de esquema está corrupto (JSON inválido)' };
+      }
+      return { success: true, schema: parsed };
+    } catch (error) {
+      console.error('Error leyendo esquema de grabación:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Captura nativa de un área de pantalla para exportar el mind-map como PNG
+  ipcMain.handle('capture-area-png', async (event, rect) => {
+    try {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      if (!win) return { success: false, error: 'No window found' };
+      const image = await win.webContents.capturePage({
+        x: Math.round(rect.x),
+        y: Math.round(rect.y),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+      });
+      return { success: true, buffer: image.toPNG() };
+    } catch (error) {
+      console.error('Error capturando área PNG:', error);
       return { success: false, error: error.message };
     }
   });
