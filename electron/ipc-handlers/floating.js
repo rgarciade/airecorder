@@ -81,6 +81,8 @@ function registerFloatingHandlers() {
   ipcMain.on('floating-stop-recording', () => {
     const mainWin = getMainWindow();
     if (mainWin && !mainWin.isDestroyed()) {
+      mainWin.show();
+      mainWin.focus();
       mainWin.webContents.send('relay-stop-recording');
     }
   });
