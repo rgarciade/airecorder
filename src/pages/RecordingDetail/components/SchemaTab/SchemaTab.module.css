@@ -45,6 +45,35 @@
   cursor: not-allowed;
 }
 
+.viewToggle {
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.viewToggleBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 10px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.viewToggleBtn:hover {
+  background-color: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.viewToggleActive {
+  background-color: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
 .regenerateBtn {
   display: flex;
   align-items: center;

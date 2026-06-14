@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MdPlayArrow, MdAutoAwesome, MdRefresh, MdExpandMore, MdExpandLess } from 'react-icons/md';
+import { MdPlayArrow, MdAutoAwesome, MdRefresh, MdExpandMore, MdExpandLess, MdViewList, MdAccountTree } from 'react-icons/md';
 import recordingAiService from '../../../../services/recordingAiService';
 import recordingsService from '../../../../services/recordingsService';
+import SchemaMindMap from './SchemaMindMap';
 import styles from './SchemaTab.module.css';
 
 function formatSeconds(secs) {
@@ -20,6 +21,7 @@ export default function SchemaTab({ recordingId, hasTranscription, onSeek }) {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
   const [collapsedBranches, setCollapsedBranches] = useState({});
+  const [viewMode, setViewMode] = useState('outline'); // 'outline' | 'mindmap'
 
   const loadSchema = useCallback(async () => {
     setLoading(true);
@@ -76,15 +78,33 @@ export default function SchemaTab({ recordingId, hasTranscription, onSeek }) {
         <h2 className={styles.title}>{t('schema.title')}</h2>
         <div className={styles.headerActions}>
           {schema && (
-            <button
-              className={styles.regenerateBtn}
-              onClick={handleGenerate}
-              disabled={generating || !hasTranscription}
-              title={t('schema.regenerate')}
-            >
-              <MdRefresh size={16} />
-              {t('schema.regenerate')}
-            </button>
+            <>
+              <div className={styles.viewToggle}>
+                <button
+                  className={`${styles.viewToggleBtn} ${viewMode === 'outline' ? styles.viewToggleActive : ''}`}
+                  onClick={() => setViewMode('outline')}
+                  title={t('schema.viewOutline')}
+                >
+                  <MdViewList size={16} />
+                </button>
+                <button
+                  className={`${styles.viewToggleBtn} ${viewMode === 'mindmap' ? styles.viewToggleActive : ''}`}
+                  onClick={() => setViewMode('mindmap')}
+                  title={t('schema.viewMindmap')}
+                >
+                  <MdAccountTree size={16} />
+                </button>
+              </div>
+              <button
+                className={styles.regenerateBtn}
+                onClick={handleGenerate}
+                disabled={generating || !hasTranscription}
+                title={t('schema.regenerate')}
+              >
+                <MdRefresh size={16} />
+                {t('schema.regenerate')}
+              </button>
+            </>
           )}
           {!schema && (
             <button
@@ -120,7 +140,15 @@ export default function SchemaTab({ recordingId, hasTranscription, onSeek }) {
         </div>
       )}
 
-      {schema && !generating && (
+      {schema && !generating && viewMode === 'mindmap' && (
+        <SchemaMindMap
+          branches={schema.branches || []}
+          title=""
+          onSeek={onSeek}
+        />
+      )}
+
+      {schema && !generating && viewMode === 'outline' && (
         <div className={styles.outline}>
           {(schema.branches || []).map((branch, idx) => (
             <div key={idx} className={styles.branch}>
