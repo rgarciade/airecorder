@@ -5,26 +5,6 @@ import styles from './SchemaMindMap.module.css';
 
 const transformer = new Transformer();
 
-/**
- * Converts schema branches to markmap-compatible Markdown.
- * Each leaf item with a timestamp gets a data attribute so click events can
- * recover the seek time from the rendered SVG node.
- */
-function schemaToMarkdown(branches = []) {
-  const lines = ['# Reunión'];
-  for (const branch of branches) {
-    lines.push(`## ${branch.title}`);
-    for (const item of branch.items || []) {
-      const ts = item.start != null ? ` *(${formatTs(item.start)})*` : '';
-      // Embed start seconds as a comment-like suffix markmap ignores but we
-      // can parse from text: "Label (MM:SS) [seek:192.4]"
-      const seekTag = item.start != null ? ` [seek:${item.start}]` : '';
-      lines.push(`- ${item.label}${ts}${seekTag}`);
-    }
-  }
-  return lines.join('\n');
-}
-
 function formatTs(secs) {
   const total = Math.floor(secs);
   const mm = String(Math.floor(total / 60)).padStart(2, '0');
@@ -33,27 +13,55 @@ function formatTs(secs) {
 }
 
 /**
- * Parses [seek:N] from a markmap node's text content.
- * Returns seconds (number) or null.
+ * Converts schema branches to clean Markdown (no seek tags).
+ * Returns { md, seekMap } where seekMap: Map<label → start_seconds>.
+ *
+ * Key: item.label (raw). Multiple items with the same label across branches
+ * are unlikely but would share the same seek time — acceptable edge case.
  */
-function extractSeek(text) {
-  const m = text?.match(/\[seek:([\d.]+)\]/);
-  return m ? parseFloat(m[1]) : null;
+function buildMarkdown(branches = []) {
+  const seekMap = new Map();
+  const lines = ['# Reunión'];
+
+  for (const branch of branches) {
+    lines.push(`## ${branch.title}`);
+    for (const item of branch.items || []) {
+      const ts = item.start != null ? ` *(${formatTs(item.start)})*` : '';
+      lines.push(`- ${item.label}${ts}`);
+      if (item.start != null) {
+        seekMap.set(item.label, item.start);
+      }
+    }
+  }
+
+  return { md: lines.join('\n'), seekMap };
+}
+
+/**
+ * Given a markmap node's textContent, extract the raw label
+ * by stripping the trailing " (MM:SS)" that markmap renders from italic markdown.
+ */
+function labelFromNodeText(text = '') {
+  return text.replace(/\s*\(\d{2}:\d{2}\)\s*$/, '').trim();
 }
 
 /**
  * Mind-map using markmap-view.
+ * Nodes with a timestamp show "(MM:SS)" — clicking them triggers onSeek.
  * Exposes exportPng(filename) via ref.
  */
 const SchemaMindMap = forwardRef(function SchemaMindMap({ branches = [], onSeek }, ref) {
   const svgRef = useRef(null);
   const markmapRef = useRef(null);
+  const seekMapRef = useRef(new Map());
 
   // Build and render whenever branches change
   useEffect(() => {
     if (!svgRef.current) return;
 
-    const md = schemaToMarkdown(branches);
+    const { md, seekMap } = buildMarkdown(branches);
+    seekMapRef.current = seekMap;
+
     const { root } = transformer.transform(md);
 
     if (markmapRef.current) {
@@ -63,7 +71,7 @@ const SchemaMindMap = forwardRef(function SchemaMindMap({ branches = [], onSeek 
       markmapRef.current = Markmap.create(svgRef.current, {
         autoFit: true,
         duration: 300,
-        maxWidth: 300,
+        maxWidth: 320,
         color: ({ depth }) => {
           const palette = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6'];
           return palette[depth % palette.length];
@@ -72,16 +80,21 @@ const SchemaMindMap = forwardRef(function SchemaMindMap({ branches = [], onSeek 
     }
   }, [branches]);
 
-  // Click handler: detect seek tags in node text and call onSeek
+  // Click → seek: find the closest markmap node, extract label, look up in map
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
 
     const handleClick = (e) => {
-      const textEl = e.target.closest('text, foreignObject, .markmap-node');
+      const nodeEl = e.target.closest('g.markmap-node');
+      if (!nodeEl) return;
+
+      // markmap renders node text inside <text> or <foreignObject>
+      const textEl = nodeEl.querySelector('text') || nodeEl.querySelector('foreignObject');
       if (!textEl) return;
-      const text = textEl.textContent || '';
-      const seconds = extractSeek(text);
+
+      const label = labelFromNodeText(textEl.textContent || '');
+      const seconds = seekMapRef.current.get(label);
       if (seconds != null) onSeek?.(seconds);
     };
 
@@ -94,13 +107,20 @@ const SchemaMindMap = forwardRef(function SchemaMindMap({ branches = [], onSeek 
       const svg = svgRef.current;
       if (!svg) return;
 
-      // Clone SVG to inline styles (markmap relies on CSS variables)
       const clone = svg.cloneNode(true);
       clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
 
-      const bbox = svg.getBBox?.() ?? { width: svg.clientWidth || 1100, height: svg.clientHeight || 600 };
-      clone.setAttribute('width', bbox.width);
-      clone.setAttribute('height', bbox.height);
+      let w, h;
+      try {
+        const bbox = svg.getBBox();
+        w = bbox.width || svg.clientWidth || 1100;
+        h = bbox.height || svg.clientHeight || 600;
+      } catch {
+        w = svg.clientWidth || 1100;
+        h = svg.clientHeight || 600;
+      }
+      clone.setAttribute('width', w);
+      clone.setAttribute('height', h);
 
       const serializer = new XMLSerializer();
       const svgStr = serializer.serializeToString(clone);
@@ -111,12 +131,12 @@ const SchemaMindMap = forwardRef(function SchemaMindMap({ branches = [], onSeek 
       img.onload = () => {
         const scale = 2;
         const canvas = document.createElement('canvas');
-        canvas.width = (bbox.width || 1100) * scale;
-        canvas.height = (bbox.height || 600) * scale;
+        canvas.width = w * scale;
+        canvas.height = h * scale;
         const ctx = canvas.getContext('2d');
         ctx.scale(scale, scale);
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, w, h);
         ctx.drawImage(img, 0, 0);
         URL.revokeObjectURL(url);
 
