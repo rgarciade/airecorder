@@ -44,6 +44,7 @@ const { registerAttachmentsHandlers } = require('./ipc-handlers/attachments');
 const { registerExpertsHandlers } = require('./ipc-handlers/experts');
 const { registerSpeakersHandlers } = require('./ipc-handlers/speakers');
 const { registerTemplatesHandlers } = require('./ipc-handlers/templates');
+const { registerWikiHandlers } = require('./ipc-handlers/wiki');
 const { registerFloatingHandlers } = require('./ipc-handlers/floating');
 
 // ========================================
@@ -120,6 +121,7 @@ function registerIpcHandlers() {
   registerExpertsHandlers();
   registerSpeakersHandlers();
   registerTemplatesHandlers();
+  registerWikiHandlers(ipcMain);
 }
 
 async function checkMicrophonePermission() {
