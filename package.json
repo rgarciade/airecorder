@@ -117,6 +117,8 @@
     "howler": "^2.2.4",
     "i18next": "^25.8.14",
     "jspdf": "^4.2.0",
+    "markmap-lib": "^0.18.12",
+    "markmap-view": "^0.18.12",
     "node-audiorecorder": "^3.0.0",
     "node-microphone": "^0.1.6",
     "node-record-lpcm16": "^1.0.1",
