@@ -1,0 +1,231 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.loading {
+  padding: 40px;
+  text-align: center;
+  color: var(--color-text-tertiary);
+}
+
+.header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.section {
+  margin-bottom: 8px;
+}
+
+.sectionTitle {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin: 0 0 8px 0;
+}
+
+.sectionDescription {
+  font-size: 0.875rem;
+  color: var(--color-text-tertiary);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.templatesList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.templateCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border-primary);
+  background-color: var(--color-bg-secondary);
+  transition: all 0.2s;
+}
+
+.templateCard:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px var(--color-shadow-md);
+}
+
+.templateCardDisabled {
+  opacity: 0.6;
+}
+
+.templateCardDisabled:hover {
+  border-color: var(--color-border-primary);
+  box-shadow: none;
+}
+
+.templateIcon {
+  font-size: 2rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.templateInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.templateName {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin-bottom: 4px;
+}
+
+.templateDescription {
+  font-size: 0.8125rem;
+  color: var(--color-text-tertiary);
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.templateExpert {
+  font-size: 0.75rem;
+  color: var(--color-text-placeholder);
+}
+
+.templateActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.savedFeedback {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--color-success-text);
+  font-weight: 500;
+}
+
+/* Toggle Switch */
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggleSlider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--color-bg-tertiary);
+  transition: 0.2s;
+  border-radius: 24px;
+  border: 1px solid var(--color-border-primary);
+}
+
+.toggleSlider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  bottom: 2px;
+  background-color: var(--color-text-tertiary);
+  transition: 0.2s;
+  border-radius: 50%;
+}
+
+.toggle input:checked + .toggleSlider {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.toggle input:checked + .toggleSlider:before {
+  transform: translateX(20px);
+  background-color: white;
+}
+
+.toggle input:disabled + .toggleSlider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Action Buttons */
+.btnAction {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-primary);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btnAction:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.btnActionDanger:hover {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+/* Primary Button */
+.btnPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  background-color: var(--color-primary);
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btnPrimary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* Empty State */
+.emptyState {
+  text-align: center;
+  padding: 32px;
+  color: var(--color-text-tertiary);
+  border: 1px dashed var(--color-border-primary);
+  border-radius: 12px;
+}
+
+.emptyState p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.emptyState p:first-child {
+  font-weight: 600;
+  margin-bottom: 4px;
+}

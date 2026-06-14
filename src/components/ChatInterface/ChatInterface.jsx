@@ -5,7 +5,7 @@ import styles from './ChatInterface.module.css';
 import {
   MdSend, MdPerson, MdSmartToy, MdDeleteOutline, MdMoreHoriz,
   MdAdd, MdAttachFile, MdClose, MdImage, MdPictureAsPdf, MdDescription, MdInsertDriveFile, MdTableChart,
-  MdVisibility, MdVisibilityOff, MdLink
+  MdVisibility, MdVisibilityOff, MdLink, MdContentPaste
 } from 'react-icons/md';
 
 function AttachmentTypeIcon({ type, size = 14 }) {
@@ -39,6 +39,7 @@ export default function ChatInterface({
   // Adjuntos
   recordAttachments = [],
   onPickNewAttachment,
+  onPasteAttachment = null,
   activeAttachments = [],
   onActiveAttachmentsChange,
   allowNewAttachments = true,
@@ -51,6 +52,12 @@ export default function ChatInterface({
   const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [attachmentSearch, setAttachmentSearch] = useState('');
+
+  // Estado del modal de pegar conversación
+  const [showPasteModal, setShowPasteModal] = useState(false);
+  const [pastedFilename, setPastedFilename] = useState('');
+  const [pastedText, setPastedText] = useState('');
+  const [isSavingPaste, setIsSavingPaste] = useState(false);
 
   const messagesEndRef = useRef(null);
   const optionsRef = useRef(null);
@@ -119,6 +126,41 @@ export default function ChatInterface({
     setUploadingAttachment(true);
     await onPickNewAttachment();
     setUploadingAttachment(false);
+  };
+
+  // Botón + → "Pegar conversación"
+  const handleOpenPasteModal = () => {
+    setShowPlusMenu(false);
+    setPastedFilename('');
+    setPastedText('');
+    setShowPasteModal(true);
+  };
+
+  // Guardar texto pegado
+  const handleSavePastedText = async () => {
+    if (!pastedText.trim() || !onPasteAttachment) return;
+    setIsSavingPaste(true);
+    try {
+      const attachment = await onPasteAttachment(pastedText, pastedFilename);
+      if (attachment) {
+        // Auto-seleccionar el archivo tras guardar
+        onActiveAttachmentsChange?.([...activeAttachments, attachment]);
+        setShowPasteModal(false);
+        setPastedFilename('');
+        setPastedText('');
+      }
+    } catch (error) {
+      console.error('Error guardando texto pegado:', error);
+    } finally {
+      setIsSavingPaste(false);
+    }
+  };
+
+  // Cerrar modal de pegar
+  const handleClosePasteModal = () => {
+    setShowPasteModal(false);
+    setPastedFilename('');
+    setPastedText('');
   };
 
   // Toggle de adjunto en el picker (activa/desactiva del contexto)
@@ -566,6 +608,16 @@ export default function ChatInterface({
                       <MdAttachFile size={15} />
                       Subir archivo
                     </button>
+                    {onPasteAttachment && (
+                      <button
+                        type="button"
+                        className={styles.plusMenuItem}
+                        onClick={handleOpenPasteModal}
+                      >
+                        <MdContentPaste size={15} />
+                        Pegar conversación
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -713,6 +765,64 @@ export default function ChatInterface({
           </div>
         </form>
       </div>
+
+      {/* Modal de Pegar Conversación */}
+      {showPasteModal && (
+        <div className={styles.pasteModalOverlay} onClick={handleClosePasteModal}>
+          <div className={styles.pasteModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.pasteModalHeader}>
+              <h3>Pegar conversación</h3>
+              <button
+                type="button"
+                className={styles.pasteModalClose}
+                onClick={handleClosePasteModal}
+              >
+                <MdClose size={20} />
+              </button>
+            </div>
+            <div className={styles.pasteModalBody}>
+              <div className={styles.pasteModalField}>
+                <label>Nombre del archivo</label>
+                <input
+                  type="text"
+                  value={pastedFilename}
+                  onChange={(e) => setPastedFilename(e.target.value)}
+                  placeholder="Ej: resumen-reunión"
+                  className={styles.pasteModalInput}
+                  maxLength={500}
+                />
+              </div>
+              <div className={styles.pasteModalField}>
+                <label>Contenido</label>
+                <textarea
+                  value={pastedText}
+                  onChange={(e) => setPastedText(e.target.value)}
+                  placeholder="Pega aquí el texto de la conversación..."
+                  className={styles.pasteModalTextarea}
+                />
+              </div>
+            </div>
+            <div className={styles.pasteModalFooter}>
+              <button
+                type="button"
+                className={styles.pasteModalCancel}
+                onClick={handleClosePasteModal}
+                disabled={isSavingPaste}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className={styles.pasteModalSave}
+                onClick={handleSavePastedText}
+                disabled={!pastedText.trim() || isSavingPaste}
+              >
+                {isSavingPaste ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -498,15 +498,16 @@ function assignAlias(speakerId, alias, embedding = null, recordingId = null, eph
  * Para cada ID de hablante único en los segmentos:
  *   1. Busca si ya existe un perfil con ese display_name en la BD.
  *   2. Si no existe, crea un perfil nuevo usando el propio ID como alias inicial.
- *   3. Devuelve el mapa de resolución con UUIDs persistentes.
+ *   3. Devuelve { resolutionMap, pendingSuggestions: [] }.
+ *      El usuario puede vincular hablantes usando SpeakerLabel (autocompletado inline).
  *
  * @param {Array<{speaker: string}>} segments - Segmentos de la transcripción.
  * @param {number|null} [recordingId=null] - ID numérico de la grabación.
- * @returns {Object} Mapa `{ ephemeralId: { speakerId, displayName, isNew } }`.
+ * @returns {{ resolutionMap: Object, pendingSuggestions: Array }}
  */
 function resolveFromSegments(segments, recordingId = null) {
   if (!Array.isArray(segments) || segments.length === 0) {
-    return {};
+    return { resolutionMap: {}, pendingSuggestions: [] };
   }
 
   // Si la grabación ya tiene resoluciones persistidas, la BD es la fuente de verdad.
@@ -515,19 +516,23 @@ function resolveFromSegments(segments, recordingId = null) {
   if (recordingId != null) {
     const cached = dbService.getRecordingSpeakerResolutions(recordingId);
     if (cached && Object.keys(cached).length > 0) {
-      return cached;
+      return { resolutionMap: cached, pendingSuggestions: [] };
     }
   }
 
-  // Recopilar IDs únicos de hablante que aparecen en los segmentos
+  // Recopilar IDs únicos de hablante que aparecen en los segmentos.
+  // Filtrar labels placeholder que no representan hablantes reales:
+  //   - "SISTEMA": marcador de canal de audio, no un hablante.
+  //   - "USUARIO": se mantiene porque puede ser útil para el micrófono.
+  const PLACEHOLDER_SPEAKERS = new Set(['SISTEMA', 'sistema', 'SYSTEM', 'system']);
   const uniqueSpeakerIds = [...new Set(
     segments
       .map((s) => s.speaker)
-      .filter((id) => typeof id === 'string' && id.trim() !== '')
+      .filter((id) => typeof id === 'string' && id.trim() !== '' && !PLACEHOLDER_SPEAKERS.has(id))
   )];
 
   if (uniqueSpeakerIds.length === 0) {
-    return {};
+    return { resolutionMap: {}, pendingSuggestions: [] };
   }
 
   const resolutionMap = {};
@@ -543,6 +548,13 @@ function resolveFromSegments(segments, recordingId = null) {
           displayName: existing.display_name,
           isNew: false,
         };
+
+        // Persistir relación recording↔speaker también en flujos sin embeddings
+        // (p. ej. conversation-import) para que aparezca en el detalle de grabaciones.
+        if (recordingId != null) {
+          dbService.upsertRecordingSpeakerResolution(recordingId, ephemeralId, existing.id);
+        }
+
         console.log(
           `[SpeakerManager] ${ephemeralId} → perfil existente "${existing.display_name}" (UUID: ${existing.id})`
         );
@@ -559,6 +571,12 @@ function resolveFromSegments(segments, recordingId = null) {
           displayName: speaker.display_name || ephemeralId,
           isNew: true,
         };
+
+        // Persistir relación recording↔speaker también en flujos sin embeddings.
+        if (recordingId != null) {
+          dbService.upsertRecordingSpeakerResolution(recordingId, ephemeralId, speaker.id);
+        }
+
         console.log(
           `[SpeakerManager] ${ephemeralId} → nuevo perfil creado (UUID: ${speaker.id})`
         );
@@ -568,7 +586,7 @@ function resolveFromSegments(segments, recordingId = null) {
     }
   }
 
-  return resolutionMap;
+  return { resolutionMap, pendingSuggestions: [] };
 }
 
 /**

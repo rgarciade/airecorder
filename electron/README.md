@@ -71,6 +71,43 @@ ipcMain.handle('mi-evento', async (event, params) => {
 *   **Puente Seguro:** `preload.js` expone de forma segura (Context Bridge) las funciones necesarias al renderizador, mapeándolas con `ipcRenderer.invoke()`.
 *   **Backend al React:** El backend puede enviar eventos no solicitados (como actualizaciones de estado de transcripción) utilizando `win.webContents.send('evento-nombre', datos)`. El frontend debe tener listeners (ej. `window.electronAPI.onQueueUpdate()`).
 
+### IPC: Wiki de Proyecto
+
+Se añadió un nuevo handler `electron/ipc-handlers/wiki.js` y una API segura en `preload.js` bajo `window.electronAPI.wiki`.
+
+| Canal IPC | Payload | Respuesta |
+|-----------|---------|-----------|
+| `wiki:list-pages` | `projectId` | `{ success: true, pages: WikiPage[] }` |
+| `wiki:create-page` | `{ project_id, title, slug? }` | `{ success: true, page }` |
+| `wiki:update-page` | `id, { title, slug, content_md }` | `{ success: true, page }` |
+| `wiki:delete-page` | `id` | `{ success: true }` |
+| `wiki:generate-starter-page` | `projectId, { language, projectName? }` | `{ success: true, page }` \| `{ success: true, skipped: true }` \| `{ success: true, error: 'no_analysis' }` |
+
+Métodos expuestos en preload:
+
+```js
+window.electronAPI.wiki = {
+  listPages(projectId),
+  createPage(data),
+  updatePage(id, data),
+  deletePage(id),
+  generateStarterPage(projectId, options),
+}
+```
+
+### Bundle budget (NFR-WIKI-004)
+
+Medición realizada con `npm run build` (2026-06-14):
+
+- `dist/assets/index-BG7mzrvb.js` → **660.69 kB gzip**
+- `dist/assets/index-C3wqrVIJ.css` → **57.78 kB gzip**
+
+Observaciones:
+
+- El código de Wiki (incluyendo `@uiw/react-md-editor`) está dentro del chunk principal `index-BG7mzrvb.js`.
+- No hay chunk lazy dedicado para el editor en el build actual.
+- Por lo tanto, el incremento atribuible a Wiki no puede aislarse con precisión desde este build monolítico; el límite de **100 kB gzip** para la feature queda **en riesgo / no demostrable** y debe tratarse como **NFR no verificado (potencial FAIL)** hasta separar el editor en carga diferida.
+
 ### Captura de Audio del Sistema (`electron-audio-loopback`)
 
 La captura de audio del sistema usa el paquete `electron-audio-loopback` (requiere Electron >= 31). Este paquete evita la necesidad del permiso de "Grabación de pantalla" en macOS:
@@ -95,11 +132,33 @@ La captura de audio del sistema usa el paquete `electron-audio-loopback` (requie
 *   **Auto-migraciones:** Al iniciar, se ejecutan las migraciones:
     *   Crea tablas con `CREATE TABLE IF NOT EXISTS`.
     *   Añade columnas nuevas dinámicamente usando `ALTER TABLE`.
+    *   `recordings.source` se agrega automáticamente si no existe para distinguir el origen de la grabación (`audio` vs `conversation-import`).
 *   **Estados atascados:** Restablece tareas con estado `processing` en la cola a `pending` o `failed` si la app se cerró de forma inesperada.
 *   **Ruta configurable:** La BD se inicializa con la ruta que `main.js` le pasa (por defecto `{userData}/recordings.db`, o la personalizada de `settings.databasePath`). El singleton `DbService` expone:
     *   `init(dbPath)` — abre/crea la BD en la ruta indicada y registra `this.dbPath`.
     *   `close()` — cierra la conexión actual (necesario antes de cambiar la ruta en caliente).
     *   `getCurrentPath()` — devuelve la ruta activa de la BD.
+
+### Tabla `project_wiki_pages`
+
+Tabla para páginas Markdown de wiki por proyecto.
+
+| Columna | Tipo | Restricción |
+|---------|------|-------------|
+| `id` | INTEGER | `PRIMARY KEY AUTOINCREMENT` |
+| `project_id` | INTEGER | `NOT NULL`, FK a `projects(id)` con `ON DELETE CASCADE` |
+| `slug` | TEXT | `NOT NULL` |
+| `title` | TEXT | `NOT NULL` |
+| `content_md` | TEXT | `DEFAULT ''` |
+| `source_recording_ids` | TEXT | `DEFAULT '[]'` (JSON en texto) |
+| `version` | INTEGER | `DEFAULT 1` |
+| `is_verified` | INTEGER | `DEFAULT 0` |
+| `created_at` | TEXT | `DEFAULT CURRENT_TIMESTAMP` |
+| `updated_at` | TEXT | `DEFAULT CURRENT_TIMESTAMP` |
+
+Restricciones extra:
+- `UNIQUE(project_id, slug)`
+- FK `project_id -> projects(id)` con borrado en cascada
 
 ### Almacenamiento Dual (Dual Storage)
 El sistema guarda metadatos en la base de datos (ID, duración, estados), pero el contenido pesado (archivos WAV, archivos JSON de los resúmenes de IA, transcripciones txt) reside en el sistema de archivos (Filesystem).
@@ -288,6 +347,7 @@ Gestiona archivos adjuntos (imágenes y documentos) asociados a cada grabación.
 | `delete-attachment(recordingId, filename)` | Elimina un adjunto del disco |
 | `read-attachment-content(recordingId, filename)` | Lee el contenido: `{type: 'image'|'text', data, mimeType}` |
 | `get-attachment-thumbnail(recordingId, filename)` | Retorna `data:image/...;base64,...` para preview de imágenes |
+| `save-pasted-text(recordingId, text, filename)` | Guarda texto como archivo `.txt` en `attachments/`. Devuelve `{attachment: {...}}` |
 
 ### Métodos expuestos en `preload.js`
 | Método | Descripción |
@@ -297,6 +357,14 @@ Gestiona archivos adjuntos (imágenes y documentos) asociados a cada grabación.
 | `deleteAttachment(recordingId, filename)` | Eliminar adjunto |
 | `readAttachmentContent(recordingId, filename)` | Leer contenido (base64 o texto) |
 | `getAttachmentThumbnail(recordingId, filename)` | Data URL para thumbnail de imagen |
+| `savePastedText(recordingId, text, filename)` | Guardar texto pegado como archivo `.txt` |
+
+### Estrategia de naming y colisiones
+El handler `save-pasted-text` implementa las siguientes reglas:
+1. **Sanitización:** Elimina caracteres inválidos (`<>:"/\|?*`) del nombre proporcionado.
+2. **Default:** Si el nombre está vacío, usa `Conversacion pegada`.
+3. **Extensión:** Fuerza automáticamente la extensión `.txt`.
+4. **Colisiones:** Si el archivo ya existe, añade sufijo numérico: `nombre_1.txt`, `nombre_2.txt`, etc.
 
 ### Integración con IA
 - **Imágenes:** Se convierten a base64 y se pasan como `options.images` en `callProvider`/`callProviderStreaming`. Gemini y Ollama (modelos de visión como LLaVA) los procesan como partes multimodales.
@@ -476,12 +544,16 @@ Si no hay `diarization.json` o no tiene `speaker_embeddings`, el campo `speakerR
 | `assign-alias` | `{ speakerId?, alias, embedding?, recordingId?, ephemeralId? }` | `{ success, speakerId?, displayName?, error? }` |
 | `get-all-speakers` | *(sin payload)* | `{ success, data: [{ id, display_name, created_at, updated_at }] }` |
 | `merge-similar-speaker` | `{ targetSpeakerId, sourceSpeakerId }` | `{ success: true, mergedName }` o `{ success: false, error }` |
+| `preview-merge-speakers` | `{ sourceSpeakerId, targetSpeakerId }` | `{ success: true, data: { finalSourceId, finalTargetId, swapped, sourceEmbeddings, targetEmbeddings, warnings[] } }` o `{ success: false, error }` |
 | `get-speaker-first-segment-time` | `{ speakerId, recordingId }` | `{ success: true, data: { startTime, ephemeralId } }` o `{ success: false, error }` |
 | `delete-speaker-recording-resolution` | `{ speakerId, recordingId }` | `{ success: true, deletedCount, deletedEmbeddings, deletedResolutions }` o `{ success: false, error }` |
 
 > `assign-alias` acepta un `speakerId` opcional. Si `alias` coincide con un hablante ya existente, el backend remapea el speaker actual a ese perfil persistente y actualiza también `recording_speaker_resolutions`. La UI no debe asumir éxito optimista: solo refleja la respuesta confirmada por BD.
 > `get-all-speakers` se llama al montar `TranscriptionViewer` para poblar el autocompletado y pre-cargar aliases.
+> `preview-merge-speakers` permite validar un merge manual antes de ejecutarlo: si el usuario elige una dirección que perdería embeddings, el backend devuelve `swapped: true` y ajusta `finalSourceId/finalTargetId` para preservar los embeddings. La UI debe mostrar también `warnings[]` para que el usuario verifique qué embeddings se van a reasignar. Si origen y destino son el mismo speaker, el handler devuelve error y no genera preview.
 > `delete-speaker-recording-resolution` elimina en una **transacción atómica** la relación hablante-grabación: borra embeddings de `speaker_embeddings` para `(speakerId, recordingId)` y resoluciones de `recording_speaker_resolutions` para la misma clave. Si algo falla, se revierte todo.
+> En `resolveFromSegments` (fallback sin `speaker_embeddings`, como `conversation-import`), también se persiste `recording_speaker_resolutions` para cada `ephemeralId`. Esto garantiza que el detalle de hablante muestre tanto grabaciones con audio como grabaciones solo texto.
+> `save-conversation-import` ejecuta también la resolución de speakers sobre los segmentos normalizados y persiste `recording_speaker_resolutions` en el momento de importar, evitando que las grabaciones solo texto queden huérfanas en la vista de detalle de hablantes.
 
 #### `get-transcription` (Phase 5 — resolución automática)
 
@@ -492,6 +564,21 @@ Desde Phase 5, `get-transcription` (`ipc-handlers/recordings.js`) incluye la res
 | `get-transcription` | `recordingId` | `{ success, transcription: { segments, metadata, speakerResolution: { ...map, _pendingSuggestions } } }` |
 
 El campo `speakerResolution` es `{}` si no existe `diarization.json` o no tiene `speaker_embeddings`. `_pendingSuggestions` es un array vacío `[]` si no hay sugerencias pendientes.
+
+#### `get-transcription-txt` — resolución de nombres de hablantes (issue #64)
+
+El handler `get-transcription-txt` (`ipc-handlers/recordings.js`) aplica resolución de nombres antes de retornar el texto plano al renderer. Los tokens de diarización (`SPEAKER_XX`) se sustituyen por sus `display_name` persistidos en BD sin modificar el archivo en disco.
+
+| Canal IPC | Payload | Respuesta |
+|-----------|---------|-----------|
+| `get-transcription-txt` | `recordingId` | `{ success: true, text: string }` — `text` contiene nombres legibles en lugar de `SPEAKER_XX` cuando existen resoluciones en BD |
+
+**Comportamiento:**
+- Llama a `dbService.getRecording(folderName)` para obtener el `id` numérico de la grabación.
+- Invoca `resolveSpeakersInText(numericId, txtData, dbService)` (`electron/services/speakerResolver.js`).
+- Si no existen resoluciones (`null`) o el mapa está vacío, retorna el texto crudo sin cambios.
+- El archivo `transcripcion_combinada.txt` en disco nunca es modificado.
+- Las resoluciones se leen frescas de BD en cada llamada (sin caché en memoria).
 
 #### `confirm-speaker-suggestion` (Phase 6 — confirmación manual)
 
@@ -506,6 +593,7 @@ El campo `speakerResolution` es `{}` si no existe `diarization.json` o no tiene 
 | `resolveSpeakers(params)` | Resuelve el mapa de hablantes efímeros a UUIDs persistentes |
 | `assignSpeakerAlias(params)` | Persiste un alias personalizado y opcionalmente el embedding |
 | `getAllSpeakers()` | Devuelve todos los hablantes de BD (para autocompletado en UI) |
+| `previewMergeSpeakers(params)` | Previsualiza un merge y avisa si la dirección elegida reasigna embeddings |
 | `confirmSpeakerSuggestion(params)` | Confirma una sugerencia pendiente: reasigna embeddings y actualiza BD |
 | `deleteSpeakerRecordingResolution(params)` | Elimina relación hablante-grabación de forma atómica (resolución + embeddings por grabación) |
 
@@ -517,5 +605,86 @@ SELECT id, display_name, created_at, updated_at FROM speakers ORDER BY display_n
 ```
 Se usa exclusivamente como fuente de datos para el autocompletado de alias en `SpeakerLabel` y `MergeSpeakersModal`.
 
-## 8. `projectsDatabase.README.md`
+### Función `dbService.getSpeakerEmbeddingCount(speakerId)`
+
+Añadida en `electron/database/dbService.js` como proxy al dominio de speakers para soportar validaciones previas de merge.
+
+- Devuelve `number` con el total de embeddings asociados al hablante.
+- Se usa en `ipc-handlers/speakers.js` dentro de `preview-merge-speakers` para detectar si la dirección elegida provocaría pérdida de embeddings y activar el auto-swap (`swapped: true`) cuando corresponde.
+
+## 8. Plantillas de Notas (`templates` + `recording_notes`)
+
+Sistema de generación de notas estructuradas basadas en plantillas predefinidas o personalizadas.
+
+### Nuevas Tablas SQLite
+
+#### `note_templates`
+Almacena las plantillas de notas (tanto predefinidas como personalizadas).
+
+| Columna | Tipo | Descripción |
+|---------|------|-------------|
+| `slug` | TEXT (PK) | Identificador único (ej. `standup`, `one-on-one`, `custom-abc123`) |
+| `name` | TEXT | Nombre visible (ej. "Standup", "Daily Journal") |
+| `icon` | TEXT | Emoji o nombre de icono |
+| `description` | TEXT | Descripción breve |
+| `expert_id` | TEXT | Experto por defecto para generar notas (ej. `general`, `developer`) |
+| `sections_json` | TEXT | Array de secciones en JSON (ver tipos abajo) |
+| `is_builtin` | INTEGER | `1` = predefinida, `0` = personalizada |
+| `enabled` | INTEGER | `1` = activa, `0` = deshabilitada |
+| `created_at` | DATETIME | Fecha de creación |
+| `updated_at` | DATETIME | Fecha de última modificación |
+
+#### `recording_notes`
+Almacena las notas generadas para cada grabación.
+
+| Columna | Tipo | Descripción |
+|---------|------|-------------|
+| `id` | INTEGER (PK) | Autoincremental |
+| `recording_id` | INTEGER (FK) | Referencia a `recordings(id)`, `ON DELETE CASCADE` |
+| `template_slug` | TEXT | Slug de la plantilla usada |
+| `content_md` | TEXT | Contenido en Markdown generado |
+| `created_at` | DATETIME | Fecha de creación |
+
+### Tipos de Sección
+Cada plantilla tiene un array de secciones con estos tipos:
+- `text` — Texto libre
+- `list` — Lista con bullet points
+- `checklist` — Lista de checkboxes
+- `table` — Tabla estructurada
+- `qa` — Pregunta y respuesta
+- `summary` — Resumen ejecutivo
+- `action_items` — Elementos de acción/tareas
+- `custom` — Sección libre con instrucciones custom
+
+### Handlers IPC (`ipc-handlers/templates.js`)
+
+| Canal IPC | Payload | Descripción |
+|-----------|---------|-------------|
+| `templates:list` | — | Lista todas las plantillas habilitadas (builtin + custom) |
+| `templates:getBySlug` | `slug` | Obtiene una plantilla por su slug |
+| `templates:create` | `{ slug, name, icon, description, expert_id, sections_json }` | Crea plantilla personalizada |
+| `templates:update` | `slug, { data }` | Actualiza plantilla personalizada |
+| `templates:delete` | `slug` | Elimina plantilla personalizada |
+| `templates:toggleEnabled` | `slug, enabled` | Habilita/deshabilita plantilla |
+| `templates:getNotesForRecording` | `recordingId` | Obtiene todas las notas de una grabación |
+| `templates:saveNote` | `{ recordingId, templateSlug, contentMd }` | Guarda nueva nota |
+| `templates:updateNote` | `id, contentMd` | Actualiza contenido de nota |
+| `templates:deleteNote` | `id` | Elimina una nota |
+
+### Métodos expuestos en `preload.js`
+
+| Método | Descripción |
+|--------|-------------|
+| `templates.list()` | Lista plantillas habilitadas |
+| `templates.getBySlug(slug)` | Obtiene plantilla por slug |
+| `templates.create(data)` | Crea plantilla personalizada |
+| `templates.update(slug, data)` | Actualiza plantilla |
+| `templates.delete(slug)` | Elimina plantilla |
+| `templates.toggleEnabled(slug, enabled)` | Habilita/deshabilita |
+| `templates.getNotesForRecording(recordingId)` | Notas de una grabación |
+| `templates.saveNote(data)` | Guarda nota |
+| `templates.updateNote(id, contentMd)` | Actualiza nota |
+| `templates.deleteNote(id)` | Elimina nota |
+
+## 9. `projectsDatabase.README.md`
 Existe un archivo adicional en esta carpeta (`projectsDatabase.README.md`) que detalla un motor de base de datos específico en JSON que sirve de legado o apoyo para ciertos datos de proyecto. Revísalo si vas a tocar `projectsDatabase.js`.

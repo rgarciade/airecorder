@@ -15,7 +15,7 @@
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0;
-  color: var(--color-text, #1a1a2e);
+  color: var(--color-text-primary);
 }
 
 .headerActions {
@@ -32,18 +32,80 @@
 .searchInput {
   width: 100%;
   padding: 10px 16px;
-  border: 1px solid var(--color-border, #e2e8f0);
+  border: 1px solid var(--color-border-primary);
   border-radius: 8px;
   font-size: 0.9rem;
-  background: var(--color-bg-input, #ffffff);
-  color: var(--color-text, #1a1a2e);
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
   outline: none;
   transition: border-color 0.2s;
   box-sizing: border-box;
 }
 
 .searchInput:focus {
-  border-color: var(--color-primary, #6366f1);
+  border-color: var(--color-primary);
+}
+
+/* Filtro de embeddings */
+.embeddingFilter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-bg-tertiary);
+  padding: 3px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.filterBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.filterBtn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.filterBtnActive {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.filterBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--color-bg-hover);
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.filterBtnActive .filterBadge {
+  background: var(--color-primary-light, #e0e7ff);
+  color: var(--color-primary, #6366f1);
+}
+
+.filterBadgeWarning {
+  background: #fef3c7;
+  color: #92400e;
 }
 
 /* Botón "Fusionar hablantes" en el header */
@@ -155,9 +217,9 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border: 1px solid var(--color-border, #e2e8f0);
+  border: 1px solid var(--color-border-primary);
   border-radius: 10px;
-  background: var(--color-bg-card, #ffffff);
+  background: var(--color-bg-secondary);
   cursor: pointer;
   text-align: left;
   width: 100%;
@@ -165,8 +227,8 @@
 }
 
 .speakerCard:hover {
-  background: var(--color-bg-hover, #f8fafc);
-  border-color: var(--color-primary, #6366f1);
+  background: var(--color-bg-hover);
+  border-color: var(--color-primary);
   transform: translateY(-1px);
 }
 
@@ -193,12 +255,27 @@
 }
 
 .speakerName {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--color-text, #1a1a2e);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--color-text-primary);
+  min-width: 0;
+}
+
+.noEmbeddingBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .speakerStats {
@@ -219,7 +296,7 @@
   gap: 6px;
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid var(--color-border, #e2e8f0);
+  border-top: 1px solid var(--color-border-primary);
 }
 
 .paginationBtn {
@@ -228,23 +305,33 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid var(--color-border, #e2e8f0);
+  border: 1px solid var(--color-border-primary);
   border-radius: 6px;
-  background: var(--color-bg-card, #ffffff);
-  color: var(--color-text-secondary, #64748b);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: background-color 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .paginationBtn:hover:not(:disabled) {
-  background: var(--color-bg-hover, #f8fafc);
-  color: var(--color-text, #1a1a2e);
-  border-color: var(--color-primary, #6366f1);
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  border-color: var(--color-primary);
 }
 
 .paginationBtn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+.paginationInfo {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  white-space: nowrap;
 }
 
 .paginationPages {
@@ -263,7 +350,7 @@
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
-  color: var(--color-text-secondary, #64748b);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
@@ -271,8 +358,8 @@
 }
 
 .paginationPage:hover {
-  background: var(--color-bg-hover, #f8fafc);
-  color: var(--color-text, #1a1a2e);
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
 }
 
 .paginationPageActive {
@@ -307,7 +394,7 @@
 }
 
 .mergeModal {
-  background: var(--color-bg-card, #ffffff);
+  background: var(--color-bg-secondary);
   border-radius: 14px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   width: 100%;
@@ -326,7 +413,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 18px 20px 14px;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  border-bottom: 1px solid var(--color-border-primary);
 }
 
 .mergeModalTitle {
@@ -336,7 +423,7 @@
   font-size: 1.05rem;
   font-weight: 700;
   margin: 0;
-  color: var(--color-text, #1a1a2e);
+  color: var(--color-text-primary);
 }
 
 .mergeModalClose {
@@ -354,8 +441,8 @@
 }
 
 .mergeModalClose:hover {
-  background: var(--color-bg-hover, #f1f5f9);
-  color: var(--color-text, #1a1a2e);
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
 }
 
 .mergeModalClose:disabled {
@@ -392,183 +479,6 @@
   letter-spacing: 0.04em;
 }
 
-/* Dropdown personalizado */
-.mergeDropdownWrapper {
-  position: relative;
-}
-
-.mergeDropdownTrigger {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
-  background: var(--color-bg-input, #ffffff);
-  color: var(--color-text, #1a1a2e);
-  font-size: 0.9rem;
-  cursor: pointer;
-  text-align: left;
-  transition: border-color 0.15s;
-  gap: 8px;
-}
-
-.mergeDropdownTrigger:hover,
-.mergeDropdownSelected {
-  border-color: var(--color-primary, #6366f1);
-}
-
-.mergeDropdownPlaceholder {
-  color: var(--color-text-muted, #94a3b8);
-  flex: 1;
-}
-
-.mergeDropdownSelectedName {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
-  font-weight: 500;
-}
-
-.mergeDropdownAvatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--color-primary, #6366f1);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.mergeDropdownPanel {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  background: var(--color-bg-card, #ffffff);
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  z-index: 10;
-  overflow: hidden;
-  animation: dropdownIn 0.1s ease-out;
-}
-
-@keyframes dropdownIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.mergeDropdownSearch {
-  display: block;
-  width: 100%;
-  padding: 10px 12px;
-  border: none;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
-  background: var(--color-bg-input, #ffffff);
-  color: var(--color-text, #1a1a2e);
-  font-size: 0.875rem;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.mergeDropdownList {
-  list-style: none;
-  margin: 0;
-  padding: 4px;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.mergeDropdownEmpty {
-  padding: 12px;
-  text-align: center;
-  font-size: 0.85rem;
-  color: var(--color-text-muted, #94a3b8);
-}
-
-.mergeDropdownOption {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.1s;
-}
-
-.mergeDropdownOption:hover {
-  background: var(--color-bg-hover, #f8fafc);
-}
-
-.mergeDropdownOptionActive {
-  background: color-mix(in srgb, var(--color-primary, #6366f1) 10%, transparent);
-}
-
-.mergeDropdownOptionActive:hover {
-  background: color-mix(in srgb, var(--color-primary, #6366f1) 15%, transparent);
-}
-
-.mergeDropdownOptionDisabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.mergeDropdownOptionAvatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--color-text-secondary, #64748b);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.mergeDropdownOptionInfo {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.mergeDropdownOptionName {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-text, #1a1a2e);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.mergeDropdownOptionMeta {
-  font-size: 0.75rem;
-  color: var(--color-text-secondary, #64748b);
-}
-
-.mergeDropdownOptionTag {
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--color-primary, #6366f1) 15%, transparent);
-  color: var(--color-primary, #6366f1);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
 /* Flecha visual entre origen y destino */
 .mergeArrowRow {
   display: flex;
@@ -595,7 +505,7 @@
 
 .mergePreviewSource {
   font-weight: 600;
-  color: var(--color-text, #1a1a2e);
+  color: var(--color-text-primary);
   max-width: 140px;
   white-space: nowrap;
   overflow: hidden;
@@ -633,16 +543,16 @@
   justify-content: flex-end;
   gap: 10px;
   padding: 14px 20px;
-  border-top: 1px solid var(--color-border, #e2e8f0);
-  background: var(--color-bg-secondary, #f8fafc);
+  border-top: 1px solid var(--color-border-primary);
+  background: var(--color-bg-tertiary);
 }
 
 .mergeModalCancelBtn {
   padding: 9px 18px;
-  border: 1px solid var(--color-border, #e2e8f0);
+  border: 1px solid var(--color-border-primary);
   border-radius: 8px;
   background: transparent;
-  color: var(--color-text-secondary, #64748b);
+  color: var(--color-text-secondary);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -650,8 +560,8 @@
 }
 
 .mergeModalCancelBtn:hover:not(:disabled) {
-  background: var(--color-bg-hover, #f1f5f9);
-  color: var(--color-text, #1a1a2e);
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
 }
 
 .mergeModalCancelBtn:disabled {

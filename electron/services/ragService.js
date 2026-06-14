@@ -2,6 +2,8 @@
 const fs = require("fs");
 const path = require("path");
 const embeddingService = require("./embeddingService");
+const { resolveSpeakersInText } = require("./speakerResolver");
+const dbService = require("../database/dbService");
 
 // Umbral: transcripciones menores a este valor no usan RAG
 const MIN_TEXT_LENGTH_FOR_RAG = 8000; // ~2000 tokens
@@ -218,13 +220,20 @@ async function indexRecording(recordingPath) {
   // Leer transcripción
   const txtContent = await fs.promises.readFile(txtPath, "utf8");
 
-  // Verificar longitud mínima
+  // Verificar longitud mínima (sobre el contenido crudo, antes de resolución)
   if (txtContent.length < MIN_TEXT_LENGTH_FOR_RAG) {
     console.log(
       `[RAG] Transcripción corta (${txtContent.length} chars), skip RAG`,
     );
     return { indexed: false, skippedRag: true, totalChunks: 0 };
   }
+
+  // Resolver nombres de hablantes (SPEAKER_XX → nombre legible)
+  const relativePath = path.basename(recordingPath);
+  const recording = dbService.getRecording(relativePath);
+  const resolvedContent = recording?.id
+    ? resolveSpeakersInText(recording.id, txtContent, dbService)
+    : txtContent;
 
   // Detectar provider de embeddings
   const provider = await embeddingService.detectEmbeddingProvider();
@@ -248,8 +257,8 @@ async function indexRecording(recordingPath) {
     };
   }
 
-  // Parsear y crear chunks
-  const parsedLines = parseTranscriptionTxt(txtContent);
+  // Parsear y crear chunks (usando contenido con nombres resueltos)
+  const parsedLines = parseTranscriptionTxt(resolvedContent);
   if (parsedLines.length === 0) {
     return {
       indexed: false,

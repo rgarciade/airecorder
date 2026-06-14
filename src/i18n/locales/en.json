@@ -70,9 +70,9 @@
     },
     "importConversation": {
       "title": "Import external conversation",
-      "largeFileWarning": "The file exceeds 50KB. The AI may not be able to process it fully. Do you want to continue?",
-      "noSegments": "No segments could be extracted from the conversation. Make sure the file contains a valid conversation.",
-      "noProvider": "No AI provider is configured. Please set one up in Settings before importing.",
+      "largeFileWarning": "The file exceeds 50KB. AI may not be able to process it completely. Continue?",
+      "noSegments": "Could not extract segments from the conversation. Verify the file contains a valid conversation.",
+      "noProvider": "No AI provider configured. Set one up in Settings before importing.",
       "processing": "Normalizing conversation with AI...",
       "success": "Conversation imported successfully"
     },
@@ -86,7 +86,8 @@
       "projectLabel": "Assign to project (optional)",
       "projectPlaceholder": "No project",
       "cancel": "Cancel",
-      "submit": "Import with AI"
+      "submit": "Import with AI",
+      "processing": "Processing..."
     }
   },
   "recordButton": {
@@ -469,9 +470,49 @@
     "unassignTitle": "Unassign from Project?",
     "unassignConfirm": "Are you sure you want to unassign \"{{recordingName}}\" from project \"{{projectName}}\"?",
     "unassign": "Unassign",
-    "page": "Page {{current}} de {{total}}"
-    },
-    "recordingDetail": {
+    "page": "Page {{current}} de {{total}}",
+    "wiki": {
+      "tab": "Wiki",
+      "emptyState": {
+        "title": "No pages yet",
+        "description": "Start documenting the project.",
+        "createFirst": "Create first page"
+      },
+      "list": {
+        "newPage": "New page",
+        "deleteConfirm": "Delete this page?"
+      },
+      "editor": {
+        "save": "Save",
+        "cancel": "Cancel",
+        "titlePlaceholder": "Page title",
+        "errorBanner": "Error saving page",
+        "dismiss": "Dismiss",
+        "close": "Close editor",
+        "closeConfirmTitle": "Unsaved changes",
+        "closeConfirmMessage": "You have unsaved changes on this page. Close anyway?",
+        "closeConfirmDiscard": "Yes, discard",
+        "closeConfirmKeep": "Keep editing"
+      },
+      "viewer": {
+        "edit": "Edit",
+        "verified": "Verified",
+        "unverified": "Unverified"
+      },
+      "generation": {
+        "title": "Generating project summary…",
+        "error": "Could not generate the starter page. Try again or create one manually.",
+        "retry": "Retry",
+        "createManually": "Create manually",
+        "defaultTitle": "Project summary"
+      },
+      "page": {
+        "verified": "Verified",
+        "lastEdited": "Last edited"
+      }
+    }
+  },
+  "recordingDetail": {
     "overview": {
       "detailedSummary": "Detailed Summary",
       "notesAndInstructions": "Notes & Instructions",
@@ -490,8 +531,8 @@
       "noTranscription": "No transcription yet",
       "noTranscriptionDesc": "AI needs the transcription to generate the summary and key topics."
     }
-    },
-    "participantsList": {
+  },
+  "participantsList": {
     "title": "Participants",
     "add": "Add",
     "name": "Name",
@@ -499,8 +540,8 @@
     "noParticipants": "No participants detected.",
     "aiSuggested": "AI",
     "aiSuggestedTooltip": "Suggested by AI"
-    },
-    "newSessionCard": {
+  },
+  "newSessionCard": {
     "title": "New Session",
     "description": "Start recording instantly. Our AI will handle transcription, summarization, and key point extraction automatically.",
     "changeMic": "Change Microphone",
@@ -510,7 +551,9 @@
     "teams": "Teams",
     "audio": "Audio",
     "importConversation": "Import with AI",
-    "importConversationDescription": "Upload text, srt, or vtt files. AI will normalize the format automatically.",
+    "importConversationDescription": "Upload files or paste text. AI will normalize the format automatically.",
+    "uploadFile": "Upload file",
+    "pasteConversation": "Paste conversation",
     "importTeamsDescription": "Import Microsoft Teams transcriptions (.docx).",
     "importAudioDescription": "Upload audio files (mp3, wav, ogg...) to transcribe.",
     "uploadFile": "Upload file",
@@ -740,9 +783,13 @@
     "mergeError": "Error merging: {{error}}",
     "sameSpeakerError": "Source and target cannot be the same speaker",
     "selectBothError": "Select both speakers to continue",
+    "typeWithAudio": "With audio",
+    "typeTextOnly": "Text only",
     "prevPage": "Previous page",
     "nextPage": "Next page",
-    "page": "Page"
+    "page": "Page",
+    "pageOf": "Page",
+    "of": "of"
   },
   "speakerDetail": {
     "title": "Speaker Detail",
@@ -832,6 +879,90 @@
         "label": "Task Generation",
         "hint": "Instructions for automatic task generation from the transcription.",
         "placeholder": "E.g.: Tasks should always have an assigned owner and an estimated date..."
+      }
+    }
+  },
+  "templates": {
+    "modal": {
+      "title": "Generate notes from template",
+      "useButton": "Use",
+      "createCustom": "+ Create custom template",
+      "sectionsCount": "{{count}} sections",
+      "loading": "Loading templates...",
+      "empty": "No templates available"
+    },
+    "tab": {
+      "title": "Notes",
+      "generateButton": "Generate from template",
+      "empty": "No notes generated for this recording yet.",
+      "generatedAt": "Generated on {{date}} with template \"{{template}}\""
+    },
+    "actions": {
+      "edit": "Edit",
+      "exportPdf": "Export PDF",
+      "exportDocx": "Export DOCX",
+      "copy": "Copy",
+      "copySuccess": "Copied to clipboard!",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this note? This action cannot be undone.",
+      "generating": "Generating notes..."
+    },
+    "settings": {
+      "title": "Note Templates",
+      "builtinSection": "Built-in Templates",
+      "customSection": "My Templates",
+      "duplicate": "Duplicate and customize",
+      "newCustom": "+ New template",
+      "deleteConfirm": "Delete this template? Notes generated with it will be preserved."
+    },
+    "editor": {
+      "newTitle": "New Template",
+      "editTitle": "Edit Template",
+      "name": "Name",
+      "icon": "Icon",
+      "description": "Description",
+      "expert": "Default Expert",
+      "sections": "Sections",
+      "addSection": "+ Add section",
+      "sectionTitle": "Section title",
+      "sectionType": "Type",
+      "sectionInstructions": "Instructions",
+      "required": "Required",
+      "preview": "Preview",
+      "save": "Save",
+      "cancel": "Cancel",
+      "validateMinSections": "Add at least one section",
+      "validateTitle": "Each section needs a title",
+      "validateType": "Each section needs a type"
+    },
+    "builtin": {
+      "standup": {
+        "name": "Standup",
+        "description": "Daily standup notes with Yesterday/Today/Blockers"
+      },
+      "one-on-one": {
+        "name": "1:1 Meeting",
+        "description": "One-on-one meeting with achievements, concerns and actions"
+      },
+      "customer-interview": {
+        "name": "Customer Interview",
+        "description": "Pain points, quotes, JTBD and next steps"
+      },
+      "sales-discovery": {
+        "name": "Sales Discovery",
+        "description": "BANT qualification with objections and next step"
+      },
+      "daily-journal": {
+        "name": "Daily Journal",
+        "description": "Daily reflection with mood, gratitude and focus areas"
+      },
+      "lecture-notes": {
+        "name": "Lecture Notes",
+        "description": "Topics, definitions, examples and open questions"
+      },
+      "brainstorm": {
+        "name": "Brainstorm",
+        "description": "Idea pool, themes, top picks and risks"
       }
     }
   }

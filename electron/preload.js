@@ -133,6 +133,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Obtener duración total del proyecto
   getProjectTotalDuration: (projectId) => ipcRenderer.invoke('get-project-total-duration', projectId),
 
+  // Wiki de proyecto
+  wiki: {
+    listPages: (projectId) => ipcRenderer.invoke('wiki:list-pages', projectId),
+    createPage: (data) => ipcRenderer.invoke('wiki:create-page', data),
+    updatePage: (id, data) => ipcRenderer.invoke('wiki:update-page', id, data),
+    deletePage: (id) => ipcRenderer.invoke('wiki:delete-page', id),
+    generateStarterPage: (projectId, options) => ipcRenderer.invoke('wiki:generate-starter-page', projectId, options),
+  },
+
   // Guardar y leer análisis de proyecto
   saveProjectAnalysis: (projectId, analysis) => ipcRenderer.invoke('save-project-analysis', projectId, analysis),
   getProjectAnalysis: (projectId) => ipcRenderer.invoke('get-project-analysis', projectId),
@@ -211,6 +220,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteAttachment: (recordingId, filename) => ipcRenderer.invoke('delete-attachment', recordingId, filename),
   readAttachmentContent: (recordingId, filename) => ipcRenderer.invoke('read-attachment-content', recordingId, filename),
   getAttachmentThumbnail: (recordingId, filename) => ipcRenderer.invoke('get-attachment-thumbnail', recordingId, filename),
+  savePastedText: (recordingId, text, filename) => ipcRenderer.invoke('save-pasted-text', recordingId, text, filename),
 
   // Abrir URLs en el navegador predeterminado del sistema
   openExternal: (url) => shell.openExternal(url),
@@ -299,6 +309,48 @@ contextBridge.exposeInMainWorld('electronAPI', {
   mergeSimilarSpeaker: (params) => ipcRenderer.invoke('merge-similar-speaker', params),
 
   /**
+    * Previsualiza un merge entre dos hablantes.
+    * Devuelve origen/destino finales (con auto-swap), recuentos de embeddings y advertencias.
+    *
+    * @param {{ sourceSpeakerId: string, targetSpeakerId: string }} params
+    * @returns {Promise<{ success: boolean, data?: { finalSourceId: string, finalTargetId: string, swapped: boolean, sourceEmbeddings: number, targetEmbeddings: number, warnings: string[] }, error?: string }>}
+    */
+  previewMergeSpeakers: (params) => ipcRenderer.invoke('preview-merge-speakers', params),
+
+  // ── Floating Widget ─────────────────────────────────────────────────────────
+  showFloatingWindow: (opts) => ipcRenderer.invoke('show-floating-window', opts),
+  hideFloatingWindow: () => ipcRenderer.invoke('hide-floating-window'),
+  notifyMuteState: (muted) => ipcRenderer.send('main-mute-state-changed', muted),
+  floatingToggleMute: () => ipcRenderer.send('floating-toggle-mute'),
+  floatingStopRecording: () => ipcRenderer.send('floating-stop-recording'),
+  floatingDiscardRecording: () => ipcRenderer.send('floating-discard-recording'),
+  onFloatingWindowHidden: (cb) => {
+    const listener = () => cb();
+    ipcRenderer.on('floating-window-hidden', listener);
+    return () => ipcRenderer.removeListener('floating-window-hidden', listener);
+  },
+  onRelayToggleMute: (cb) => {
+    const listener = () => cb();
+    ipcRenderer.on('relay-toggle-mute', listener);
+    return () => ipcRenderer.removeListener('relay-toggle-mute', listener);
+  },
+  onRelayStopRecording: (cb) => {
+    const listener = () => cb();
+    ipcRenderer.on('relay-stop-recording', listener);
+    return () => ipcRenderer.removeListener('relay-stop-recording', listener);
+  },
+  onRelayDiscardRecording: (cb) => {
+    const listener = () => cb();
+    ipcRenderer.on('relay-discard-recording', listener);
+    return () => ipcRenderer.removeListener('relay-discard-recording', listener);
+  },
+  onMuteStateChanged: (cb) => {
+    const listener = (_e, muted) => cb(muted);
+    ipcRenderer.on('mute-state-changed', listener);
+    return () => ipcRenderer.removeListener('mute-state-changed', listener);
+  },
+
+  /**
    * Devuelve el timestamp del primer segmento de un hablante en una grabación.
    * Se usa para hacer seek al punto exacto donde ese hablante empieza a hablar.
    *
@@ -315,4 +367,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
    * @returns {Promise<{ success: boolean, deletedCount?: number, error?: string }>}
    */
   deleteSpeakerRecordingResolution: (params) => ipcRenderer.invoke('delete-speaker-recording-resolution', params),
+
+  // ── Note Templates ─────────────────────────────────────────────────────────
+  templates: {
+    // Template CRUD
+    list: () => ipcRenderer.invoke('templates:list'), // All templates (for settings)
+    listEnabled: () => ipcRenderer.invoke('templates:listEnabled'), // Only enabled (for note creation)
+    getBySlug: (slug) => ipcRenderer.invoke('templates:getBySlug', slug),
+    create: (data) => ipcRenderer.invoke('templates:create', data),
+    update: (slug, data) => ipcRenderer.invoke('templates:update', slug, data),
+    delete: (slug) => ipcRenderer.invoke('templates:delete', slug),
+    toggleEnabled: (slug, enabled) => ipcRenderer.invoke('templates:toggleEnabled', slug, enabled),
+
+    // Recording Notes
+    getNotesForRecording: (id) => ipcRenderer.invoke('templates:getNotesForRecording', id),
+    saveNote: (data) => ipcRenderer.invoke('templates:saveNote', data),
+    updateNote: (id, content) => ipcRenderer.invoke('templates:updateNote', id, content),
+    deleteNote: (id) => ipcRenderer.invoke('templates:deleteNote', id)
+  }
 });

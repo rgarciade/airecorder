@@ -2,22 +2,7 @@ const { ipcMain, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { getRecordingsPath, getFolderPathFromId } = require('../utils/paths');
-
-// Extensiones soportadas
-const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
-const TEXT_EXTENSIONS = ['.txt', '.md'];
-const PDF_EXTENSIONS = ['.pdf'];
-const EXCEL_EXTENSIONS = ['.xlsx', '.xls'];
-const SUPPORTED_EXTENSIONS = [...IMAGE_EXTENSIONS, ...TEXT_EXTENSIONS, ...PDF_EXTENSIONS, ...EXCEL_EXTENSIONS];
-
-function getAttachmentType(filename) {
-  const ext = path.extname(filename).toLowerCase();
-  if (IMAGE_EXTENSIONS.includes(ext)) return 'image';
-  if (PDF_EXTENSIONS.includes(ext)) return 'pdf';
-  if (TEXT_EXTENSIONS.includes(ext)) return 'text';
-  if (EXCEL_EXTENSIONS.includes(ext)) return 'excel';
-  return 'unknown';
-}
+const { SUPPORTED_EXTENSIONS, getAttachmentType, resolveFilename } = require('../utils/fileUtils');
 
 async function getAttachmentsDir(recordingId) {
   const recordingsBase = await getRecordingsPath();
@@ -26,6 +11,42 @@ async function getAttachmentsDir(recordingId) {
 }
 
 module.exports.registerAttachmentsHandlers = () => {
+
+  // Guardar texto pegado como archivo .txt
+  ipcMain.handle('save-pasted-text', async (_event, recordingId, text, filename) => {
+    try {
+      if (!text || typeof text !== 'string') {
+        return { success: false, error: 'El texto está vacío o no es válido' };
+      }
+
+      const attachmentsDir = await getAttachmentsDir(recordingId);
+      if (!fs.existsSync(attachmentsDir)) {
+        await fs.promises.mkdir(attachmentsDir, { recursive: true });
+      }
+
+      // Resolver nombre de archivo (sanitizar + extensión + colisiones)
+      const finalFilename = resolveFilename(filename || '', attachmentsDir);
+      const filePath = path.join(attachmentsDir, finalFilename);
+
+      // Escribir el archivo
+      await fs.promises.writeFile(filePath, text, 'utf8');
+
+      const stats = await fs.promises.stat(filePath);
+
+      const attachment = {
+        filename: finalFilename,
+        type: getAttachmentType(finalFilename),
+        size: stats.size,
+        mimeType: getMimeType(finalFilename),
+        createdAt: stats.birthtime.toISOString()
+      };
+
+      return { success: true, attachment };
+    } catch (error) {
+      console.error('Error guardando texto pegado:', error);
+      return { success: false, error: error.message };
+    }
+  });
 
   // Obtener lista de adjuntos de una grabación
   ipcMain.handle('get-attachments', async (_event, recordingId) => {

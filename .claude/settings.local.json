@@ -14,7 +14,8 @@
       "mcp__Claude_Preview__preview_start",
       "mcp__plugin_engram_engram__mem_save",
       "Bash(system_profiler SPCameraDataType)",
-      "Bash(awk '/C920|0x46d|UVC Camera/{p=NR+30} p && NR<=p')"
+      "Bash(awk '/C920|0x46d|UVC Camera/{p=NR+30} p && NR<=p')",
+      "Bash(gh issue *)"
     ]
   }
 }

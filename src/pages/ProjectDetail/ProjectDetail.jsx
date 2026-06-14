@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import styles from './ProjectDetail.module.css';
 import projectAiService from '../../services/projectAiService';
 import projectChatService from '../../services/projectChatService';
@@ -23,6 +25,7 @@ import { checkModelVisionSupport } from '../../services/ai/huggingFaceService';
 import chatPendingService from '../../services/chatPendingService';
 import { getAttachments } from '../../services/attachmentsService';
 import ChannelPickerModal from '../../components/ChannelPickerModal/ChannelPickerModal';
+import WikiTab from './components/WikiTab/WikiTab';
 
 const DEEPSEEK_CHAT_MODELS = [
   { value: 'deepseek-chat', label: 'DeepSeek Chat' },
@@ -36,11 +39,12 @@ const KIMI_CHAT_MODELS = [
 ];
 
 export default function ProjectDetail({ project, onBack, onNavigateToRecording: navigateToRecordingProp }) {
+  const { t } = useTranslation();
   // Wrapper para usar el prop renombrado
   const props = { onNavigateToRecording: navigateToRecordingProp };
   
   // --- STATE ---
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'chat' | 'tasks'
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'chat' | 'tasks' | 'wiki' | 'attachments'
   const [isContextExpanded, setIsContextExpanded] = useState(false);
 
   // Estado de tareas del proyecto
@@ -101,6 +105,11 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const [oauthSettings, setOauthSettings] = useState({});
   const [expandedChannelIds, setExpandedChannelIds] = useState(new Set());
   const [channelMessages, setChannelMessages] = useState({}); // { [integrationId]: [{ text, speaker }] }
+
+  const wikiPageCount = useSelector((state) => {
+    if (!project?.id) return 0;
+    return state?.wiki?.pagesByProject?.[project.id]?.length || 0;
+  });
 
   // --- EFFECTS ---
   // Cargar configuración de IA al montar
@@ -828,6 +837,15 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
           )}
         </button>
         <button
+          className={`${styles.tabButton} ${activeTab === 'wiki' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('wiki')}
+        >
+          {t('projects.wiki.tab')}
+          {wikiPageCount > 0 && (
+            <span className={styles.tabBadge}>{wikiPageCount}</span>
+          )}
+        </button>
+        <button
           className={`${styles.tabButton} ${activeTab === 'attachments' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('attachments')}
         >
@@ -904,6 +922,8 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
               onAttachmentsChange={handleProjectAttachmentsChange}
             />
           </div>
+        ) : activeTab === 'wiki' ? (
+          <WikiTab projectId={project?.id} />
         ) : activeTab === 'overview' ? (
           <div className={styles.overviewGrid}>
             {/* Columna Izquierda - Resumen y Grabaciones */}

@@ -4,6 +4,7 @@ const path = require('path');
 const dbService = require('../database/dbService');
 const speakerManager = require('../services/speakerManager');
 const diarizationService = require('../services/diarizationService');
+const { resolveSpeakersInText } = require('../services/speakerResolver');
 const { getRecordingsPath, getFolderPathFromId, settingsPath } = require('../utils/paths');
 
 module.exports.registerRecordingsHandlers = () => {
@@ -82,6 +83,7 @@ module.exports.registerRecordingsHandlers = () => {
                 status: status,
                 duration: dbEntry ? dbEntry.duration : 0,
                 transcriptionModel: dbEntry ? dbEntry.transcription_model : null,
+                source: dbEntry ? dbEntry.source : null,
                 project: project ? { id: project.id, name: project.name } : null,
                 queueStatus: queueStatus
               });
@@ -168,6 +170,52 @@ module.exports.registerRecordingsHandlers = () => {
         );
       }
       // ── Fin Phase 5 ────────────────────────────────────────────────────────
+      
+      // ── Phase 5b: Remapeo de segmentos "SISTEMA" residuales (legacy data) ──
+      // Cuando la diarización está disponible, cualquier segmento con speaker
+      // "SISTEMA" es un artefacto de grabaciones procesadas con el algoritmo
+      // antiguo de contención estricta. Los remapeamos al diarization speaker
+      // más cercano por midpoint para que no aparezca un hablante fantasma.
+      if (speakerResolution._source === 'diarization') {
+        const diarizationPath = path.join(baseOutputDir, folderName, 'analysis', 'diarization.json');
+        if (fs.existsSync(diarizationPath)) {
+          try {
+            const diaRaw = JSON.parse(fs.readFileSync(diarizationPath, 'utf8'));
+            const diaSegments = (diaRaw.segments || (Array.isArray(diaRaw) ? diaRaw : []));
+            if (diaSegments.length > 0 && Array.isArray(transcription.segments)) {
+              let remappedCount = 0;
+              transcription.segments = transcription.segments.map((seg) => {
+                const speakerKey = (seg.speaker || '').toUpperCase();
+                if (speakerKey !== 'SISTEMA' && speakerKey !== 'SYSTEM') return seg;
+                
+                // Encontrar el segmento de diarización más cercano por midpoint
+                const mid = ((seg.start || 0) + (seg.end || seg.start || 0)) / 2;
+                let closest = null;
+                let closestDist = Infinity;
+                for (const d of diaSegments) {
+                  const dMid = ((d.start || 0) + (d.end || d.start || 0)) / 2;
+                  const dist = Math.abs(mid - dMid);
+                  if (dist < closestDist) {
+                    closestDist = dist;
+                    closest = d;
+                  }
+                }
+                if (closest && closest.speaker) {
+                  remappedCount++;
+                  return { ...seg, speaker: closest.speaker };
+                }
+                return seg;
+              });
+              if (remappedCount > 0) {
+                console.log(
+                  `[IPC:get-transcription] Legacy fix: remapeados ${remappedCount} segmentos "SISTEMA" → diarization speaker`
+                );
+              }
+            }
+          } catch (_) { /* silencioso: si falla el remapeo, no interrumpimos la respuesta */ }
+        }
+      }
+      // ── Fin Phase 5b ───────────────────────────────────────────────────────
 
       return { success: true, transcription: { ...transcription, speakerResolution } };
     } catch (error) {
@@ -191,7 +239,9 @@ module.exports.registerRecordingsHandlers = () => {
         return { success: false, error: 'Archivo TXT no encontrado' };
       }
       const txtData = await fs.promises.readFile(txtPath, 'utf8');
-      return { success: true, text: txtData };
+      const numericId = dbService.getRecording(folderName)?.id;
+      const resolvedText = resolveSpeakersInText(numericId, txtData, dbService);
+      return { success: true, text: resolvedText };
     } catch (error) {
       console.error('Error leyendo TXT de transcripción:', error);
       return { success: false, error: error.message };

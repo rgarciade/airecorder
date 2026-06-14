@@ -60,10 +60,10 @@
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  border: 1px solid var(--color-border, #e5e7eb);
+  border: 1px solid var(--color-border-primary);
   border-radius: 10px;
   margin-bottom: 20px;
-  background: var(--color-bg-secondary, #f9fafb);
+  background: var(--color-bg-tertiary);
 }
 
 .searchBar svg {
@@ -113,9 +113,9 @@
   align-items: center;
   gap: 14px;
   padding: 14px 16px;
-  border: 1px solid var(--color-border, #e5e7eb);
+  border: 1px solid var(--color-border-primary);
   border-radius: 12px;
-  background: var(--color-bg-primary, #ffffff);
+  background: var(--color-bg-secondary);
   cursor: pointer;
   text-align: left;
   width: 100%;
@@ -123,8 +123,8 @@
 }
 
 .speakerCard:hover {
-  background: var(--color-bg-hover, #f3f4f6);
-  border-color: var(--color-primary, #6366f1);
+  background: var(--color-bg-hover);
+  border-color: var(--color-primary);
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
 }
 
