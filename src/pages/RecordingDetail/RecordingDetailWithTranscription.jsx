@@ -1650,11 +1650,17 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
       {/* Tabs Navigation */}
       <nav className={styles.tabsNav}>
-        <button 
+        <button
           className={`${styles.tabButton} ${activeTab === 'overview' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('overview')}
         >
           Overview
+        </button>
+        <button
+          className={`${styles.tabButton} ${activeTab === 'schema' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('schema')}
+        >
+          Esquema
         </button>
         <button
           className={`${styles.tabButton} ${activeTab === 'transcription' ? styles.activeTab : ''}`}
@@ -1679,12 +1685,6 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           onClick={() => setActiveTab('notes')}
         >
           Notas
-        </button>
-        <button
-          className={`${styles.tabButton} ${activeTab === 'schema' ? styles.activeTab : ''}`}
-          onClick={() => setActiveTab('schema')}
-        >
-          Esquema
         </button>
       </nav>
 

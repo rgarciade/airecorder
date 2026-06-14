@@ -70,6 +70,7 @@ export const getSettings = async () => {
       activeExpert: 'developer',
       autoTranscribe: true,
       autoAnalyze: true,
+      autoGenerateSchema: false,
       enableDiarization: false,
       hfToken: '',
       speakerSimilarityThreshold: 0.85

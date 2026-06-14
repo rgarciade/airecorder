@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  MdTranslate, MdGraphicEq, MdAutoFixHigh, MdVisibility, MdVisibilityOff
+  MdTranslate, MdGraphicEq, MdAutoFixHigh, MdAccountTree, MdVisibility, MdVisibilityOff
 } from 'react-icons/md';
 import styles from '../../Settings.module.css';
 import { useSettings, mockLanguages, whisperModels } from '../../SettingsContext';
@@ -14,6 +14,7 @@ export default function TranscriptionSection() {
     maxCpuThreads,
     autoTranscribe, setAutoTranscribe,
     autoAnalyze, setAutoAnalyze,
+    autoGenerateSchema, setAutoGenerateSchema,
     enableDiarization, setEnableDiarization,
     hfToken, setHfToken,
     speakerSimilarityThreshold, setSpeakerSimilarityThreshold,
@@ -122,6 +123,30 @@ export default function TranscriptionSection() {
               className={styles.toggleInput}
               checked={autoAnalyze}
               onChange={(e) => setAutoAnalyze(e.target.checked)}
+            />
+            <div className={styles.toggleSlider}></div>
+          </label>
+        </div>
+      </div>
+
+      {/* Auto-generación de esquema */}
+      <div className={styles.card} style={{marginTop: '16px'}}>
+        <div className={styles.cardHeader}>
+          <div className={styles.providerInfo}>
+            <div className={styles.providerIcon} style={{backgroundColor: '#ede9fe', color: '#7c3aed'}}>
+              <MdAccountTree size={24} />
+            </div>
+            <div>
+              <h4 className={styles.providerName}>{t('settings.misc.autoGenerateSchema.title')}</h4>
+              <p className={styles.providerDesc}>{t('settings.misc.autoGenerateSchema.desc')}</p>
+            </div>
+          </div>
+          <label className={styles.toggleWrapper}>
+            <input
+              type="checkbox"
+              className={styles.toggleInput}
+              checked={autoGenerateSchema}
+              onChange={(e) => setAutoGenerateSchema(e.target.checked)}
             />
             <div className={styles.toggleSlider}></div>
           </label>

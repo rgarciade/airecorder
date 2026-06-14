@@ -273,6 +273,10 @@
         "title": "Auto AI Analysis",
         "desc": "Automatically generate AI summaries and insights when transcription finishes"
       },
+      "autoGenerateSchema": {
+        "title": "Auto-Generate Schema",
+        "desc": "Generate the mind-map schema alongside the initial AI analysis"
+      },
       "devTools": {
         "title": "Developer Tools",
         "desc": "Open Chromium debugging console"

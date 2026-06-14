@@ -15,23 +15,28 @@ function formatTs(secs) {
 /**
  * Converts schema branches to clean Markdown (no seek tags).
  * Returns { md, seekMap } where seekMap: Map<label → start_seconds>.
- *
- * Key: item.label (raw). Multiple items with the same label across branches
- * are unlikely but would share the same seek time — acceptable edge case.
+ * Supports arbitrary nesting via node.children (new format) with fallback
+ * to node.items (legacy flat format).
  */
 function buildMarkdown(branches = []) {
   const seekMap = new Map();
   const lines = ['# Reunión'];
 
+  function renderChildren(children, depth) {
+    const indent = '  '.repeat(depth - 1);
+    for (const child of children) {
+      const label = child.label || '';
+      const ts = child.start != null ? ` *(${formatTs(child.start)})*` : '';
+      lines.push(`${indent}- ${label}${ts}`);
+      if (child.start != null) seekMap.set(label, child.start);
+      if (child.children?.length) renderChildren(child.children, depth + 1);
+    }
+  }
+
   for (const branch of branches) {
     lines.push(`## ${branch.title}`);
-    for (const item of branch.items || []) {
-      const ts = item.start != null ? ` *(${formatTs(item.start)})*` : '';
-      lines.push(`- ${item.label}${ts}`);
-      if (item.start != null) {
-        seekMap.set(item.label, item.start);
-      }
-    }
+    const nodes = branch.children || branch.items || [];
+    if (nodes.length) renderChildren(nodes, 1);
   }
 
   return { md: lines.join('\n'), seekMap };

@@ -441,11 +441,27 @@ class RecordingAiService {
 
       // Guardar en disco
       await recordingsService.saveAiSummary(recordingId, finalSummary);
-      
+
       // Actualizar caché
       this.summaryCache.set(recordingId, finalSummary);
 
-      // 6. Limpiar estado de generación
+      // 6. Auto-generar esquema si está habilitado en ajustes y no existe aún
+      if (settings.autoGenerateSchema === true) {
+        try {
+          const existingSchema = await recordingsService.getRecordingSchema(recordingId);
+          if (!existingSchema) {
+            console.log(`🗂️ Auto-generando esquema para ${recordingId}...`);
+            const schema = await this.generateEsquema(recordingId, providerOverrides);
+            if (schema) {
+              await recordingsService.saveRecordingSchema(recordingId, schema);
+            }
+          }
+        } catch (schemaErr) {
+          console.warn('[_performGeneration] Error auto-generando esquema (no bloquea):', schemaErr);
+        }
+      }
+
+      // 7. Limpiar estado de generación
       await this._clearGeneratingState(recordingId);
 
       return finalSummary;
@@ -770,14 +786,11 @@ class RecordingAiService {
       }
 
       // Serializar segmentos en texto legible para la IA
-      // Formato: [HH:MM:SS] Speaker: text  — permite que la IA lea timestamps fácilmente
+      // Formato: [Xs] Speaker: text — solo segundos para evitar que la IA confunda
+      // minutos/horas con el valor de "start" que debe devolver en el JSON.
       const segmentsText = segments.map(seg => {
-        const totalSecs = Math.floor(seg.start || 0);
-        const hh = String(Math.floor(totalSecs / 3600)).padStart(2, '0');
-        const mm = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0');
-        const ss = String(totalSecs % 60).padStart(2, '0');
         const speakerPrefix = seg.speaker ? `${seg.speaker}: ` : '';
-        return `[${hh}:${mm}:${ss}|${seg.start?.toFixed(1) ?? '0.0'}s] ${speakerPrefix}${seg.text}`;
+        return `[${(seg.start ?? 0).toFixed(1)}s] ${speakerPrefix}${seg.text}`;
       }).join('\n');
 
       // Añadir resumen detallado como contexto extra si existe
@@ -817,14 +830,21 @@ class RecordingAiService {
         return null;
       }
 
-      // Normalizar: garantizar que start sea number o null, nunca undefined
+      // Normalizar recursivamente: start = number|null, children siempre array
+      function normalizeNode(node) {
+        return {
+          label: node.label || '',
+          start: typeof node.start === 'number' ? node.start : null,
+          children: (node.children || []).map(normalizeNode),
+        };
+      }
+
       const normalized = {
         branches: parsed.branches.map(branch => ({
           title: branch.title || '',
-          items: (branch.items || []).map(item => ({
-            label: item.label || '',
-            start: typeof item.start === 'number' ? item.start : null,
-          })),
+          start: typeof branch.start === 'number' ? branch.start : null,
+          // branch.items: compatibilidad con esquemas guardados antes de la migración a children
+          children: (branch.children || branch.items || []).map(normalizeNode),
         })),
       };
 
