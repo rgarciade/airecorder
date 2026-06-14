@@ -442,6 +442,45 @@ module.exports.registerAnalysisHandlers = () => {
     }
   });
 
+  // Guardar esquema/mind-map de una grabación
+  ipcMain.handle('save-recording-schema', async (event, recordingId, schema) => {
+    try {
+      const folderName = await getFolderPathFromId(recordingId);
+      const baseOutputDir = await getRecordingsPath();
+      const analysisDir = path.join(baseOutputDir, folderName, 'analysis');
+
+      if (!fs.existsSync(analysisDir)) {
+        fs.mkdirSync(analysisDir, { recursive: true });
+      }
+
+      const filePath = path.join(analysisDir, 'recording_schema.json');
+      await fs.promises.writeFile(filePath, JSON.stringify(schema, null, 2), 'utf8');
+      return { success: true };
+    } catch (error) {
+      console.error('Error guardando esquema de grabación:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Obtener esquema/mind-map de una grabación
+  ipcMain.handle('get-recording-schema', async (event, recordingId) => {
+    try {
+      const folderName = await getFolderPathFromId(recordingId);
+      const baseOutputDir = await getRecordingsPath();
+      const filePath = path.join(baseOutputDir, folderName, 'analysis', 'recording_schema.json');
+
+      if (!fs.existsSync(filePath)) {
+        return { success: false, error: 'Esquema no encontrado' };
+      }
+
+      const data = await fs.promises.readFile(filePath, 'utf8');
+      return { success: true, schema: JSON.parse(data) };
+    } catch (error) {
+      console.error('Error leyendo esquema de grabación:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // Limpiar estado de generación
   ipcMain.handle('clear-generating-state', async (event, recordingId) => {
     try {
