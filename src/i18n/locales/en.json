@@ -550,7 +550,9 @@
     "viewOutline": "List view",
     "viewMindmap": "Mind-map view",
     "exportMarkdown": "Export as Markdown",
-    "exportPng": "Export as PNG (switch to mind-map view first)"
+    "exportPng": "Export as PNG (switch to mind-map view first)",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out"
   },
   "participantsList": {
     "title": "Participants",

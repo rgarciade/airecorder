@@ -1,4 +1,6 @@
 import React, { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useTranslation } from 'react-i18next';
+import { MdAdd, MdRemove } from 'react-icons/md';
 import { Transformer } from 'markmap-lib';
 import { Markmap } from 'markmap-view';
 import styles from './SchemaMindMap.module.css';
@@ -57,6 +59,7 @@ function labelFromNodeText(text = '') {
  * Exposes exportPng(filename) via ref.
  */
 const SchemaMindMap = forwardRef(function SchemaMindMap({ branches = [], onSeek }, ref) {
+  const { t } = useTranslation();
   const svgRef = useRef(null);
   const markmapRef = useRef(null);
   const seekMapRef = useRef(new Map());
@@ -154,6 +157,24 @@ const SchemaMindMap = forwardRef(function SchemaMindMap({ branches = [], onSeek 
   return (
     <div className={styles.wrapper}>
       <svg ref={svgRef} className={styles.svg} />
+      <div className={styles.floatingControls}>
+        <button
+          className={styles.floatingBtn}
+          onClick={() => markmapRef.current?.rescale(1.2)}
+          title={t('schema.zoomIn')}
+          aria-label={t('schema.zoomIn')}
+        >
+          <MdAdd size={16} />
+        </button>
+        <button
+          className={styles.floatingBtn}
+          onClick={() => markmapRef.current?.rescale(0.8)}
+          title={t('schema.zoomOut')}
+          aria-label={t('schema.zoomOut')}
+        >
+          <MdRemove size={16} />
+        </button>
+      </div>
     </div>
   );
 });

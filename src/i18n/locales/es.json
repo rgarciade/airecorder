@@ -547,7 +547,9 @@
     "viewOutline": "Vista de lista",
     "viewMindmap": "Vista de mapa mental",
     "exportMarkdown": "Exportar como Markdown",
-    "exportPng": "Exportar como PNG (activar vista mapa mental primero)"
+    "exportPng": "Exportar como PNG (activar vista mapa mental primero)",
+    "zoomIn": "Acercar zoom",
+    "zoomOut": "Alejar zoom"
   },
   "recordingDetail": {
     "overview": {
