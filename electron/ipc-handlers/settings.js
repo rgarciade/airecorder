@@ -26,6 +26,9 @@ module.exports.registerSettingsHandlers = () => {
   // Manejador para guardar configuración
   ipcMain.handle('save-settings', async (event, settings) => {
     try {
+      const dir = path.dirname(settingsPath);
+      await fs.promises.mkdir(dir, { recursive: true });
+
       const tmpPath = settingsPath + '.tmp';
       await fs.promises.writeFile(tmpPath, JSON.stringify(settings, null, 2));
       await fs.promises.rename(tmpPath, settingsPath);
@@ -109,6 +112,8 @@ module.exports.registerSettingsHandlers = () => {
         } catch (_) {}
       }
       settings.databasePath = newPath;
+      const settingsDir = path.dirname(settingsPath);
+      fs.mkdirSync(settingsDir, { recursive: true });
       const tmpPath = settingsPath + '.tmp';
       fs.writeFileSync(tmpPath, JSON.stringify(settings, null, 2));
       fs.renameSync(tmpPath, settingsPath);
