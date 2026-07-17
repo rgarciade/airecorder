@@ -51,6 +51,9 @@ export const getSettings = async () => {
       // Kimi
       kimiApiKey: '',
       kimiModel: 'kimi-k2',
+      // OpenAI
+      openaiApiKey: '',
+      openaiModel: '',
       // Ollama
       ollamaModel: '',
       ollamaRagModel: '', // Modelo de CHAT específico para RAG (ej: deepseek-r1)
@@ -73,7 +76,13 @@ export const getSettings = async () => {
       autoGenerateSchema: false,
       enableDiarization: false,
       hfToken: '',
-      speakerSimilarityThreshold: 0.85
+      speakerSimilarityThreshold: 0.85,
+      // Custom OpenAI-compatible connections
+      customConnections: [],
+      embeddingProvider: '',
+      customChatModel: '',
+      embeddingModel: '',
+      lastEmbeddingModelId: ''
     };
   } catch (error) {
     console.error('Error getting settings:', error);
@@ -92,7 +101,7 @@ export const updateSettings = async (newSettings) => {
         window.electronAPI.sentryLogInfo(`Cambio de proveedor IA: de ${currentSettings.aiProvider || 'ninguno'} a ${newSettings.aiProvider}`);
       }
       
-      const modelsToCheck = ['geminiModel', 'geminiFreeModel', 'deepseekModel', 'kimiModel', 'ollamaModel', 'lmStudioModel', 'whisperModel'];
+      const modelsToCheck = ['geminiModel', 'geminiFreeModel', 'deepseekModel', 'kimiModel', 'openaiModel', 'ollamaModel', 'lmStudioModel', 'whisperModel'];
       for (const modelKey of modelsToCheck) {
         if (newSettings[modelKey] && currentSettings[modelKey] !== newSettings[modelKey]) {
           window.electronAPI.sentryLogInfo(`Cambio de modelo IA (${modelKey}): de ${currentSettings[modelKey] || 'ninguno'} a ${newSettings[modelKey]}`);

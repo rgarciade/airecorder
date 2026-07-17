@@ -10,7 +10,31 @@ import { sendToDeepseek, sendToDeepseekStreaming, getDeepseekAvailableModels, ch
 import { sendToKimi, sendToKimiStreaming, getKimiAvailableModels, chatCompletionStreaming as kimiChatStreaming } from './kimiProvider';
 import { sendToLMStudio, sendToLMStudioStreaming, getLMStudioModels, getLMStudioModelInfo, chatCompletionStreaming as lmStudioChatStreaming } from './lmStudioProvider';
 import { generateContent as ollamaGenerate, generateContentStreaming as ollamaGenerateStreaming, chatCompletionStreaming as ollamaChatStreaming, getOllamaModelInfo } from './ollamaProvider';
+import { CustomOpenAIProvider, OPENAI_BASE_URL } from './customOpenAIProvider';
 import { aiQueueService, AI_TASK_TYPES } from './aiQueueService';
+
+const CUSTOM_PROVIDER_PREFIX = 'custom:';
+
+/**
+ * Determina si un proveedor es una conexión OpenAI personalizada.
+ * @param {string} provider
+ * @returns {boolean}
+ */
+export function isCustom(provider) {
+  return typeof provider === 'string' && provider.startsWith(CUSTOM_PROVIDER_PREFIX);
+}
+
+/**
+ * Resuelve la conexión personalizada referenciada por `provider`.
+ * @param {Object} settings
+ * @param {string} provider - Valor con prefijo `custom:{id}`
+ * @returns {Object|undefined}
+ */
+export function resolveCustomConnection(settings, provider) {
+  if (!isCustom(provider)) return undefined;
+  const id = provider.slice(CUSTOM_PROVIDER_PREFIX.length);
+  return (settings?.customConnections || []).find((conn) => conn.id === id);
+}
 
 // ---------------------------------------------------------------------------
 // Helpers internos
@@ -32,6 +56,16 @@ function _resolveEngineName(settings, provider, options = {}) {
   if (provider === 'kimi') return 'Kimi';
   if (provider === 'gemini') return 'Gemini Pro';
   if (provider === 'geminifree') return 'Gemini Free';
+  if (provider === 'openai') {
+    const model = options?.model || settings.openaiModel || '';
+    return model ? `OpenAI: ${model}` : 'OpenAI';
+  }
+
+  const customConnection = isCustom(provider)
+    ? resolveCustomConnection(settings, provider)
+    : null;
+  if (customConnection) return customConnection.name || provider;
+
   return provider || 'IA';
 }
 
@@ -77,8 +111,31 @@ async function _runCallProvider(prompt, options) {
       return { text, provider: 'gemini' };
     }
 
+    case 'openai': {
+      if (!settings.openaiApiKey) throw new Error('No se ha configurado la OpenAI API Key en los ajustes.');
+      const model = options.model || settings.openaiModel;
+      if (!model) throw new Error('No se ha seleccionado un modelo de OpenAI.');
+      const client = new CustomOpenAIProvider({ baseUrl: OPENAI_BASE_URL, apiKey: settings.openaiApiKey, model });
+      const response = await client.sendMessage(prompt, systemPrompt);
+      return { text: response || 'Sin respuesta', provider: 'openai', model };
+    }
+
     case 'geminifree':
     default: {
+      if (isCustom(provider)) {
+        const connection = resolveCustomConnection(settings, provider);
+        if (!connection) throw new Error('Conexión personalizada no encontrada');
+        const model = options.model || settings.customChatModel;
+        if (!model) throw new Error('No se ha seleccionado un modelo para la conexión personalizada.');
+        const client = new CustomOpenAIProvider({
+          baseUrl: connection.baseUrl,
+          apiKey: connection.apiKey,
+          model,
+        });
+        const response = await client.sendMessage(prompt, systemPrompt);
+        return { text: response || 'Sin respuesta', provider, model };
+      }
+
       const apiKey = settings.geminiFreeApiKey || settings.geminiApiKey;
       if (!apiKey) throw new Error('No se ha configurado la Gemini Free API Key en los ajustes.');
       const result = await sendToGemini(prompt, true, true, options.images || [], systemPrompt);
@@ -94,6 +151,7 @@ async function _runCallProvider(prompt, options) {
 async function _runCallProviderStreaming(prompt, onChunk, options) {
   const settings = await getSettings();
   const provider = options.providerOverride || settings.aiProvider || 'geminifree';
+  const systemPrompt = options.systemPrompt || null;
 
   console.log(`[callProviderStreaming] Provider: ${provider}`);
 
@@ -108,6 +166,16 @@ async function _runCallProviderStreaming(prompt, onChunk, options) {
       console.log('[callProviderStreaming] Iniciando streaming con Gemini Pro');
       const fullResponse = await sendToGeminiStreaming(prompt, onChunk, false, options.images || []);
       return { text: fullResponse || 'Sin respuesta', provider: 'gemini', streaming: true };
+    }
+
+    case 'openai': {
+      if (!settings.openaiApiKey) throw new Error('No se ha configurado la OpenAI API Key en los ajustes.');
+      const model = options.model || settings.openaiModel;
+      if (!model) throw new Error('No se ha seleccionado un modelo de OpenAI.');
+      console.log(`[callProviderStreaming] Iniciando streaming con OpenAI modelo: ${model}`);
+      const client = new CustomOpenAIProvider({ baseUrl: OPENAI_BASE_URL, apiKey: settings.openaiApiKey, model });
+      const fullResponse = await client.sendMessageStreaming(prompt, onChunk, systemPrompt);
+      return { text: fullResponse || 'Sin respuesta', provider: 'openai', model, streaming: true };
     }
 
     case 'deepseek': {
@@ -150,6 +218,20 @@ async function _runCallProviderStreaming(prompt, onChunk, options) {
     }
 
     default: {
+      if (isCustom(provider)) {
+        const connection = resolveCustomConnection(settings, provider);
+        if (!connection) throw new Error('Conexión personalizada no encontrada');
+        const model = options.model || settings.customChatModel;
+        if (!model) throw new Error('No se ha seleccionado un modelo para la conexión personalizada.');
+        const client = new CustomOpenAIProvider({
+          baseUrl: connection.baseUrl,
+          apiKey: connection.apiKey,
+          model,
+        });
+        const fullResponse = await client.sendMessageStreaming(prompt, onChunk, systemPrompt);
+        return { text: fullResponse || 'Sin respuesta', provider, model, streaming: true };
+      }
+
       console.log(`🔄 Usando modo no-streaming para ${provider}`);
       const result = await _runCallProvider(prompt, options);
       if (onChunk && result.text) onChunk(result.text);
@@ -254,17 +336,27 @@ export async function validateProviderConfig() {
         if (!settings.kimiApiKey)
           return { valid: false, error: 'Falta configurar la Kimi API Key' };
         break;
+      case 'openai':
+        if (!settings.openaiApiKey)
+          return { valid: false, error: 'Falta configurar la OpenAI API Key' };
+        break;
       case 'ollama':
         if (!settings.ollamaModel)
           return { valid: false, error: 'Falta seleccionar un modelo de Ollama' };
         break;
-      case 'lmstudio':
-        if (!settings.lmStudioModel)
-          return { valid: false, error: 'Falta seleccionar un modelo en LM Studio' };
-        break;
-    }
+    case 'lmstudio':
+      if (!settings.lmStudioModel)
+        return { valid: false, error: 'Falta seleccionar un modelo en LM Studio' };
+      break;
+  }
 
-    return { valid: true, error: null };
+  if (isCustom(settings.aiProvider)) {
+    const connection = resolveCustomConnection(settings, settings.aiProvider);
+    if (!connection) return { valid: false, error: 'Conexión personalizada no encontrada' };
+    if (!settings.customChatModel) return { valid: false, error: 'Falta seleccionar un modelo para la conexión personalizada' };
+  }
+
+  return { valid: true, error: null };
   } catch (error) {
     return { valid: false, error: error.message };
   }
@@ -286,7 +378,12 @@ export async function getActiveProviderContextWindow(settings) {
   const provider = settings.aiProvider || 'geminifree';
 
   // Proveedores cloud: contexto ≥128k → sin chunking
-  if (['gemini', 'geminifree', 'deepseek', 'kimi'].includes(provider)) {
+  if (['gemini', 'geminifree', 'deepseek', 'kimi', 'openai'].includes(provider)) {
+    return null;
+  }
+
+  // Conexiones personalizadas: no hay ventana de contexto cacheada por defecto
+  if (isCustom(provider)) {
     return null;
   }
 
@@ -342,6 +439,15 @@ async function _runCallChatProviderStreaming(messages, onChunk, options) {
       return { text: fullResponse || 'Sin respuesta', provider: 'gemini', streaming: true };
     }
 
+    case 'openai': {
+      if (!settings.openaiApiKey) throw new Error('No se ha configurado la OpenAI API Key en los ajustes.');
+      const model = options.model || options.ragModel || settings.openaiModel;
+      if (!model) throw new Error('No se ha seleccionado un modelo de OpenAI.');
+      const client = new CustomOpenAIProvider({ baseUrl: OPENAI_BASE_URL, apiKey: settings.openaiApiKey, model });
+      const fullResponse = await client.chatCompletionStreaming(messages, onChunk);
+      return { text: fullResponse || 'Sin respuesta', provider: 'openai', model, streaming: true };
+    }
+
     case 'deepseek': {
       if (!settings.deepseekApiKey) throw new Error('No se ha configurado la DeepSeek API Key en los ajustes.');
       const fullResponse = await deepseekChatStreaming(messages, onChunk, options.model || null);
@@ -372,6 +478,20 @@ async function _runCallChatProviderStreaming(messages, onChunk, options) {
     }
 
     default: {
+      if (isCustom(provider)) {
+        const connection = resolveCustomConnection(settings, provider);
+        if (!connection) throw new Error('Conexión personalizada no encontrada');
+        const model = options.model || options.ragModel || settings.customChatModel;
+        if (!model) throw new Error('No se ha seleccionado un modelo para la conexión personalizada.');
+        const client = new CustomOpenAIProvider({
+          baseUrl: connection.baseUrl,
+          apiKey: connection.apiKey,
+          model,
+        });
+        const fullResponse = await client.chatCompletionStreaming(messages, onChunk);
+        return { text: fullResponse || 'Sin respuesta', provider, model, streaming: true };
+      }
+
       throw new Error(`Proveedor de chat no soportado: ${provider}`);
     }
   }
