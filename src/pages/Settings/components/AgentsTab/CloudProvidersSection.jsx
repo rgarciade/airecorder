@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  MdCloud, MdAutoAwesome, MdVisibility, MdVisibilityOff, MdRefresh, MdOpenInNew
+  MdCloud, MdAutoAwesome, MdVisibility, MdVisibilityOff, MdRefresh, MdOpenInNew, MdExpandMore, MdExpandLess
 } from 'react-icons/md';
 import styles from '../../Settings.module.css';
 import RoleBadge from './RoleBadge';
@@ -15,6 +15,7 @@ const OPENAI_EMBEDDING_MODEL = 'text-embedding-3-small';
 export default function CloudProvidersSection({ role }) {
   const {
     t,
+    hasLoadedSettings,
     aiProvider,
     toggleProvider,
     embeddingProvider,
@@ -51,6 +52,16 @@ export default function CloudProvidersSection({ role }) {
     }
   };
   const isProviderActive = (provider) => activeProvider === provider;
+  // Activo en CUALQUIERA de los dos roles (no solo el tab actual) — así el badge
+  // cruzado de rol (RoleBadge) sigue siendo visible al cambiar de tab sin sorpresas.
+  const isGroupActive = ['gemini', 'deepseek', 'kimi', 'openai'].includes(aiProvider)
+    || ['gemini', 'deepseek', 'kimi', 'openai'].includes(embeddingProvider);
+
+  const [isOpen, setIsOpen] = useState(isGroupActive);
+  useEffect(() => {
+    setIsOpen(isGroupActive);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasLoadedSettings]);
 
   return (
     <section className={styles.section}>
@@ -81,9 +92,19 @@ export default function CloudProvidersSection({ role }) {
             activeProvider === 'kimi' ? t('settings.providers.kimiName') :
             activeProvider === 'openai' ? t('settings.providers.openaiName') : t('settings.providers.inactive')}
           </span>
+          <button
+            type="button"
+            className={styles.checkBtn}
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label={isOpen ? t('settings.buttons.collapse') : t('settings.buttons.expand')}
+          >
+            {isOpen ? <MdExpandLess size={18} /> : <MdExpandMore size={18} />}
+          </button>
         </div>
       </div>
 
+      {isOpen && (
+      <>
       {/* OpenAI */}
       <div className={`${styles.card} ${!isProviderActive('openai') ? styles.cardDisabled : ''}`}>
         <div className={styles.cardHeader}>
@@ -412,6 +433,8 @@ export default function CloudProvidersSection({ role }) {
           </div>
         )}
       </div>
+      </>
+      )}
     </section>
   );
 }

@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react';
-import { MdAddLink, MdWarning } from 'react-icons/md';
+import React, { useState, useEffect, useCallback } from 'react';
+import { MdAddLink, MdWarning, MdExpandMore, MdExpandLess } from 'react-icons/md';
 import styles from '../../Settings.module.css';
 import { useSettings } from '../../SettingsContext';
+import { isCustom } from '../../../../services/ai/providerRouter';
 import ConfirmModal from '../../../../components/ConfirmModal/ConfirmModal';
 import CustomConnectionForm, { EMPTY_DRAFT } from './CustomConnectionForm';
 import CustomConnectionItem from './CustomConnectionItem';
@@ -9,6 +10,7 @@ import CustomConnectionItem from './CustomConnectionItem';
 export default function CustomConnectionsSection({ role }) {
   const {
     t,
+    hasLoadedSettings,
     customConnections,
     stagedDeletions,
     addCustomConnection,
@@ -37,6 +39,15 @@ export default function CustomConnectionsSection({ role }) {
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(EMPTY_DRAFT);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
+
+  // Activo en CUALQUIERA de los dos roles (no solo el tab actual) — así el badge
+  // cruzado de rol (RoleBadge) sigue siendo visible al cambiar de tab sin sorpresas.
+  const isGroupActive = isCustom(aiProvider) || isCustom(embeddingProvider);
+  const [isOpen, setIsOpen] = useState(isGroupActive);
+  useEffect(() => {
+    setIsOpen(isGroupActive);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasLoadedSettings]);
 
   const startAdd = useCallback(() => {
     setDraft(EMPTY_DRAFT);
@@ -115,17 +126,29 @@ export default function CustomConnectionsSection({ role }) {
           <MdAddLink className={styles.sectionIcon} size={20} />
           <h3 className={styles.sectionTitle}>{t('settings.customConnections.section')}</h3>
         </div>
-        <button
-          type="button"
-          className={styles.btnPrimary}
-          onClick={startAdd}
-          disabled={isAdding || editingId !== null}
-        >
-          <MdAddLink size={18} />
-          {t('settings.customConnections.addConnection')}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            type="button"
+            className={styles.btnPrimary}
+            onClick={startAdd}
+            disabled={isAdding || editingId !== null}
+          >
+            <MdAddLink size={18} />
+            {t('settings.customConnections.addConnection')}
+          </button>
+          <button
+            type="button"
+            className={styles.checkBtn}
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label={isOpen ? t('settings.buttons.collapse') : t('settings.buttons.expand')}
+          >
+            {isOpen ? <MdExpandLess size={18} /> : <MdExpandMore size={18} />}
+          </button>
+        </div>
       </div>
 
+      {isOpen && (
+      <>
       {customConnections.length === 0 && !isAdding && (
         <div className={styles.card} style={{ textAlign: 'center', padding: '32px' }}>
           <p className={styles.helpText}>{t('settings.customConnections.empty')}</p>
@@ -201,6 +224,8 @@ export default function CustomConnectionsSection({ role }) {
           </React.Fragment>
         );
       })}
+      </>
+      )}
 
       <ConfirmModal
         isOpen={deleteTargetId !== null}

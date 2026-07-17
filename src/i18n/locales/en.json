@@ -238,6 +238,8 @@
       "test": "Test",
       "refresh": "Refresh",
       "change": "Change",
+      "collapse": "Collapse section",
+      "expand": "Expand section",
       "openDevTools": "Open DevTools",
       "openSettings": "Open Settings",
       "grantPermission": "Grant Permission",

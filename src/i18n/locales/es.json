@@ -255,6 +255,8 @@
       "test": "Probar",
       "refresh": "Refrescar",
       "change": "Cambiar",
+      "collapse": "Contraer sección",
+      "expand": "Expandir sección",
       "openDevTools": "Abrir DevTools",
       "openSettings": "Abrir Ajustes",
       "grantPermission": "Otorgar Permiso",

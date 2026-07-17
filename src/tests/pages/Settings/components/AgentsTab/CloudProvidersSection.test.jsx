@@ -159,4 +159,31 @@ describe('CloudProvidersSection — role prop', () => {
       expect(html).not.toContain('settings.fields.model');
     });
   });
+
+  describe('Collapse behavior (default open/closed)', () => {
+    it('is collapsed by default when no cloud provider is active in either role', () => {
+      mockSettings.aiProvider = 'ollama';
+      mockSettings.embeddingProvider = 'ollama';
+      const html = renderToStaticMarkup(<CloudProvidersSection role="chat" />);
+      expect(html).not.toContain('OpenAI');
+      expect(html).not.toContain('DeepSeek');
+      expect(html.match(/aria-label="settings.buttons.expand"/g) || []).toHaveLength(1);
+    });
+
+    it('is open by default when the chat provider belongs to this group', () => {
+      mockSettings.aiProvider = 'gemini';
+      mockSettings.embeddingProvider = '';
+      const html = renderToStaticMarkup(<CloudProvidersSection role="chat" />);
+      expect(html).toContain('DeepSeek');
+      expect(html.match(/aria-label="settings.buttons.collapse"/g) || []).toHaveLength(1);
+    });
+
+    it('is open by default when the embedding provider belongs to this group, even while viewing the chat role', () => {
+      mockSettings.aiProvider = 'ollama';
+      mockSettings.embeddingProvider = 'kimi';
+      const html = renderToStaticMarkup(<CloudProvidersSection role="chat" />);
+      expect(html).toContain('DeepSeek');
+      expect(html.match(/aria-label="settings.buttons.collapse"/g) || []).toHaveLength(1);
+    });
+  });
 });
