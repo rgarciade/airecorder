@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MdAddLink, MdWarning, MdExpandMore, MdExpandLess } from 'react-icons/md';
+import { MdAddLink, MdWarning, MdExpandMore, MdExpandLess, MdOpenInNew } from 'react-icons/md';
 import styles from '../../Settings.module.css';
 import { useSettings } from '../../SettingsContext';
 import { isCustom } from '../../../../services/ai/providerRouter';
 import ConfirmModal from '../../../../components/ConfirmModal/ConfirmModal';
 import CustomConnectionForm, { EMPTY_DRAFT } from './CustomConnectionForm';
 import CustomConnectionItem from './CustomConnectionItem';
+
+const WIKI_URL = import.meta.env.VITE_WIKI_URL || 'https://rgarciade.github.io/airecorder/vp/';
 
 export default function CustomConnectionsSection({ role }) {
   const {
@@ -43,6 +45,11 @@ export default function CustomConnectionsSection({ role }) {
   // Activo en CUALQUIERA de los dos roles (no solo el tab actual) — así el badge
   // cruzado de rol (RoleBadge) sigue siendo visible al cambiar de tab sin sorpresas.
   const isGroupActive = isCustom(aiProvider) || isCustom(embeddingProvider);
+
+  const activeProviderForRole = role === 'chat' ? aiProvider : embeddingProvider;
+  const activeConnectionForRole = customConnections.find(
+    (c) => activeProviderForRole === `custom:${c.id}`
+  );
   const [isOpen, setIsOpen] = useState(isGroupActive);
   useEffect(() => {
     setIsOpen(isGroupActive);
@@ -136,6 +143,24 @@ export default function CustomConnectionsSection({ role }) {
             <MdAddLink size={18} />
             {t('settings.customConnections.addConnection')}
           </button>
+          <a
+            href={`${WIKI_URL}#ia`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 500 }}
+            onClick={(e) => {
+              e.preventDefault();
+              if (window.electronAPI && window.electronAPI.openExternal) {
+                window.electronAPI.openExternal(`${WIKI_URL}#ia`);
+              }
+            }}
+          >
+            <MdOpenInNew size={14} />
+            {t('settings.wikiLink')}
+          </a>
+          <span className={`${styles.badge} ${activeConnectionForRole ? styles.badgeActive : styles.badgeInactive}`}>
+            {activeConnectionForRole ? activeConnectionForRole.name : t('settings.providers.inactive')}
+          </span>
           <button
             type="button"
             className={styles.checkBtn}
