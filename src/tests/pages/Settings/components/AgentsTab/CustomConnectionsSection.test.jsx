@@ -94,10 +94,10 @@ describe('CustomConnectionsSection save validation display', () => {
     expect(html).toContain('settings.customConnections.errors.noAiProvider');
   });
 
-  it('renders role selectors when connections are visible', () => {
+  it('renders the model selector for the active connection', () => {
     const html = renderToStaticMarkup(<CustomConnectionsSection role="chat" />);
-    expect(html).toContain('settings.customConnections.chatRole');
-    // With role="chat", only chat selector is shown; embeddings selector is hidden
+    // With role="chat", the active connection (c1) shows the chat model label
+    expect(html).toContain('settings.fields.generalModel');
   });
 });
 
@@ -117,22 +117,23 @@ describe('CustomConnectionsSection — role prop', () => {
     mockSettings.customConnectionsSaveValidation = { blocked: false, error: null };
   });
 
-  it('when role=chat, chat role selector is shown', () => {
+  it('when role=chat, the chat model selector is shown for the active connection', () => {
     const html = renderToStaticMarkup(<CustomConnectionsSection role="chat" />);
-    expect(html).toContain('settings.customConnections.chatRole');
+    expect(html).toContain('settings.fields.generalModel');
     expect(html).toContain('ChatGPT');
   });
 
-  it('when role=embeddings, embeddings role selector is shown', () => {
+  it('when role=embeddings, the embedding model selector is shown for the active connection', () => {
+    mockSettings.embeddingProvider = 'custom:c1';
     const html = renderToStaticMarkup(<CustomConnectionsSection role="embeddings" />);
-    expect(html).toContain('settings.customConnections.embeddingsRole');
+    expect(html).toContain('settings.fields.embeddingModel');
   });
 
-  it('when role=embeddings, chat role selector text is hidden [RED — not implemented]', () => {
+  it('when role=embeddings, the chat model selector is not shown', () => {
     mockSettings.embeddingProvider = 'custom:c2';
     const html = renderToStaticMarkup(<CustomConnectionsSection role="embeddings" />);
 
-    // Chat role selector should NOT appear in embeddings tab
-    expect(html).not.toContain('settings.customConnections.chatRole');
+    // Chat model selector should NOT appear in embeddings tab
+    expect(html).not.toContain('settings.fields.generalModel');
   });
 });
