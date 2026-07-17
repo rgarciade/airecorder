@@ -65,7 +65,7 @@ describe('CloudProvidersSection — role prop', () => {
 
   it('accepts role prop and renders cloud providers', () => {
     mockSettings.aiProvider = 'gemini'; // group active → section open by default
-    const html = renderToStaticMarkup(<CloudProvidersSection role="chat" />);
+    const html = renderToStaticMarkup(<CloudProvidersSection role="chat" defaultOpen />);
     expect(html).toContain('OpenAI');
     expect(html).toContain('Gemini');
     expect(html).toContain('DeepSeek');
@@ -74,25 +74,25 @@ describe('CloudProvidersSection — role prop', () => {
 
   it('renders OpenAI before Gemini in the DOM order', () => {
     mockSettings.aiProvider = 'gemini'; // group active → section open by default
-    const html = renderToStaticMarkup(<CloudProvidersSection role="chat" />);
+    const html = renderToStaticMarkup(<CloudProvidersSection role="chat" defaultOpen />);
     expect(html.indexOf('>OpenAI<')).toBeLessThan(html.indexOf('>Gemini<'));
   });
 
   it('when role=chat, all providers are shown (including DeepSeek)', () => {
     mockSettings.aiProvider = 'gemini'; // group active → section open by default
-    const html = renderToStaticMarkup(<CloudProvidersSection role="chat" />);
+    const html = renderToStaticMarkup(<CloudProvidersSection role="chat" defaultOpen />);
     expect(html).toContain('DeepSeek');
   });
 
   it('when role=embeddings, DeepSeek is hidden', () => {
-    const html = renderToStaticMarkup(<CloudProvidersSection role="embeddings" />);
+    const html = renderToStaticMarkup(<CloudProvidersSection role="embeddings" defaultOpen />);
     // DeepSeek should NOT appear in embeddings tab
     expect(html).not.toContain('DeepSeek');
   });
 
   it('when role=embeddings, other cloud providers (OpenAI, Gemini, Kimi) are still shown', () => {
     mockSettings.embeddingProvider = 'gemini';
-    const html = renderToStaticMarkup(<CloudProvidersSection role="embeddings" />);
+    const html = renderToStaticMarkup(<CloudProvidersSection role="embeddings" defaultOpen />);
     // Other providers should still render
     expect(html).toContain('OpenAI');
     expect(html).toContain('Gemini');
@@ -102,7 +102,7 @@ describe('CloudProvidersSection — role prop', () => {
 
   it('when role=chat, active toggle belongs to aiProvider (Ollama pre-selected, no cloud active)', () => {
     mockSettings.aiProvider = 'ollama'; // non-cloud provider
-    const html = renderToStaticMarkup(<CloudProvidersSection role="chat" />);
+    const html = renderToStaticMarkup(<CloudProvidersSection role="chat" defaultOpen />);
     // No cloud toggle should be checked since aiProvider is ollama
     const checkedMatches = html.match(/checked=""/g) || [];
     expect(checkedMatches.length).toBe(0);
@@ -110,7 +110,7 @@ describe('CloudProvidersSection — role prop', () => {
 
   it('when role=chat and aiProvider=gemini, Gemini toggle is checked', () => {
     mockSettings.aiProvider = 'gemini';
-    const html = renderToStaticMarkup(<CloudProvidersSection role="chat" />);
+    const html = renderToStaticMarkup(<CloudProvidersSection role="chat" defaultOpen />);
     const geminiPos = html.indexOf('>Gemini<');
     const afterGemini = html.substring(geminiPos, html.indexOf('DeepSeek'));
     expect(afterGemini).toContain('checked=""');
@@ -118,7 +118,7 @@ describe('CloudProvidersSection — role prop', () => {
 
   it('when role=chat and aiProvider=openai, OpenAI toggle is checked', () => {
     mockSettings.aiProvider = 'openai';
-    const html = renderToStaticMarkup(<CloudProvidersSection role="chat" />);
+    const html = renderToStaticMarkup(<CloudProvidersSection role="chat" defaultOpen />);
     const openaiPos = html.indexOf('>OpenAI<');
     const afterOpenai = html.substring(openaiPos, html.indexOf('>Gemini<'));
     expect(afterOpenai).toContain('checked=""');
@@ -132,7 +132,7 @@ describe('CloudProvidersSection — role prop', () => {
 
     it('when role=chat, model dropdown is shown for Gemini (not read-only text)', () => {
       mockSettings.aiProvider = 'gemini'; // group active → section open by default
-      const html = renderToStaticMarkup(<CloudProvidersSection role="chat" />);
+      const html = renderToStaticMarkup(<CloudProvidersSection role="chat" defaultOpen />);
       // Model dropdown should be present, not the embedding model read-only text
       expect(html).toContain('settings.fields.model');
       expect(html).not.toContain('text-embedding-004');
@@ -140,48 +140,45 @@ describe('CloudProvidersSection — role prop', () => {
 
     it('when role=embeddings and Gemini active, shows hardcoded embedding model name', () => {
       mockSettings.embeddingProvider = 'gemini';
-      const html = renderToStaticMarkup(<CloudProvidersSection role="embeddings" />);
+      const html = renderToStaticMarkup(<CloudProvidersSection role="embeddings" defaultOpen />);
       expect(html).toContain('text-embedding-004');
       expect(html).not.toContain('settings.fields.model');
     });
 
     it('when role=embeddings and OpenAI active, shows hardcoded embedding model name', () => {
       mockSettings.embeddingProvider = 'openai';
-      const html = renderToStaticMarkup(<CloudProvidersSection role="embeddings" />);
+      const html = renderToStaticMarkup(<CloudProvidersSection role="embeddings" defaultOpen />);
       expect(html).toContain('text-embedding-3-small');
       expect(html).not.toContain('settings.fields.model');
     });
 
     it('when role=embeddings and Kimi active, shows hardcoded embedding model name', () => {
       mockSettings.embeddingProvider = 'kimi';
-      const html = renderToStaticMarkup(<CloudProvidersSection role="embeddings" />);
+      const html = renderToStaticMarkup(<CloudProvidersSection role="embeddings" defaultOpen />);
       expect(html).toContain('moonshot-embedding-v1');
       expect(html).not.toContain('settings.fields.model');
     });
   });
 
   describe('Collapse behavior (default open/closed)', () => {
-    it('is collapsed by default when no cloud provider is active in either role', () => {
-      mockSettings.aiProvider = 'ollama';
-      mockSettings.embeddingProvider = 'ollama';
+    it('is collapsed by default regardless of which provider is active', () => {
+      mockSettings.aiProvider = 'gemini';
+      mockSettings.embeddingProvider = 'openai';
       const html = renderToStaticMarkup(<CloudProvidersSection role="chat" />);
       expect(html).not.toContain('OpenAI');
+      expect(html).not.toContain('Gemini');
       expect(html).not.toContain('DeepSeek');
       expect(html.match(/aria-label="settings.buttons.expand"/g) || []).toHaveLength(1);
     });
 
-    it('is open by default when the chat provider belongs to this group', () => {
-      mockSettings.aiProvider = 'gemini';
-      mockSettings.embeddingProvider = '';
+    it('the sectionTitleGroup is clickable to toggle open/closed', () => {
       const html = renderToStaticMarkup(<CloudProvidersSection role="chat" />);
-      expect(html).toContain('DeepSeek');
-      expect(html.match(/aria-label="settings.buttons.collapse"/g) || []).toHaveLength(1);
+      expect(html).toContain('cursor:pointer');
     });
 
-    it('is open by default when the embedding provider belongs to this group, even while viewing the chat role', () => {
-      mockSettings.aiProvider = 'ollama';
-      mockSettings.embeddingProvider = 'kimi';
-      const html = renderToStaticMarkup(<CloudProvidersSection role="chat" />);
+    it('defaultOpen prop opens the section from the start', () => {
+      mockSettings.aiProvider = 'gemini';
+      const html = renderToStaticMarkup(<CloudProvidersSection role="chat" defaultOpen />);
       expect(html).toContain('DeepSeek');
       expect(html.match(/aria-label="settings.buttons.collapse"/g) || []).toHaveLength(1);
     });

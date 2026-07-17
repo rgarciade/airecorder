@@ -139,30 +139,34 @@ describe('AgentsTab — sub-tab UI', () => {
   });
 
   describe('Integration — Phase 8', () => {
-    it('when rendered with default chat tab, DeepSeek is present in cloud section', () => {
-      mockSettings.aiProvider = 'gemini'; // cloud group active → section open by default
+    // Los 3 acordeones arrancan colapsados por defecto (ver *Section.test.jsx para
+    // la cobertura de contenido interno de cada card vía defaultOpen). Acá solo se
+    // verifica la composición: headers/badges visibles sin abrir nada.
+
+    it('all three sections render collapsed by default regardless of active provider', () => {
+      mockSettings.aiProvider = 'gemini';
+      mockSettings.embeddingProvider = 'deepseek';
       const html = renderToStaticMarkup(<AgentsTab />);
-      expect(html).toContain('DeepSeek');
+      // Card-only content should not leak into the collapsed view
+      expect(html).not.toContain('DeepSeek');
+      expect(html.match(/aria-label="settings.buttons.expand"/g) || []).toHaveLength(3);
     });
 
-    it('when DeepSeek is the active provider, role badge shows Both if also embedding provider', () => {
+    it('when DeepSeek is the active provider for both roles, the cloud badge reflects it', () => {
       mockSettings.aiProvider = 'deepseek';
       mockSettings.embeddingProvider = 'deepseek';
       const html = renderToStaticMarkup(<AgentsTab />);
-      expect(html).toContain('settings.roles.both');
+      expect(html).toContain('settings.providers.deepseekName');
     });
 
-    it('when aiProvider and embeddingProvider are different, each section reflects correct active state', () => {
+    it('when aiProvider and embeddingProvider are different, the cloud header badge reflects the chat role provider', () => {
       mockSettings.aiProvider = 'ollama';
       mockSettings.embeddingProvider = 'gemini';
       const html = renderToStaticMarkup(<AgentsTab />);
-      // Both providers should appear
-      expect(html).toContain('Ollama');
-      expect(html).toContain('Gemini');
-      // Ollama badge should show "Chat" role
-      expect(html).toContain('settings.roles.chat');
-      // Gemini badge should show "Embeddings" role
-      expect(html).toContain('settings.roles.embeddings');
+      // AgentsTab defaults to the chat sub-tab: local badge shows Ollama, cloud badge shows inactive
+      // (aiProvider drives the chat-tab badges; embeddingProvider only matters on the embeddings sub-tab)
+      expect(html).toContain('settings.providers.ollamaActive');
+      expect(html).toContain('settings.providers.inactive');
     });
   });
 });

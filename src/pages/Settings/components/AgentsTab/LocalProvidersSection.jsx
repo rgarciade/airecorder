@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   MdComputer, MdTerminal, MdSmartToy, MdRefresh, MdOpenInNew, MdExpandMore, MdExpandLess
 } from 'react-icons/md';
@@ -9,10 +9,9 @@ import { useSettings } from '../../SettingsContext';
 
 const WIKI_URL = import.meta.env.VITE_WIKI_URL || 'https://rgarciade.github.io/airecorder/vp/';
 
-export default function LocalProvidersSection({ role }) {
+export default function LocalProvidersSection({ role, defaultOpen = false }) {
   const {
     t,
-    hasLoadedSettings,
     aiProvider,
     toggleProvider,
     embeddingProvider,
@@ -59,21 +58,16 @@ export default function LocalProvidersSection({ role }) {
       toggleEmbeddingProvider(provider);
     }
   };
-  // Activo en CUALQUIERA de los dos roles (no solo el tab actual) — así el badge
-  // cruzado de rol (RoleBadge) sigue siendo visible al cambiar de tab sin sorpresas.
-  const isGroupActive = ['ollama', 'lmstudio'].includes(aiProvider)
-    || ['ollama', 'lmstudio'].includes(embeddingProvider);
-
-  const [isOpen, setIsOpen] = useState(isGroupActive);
-  useEffect(() => {
-    setIsOpen(isGroupActive);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasLoadedSettings]);
+  const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
     <section className={styles.section}>
       <div className={styles.sectionHeader}>
-        <div className={styles.sectionTitleGroup}>
+        <div
+          className={styles.sectionTitleGroup}
+          onClick={() => setIsOpen(!isOpen)}
+          style={{ cursor: 'pointer' }}
+        >
           <MdComputer className={styles.sectionIcon} size={20} />
           <h3 className={styles.sectionTitle}>{t('settings.sections.localProviders')}</h3>
         </div>

@@ -1,18 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { MdAddLink, MdWarning, MdExpandMore, MdExpandLess, MdOpenInNew } from 'react-icons/md';
 import styles from '../../Settings.module.css';
 import { useSettings } from '../../SettingsContext';
-import { isCustom } from '../../../../services/ai/providerRouter';
 import ConfirmModal from '../../../../components/ConfirmModal/ConfirmModal';
 import CustomConnectionForm, { EMPTY_DRAFT } from './CustomConnectionForm';
 import CustomConnectionItem from './CustomConnectionItem';
 
 const WIKI_URL = import.meta.env.VITE_WIKI_URL || 'https://rgarciade.github.io/airecorder/vp/';
 
-export default function CustomConnectionsSection({ role }) {
+export default function CustomConnectionsSection({ role, defaultOpen = false }) {
   const {
     t,
-    hasLoadedSettings,
     customConnections,
     stagedDeletions,
     addCustomConnection,
@@ -42,19 +40,11 @@ export default function CustomConnectionsSection({ role }) {
   const [draft, setDraft] = useState(EMPTY_DRAFT);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
 
-  // Activo en CUALQUIERA de los dos roles (no solo el tab actual) — así el badge
-  // cruzado de rol (RoleBadge) sigue siendo visible al cambiar de tab sin sorpresas.
-  const isGroupActive = isCustom(aiProvider) || isCustom(embeddingProvider);
-
   const activeProviderForRole = role === 'chat' ? aiProvider : embeddingProvider;
   const activeConnectionForRole = customConnections.find(
     (c) => activeProviderForRole === `custom:${c.id}`
   );
-  const [isOpen, setIsOpen] = useState(isGroupActive);
-  useEffect(() => {
-    setIsOpen(isGroupActive);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasLoadedSettings]);
+  const [isOpen, setIsOpen] = useState(defaultOpen);
 
   const startAdd = useCallback(() => {
     setDraft(EMPTY_DRAFT);
@@ -129,7 +119,11 @@ export default function CustomConnectionsSection({ role }) {
   return (
     <section className={styles.section}>
       <div className={styles.sectionHeader}>
-        <div className={styles.sectionTitleGroup}>
+        <div
+          className={styles.sectionTitleGroup}
+          onClick={() => setIsOpen(!isOpen)}
+          style={{ cursor: 'pointer' }}
+        >
           <MdAddLink className={styles.sectionIcon} size={20} />
           <h3 className={styles.sectionTitle}>{t('settings.customConnections.section')}</h3>
         </div>

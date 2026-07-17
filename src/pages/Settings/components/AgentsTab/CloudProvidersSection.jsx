@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   MdCloud, MdAutoAwesome, MdVisibility, MdVisibilityOff, MdRefresh, MdOpenInNew, MdExpandMore, MdExpandLess
 } from 'react-icons/md';
@@ -12,10 +12,9 @@ const GEMINI_EMBEDDING_MODEL = 'text-embedding-004';
 const KIMI_EMBEDDING_MODEL = 'moonshot-embedding-v1';
 const OPENAI_EMBEDDING_MODEL = 'text-embedding-3-small';
 
-export default function CloudProvidersSection({ role }) {
+export default function CloudProvidersSection({ role, defaultOpen = false }) {
   const {
     t,
-    hasLoadedSettings,
     aiProvider,
     toggleProvider,
     embeddingProvider,
@@ -52,21 +51,17 @@ export default function CloudProvidersSection({ role }) {
     }
   };
   const isProviderActive = (provider) => activeProvider === provider;
-  // Activo en CUALQUIERA de los dos roles (no solo el tab actual) — así el badge
-  // cruzado de rol (RoleBadge) sigue siendo visible al cambiar de tab sin sorpresas.
-  const isGroupActive = ['gemini', 'deepseek', 'kimi', 'openai'].includes(aiProvider)
-    || ['gemini', 'deepseek', 'kimi', 'openai'].includes(embeddingProvider);
 
-  const [isOpen, setIsOpen] = useState(isGroupActive);
-  useEffect(() => {
-    setIsOpen(isGroupActive);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasLoadedSettings]);
+  const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
     <section className={styles.section}>
       <div className={styles.sectionHeader}>
-        <div className={styles.sectionTitleGroup}>
+        <div
+          className={styles.sectionTitleGroup}
+          onClick={() => setIsOpen(!isOpen)}
+          style={{ cursor: 'pointer' }}
+        >
           <MdCloud className={styles.sectionIcon} size={20} />
           <h3 className={styles.sectionTitle}>{t('settings.sections.cloudProviders')}</h3>
         </div>

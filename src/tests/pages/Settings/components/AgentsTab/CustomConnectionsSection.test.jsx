@@ -66,10 +66,18 @@ describe('CustomConnectionsSection save validation display', () => {
   });
 
   it('renders the section and connection list', () => {
-    const html = renderToStaticMarkup(<CustomConnectionsSection role="chat" />);
+    const html = renderToStaticMarkup(<CustomConnectionsSection role="chat" defaultOpen />);
     expect(html).toContain('settings.customConnections.section');
     expect(html).toContain('ChatGPT');
     expect(html).toContain('Unused');
+  });
+
+  it('is collapsed by default (connection cards hidden, header badge unaffected)', () => {
+    const html = renderToStaticMarkup(<CustomConnectionsSection role="chat" />);
+    // The active-connection name still shows in the header badge — only the card list is gated
+    expect(html).not.toContain('http://chat.local');
+    expect(html).not.toContain('http://unused.local');
+    expect(html.match(/aria-label="settings.buttons.expand"/g) || []).toHaveLength(1);
   });
 
   it('shows the validation error when save is blocked by staged deletion', () => {
@@ -79,7 +87,7 @@ describe('CustomConnectionsSection save validation display', () => {
     };
     mockSettings.stagedDeletions = ['c1'];
 
-    const html = renderToStaticMarkup(<CustomConnectionsSection role="chat" />);
+    const html = renderToStaticMarkup(<CustomConnectionsSection role="chat" defaultOpen />);
     expect(html).toContain('settings.customConnections.errors.deletedConnectionInUse');
   });
 
@@ -90,12 +98,12 @@ describe('CustomConnectionsSection save validation display', () => {
     };
     mockSettings.aiProvider = '';
 
-    const html = renderToStaticMarkup(<CustomConnectionsSection role="chat" />);
+    const html = renderToStaticMarkup(<CustomConnectionsSection role="chat" defaultOpen />);
     expect(html).toContain('settings.customConnections.errors.noAiProvider');
   });
 
   it('renders the model selector for the active connection', () => {
-    const html = renderToStaticMarkup(<CustomConnectionsSection role="chat" />);
+    const html = renderToStaticMarkup(<CustomConnectionsSection role="chat" defaultOpen />);
     // With role="chat", the active connection (c1) shows the chat model label
     expect(html).toContain('settings.fields.generalModel');
   });
@@ -118,20 +126,20 @@ describe('CustomConnectionsSection — role prop', () => {
   });
 
   it('when role=chat, the chat model selector is shown for the active connection', () => {
-    const html = renderToStaticMarkup(<CustomConnectionsSection role="chat" />);
+    const html = renderToStaticMarkup(<CustomConnectionsSection role="chat" defaultOpen />);
     expect(html).toContain('settings.fields.generalModel');
     expect(html).toContain('ChatGPT');
   });
 
   it('when role=embeddings, the embedding model selector is shown for the active connection', () => {
     mockSettings.embeddingProvider = 'custom:c1';
-    const html = renderToStaticMarkup(<CustomConnectionsSection role="embeddings" />);
+    const html = renderToStaticMarkup(<CustomConnectionsSection role="embeddings" defaultOpen />);
     expect(html).toContain('settings.fields.embeddingModel');
   });
 
   it('when role=embeddings, the chat model selector is not shown', () => {
     mockSettings.embeddingProvider = 'custom:c2';
-    const html = renderToStaticMarkup(<CustomConnectionsSection role="embeddings" />);
+    const html = renderToStaticMarkup(<CustomConnectionsSection role="embeddings" defaultOpen />);
 
     // Chat model selector should NOT appear in embeddings tab
     expect(html).not.toContain('settings.fields.generalModel');
