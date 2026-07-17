@@ -138,6 +138,16 @@
       "experts": "Experts",
       "integrations": "Integrations"
     },
+    "agentsTabs": {
+      "chat": "Chat",
+      "embeddings": "Embeddings"
+    },
+    "roles": {
+      "chat": "Chat",
+      "embeddings": "Embeddings",
+      "both": "Both",
+      "inactive": "Inactive"
+    },
     "sections": {
       "localProviders": "Local Providers",
       "cloudProviders": "Cloud Providers",
@@ -215,7 +225,14 @@
       "localInference": "Local Inference",
       "localServer": "Local Server (OpenAI Compatible)",
       "googleFree": "Google AI - Free Tier",
-      "googlePaid": "Google AI - Paid Tier"
+      "googlePaid": "Google AI - Paid Tier",
+      "embeddingModelLabel": "Embedding model",
+      "geminiFreeName": "Gemini Free",
+      "geminiProName": "Gemini Pro",
+      "deepseekName": "DeepSeek",
+      "kimiName": "Kimi",
+      "openaiName": "OpenAI",
+      "openaiDesc": "OpenAI (GPT)"
     },
     "buttons": {
       "save": "Save Settings",
@@ -308,6 +325,44 @@
     "uiLanguages": {
       "es": "Español",
       "en": "English"
+    },
+    "customConnections": {
+      "section": "Custom OpenAI Connections",
+      "addConnection": "Add connection",
+      "editConnection": "Edit connection",
+      "name": "Name",
+      "namePlaceholder": "E.g.: My local GPT",
+      "baseUrl": "Base URL",
+      "baseUrlPlaceholder": "http://localhost:1234/v1",
+      "apiKey": "API Key",
+      "apiKeyPlaceholder": "Enter your API key",
+      "chatRole": "Chat Role",
+      "embeddingsRole": "Embeddings Role",
+      "selectConnection": "Select a connection",
+      "selectModel": "Select a model",
+      "testConnection": "Test",
+      "testing": "Testing...",
+      "connected": "Connected",
+      "connectionError": "Connection error",
+      "noModels": "No models",
+      "testFirst": "Click Test to load models",
+      "saveConnection": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "stageDelete": "Delete",
+      "cancelDelete": "Cancel deletion",
+      "confirmDeleteTitle": "Delete connection",
+      "confirmDeleteMessage": "Are you sure you want to delete the connection \"{{name}}\"? It will be removed when you save changes.",
+      "empty": "No custom connections yet.",
+      "reindexWarning": "The embedding model changed. Reindex recordings so RAG uses the new model.",
+      "reindexNow": "Reindex now",
+      "reindexing": "Reindexing...",
+      "reindexSuccess": "Reindexing completed ({{count}} recordings).",
+      "reindexError": "Reindexing error: {{error}}",
+      "errors": {
+        "noAiProvider": "Select an AI provider before saving.",
+        "deletedConnectionInUse": "You cannot delete a connection assigned to an active role. Change the role first."
+      }
     },
     "integrations": {
       "title": "Chat Platforms",

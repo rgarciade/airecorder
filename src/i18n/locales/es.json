@@ -155,6 +155,16 @@
       "experts": "Expertos",
       "integrations": "Integraciones"
     },
+    "agentsTabs": {
+      "chat": "Chat",
+      "embeddings": "Embeddings"
+    },
+    "roles": {
+      "chat": "Chat",
+      "embeddings": "Embeddings",
+      "both": "Ambos",
+      "inactive": "Inactivo"
+    },
     "sections": {
       "localProviders": "Proveedores Locales",
       "cloudProviders": "Proveedores en la Nube",
@@ -232,7 +242,14 @@
       "localInference": "Inferencia Local",
       "localServer": "Servidor Local (Compatible con OpenAI)",
       "googleFree": "Google AI - Nivel Gratuito",
-      "googlePaid": "Google AI - Nivel de Pago"
+      "googlePaid": "Google AI - Nivel de Pago",
+      "embeddingModelLabel": "Modelo de embedding",
+      "geminiFreeName": "Gemini Free",
+      "geminiProName": "Gemini Pro",
+      "deepseekName": "DeepSeek",
+      "kimiName": "Kimi",
+      "openaiName": "OpenAI",
+      "openaiDesc": "OpenAI (GPT)"
     },
     "buttons": {
       "save": "Guardar Ajustes",
@@ -325,6 +342,44 @@
     "uiLanguages": {
       "es": "Español",
       "en": "English"
+    },
+    "customConnections": {
+      "section": "Conexiones OpenAI Personalizadas",
+      "addConnection": "Añadir conexión",
+      "editConnection": "Editar conexión",
+      "name": "Nombre",
+      "namePlaceholder": "Ej: Mi GPT local",
+      "baseUrl": "URL Base",
+      "baseUrlPlaceholder": "http://localhost:1234/v1",
+      "apiKey": "API Key",
+      "apiKeyPlaceholder": "Introduce tu API key",
+      "chatRole": "Rol Chat",
+      "embeddingsRole": "Rol Embeddings",
+      "selectConnection": "Selecciona una conexión",
+      "selectModel": "Selecciona un modelo",
+      "testConnection": "Probar",
+      "testing": "Probando...",
+      "connected": "Conectado",
+      "connectionError": "Error de conexión",
+      "noModels": "Sin modelos",
+      "testFirst": "Haz clic en Probar para cargar modelos",
+      "saveConnection": "Guardar",
+      "cancel": "Cancelar",
+      "delete": "Eliminar",
+      "stageDelete": "Eliminar",
+      "cancelDelete": "Cancelar eliminación",
+      "confirmDeleteTitle": "Eliminar conexión",
+      "confirmDeleteMessage": "¿Seguro que quieres eliminar la conexión \"{{name}}\"? Se borrará al guardar los cambios.",
+      "empty": "No hay conexiones personalizadas.",
+      "reindexWarning": "Cambió el modelo de embeddings. Reindexa las grabaciones para que RAG use el nuevo modelo.",
+      "reindexNow": "Reindexar ahora",
+      "reindexing": "Reindexando...",
+      "reindexSuccess": "Reindexación completada ({{count}} grabaciones).",
+      "reindexError": "Error reindexando: {{error}}",
+      "errors": {
+        "noAiProvider": "Selecciona un proveedor de IA antes de guardar.",
+        "deletedConnectionInUse": "No puedes eliminar una conexión asignada a un rol activo. Cambia el rol primero."
+      }
     },
     "integrations": {
       "title": "Plataformas de Chat",
