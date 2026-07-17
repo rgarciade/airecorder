@@ -13,20 +13,22 @@ const mockSettings = {
   toggleEmbeddingProvider: mockToggleEmbeddingProvider,
   showApiKey: false,
   setShowApiKey: vi.fn(),
-  // Cloud provider fields
-  geminiFreeApiKey: '',
-  setGeminiFreeApiKey: vi.fn(),
-  geminiFreeModel: 'gemini-2.0-flash',
-  setGeminiFreeModel: vi.fn(),
-  geminiFreeModels: [{ name: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' }],
-  geminiFreeModelsLoading: false,
-  loadGeminiModels: vi.fn(),
+  // OpenAI
+  openaiApiKey: '',
+  setOpenaiApiKey: vi.fn(),
+  openaiModel: 'gpt-4o',
+  setOpenaiModel: vi.fn(),
+  openaiModels: [{ name: 'gpt-4o', label: 'GPT-4o' }],
+  openaiModelsLoading: false,
+  loadOpenaiModels: vi.fn(),
+  // Gemini
   geminiApiKey: '',
   setGeminiApiKey: vi.fn(),
   geminiModel: 'gemini-2.5-pro',
   setGeminiModel: vi.fn(),
   geminiModels: [{ name: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' }],
   geminiModelsLoading: false,
+  loadGeminiModels: vi.fn(),
   deepseekApiKey: '',
   setDeepseekApiKey: vi.fn(),
   deepseekModel: 'deepseek-chat',
@@ -62,30 +64,38 @@ describe('CloudProvidersSection — role prop', () => {
   });
 
   it('accepts role prop and renders cloud providers', () => {
+    mockSettings.aiProvider = 'gemini'; // group active → section open by default
     const html = renderToStaticMarkup(<CloudProvidersSection role="chat" />);
-    expect(html).toContain('Gemini Free');
-    expect(html).toContain('Gemini Pro');
+    expect(html).toContain('OpenAI');
+    expect(html).toContain('Gemini');
     expect(html).toContain('DeepSeek');
     expect(html).toContain('Kimi');
   });
 
-  it('when role=chat, all four providers are shown (including DeepSeek)', () => {
+  it('renders OpenAI before Gemini in the DOM order', () => {
+    mockSettings.aiProvider = 'gemini'; // group active → section open by default
+    const html = renderToStaticMarkup(<CloudProvidersSection role="chat" />);
+    expect(html.indexOf('>OpenAI<')).toBeLessThan(html.indexOf('>Gemini<'));
+  });
+
+  it('when role=chat, all providers are shown (including DeepSeek)', () => {
+    mockSettings.aiProvider = 'gemini'; // group active → section open by default
     const html = renderToStaticMarkup(<CloudProvidersSection role="chat" />);
     expect(html).toContain('DeepSeek');
   });
 
-  it('when role=embeddings, DeepSeek is hidden [RED — not implemented]', () => {
+  it('when role=embeddings, DeepSeek is hidden', () => {
     const html = renderToStaticMarkup(<CloudProvidersSection role="embeddings" />);
     // DeepSeek should NOT appear in embeddings tab
     expect(html).not.toContain('DeepSeek');
   });
 
-  it('when role=embeddings, other cloud providers (Gemini, Kimi) are still shown', () => {
+  it('when role=embeddings, other cloud providers (OpenAI, Gemini, Kimi) are still shown', () => {
     mockSettings.embeddingProvider = 'gemini';
     const html = renderToStaticMarkup(<CloudProvidersSection role="embeddings" />);
     // Other providers should still render
-    expect(html).toContain('Gemini Free');
-    expect(html).toContain('Gemini Pro');
+    expect(html).toContain('OpenAI');
+    expect(html).toContain('Gemini');
     expect(html).toContain('Kimi');
     expect(html).not.toContain('DeepSeek');
   });
@@ -98,13 +108,20 @@ describe('CloudProvidersSection — role prop', () => {
     expect(checkedMatches.length).toBe(0);
   });
 
-  it('when role=chat and aiProvider=geminifree, Gemini Free toggle is checked', () => {
-    mockSettings.aiProvider = 'geminifree';
+  it('when role=chat and aiProvider=gemini, Gemini toggle is checked', () => {
+    mockSettings.aiProvider = 'gemini';
     const html = renderToStaticMarkup(<CloudProvidersSection role="chat" />);
-    // Gemini Free's toggle should be checked
-    const geminiFreePos = html.indexOf('Gemini Free');
-    const afterGeminiFree = html.substring(geminiFreePos, html.indexOf('Gemini Pro'));
-    expect(afterGeminiFree).toContain('checked=""');
+    const geminiPos = html.indexOf('>Gemini<');
+    const afterGemini = html.substring(geminiPos, html.indexOf('DeepSeek'));
+    expect(afterGemini).toContain('checked=""');
+  });
+
+  it('when role=chat and aiProvider=openai, OpenAI toggle is checked', () => {
+    mockSettings.aiProvider = 'openai';
+    const html = renderToStaticMarkup(<CloudProvidersSection role="chat" />);
+    const openaiPos = html.indexOf('>OpenAI<');
+    const afterOpenai = html.substring(openaiPos, html.indexOf('>Gemini<'));
+    expect(afterOpenai).toContain('checked=""');
   });
 
   describe('Cloud Embedding Models — Phase 6', () => {
@@ -113,30 +130,29 @@ describe('CloudProvidersSection — role prop', () => {
       mockSettings.embeddingProvider = '';
     });
 
-    it('when role=chat, model dropdown is shown for Gemini Free (not read-only text) [RED — not implemented]', () => {
+    it('when role=chat, model dropdown is shown for Gemini (not read-only text)', () => {
+      mockSettings.aiProvider = 'gemini'; // group active → section open by default
       const html = renderToStaticMarkup(<CloudProvidersSection role="chat" />);
       // Model dropdown should be present, not the embedding model read-only text
       expect(html).toContain('settings.fields.model');
       expect(html).not.toContain('text-embedding-004');
     });
 
-    it('when role=embeddings and Gemini Free active, shows hardcoded embedding model name [RED — not implemented]', () => {
-      mockSettings.embeddingProvider = 'geminifree';
-      const html = renderToStaticMarkup(<CloudProvidersSection role="embeddings" />);
-      // Should show read-only text with the embedding model name
-      expect(html).toContain('text-embedding-004');
-      // Model dropdown should be hidden
-      expect(html).not.toContain('settings.fields.model');
-    });
-
-    it('when role=embeddings and Gemini Pro active, shows hardcoded embedding model name [RED — not implemented]', () => {
+    it('when role=embeddings and Gemini active, shows hardcoded embedding model name', () => {
       mockSettings.embeddingProvider = 'gemini';
       const html = renderToStaticMarkup(<CloudProvidersSection role="embeddings" />);
       expect(html).toContain('text-embedding-004');
       expect(html).not.toContain('settings.fields.model');
     });
 
-    it('when role=embeddings and Kimi active, shows hardcoded embedding model name [RED — not implemented]', () => {
+    it('when role=embeddings and OpenAI active, shows hardcoded embedding model name', () => {
+      mockSettings.embeddingProvider = 'openai';
+      const html = renderToStaticMarkup(<CloudProvidersSection role="embeddings" />);
+      expect(html).toContain('text-embedding-3-small');
+      expect(html).not.toContain('settings.fields.model');
+    });
+
+    it('when role=embeddings and Kimi active, shows hardcoded embedding model name', () => {
       mockSettings.embeddingProvider = 'kimi';
       const html = renderToStaticMarkup(<CloudProvidersSection role="embeddings" />);
       expect(html).toContain('moonshot-embedding-v1');

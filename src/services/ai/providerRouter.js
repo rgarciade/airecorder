@@ -54,8 +54,7 @@ function _resolveEngineName(settings, provider, options = {}) {
   }
   if (provider === 'deepseek') return 'DeepSeek';
   if (provider === 'kimi') return 'Kimi';
-  if (provider === 'gemini') return 'Gemini Pro';
-  if (provider === 'geminifree') return 'Gemini Free';
+  if (provider === 'gemini') return 'Gemini';
   if (provider === 'openai') {
     const model = options?.model || settings.openaiModel || '';
     return model ? `OpenAI: ${model}` : 'OpenAI';
@@ -104,13 +103,6 @@ async function _runCallProvider(prompt, options) {
       return { text: response || 'Sin respuesta', provider: 'kimi' };
     }
 
-    case 'gemini': {
-      if (!settings.geminiApiKey) throw new Error('No se ha configurado la Gemini API Key en los ajustes.');
-      const result = await sendToGemini(prompt, true, false, options.images || [], systemPrompt);
-      const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta';
-      return { text, provider: 'gemini' };
-    }
-
     case 'openai': {
       if (!settings.openaiApiKey) throw new Error('No se ha configurado la OpenAI API Key en los ajustes.');
       const model = options.model || settings.openaiModel;
@@ -120,7 +112,7 @@ async function _runCallProvider(prompt, options) {
       return { text: response || 'Sin respuesta', provider: 'openai', model };
     }
 
-    case 'geminifree':
+    case 'gemini':
     default: {
       if (isCustom(provider)) {
         const connection = resolveCustomConnection(settings, provider);
@@ -136,11 +128,10 @@ async function _runCallProvider(prompt, options) {
         return { text: response || 'Sin respuesta', provider, model };
       }
 
-      const apiKey = settings.geminiFreeApiKey || settings.geminiApiKey;
-      if (!apiKey) throw new Error('No se ha configurado la Gemini Free API Key en los ajustes.');
-      const result = await sendToGemini(prompt, true, true, options.images || [], systemPrompt);
+      if (!settings.geminiApiKey) throw new Error('No se ha configurado la Gemini API Key en los ajustes.');
+      const result = await sendToGemini(prompt, true, options.images || [], systemPrompt);
       const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta';
-      return { text, provider: 'geminifree' };
+      return { text, provider: 'gemini' };
     }
   }
 }
@@ -150,21 +141,15 @@ async function _runCallProvider(prompt, options) {
  */
 async function _runCallProviderStreaming(prompt, onChunk, options) {
   const settings = await getSettings();
-  const provider = options.providerOverride || settings.aiProvider || 'geminifree';
+  const provider = options.providerOverride || settings.aiProvider || 'gemini';
   const systemPrompt = options.systemPrompt || null;
 
   console.log(`[callProviderStreaming] Provider: ${provider}`);
 
   switch (provider) {
-    case 'geminifree': {
-      console.log('[callProviderStreaming] Iniciando streaming con Gemini Free');
-      const fullResponse = await sendToGeminiStreaming(prompt, onChunk, true, options.images || []);
-      return { text: fullResponse || 'Sin respuesta', provider: 'geminifree', streaming: true };
-    }
-
     case 'gemini': {
-      console.log('[callProviderStreaming] Iniciando streaming con Gemini Pro');
-      const fullResponse = await sendToGeminiStreaming(prompt, onChunk, false, options.images || []);
+      console.log('[callProviderStreaming] Iniciando streaming con Gemini');
+      const fullResponse = await sendToGeminiStreaming(prompt, onChunk, options.images || []);
       return { text: fullResponse || 'Sin respuesta', provider: 'gemini', streaming: true };
     }
 
@@ -260,7 +245,7 @@ export async function callProvider(prompt, options = {}) {
   let engine = 'IA';
   try {
     const settings = await getSettings();
-    const provider = options.providerOverride || settings.aiProvider || 'geminifree';
+    const provider = options.providerOverride || settings.aiProvider || 'gemini';
     engine = _resolveEngineName(settings, provider, options);
   } catch {
     // Si falla la lectura, usamos el fallback
@@ -290,7 +275,7 @@ export async function callProviderStreaming(prompt, onChunk, options = {}) {
   let engine = 'IA';
   try {
     const settings = await getSettings();
-    const provider = options.providerOverride || settings.aiProvider || 'geminifree';
+    const provider = options.providerOverride || settings.aiProvider || 'gemini';
     engine = _resolveEngineName(settings, provider, options);
   } catch {
     // fallback
@@ -317,13 +302,9 @@ export async function callProviderStreaming(prompt, onChunk, options = {}) {
 export async function validateProviderConfig() {
   try {
     const settings = await getSettings();
-    const provider = settings.aiProvider || 'geminifree';
+    const provider = settings.aiProvider || 'gemini';
 
     switch (provider) {
-      case 'geminifree':
-        if (!settings.geminiFreeApiKey && !settings.geminiApiKey)
-          return { valid: false, error: 'Falta configurar la Gemini Free API Key' };
-        break;
       case 'gemini':
         if (!settings.geminiApiKey)
           return { valid: false, error: 'Falta configurar la Gemini API Key' };
@@ -375,10 +356,10 @@ export async function validateProviderConfig() {
  * @returns {Promise<number|null>} numCtx o null si no aplica/no disponible
  */
 export async function getActiveProviderContextWindow(settings) {
-  const provider = settings.aiProvider || 'geminifree';
+  const provider = settings.aiProvider || 'gemini';
 
   // Proveedores cloud: contexto ≥128k → sin chunking
-  if (['gemini', 'geminifree', 'deepseek', 'kimi', 'openai'].includes(provider)) {
+  if (['gemini', 'deepseek', 'kimi', 'openai'].includes(provider)) {
     return null;
   }
 
@@ -423,19 +404,14 @@ export async function getActiveProviderContextWindow(settings) {
  */
 async function _runCallChatProviderStreaming(messages, onChunk, options) {
   const settings = await getSettings();
-  const provider = options.providerOverride || settings.aiProvider || 'geminifree';
+  const provider = options.providerOverride || settings.aiProvider || 'gemini';
   const images = options.images || [];
 
   console.log(`[callChatProviderStreaming] Provider: ${provider}`);
 
   switch (provider) {
-    case 'geminifree': {
-      const fullResponse = await sendToGeminiChatStreaming(messages, onChunk, true, images);
-      return { text: fullResponse || 'Sin respuesta', provider: 'geminifree', streaming: true };
-    }
-
     case 'gemini': {
-      const fullResponse = await sendToGeminiChatStreaming(messages, onChunk, false, images);
+      const fullResponse = await sendToGeminiChatStreaming(messages, onChunk, images);
       return { text: fullResponse || 'Sin respuesta', provider: 'gemini', streaming: true };
     }
 
@@ -512,7 +488,7 @@ export async function callChatProviderStreaming(messages, onChunk, options = {})
   let engine = 'IA';
   try {
     const settings = await getSettings();
-    const provider = options.providerOverride || settings.aiProvider || 'geminifree';
+    const provider = options.providerOverride || settings.aiProvider || 'gemini';
     engine = _resolveEngineName(settings, provider, options);
   } catch {
     // fallback

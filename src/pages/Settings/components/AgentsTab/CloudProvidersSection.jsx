@@ -20,17 +20,18 @@ export default function CloudProvidersSection({ role }) {
     embeddingProvider,
     toggleEmbeddingProvider,
     showApiKey, setShowApiKey,
-    // Gemini Free
-    geminiFreeApiKey, setGeminiFreeApiKey,
-    geminiFreeModel, setGeminiFreeModel,
-    geminiFreeModels,
-    geminiFreeModelsLoading,
-    loadGeminiModels,
-    // Gemini Pro
+    // OpenAI
+    openaiApiKey, setOpenaiApiKey,
+    openaiModel, setOpenaiModel,
+    openaiModels,
+    openaiModelsLoading,
+    loadOpenaiModels,
+    // Gemini
     geminiApiKey, setGeminiApiKey,
     geminiModel, setGeminiModel,
     geminiModels,
     geminiModelsLoading,
+    loadGeminiModels,
     // DeepSeek
     deepseekApiKey, setDeepseekApiKey,
     deepseekModel, setDeepseekModel,
@@ -39,12 +40,6 @@ export default function CloudProvidersSection({ role }) {
     kimiApiKey, setKimiApiKey,
     kimiModel, setKimiModel,
     kimiModels,
-    // OpenAI
-    openaiApiKey, setOpenaiApiKey,
-    openaiModel, setOpenaiModel,
-    openaiModels,
-    openaiModelsLoading,
-    loadOpenaiModels,
   } = useSettings();
 
   const activeProvider = role === 'chat' ? aiProvider : embeddingProvider;
@@ -80,9 +75,8 @@ export default function CloudProvidersSection({ role }) {
             <MdOpenInNew size={14} />
             {t('settings.wikiLink')}
           </a>
-          <span className={`${styles.badge} ${['geminifree', 'gemini', 'deepseek', 'kimi', 'openai'].includes(activeProvider) ? styles.badgeActive : styles.badgeInactive}`}>
-           {activeProvider === 'geminifree' ? t('settings.providers.geminiFreeName') :
-            activeProvider === 'gemini' ? t('settings.providers.geminiProName') :
+          <span className={`${styles.badge} ${['gemini', 'deepseek', 'kimi', 'openai'].includes(activeProvider) ? styles.badgeActive : styles.badgeInactive}`}>
+           {activeProvider === 'gemini' ? t('settings.providers.geminiName') :
             activeProvider === 'deepseek' ? t('settings.providers.deepseekName') :
             activeProvider === 'kimi' ? t('settings.providers.kimiName') :
             activeProvider === 'openai' ? t('settings.providers.openaiName') : t('settings.providers.inactive')}
@@ -90,25 +84,25 @@ export default function CloudProvidersSection({ role }) {
         </div>
       </div>
 
-      {/* Gemini Free */}
-      <div className={`${styles.card} ${!isProviderActive('geminifree') ? styles.cardDisabled : ''}`}>
+      {/* OpenAI */}
+      <div className={`${styles.card} ${!isProviderActive('openai') ? styles.cardDisabled : ''}`}>
         <div className={styles.cardHeader}>
           <div className={styles.providerInfo}>
-            <div className={`${styles.providerIcon} ${styles.geminiIcon}`}>
+            <div className={`${styles.providerIcon}`} style={{backgroundColor: '#e2e8f0', color: '#10a37f'}}>
               <MdAutoAwesome size={24} />
             </div>
             <div>
-              <h4 className={styles.providerName}>Gemini Free</h4>
-              <RoleBadge aiProvider={aiProvider} embeddingProvider={embeddingProvider} providerKey="geminifree" styles={styles} />
-              <p className={styles.providerDesc}>{t('settings.providers.googleFree')}</p>
+              <h4 className={styles.providerName}>OpenAI</h4>
+              <RoleBadge aiProvider={aiProvider} embeddingProvider={embeddingProvider} providerKey="openai" styles={styles} />
+              <p className={styles.providerDesc}>{t('settings.providers.openaiDesc')}</p>
             </div>
           </div>
           <label className={styles.toggleWrapper}>
             <input
               type="checkbox"
               className={styles.toggleInput}
-              checked={isProviderActive('geminifree')}
-              onChange={() => handleToggle('geminifree')}
+              checked={isProviderActive('openai')}
+              onChange={() => handleToggle('openai')}
             />
             <div className={styles.toggleSlider}></div>
           </label>
@@ -121,18 +115,18 @@ export default function CloudProvidersSection({ role }) {
               type={showApiKey ? "text" : "password"}
               className={styles.input}
               placeholder={t('settings.misc.enterApiKey')}
-              value={geminiFreeApiKey}
+              value={openaiApiKey}
               onChange={(e) => {
                 const newKey = e.target.value;
-                setGeminiFreeApiKey(newKey);
+                setOpenaiApiKey(newKey);
                 if (newKey && newKey.length > 10) {
-                  clearTimeout(window.geminiFreeKeyTimeout);
-                  window.geminiFreeKeyTimeout = setTimeout(() => {
-                    loadGeminiModels(newKey, true);
+                  clearTimeout(window.openaiKeyTimeout);
+                  window.openaiKeyTimeout = setTimeout(() => {
+                    loadOpenaiModels(newKey);
                   }, 1000);
                 }
               }}
-              disabled={!isProviderActive('geminifree')}
+              disabled={!isProviderActive('openai')}
             />
             <button
               className={styles.inputIcon}
@@ -147,7 +141,7 @@ export default function CloudProvidersSection({ role }) {
           <div className={styles.formGroup}>
             <label className={styles.label}>{t('settings.providers.embeddingModelLabel')}</label>
             <p className={styles.helpText} style={{ color: 'var(--color-text-secondary)' }}>
-              {GEMINI_EMBEDDING_MODEL}
+              {OPENAI_EMBEDDING_MODEL}
             </p>
           </div>
         ) : (
@@ -156,16 +150,16 @@ export default function CloudProvidersSection({ role }) {
             <div className={styles.inputRow}>
               <select
                 className={styles.input}
-                value={geminiFreeModel}
-                onChange={(e) => setGeminiFreeModel(e.target.value)}
-                disabled={!isProviderActive('geminifree') || geminiFreeModelsLoading || geminiFreeModels.length === 0}
+                value={openaiModel}
+                onChange={(e) => setOpenaiModel(e.target.value)}
+                disabled={!isProviderActive('openai') || openaiModelsLoading || openaiModels.length === 0}
               >
-                {geminiFreeModels.length === 0 ? (
+                {openaiModels.length === 0 ? (
                   <option value="" disabled>
-                    {geminiFreeApiKey ? (geminiFreeModelsLoading ? t('settings.misc.loading') : t('settings.misc.noModels')) : t('settings.misc.enterApiKey')}
+                    {openaiApiKey ? (openaiModelsLoading ? t('settings.misc.loading') : t('settings.misc.noModels')) : t('settings.misc.enterApiKey')}
                   </option>
                 ) : (
-                  geminiFreeModels.map(model => (
+                  openaiModels.map(model => (
                     <option key={model.name} value={model.name}>
                       {model.label}
                     </option>
@@ -174,10 +168,10 @@ export default function CloudProvidersSection({ role }) {
               </select>
               <button
                 className={styles.checkBtn}
-                onClick={() => loadGeminiModels(geminiFreeApiKey, true)}
-                disabled={!isProviderActive('geminifree') || !geminiFreeApiKey || geminiFreeModelsLoading}
+                onClick={() => loadOpenaiModels(openaiApiKey)}
+                disabled={!isProviderActive('openai') || !openaiApiKey || openaiModelsLoading}
               >
-                <MdRefresh size={18} className={geminiFreeModelsLoading ? styles.spinner : ''} />
+                <MdRefresh size={18} className={openaiModelsLoading ? styles.spinner : ''} />
                 {t('settings.buttons.refresh')}
               </button>
             </div>
@@ -185,7 +179,7 @@ export default function CloudProvidersSection({ role }) {
         )}
       </div>
 
-      {/* Gemini Pro */}
+      {/* Gemini */}
       <div className={`${styles.card} ${!isProviderActive('gemini') ? styles.cardDisabled : ''}`} style={{marginTop: '16px'}}>
         <div className={styles.cardHeader}>
           <div className={styles.providerInfo}>
@@ -193,9 +187,9 @@ export default function CloudProvidersSection({ role }) {
               <MdAutoAwesome size={24} />
             </div>
             <div>
-              <h4 className={styles.providerName}>Gemini Pro</h4>
+              <h4 className={styles.providerName}>Gemini</h4>
               <RoleBadge aiProvider={aiProvider} embeddingProvider={embeddingProvider} providerKey="gemini" styles={styles} />
-              <p className={styles.providerDesc}>{t('settings.providers.googlePaid')}</p>
+              <p className={styles.providerDesc}>{t('settings.providers.google')}</p>
             </div>
           </div>
           <label className={styles.toggleWrapper}>
@@ -223,7 +217,7 @@ export default function CloudProvidersSection({ role }) {
                 if (newKey && newKey.length > 10) {
                   clearTimeout(window.geminiKeyTimeout);
                   window.geminiKeyTimeout = setTimeout(() => {
-                    loadGeminiModels(newKey, false);
+                    loadGeminiModels(newKey);
                   }, 1000);
                 }
               }}
@@ -269,7 +263,7 @@ export default function CloudProvidersSection({ role }) {
               </select>
               <button
                 className={styles.checkBtn}
-                onClick={() => loadGeminiModels(geminiApiKey, false)}
+                onClick={() => loadGeminiModels(geminiApiKey)}
                 disabled={!isProviderActive('gemini') || !geminiApiKey || geminiModelsLoading}
               >
                 <MdRefresh size={18} className={geminiModelsLoading ? styles.spinner : ''} />
@@ -415,101 +409,6 @@ export default function CloudProvidersSection({ role }) {
             <p className={styles.helpText} style={{ color: 'var(--color-success)' }}>
               ✓ {kimiModels.find(m => m.name === kimiModel)?.description}
             </p>
-          </div>
-        )}
-      </div>
-
-      {/* OpenAI */}
-      <div className={`${styles.card} ${!isProviderActive('openai') ? styles.cardDisabled : ''}`} style={{marginTop: '16px'}}>
-        <div className={styles.cardHeader}>
-          <div className={styles.providerInfo}>
-            <div className={`${styles.providerIcon}`} style={{backgroundColor: '#e2e8f0', color: '#10a37f'}}>
-              <MdAutoAwesome size={24} />
-            </div>
-            <div>
-              <h4 className={styles.providerName}>OpenAI</h4>
-              <RoleBadge aiProvider={aiProvider} embeddingProvider={embeddingProvider} providerKey="openai" styles={styles} />
-              <p className={styles.providerDesc}>{t('settings.providers.openaiDesc')}</p>
-            </div>
-          </div>
-          <label className={styles.toggleWrapper}>
-            <input
-              type="checkbox"
-              className={styles.toggleInput}
-              checked={isProviderActive('openai')}
-              onChange={() => handleToggle('openai')}
-            />
-            <div className={styles.toggleSlider}></div>
-          </label>
-        </div>
-
-        <div className={styles.formGroup}>
-          <label className={styles.label}>{t('settings.fields.apiKey')}</label>
-          <div className={styles.inputWrapper}>
-            <input
-              type={showApiKey ? "text" : "password"}
-              className={styles.input}
-              placeholder={t('settings.misc.enterApiKey')}
-              value={openaiApiKey}
-              onChange={(e) => {
-                const newKey = e.target.value;
-                setOpenaiApiKey(newKey);
-                if (newKey && newKey.length > 10) {
-                  clearTimeout(window.openaiKeyTimeout);
-                  window.openaiKeyTimeout = setTimeout(() => {
-                    loadOpenaiModels(newKey);
-                  }, 1000);
-                }
-              }}
-              disabled={!isProviderActive('openai')}
-            />
-            <button
-              className={styles.inputIcon}
-              onClick={() => setShowApiKey(!showApiKey)}
-            >
-              {showApiKey ? <MdVisibilityOff /> : <MdVisibility />}
-            </button>
-          </div>
-        </div>
-
-        {role === 'embeddings' ? (
-          <div className={styles.formGroup}>
-            <label className={styles.label}>{t('settings.providers.embeddingModelLabel')}</label>
-            <p className={styles.helpText} style={{ color: 'var(--color-text-secondary)' }}>
-              {OPENAI_EMBEDDING_MODEL}
-            </p>
-          </div>
-        ) : (
-          <div className={styles.formGroup}>
-            <label className={styles.label}>{t('settings.fields.model')}</label>
-            <div className={styles.inputRow}>
-              <select
-                className={styles.input}
-                value={openaiModel}
-                onChange={(e) => setOpenaiModel(e.target.value)}
-                disabled={!isProviderActive('openai') || openaiModelsLoading || openaiModels.length === 0}
-              >
-                {openaiModels.length === 0 ? (
-                  <option value="" disabled>
-                    {openaiApiKey ? (openaiModelsLoading ? t('settings.misc.loading') : t('settings.misc.noModels')) : t('settings.misc.enterApiKey')}
-                  </option>
-                ) : (
-                  openaiModels.map(model => (
-                    <option key={model.name} value={model.name}>
-                      {model.label}
-                    </option>
-                  ))
-                )}
-              </select>
-              <button
-                className={styles.checkBtn}
-                onClick={() => loadOpenaiModels(openaiApiKey)}
-                disabled={!isProviderActive('openai') || !openaiApiKey || openaiModelsLoading}
-              >
-                <MdRefresh size={18} className={openaiModelsLoading ? styles.spinner : ''} />
-                {t('settings.buttons.refresh')}
-              </button>
-            </div>
           </div>
         )}
       </div>

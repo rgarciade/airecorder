@@ -307,6 +307,10 @@ const lang = await window.electronAPI.getSystemLanguage(); // 'es' | 'en'
 
 Este handler se utiliza en `App.jsx` → `loadAppSettings()` cuando es la primera vez que se abre la app (`isFirstRun === true`) para aplicar el idioma del SO automáticamente y guardarlo en `settings.uiLanguage`.
 
+### Migración de settings.json: `load-settings` (`ipc-handlers/settings.js`)
+
+`aiProvider`/`embeddingProvider` ya no distinguen `'geminifree'` de `'gemini'` (una sola configuración de Gemini, sin tier free/pro separado). El handler `load-settings` es el **único punto de normalización**: al leer `settings.json`, `migrateGeminiFreeTier(settings)` reescribe `'geminifree'` → `'gemini'` y rescata `geminiApiKey`/`geminiModel` desde los campos legacy `geminiFreeApiKey`/`geminiFreeModel` si el campo nuevo está vacío. Si hubo cambios, persiste el archivo migrado antes de devolver `{ success, settings }`. Como todo el resto de la app (renderer vía `getSettings()`, y el propio proceso principal en `embeddingService.js`) lee `settings.json` después de este primer `load-settings`, no hace falta duplicar la migración en ningún otro sitio.
+
 ## Almacenamiento Configurable
 
 ### Ruta de la Base de Datos (`databasePath`)

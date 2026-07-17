@@ -124,29 +124,20 @@ const defaultPrompt = `A continuación tienes una transcripción. Quiero que me 
  * Envía el texto a Gemini con manejo de reintentos para errores 429
  * @param {string} textContent - El contenido a enviar (mensaje de usuario)
  * @param {boolean} isRaw - Si es true, envía textContent tal cual. Si es false, le añade el defaultPrompt.
- * @param {boolean} useFreeTier - Si es true, usa geminiFreeApiKey en lugar de geminiApiKey
  * @param {Array<{base64: string, mimeType: string}>} [images] - Imágenes adjuntas (multimodal)
  * @param {string} [systemPrompt] - Instrucciones de sistema (se envía como system_instruction separado)
  * @returns {Promise<Object>} - Respuesta de Gemini
  */
-export async function sendToGemini(textContent, isRaw = false, useFreeTier = false, images = [], systemPrompt = null) {
+export async function sendToGemini(textContent, isRaw = false, images = [], systemPrompt = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000; // 2 segundos
 
   const settings = await getSettings();
-  // Usar geminiFreeApiKey si está configurado y se solicita el tier gratuito
-  const GEMINI_API_KEY = useFreeTier && settings.geminiFreeApiKey 
-    ? settings.geminiFreeApiKey 
-    : settings.geminiApiKey;
-  
-  // Usar geminiFreeModel si se solicita el tier gratuito
-  const geminiModel = useFreeTier && settings.geminiFreeModel
-    ? settings.geminiFreeModel
-    : (settings.geminiModel || 'gemini-2.0-flash');
-  
+  const GEMINI_API_KEY = settings.geminiApiKey;
+  const geminiModel = settings.geminiModel || 'gemini-2.0-flash';
+
   if (!GEMINI_API_KEY) {
-    const keyType = useFreeTier ? 'Gemini Free' : 'Gemini';
-    throw new Error(`No se ha configurado la ${keyType} API Key en los ajustes.`);
+    throw new Error('No se ha configurado la Gemini API Key en los ajustes.');
   }
 
   // Construir el cuerpo de la petición
@@ -169,7 +160,7 @@ export async function sendToGemini(textContent, isRaw = false, useFreeTier = fal
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
       const apiUrl = getGeminiUrl(geminiModel, false);
-      console.log(`[Gemini] Usando modelo: ${geminiModel} (${useFreeTier ? 'Free tier' : 'Pro'})`);
+      console.log(`[Gemini] Usando modelo: ${geminiModel}`);
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -212,28 +203,19 @@ export async function sendToGemini(textContent, isRaw = false, useFreeTier = fal
  * Envía el texto a Gemini en modo streaming
  * @param {string} textContent - El contenido a enviar (prompt + contexto)
  * @param {Function} onChunk - Callback que recibe cada chunk de texto
- * @param {boolean} useFreeTier - Si es true, usa geminiFreeApiKey en lugar de geminiApiKey
  * @param {Array<{base64: string, mimeType: string}>} [images] - Imágenes adjuntas (multimodal)
  * @returns {Promise<string>} - Texto completo de la respuesta
  */
-export async function sendToGeminiStreaming(textContent, onChunk, useFreeTier = false, images = []) {
+export async function sendToGeminiStreaming(textContent, onChunk, images = []) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
   const settings = await getSettings();
-  // Usar geminiFreeApiKey si está configurado y se solicita el tier gratuito
-  const GEMINI_API_KEY = useFreeTier && settings.geminiFreeApiKey 
-    ? settings.geminiFreeApiKey 
-    : settings.geminiApiKey;
-  
-  // Usar geminiFreeModel si se solicita el tier gratuito
-  const geminiModel = useFreeTier && settings.geminiFreeModel
-    ? settings.geminiFreeModel
-    : (settings.geminiModel || 'gemini-2.0-flash');
-  
+  const GEMINI_API_KEY = settings.geminiApiKey;
+  const geminiModel = settings.geminiModel || 'gemini-2.0-flash';
+
   if (!GEMINI_API_KEY) {
-    const keyType = useFreeTier ? 'Gemini Free' : 'Gemini';
-    throw new Error(`No se ha configurado la ${keyType} API Key en los ajustes.`);
+    throw new Error('No se ha configurado la Gemini API Key en los ajustes.');
   }
 
   // Construir parts con soporte multimodal
@@ -251,7 +233,7 @@ export async function sendToGeminiStreaming(textContent, onChunk, useFreeTier = 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
       const streamingUrl = getGeminiUrl(geminiModel, true);
-      console.log(`[Gemini Streaming] Usando modelo: ${geminiModel} (${useFreeTier ? 'Free tier' : 'Pro'})`);
+      console.log(`[Gemini Streaming] Usando modelo: ${geminiModel}`);
       
       const response = await fetch(streamingUrl, {
         method: 'POST',
@@ -335,24 +317,19 @@ export async function sendToGeminiStreaming(textContent, onChunk, useFreeTier = 
  *
  * @param {Array<{role:'system'|'user'|'assistant', content: string}>} messages
  * @param {Function} onChunk
- * @param {boolean} useFreeTier
  * @param {Array<{base64: string, mimeType: string}>} [images] - Imágenes del último turno
  * @returns {Promise<string>}
  */
-export async function sendToGeminiChatStreaming(messages, onChunk, useFreeTier = false, images = []) {
+export async function sendToGeminiChatStreaming(messages, onChunk, images = []) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
   const settings = await getSettings();
-  const GEMINI_API_KEY = useFreeTier && settings.geminiFreeApiKey
-    ? settings.geminiFreeApiKey
-    : settings.geminiApiKey;
-  const geminiModel = useFreeTier && settings.geminiFreeModel
-    ? settings.geminiFreeModel
-    : (settings.geminiModel || 'gemini-2.0-flash');
+  const GEMINI_API_KEY = settings.geminiApiKey;
+  const geminiModel = settings.geminiModel || 'gemini-2.0-flash';
 
   if (!GEMINI_API_KEY) {
-    throw new Error(`No se ha configurado la ${useFreeTier ? 'Gemini Free' : 'Gemini'} API Key en los ajustes.`);
+    throw new Error('No se ha configurado la Gemini API Key en los ajustes.');
   }
 
   // Separar system_instruction del resto de mensajes
@@ -381,7 +358,7 @@ export async function sendToGeminiChatStreaming(messages, onChunk, useFreeTier =
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
       const streamingUrl = getGeminiUrl(geminiModel, true);
-      console.log(`[Gemini Chat] Usando modelo: ${geminiModel} (${useFreeTier ? 'Free' : 'Pro'})`);
+      console.log(`[Gemini Chat] Usando modelo: ${geminiModel}`);
 
       const response = await fetch(streamingUrl, {
         method: 'POST',

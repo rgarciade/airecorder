@@ -6,8 +6,35 @@ const notificationService = require('../services/notificationService');
 const { settingsPath, DEFAULT_BASE_RECORDER_PATH } = require('../utils/paths');
 const dbService = require('../database/dbService');
 
+/**
+ * Migra settings.json legacy: 'geminifree' se fusionó con 'gemini' (una sola configuración,
+ * sin distinción free/pro). Normaliza el provider y rescata la API Key/modelo del tier free
+ * si el tier pago no estaba configurado.
+ * @returns {boolean} true si modificó `settings` (hay que persistir)
+ */
+function migrateGeminiFreeTier(settings) {
+  let changed = false;
+  if (settings.aiProvider === 'geminifree') {
+    settings.aiProvider = 'gemini';
+    changed = true;
+  }
+  if (settings.embeddingProvider === 'geminifree') {
+    settings.embeddingProvider = 'gemini';
+    changed = true;
+  }
+  if (!settings.geminiApiKey && settings.geminiFreeApiKey) {
+    settings.geminiApiKey = settings.geminiFreeApiKey;
+    changed = true;
+  }
+  if (!settings.geminiModel && settings.geminiFreeModel) {
+    settings.geminiModel = settings.geminiFreeModel;
+    changed = true;
+  }
+  return changed;
+}
+
 module.exports.registerSettingsHandlers = () => {
-  
+
   // Detectar idioma del sistema operativo
   ipcMain.handle('get-system-language', () => {
     const locale = app.getLocale(); // e.g. 'es-ES', 'en-US'
@@ -52,7 +79,15 @@ module.exports.registerSettingsHandlers = () => {
     try {
       if (fs.existsSync(settingsPath)) {
         const data = await fs.promises.readFile(settingsPath, 'utf8');
-        return { success: true, settings: JSON.parse(data) };
+        const settings = JSON.parse(data);
+
+        if (migrateGeminiFreeTier(settings)) {
+          const tmpPath = settingsPath + '.tmp';
+          await fs.promises.writeFile(tmpPath, JSON.stringify(settings, null, 2));
+          await fs.promises.rename(tmpPath, settingsPath);
+        }
+
+        return { success: true, settings };
       }
       return { success: true, settings: null };
     } catch (error) {

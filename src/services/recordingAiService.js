@@ -234,7 +234,7 @@ class RecordingAiService {
    * @returns {Promise<number>} Número máximo de caracteres permitidos
    */
   async _calculateMaxContextChars(settings, promptOverheadTokens = 800) {
-    const isCloudProvider = ['gemini', 'geminifree', 'deepseek', 'kimi'].includes(settings.aiProvider);
+    const isCloudProvider = ['gemini', 'deepseek', 'kimi'].includes(settings.aiProvider);
     if (isCloudProvider) {
       return Number.MAX_SAFE_INTEGER; // Los proveedores cloud no necesitan chunking/truncado
     }

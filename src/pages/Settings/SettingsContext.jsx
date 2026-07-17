@@ -72,14 +72,7 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
   const [dbMigrateModal, setDbMigrateModal] = useState(null); // { newPath } | null
   const [dbChangeError, setDbChangeError] = useState('');
 
-  // Gemini Free
-  const [geminiFreeApiKey, setGeminiFreeApiKey] = useState('');
-  const [geminiFreeModel, setGeminiFreeModel] = useState('gemini-2.0-flash');
-  const [geminiFreeModels, setGeminiFreeModels] = useState([]);
-  const [geminiFreeModelsLoading, setGeminiFreeModelsLoading] = useState(false);
-  const [geminiFreeModelsError, setGeminiFreeModelsError] = useState('');
-
-  // Gemini Pro
+  // Gemini
   const [geminiApiKey, setGeminiApiKey] = useState('');
   const [geminiModel, setGeminiModel] = useState('gemini-2.0-flash');
   const [geminiModels, setGeminiModels] = useState([]);
@@ -103,7 +96,7 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
   const [openaiModelsLoading, setOpenaiModelsLoading] = useState(false);
   const [openaiModelsError, setOpenaiModelsError] = useState('');
 
-  const [aiProvider, setAiProvider] = useState('geminifree'); // 'geminifree' | 'gemini' | 'deepseek' | 'kimi' | 'openai' | 'ollama'
+  const [aiProvider, setAiProvider] = useState('gemini'); // 'gemini' | 'deepseek' | 'kimi' | 'openai' | 'ollama'
 
   // Ollama
   const [ollamaModel, setOllamaModel] = useState('');
@@ -222,11 +215,7 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
           console.warn("Could not fetch system info", e);
         }
 
-        // Gemini Free
-        setGeminiFreeApiKey(savedSettings.geminiFreeApiKey || '');
-        setGeminiFreeModel(savedSettings.geminiFreeModel || 'gemini-2.0-flash');
-
-        // Gemini Pro
+        // Gemini
         setGeminiApiKey(savedSettings.geminiApiKey || '');
         setGeminiModel(savedSettings.geminiModel || 'gemini-1.5-pro');
 
@@ -293,11 +282,8 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
       );
 
       // Load Gemini models if API key exists
-      if (savedSettings?.geminiFreeApiKey) {
-        loadGeminiModels(savedSettings.geminiFreeApiKey, true);
-      }
       if (savedSettings?.geminiApiKey) {
-        loadGeminiModels(savedSettings.geminiApiKey, false);
+        loadGeminiModels(savedSettings.geminiApiKey);
       }
       if (savedSettings?.openaiApiKey) {
         loadOpenaiModels(savedSettings.openaiApiKey);
@@ -405,56 +391,29 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
     }
   };
 
-  const loadGeminiModels = async (apiKey, isFreeTier = false) => {
+  const loadGeminiModels = async (apiKey) => {
     if (!apiKey) {
-      if (isFreeTier) {
-        setGeminiFreeModels([]);
-        setGeminiFreeModelsError('');
-      } else {
-        setGeminiModels([]);
-        setGeminiModelsError('');
-      }
+      setGeminiModels([]);
+      setGeminiModelsError('');
       return;
     }
 
-    if (isFreeTier) {
-      setGeminiFreeModelsLoading(true);
-      setGeminiFreeModelsError('');
-    } else {
-      setGeminiModelsLoading(true);
-      setGeminiModelsError('');
-    }
+    setGeminiModelsLoading(true);
+    setGeminiModelsError('');
 
     try {
       const models = await getGeminiAvailableModels(apiKey);
-      if (isFreeTier) {
-        setGeminiFreeModels(models);
-        const currentModelExists = models.some(m => m.name === geminiFreeModel);
-        if (!currentModelExists && models.length > 0) {
-          setGeminiFreeModel(models[0].name);
-        }
-      } else {
-        setGeminiModels(models);
-        const currentModelExists = models.some(m => m.name === geminiModel);
-        if (!currentModelExists && models.length > 0) {
-          setGeminiModel(models[0].name);
-        }
+      setGeminiModels(models);
+      const currentModelExists = models.some(m => m.name === geminiModel);
+      if (!currentModelExists && models.length > 0) {
+        setGeminiModel(models[0].name);
       }
     } catch (error) {
       console.error('Error cargando modelos de Gemini:', error);
-      if (isFreeTier) {
-        setGeminiFreeModelsError('No se pudieron cargar los modelos. Verifica tu API Key.');
-        setGeminiFreeModels([]);
-      } else {
-        setGeminiModelsError('No se pudieron cargar los modelos. Verifica tu API Key.');
-        setGeminiModels([]);
-      }
+      setGeminiModelsError('No se pudieron cargar los modelos. Verifica tu API Key.');
+      setGeminiModels([]);
     } finally {
-      if (isFreeTier) {
-        setGeminiFreeModelsLoading(false);
-      } else {
-        setGeminiModelsLoading(false);
-      }
+      setGeminiModelsLoading(false);
     }
   };
 
@@ -629,10 +588,7 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
         projectHighlightsCount: projectHighlightsCount,
         whisperModel: whisperModel,
         cpuThreads: cpuThreads,
-        // Gemini Free
-        geminiFreeApiKey: geminiFreeApiKey,
-        geminiFreeModel: geminiFreeModel,
-        // Gemini Pro
+        // Gemini
         geminiApiKey: geminiApiKey,
         geminiModel: geminiModel,
         // DeepSeek
@@ -839,15 +795,8 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
     handleChangeDatabasePath,
     handleConfirmDbChange,
 
-    // Gemini Free
-    geminiFreeApiKey, setGeminiFreeApiKey,
-    geminiFreeModel, setGeminiFreeModel,
-    geminiFreeModels,
-    geminiFreeModelsLoading,
-    geminiFreeModelsError,
+    // Gemini
     loadGeminiModels,
-
-    // Gemini Pro
     geminiApiKey, setGeminiApiKey,
     geminiModel, setGeminiModel,
     geminiModels,

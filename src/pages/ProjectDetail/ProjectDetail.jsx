@@ -84,7 +84,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const [activeProjectAttachments, setActiveProjectAttachments] = useState([]);
 
   // Estados para selector de modelo de sesión
-  const [aiProvider, setAiProvider] = useState('geminifree');
+  const [aiProvider, setAiProvider] = useState('gemini');
   const [settingsModel, setSettingsModel] = useState('');
   const [sessionModel, setSessionModel] = useState(null);
   const [isVerifyingModel, setIsVerifyingModel] = useState(false);
@@ -117,7 +117,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     (async () => {
       try {
         const s = await getSettings();
-        const provider = s.aiProvider || 'geminifree';
+        const provider = s.aiProvider || 'gemini';
         setAiProvider(provider);
         setHighlightsCount(s.projectHighlightsCount || 2);
         const host = s.ollamaHost || 'http://localhost:11434';
@@ -129,7 +129,6 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
           deepseek: s.deepseekModel,
           kimi: s.kimiModel,
           gemini: s.geminiModel,
-          geminifree: s.geminiFreeModel,
           lmstudio: s.lmStudioRagModel || s.lmStudioModel,
         };
         const currentModel = modelByProvider[provider] || '';
@@ -143,7 +142,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
           ctxLen = s.ollamaContextLength;
         } else if (provider === 'lmstudio' && s.lmStudioContextLength) {
           ctxLen = s.lmStudioContextLength;
-        } else if (provider === 'gemini' || provider === 'geminifree') {
+        } else if (provider === 'gemini') {
           ctxLen = 1000000;
         } else if (provider === 'kimi') {
           ctxLen = 32000;
@@ -544,8 +543,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       else if (aiProvider === 'deepseek') settingsUpdate.deepseekModel = model;
       else if (aiProvider === 'kimi') settingsUpdate.kimiModel = model;
       else if (aiProvider === 'gemini') settingsUpdate.geminiModel = model;
-      else if (aiProvider === 'geminifree') settingsUpdate.geminiFreeModel = model;
-      
+
       if (Object.keys(settingsUpdate).length > 0) {
         await updateSettings(settingsUpdate);
       }
@@ -936,7 +934,8 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                     {projectSummary?.aiProvider && (
                       <span className={styles.aiBadge}>
                         {(() => {
-                          const names = { gemini: 'Gemini Pro', geminifree: 'Gemini Free', deepseek: 'DeepSeek', kimi: 'Kimi' };
+                          // geminifree se conserva para mostrar el nombre de resúmenes históricos generados antes de unificar Gemini Free/Pro
+                          const names = { gemini: 'Gemini', geminifree: 'Gemini Free', deepseek: 'DeepSeek', kimi: 'Kimi', openai: 'OpenAI' };
                           const { aiProvider, aiModel } = projectSummary;
                           return aiModel ? `${names[aiProvider] || aiProvider}: ${aiModel}` : (names[aiProvider] || aiProvider);
                         })()}

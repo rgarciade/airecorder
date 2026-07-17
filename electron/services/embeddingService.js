@@ -70,7 +70,7 @@ function getEmbeddingModel() {
   const settings = loadSettings();
   const provider = settings.embeddingProvider || settings.aiProvider;
 
-  if (provider === 'gemini' || provider === 'geminiFree') return GEMINI_EMBEDDING_MODEL;
+  if (provider === 'gemini') return GEMINI_EMBEDDING_MODEL;
   if (provider === 'kimi') return KIMI_EMBEDDING_MODEL;
   if (provider === 'openai') return OPENAI_EMBEDDING_MODEL;
   if (provider === 'lmstudio' && settings.lmStudioEmbeddingModel) {
@@ -101,10 +101,6 @@ async function detectEmbeddingProvider() {
   if (activeProvider === 'gemini' && settings.geminiApiKey) {
     console.log('[EmbeddingService] Usando Gemini para embeddings');
     return { provider: 'gemini', apiKey: settings.geminiApiKey };
-  }
-  if (activeProvider === 'geminiFree' && settings.geminiFreeApiKey) {
-    console.log('[EmbeddingService] Usando Gemini Free para embeddings');
-    return { provider: 'gemini', apiKey: settings.geminiFreeApiKey };
   }
   if (activeProvider === 'kimi' && settings.kimiApiKey) {
     console.log('[EmbeddingService] Usando Kimi para embeddings');

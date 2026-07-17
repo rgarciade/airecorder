@@ -11,12 +11,13 @@ const mockSettings = {
   showApiKey: false,
   setShowApiKey: vi.fn(),
   // Cloud provider fields
-  geminiFreeApiKey: '',
-  setGeminiFreeApiKey: vi.fn(),
-  geminiFreeModel: 'gemini-2.0-flash',
-  setGeminiFreeModel: vi.fn(),
-  geminiFreeModels: [{ name: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' }],
-  geminiFreeModelsLoading: false,
+  openaiApiKey: '',
+  setOpenaiApiKey: vi.fn(),
+  openaiModel: 'gpt-4o',
+  setOpenaiModel: vi.fn(),
+  openaiModels: [{ name: 'gpt-4o', label: 'GPT-4o' }],
+  openaiModelsLoading: false,
+  loadOpenaiModels: vi.fn(),
   loadGeminiModels: vi.fn(),
   geminiApiKey: '',
   setGeminiApiKey: vi.fn(),
@@ -139,6 +140,7 @@ describe('AgentsTab — sub-tab UI', () => {
 
   describe('Integration — Phase 8', () => {
     it('when rendered with default chat tab, DeepSeek is present in cloud section', () => {
+      mockSettings.aiProvider = 'gemini'; // cloud group active → section open by default
       const html = renderToStaticMarkup(<AgentsTab />);
       expect(html).toContain('DeepSeek');
     });
@@ -156,7 +158,7 @@ describe('AgentsTab — sub-tab UI', () => {
       const html = renderToStaticMarkup(<AgentsTab />);
       // Both providers should appear
       expect(html).toContain('Ollama');
-      expect(html).toContain('Gemini Pro');
+      expect(html).toContain('Gemini');
       // Ollama badge should show "Chat" role
       expect(html).toContain('settings.roles.chat');
       // Gemini badge should show "Embeddings" role
