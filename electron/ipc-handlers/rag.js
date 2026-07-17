@@ -73,4 +73,20 @@ module.exports.registerRagHandlers = () => {
     }
   });
 
+  ipcMain.handle('rag:reindex-all', async () => {
+    try {
+      const baseOutputDir = await getRecordingsPath();
+      const result = await ragService.reindexAllRecordings({ baseOutputDir });
+
+      if (result.error) {
+        return { success: false, error: result.error };
+      }
+
+      return { success: true, ...result };
+    } catch (error) {
+      console.error('[RAG] Error reindexando todo:', error);
+      return { success: false, error: error.message || String(error) };
+    }
+  });
+
 };

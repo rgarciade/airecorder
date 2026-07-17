@@ -59,6 +59,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Lanzar transcripción de una grabación
   transcribeRecording: (recordingId, model) => ipcRenderer.invoke('transcribe-recording', recordingId, model),
 
+  // Listar modelos de una conexión OpenAI personalizada
+  listCustomModels: (connectionId) => ipcRenderer.invoke('ai:custom-list-models', connectionId),
+
   // Cola de transcripción
   getTranscriptionQueue: () => ipcRenderer.invoke('get-transcription-queue'),
   cancelTranscriptionTask: (recordingId) => ipcRenderer.invoke('cancel-transcription-task', recordingId),
@@ -177,6 +180,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   searchRecording: (recordingId, query, topK) => ipcRenderer.invoke('search-recording', recordingId, query, topK),
   getRagStatus: (recordingId) => ipcRenderer.invoke('get-rag-status', recordingId),
   deleteRagIndex: (recordingId) => ipcRenderer.invoke('delete-rag-index', recordingId),
+  ragReindexAll: () => ipcRenderer.invoke('rag:reindex-all'),
 
   // Importar transcripción de Teams (.docx)
   importTeamsTranscript: () => ipcRenderer.invoke('import-teams-transcript'),
