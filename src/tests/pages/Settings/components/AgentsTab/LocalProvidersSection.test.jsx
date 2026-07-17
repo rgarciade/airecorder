@@ -182,12 +182,13 @@ describe('LocalProvidersSection — role prop', () => {
       mockSettings.embeddingProvider = '';
     });
 
-    it('when role=chat, general model and chat model selectors are visible for Ollama', () => {
+    it('when role=chat, general model and chat model selectors are visible for Ollama, embedding model is hidden', () => {
       const html = renderToStaticMarkup(<LocalProvidersSection role="chat" />);
       // General model and chat model selectors should be rendered
       expect(html).toContain('settings.fields.generalModel');
       expect(html).toContain('settings.fields.chatModel');
-      expect(html).toContain('settings.fields.embeddingModel');
+      // Embedding model belongs to the embeddings role only
+      expect(html).not.toContain('settings.fields.embeddingModel');
     });
 
     it('when role=embeddings, general model and chat model selectors are hidden for Ollama [RED — not implemented]', () => {

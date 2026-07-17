@@ -238,6 +238,7 @@ export default function LocalProvidersSection({ role }) {
         </div>
         )}
 
+        {role === 'embeddings' && (
         <div className={styles.formGroup}>
           <label className={styles.label}>{t('settings.fields.embeddingModel', { provider: 'Ollama' })}</label>
           <select
@@ -255,6 +256,7 @@ export default function LocalProvidersSection({ role }) {
             {t('settings.helpText.embeddingModel')}
           </p>
         </div>
+        )}
 
         {/* Ventana de Contexto — Ollama */}
         <div className={styles.formGroup}>
@@ -417,6 +419,7 @@ export default function LocalProvidersSection({ role }) {
         </div>
         )}
 
+        {role === 'embeddings' && (
         <div className={styles.formGroup}>
           <label className={styles.label}>{t('settings.fields.embeddingModel', { provider: 'LM Studio' })}</label>
           <select
@@ -434,6 +437,7 @@ export default function LocalProvidersSection({ role }) {
             {t('settings.helpText.embeddingModel')}
           </p>
         </div>
+        )}
 
         {/* Ventana de Contexto — LM Studio */}
         <div className={styles.formGroup}>
