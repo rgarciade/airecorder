@@ -5,32 +5,40 @@ description: All AIRecorder configuration options explained in detail.
 
 # Settings
 
-AIRecorder has 3 settings tabs. Here's every option explained.
+AIRecorder has 4 settings tabs: **AI Agents**, **General**, **Experts**, and **Integrations**. Here's every option explained.
 
 ---
 
 ## AI Agents
 
-The main tab where you configure the AI engine.
+The main tab where you configure the AI engine. It has two sub-tabs, **Chat** and **Embeddings**, each with an independent provider selection — you can use, for example, Ollama for Chat and Gemini for Embeddings at the same time. Inside each sub-tab there are three collapsible sections (click the title or the arrow to expand them):
 
 ### Local Providers (Ollama / LM Studio)
 
 | Field | Description |
 |-------|-------------|
 | **Host / Base URL** | Local server address. Ollama: `http://localhost:11434`. LM Studio: `http://localhost:1234/v1`. The app auto-detects it if the service is running. |
-| **General Model** | Generates automatic summaries, tasks, key points, and analysis after each transcription. |
-| **Chat Model** | For interactive conversations in the chat panel (RAG). If left empty, the General Model is used. |
-| **Embedding Model** | Converts text into vectors for semantic search (RAG). If you change this model, you need to re-index your transcriptions. |
+| **General Model** | Generates automatic summaries, tasks, key points, and analysis after each transcription. Only visible on the Chat sub-tab. |
+| **Chat Model** | For interactive conversations in the chat panel (RAG). If left empty, the General Model is used. Only visible on the Chat sub-tab. |
+| **Embedding Model** | Converts text into vectors for semantic search (RAG). Only visible on the Embeddings sub-tab. If you change this model, you need to re-index your transcriptions. |
 | **Context Window** | Maximum tokens the model can process at once. Use the **"Detect"** button to auto-configure it based on your model and hardware. |
+
+See [Local AI](/en/guide/local-ai) for the full setup guide and recommended models.
 
 ### Cloud Providers
 
-| Provider | Requires | Description |
-|----------|----------|-------------|
-| **Gemini Free** | Google API Key | Google's free model. The model is loaded dynamically from the API. |
-| **Gemini Pro** | Google API Key | Advanced version of Gemini with better capabilities. |
-| **DeepSeek** | API Key | Cloud model with good quality/price ratio. |
-| **Kimi (Moonshot)** | API Key | Alternative cloud provider. |
+| Provider | Requires | Chat Model | Embedding Model |
+|----------|----------|------------|------------------|
+| **OpenAI** | OpenAI API Key | Real list from your account | Fixed |
+| **Gemini** | Google AI Studio API Key | Real list from your account | Fixed |
+| **Kimi (Moonshot)** | Moonshot API Key | Short predefined list | Fixed |
+| **DeepSeek** | DeepSeek API Key | Short predefined list | Not supported (hidden on the Embeddings sub-tab) |
+
+See [Cloud AI](/en/guide/cloud-ai) for full details on each provider.
+
+### Custom OpenAI Connections
+
+Connect any OpenAI-compatible service (OpenRouter, Groq, self-hosted vLLM, etc.) with a name, base URL, and optional API Key. See [Custom OpenAI Connections](/en/guide/custom-ai) for the full guide.
 
 ::: tip Local or Cloud?
 - **Local**: Full privacy, no cost, no internet (after downloading models)
@@ -118,5 +126,7 @@ The Experts tab allows configuring custom prompts and advanced AI settings. (Thi
 
 - [Schema](/en/guide/schema) — AI-generated interactive mind-map
 - [Local AI](/en/guide/local-ai) — Setting up Ollama or LM Studio
+- [Cloud AI](/en/guide/cloud-ai) — OpenAI, Gemini, Kimi, and DeepSeek
+- [Custom OpenAI Connections](/en/guide/custom-ai) — Any OpenAI-compatible endpoint
 - [Diarization](/en/reference/diarization) — Technical details on speaker recognition
 - [RAG System](/en/reference/rag) — How semantic search works

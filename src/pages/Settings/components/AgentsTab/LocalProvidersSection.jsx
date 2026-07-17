@@ -73,14 +73,14 @@ export default function LocalProvidersSection({ role, defaultOpen = false }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <a
-            href={`${WIKI_URL}#ia`}
+            href={`${WIKI_URL}guide/local-ai`}
             target="_blank"
             rel="noopener noreferrer"
             style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 500 }}
             onClick={(e) => {
               e.preventDefault();
               if (window.electronAPI && window.electronAPI.openExternal) {
-                window.electronAPI.openExternal(`${WIKI_URL}#ia`);
+                window.electronAPI.openExternal(`${WIKI_URL}guide/local-ai`);
               }
             }}
           >
@@ -121,7 +121,7 @@ export default function LocalProvidersSection({ role, defaultOpen = false }) {
                       title: t('modelInfo.generalModel'),
                       items: [
                         { icon: '⭐', label: t('modelInfo.bestPerformance'), value: 'gemma4:e4b' },
-                        { icon: '🪶', label: t('modelInfo.lessResources'), value: 'gemma-7b-it' },
+                        { icon: '🪶', label: t('modelInfo.lessResources'), value: 'gemma4:e2b' },
                       ],
                     },
                     {
@@ -308,7 +308,7 @@ export default function LocalProvidersSection({ role, defaultOpen = false }) {
                       title: t('modelInfo.generalModel'),
                       items: [
                         { icon: '⭐', label: t('modelInfo.bestPerformance'), value: 'gemma4:e4b' },
-                        { icon: '🪶', label: t('modelInfo.lessResources'), value: 'gemma-7b-it' },
+                        { icon: '🪶', label: t('modelInfo.lessResources'), value: 'gemma4:e2b' },
                       ],
                     },
                     {

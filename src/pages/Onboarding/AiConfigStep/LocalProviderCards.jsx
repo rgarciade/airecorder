@@ -35,7 +35,7 @@ export default function LocalProviderCards({ t, activeAiRole, aiProvider, setAiP
                       title: t('modelInfo.generalModel'),
                       items: [
                         { icon: '⭐', label: t('modelInfo.bestPerformance'), value: 'gemma4:e4b' },
-                        { icon: '🪶', label: t('modelInfo.lessResources'), value: 'gemma-7b-it' },
+                        { icon: '🪶', label: t('modelInfo.lessResources'), value: 'gemma4:e2b' },
                       ],
                     },
                     {
@@ -207,8 +207,8 @@ export default function LocalProviderCards({ t, activeAiRole, aiProvider, setAiP
                     {
                       title: t('modelInfo.generalModel'),
                       items: [
-                        { icon: '⭐', label: t('modelInfo.bestPerformance'), value: 'neural-chat-7b' },
-                        { icon: '🪶', label: t('modelInfo.lessResources'), value: 'TinyLlama-1.1B' },
+                        { icon: '⭐', label: t('modelInfo.bestPerformance'), value: 'gemma4:e4b' },
+                        { icon: '🪶', label: t('modelInfo.lessResources'), value: 'gemma4:e2b' },
                       ],
                     },
                     {

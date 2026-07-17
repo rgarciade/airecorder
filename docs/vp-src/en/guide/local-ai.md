@@ -29,6 +29,14 @@ AIRecorder uses **two different models** for different tasks. You can configure 
 ::: tip 💡 If you don't configure the Chat Model, AIRecorder will use the General Model for everything.
 :::
 
+### Independent Provider per Role
+
+**Settings > AI Agents** has two sub-tabs, **Chat** and **Embeddings**. Each has its own provider selection — you can use Ollama for Chat and a cloud provider for Embeddings (or vice versa), or the same local provider for both with different models. The "Local Providers", "Cloud Providers", and "Custom OpenAI Connections" sections start collapsed — click the title or the arrow on each one to expand it.
+
+::: tip 💡 Also available during Onboarding
+The initial AI setup screen (first time you open AIRecorder) has the same Chat/Embeddings split, with real model selection for each local provider.
+:::
+
 ---
 
 ## Ollama (Recommended)
@@ -42,19 +50,23 @@ Ollama is the simplest option. It runs as a background service and AIRecorder de
 3. Open your terminal and download the models:
 
 ```bash
-# Main model for analysis and chat (Gemma 3 4B)
-ollama pull gemma3:4b
+# Main model for analysis and chat (Gemma 4 4B)
+ollama pull gemma4:e4b
 
 # Embedding model for semantic search
 ollama pull mxbai-embed-large
 ```
+
+::: tip 💡 e2b or e4b?
+`gemma4:e4b` is the default recommendation (best quality). If your machine has limited RAM, `gemma4:e2b` is the lighter variant from the same family.
+:::
 
 ### Configuration in AIRecorder
 
 1. Go to **Settings > AI Agents**
 2. Select **Ollama** as the provider
 3. The default URL is `http://localhost:11434` (AIRecorder auto-detects it)
-4. Select `gemma3:4b` as both **General Model** and **Chat Model**
+4. Select `gemma4:e4b` (or `gemma4:e2b` for something lighter) as both **General Model** and **Chat Model**
 5. Select `mxbai-embed-large` as the **Embedding Model**
 6. Use the **"Detect"** button to auto-configure the context window
 7. Click **"Verify model"** to confirm everything works
@@ -70,7 +82,7 @@ LM Studio offers a graphical interface and fine-grained control over model param
 1. Download LM Studio from [lmstudio.ai](https://lmstudio.ai)
 2. Open the application
 3. Search and download the models:
-   - **Chat**: `gemma-3-4b-it-GGUF` or similar
+   - **Chat**: `gemma-4-4b-it-GGUF` (or `gemma-4-2b-it-GGUF` for something lighter)
    - **Embedding**: `mxbai-embed-large-v1.Q8_0.gguf`
 
 ### Starting the Server
@@ -96,8 +108,8 @@ LM Studio offers a graphical interface and fine-grained control over model param
 
 | Model | Size | Min RAM | Recommended for |
 |-------|------|---------|-----------------|
-| **gemma3:4b** ⭐ | ~3GB | 8 GB | **Primary** — fast, accurate, ideal for analysis |
-| llama3.2:3b 🪶 | ~2GB | 8 GB | Lightweight alternative |
+| **gemma4:e4b** ⭐ | ~4GB | 8 GB | **Primary** — fast, accurate, ideal for analysis |
+| gemma4:e2b 🪶 | ~2GB | 8 GB | Lightweight variant from the same family |
 | qwen2.5:7b | ~4GB | 16 GB | Deeper analysis |
 | deepseek-r1:8b | ~5GB | 16 GB | Advanced reasoning |
 
@@ -134,6 +146,8 @@ Use the **"Detect"** button in Settings for AIRecorder to automatically configur
 
 ## See also
 
+- [Cloud AI](/en/guide/cloud-ai) — OpenAI, Gemini, Kimi, and DeepSeek
+- [Custom OpenAI Connections](/en/guide/custom-ai) — Any OpenAI-compatible endpoint
 - [Adding Content](/en/guide/recording) — The 4 import methods
 - [RAG System](/en/reference/rag) — How semantic search works
 - [Settings](/en/guide/settings) — All configuration options

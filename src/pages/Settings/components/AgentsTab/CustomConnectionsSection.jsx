@@ -138,14 +138,14 @@ export default function CustomConnectionsSection({ role, defaultOpen = false }) 
             {t('settings.customConnections.addConnection')}
           </button>
           <a
-            href={`${WIKI_URL}#ia`}
+            href={`${WIKI_URL}guide/custom-ai`}
             target="_blank"
             rel="noopener noreferrer"
             style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 500 }}
             onClick={(e) => {
               e.preventDefault();
               if (window.electronAPI && window.electronAPI.openExternal) {
-                window.electronAPI.openExternal(`${WIKI_URL}#ia`);
+                window.electronAPI.openExternal(`${WIKI_URL}guide/custom-ai`);
               }
             }}
           >
