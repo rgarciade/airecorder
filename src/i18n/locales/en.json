@@ -739,6 +739,12 @@
       "recommended": "RECOMMENDED",
       "stable": "✓ 100% Stable",
       "betaWarning": "Cloud providers are currently in beta testing. Some features may not work as expected.",
+      "testToContinue": "Test the connection to continue",
+      "apiKeyToContinue": "Enter your API Key to continue",
+      "roles": {
+        "chatHelp": "Provider and model used to chat with and analyze your recordings.",
+        "embeddingsHelp": "Provider and model used to index and search within your recordings (RAG). Can be different from Chat."
+      },
       "ollama": {
         "subtitle": "Self-hosted processing",
         "description": "Run AI entirely on your machine. Ideal for total privacy and offline workflows, but requires powerful hardware.",
@@ -762,6 +768,10 @@
         "urlLabel": "LM Studio Server URL",
         "urlNote": "* Default URL. You can change this in the app settings later."
       },
+      "openai": {
+        "description": "OpenAI's GPT models. Requires an OpenAI API key.",
+        "apiKeyLabel": "OpenAI API Key"
+      },
       "gemini": {
         "description": "Google's Gemini models. Requires a Google AI Studio API key.",
         "apiKeyLabel": "Google AI API Key"
@@ -773,6 +783,13 @@
       "deepseek": {
         "description": "DeepSeek models. Requires a DeepSeek API key.",
         "apiKeyLabel": "DeepSeek API Key"
+      },
+      "custom": {
+        "title": "Custom Connection",
+        "subtitle": "OpenAI-compatible",
+        "description": "Connect any OpenAI-compatible service (OpenRouter, Groq, self-hosted vLLM, etc.).",
+        "nameLabel": "Connection name",
+        "baseUrlLabel": "Base URL"
       },
       "apiKeyPlaceholder": "Paste your API key here...",
       "canChange": "You can change this anytime",

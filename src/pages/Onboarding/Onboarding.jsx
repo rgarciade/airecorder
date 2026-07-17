@@ -4,6 +4,10 @@ import i18n from '../../i18n/index.js';
 import styles from './Onboarding.module.css';
 import { FaMicrophone, FaCheckCircle, FaExclamationTriangle, FaRobot, FaServer, FaArrowRight, FaArrowLeft, FaWaveSquare, FaBrain, FaFolder, FaMagic, FaVolumeUp, FaBell, FaCheck } from 'react-icons/fa';
 import { getAvailableModels, checkOllamaAvailability } from '../../services/ai/ollamaProvider';
+import { checkLMStudioAvailability, getLMStudioModels } from '../../services/ai/lmStudioProvider';
+import { getGeminiAvailableModels } from '../../services/ai/geminiProvider';
+import { getKimiAvailableModels, getDeepseekAvailableModels } from '../../services/ai/providerRouter';
+import { CustomOpenAIProvider, OPENAI_BASE_URL } from '../../services/ai/customOpenAIProvider';
 import { updateSettings } from '../../services/settingsService';
 import { applyTheme } from '../../services/themeService';
 import PermissionsStep from './PermissionsStep';
@@ -32,19 +36,64 @@ export default function Onboarding({ onComplete }) {
   const [outputDirectory, setOutputDirectory] = useState('');
   const [databaseDirectory, setDatabaseDirectory] = useState('');
 
-  // AI Settings State
-  const [providerType, setProviderType] = useState('local'); // 'local' | 'cloud'
-  const [aiProvider, setAiProvider] = useState('ollama');
-  const [geminiKey, setGeminiKey] = useState('');
-  const [kimiApiKey, setKimiApiKey] = useState('');
-  const [deepseekApiKey, setDeepseekApiKey] = useState('');
+  // AI Settings State — el rol activo determina qué selección (chat/embeddings) se está editando
+  const [activeAiRole, setActiveAiRole] = useState('chat'); // 'chat' | 'embeddings'
+
+  const [chatProviderType, setChatProviderType] = useState('local'); // 'local' | 'cloud'
+  const [chatProviderKey, setChatProviderKey] = useState('ollama');
+  const [embedProviderType, setEmbedProviderType] = useState('local');
+  const [embedProviderKey, setEmbedProviderKey] = useState('ollama');
+
+  const providerType = activeAiRole === 'chat' ? chatProviderType : embedProviderType;
+  const setProviderType = activeAiRole === 'chat' ? setChatProviderType : setEmbedProviderType;
+  const aiProvider = activeAiRole === 'chat' ? chatProviderKey : embedProviderKey;
+  const setAiProvider = activeAiRole === 'chat' ? setChatProviderKey : setEmbedProviderKey;
+
+  // Ollama
   const [ollamaHost, setOllamaHost] = useState('http://localhost:11434');
+  const [ollamaStatus, setOllamaStatus] = useState('idle');
   const [ollamaModels, setOllamaModels] = useState([]);
   const [selectedOllamaModel, setSelectedOllamaModel] = useState('');
   const [selectedOllamaChatModel, setSelectedOllamaChatModel] = useState(''); // Modelo de Chat (opcional)
   const [ollamaEmbeddingModel, setOllamaEmbeddingModel] = useState('nomic-embed-text');
+
+  // LM Studio
+  const [lmStudioHost, setLmStudioHost] = useState('http://localhost:1234/v1');
+  const [lmStudioStatus, setLmStudioStatus] = useState('idle');
+  const [lmStudioModels, setLmStudioModels] = useState([]);
+  const [selectedLmStudioModel, setSelectedLmStudioModel] = useState('');
+  const [selectedLmStudioChatModel, setSelectedLmStudioChatModel] = useState('');
   const [lmStudioEmbeddingModel, setLmStudioEmbeddingModel] = useState('nomic-embed-text');
-  const [ollamaStatus, setOllamaStatus] = useState('idle');
+
+  // OpenAI
+  const [openaiApiKey, setOpenaiApiKey] = useState('');
+  const [openaiModels, setOpenaiModels] = useState([]);
+  const [openaiModelsLoading, setOpenaiModelsLoading] = useState(false);
+  const [selectedOpenaiModel, setSelectedOpenaiModel] = useState('');
+
+  // Gemini
+  const [geminiKey, setGeminiKey] = useState('');
+  const [geminiModels, setGeminiModels] = useState([]);
+  const [geminiModelsLoading, setGeminiModelsLoading] = useState(false);
+  const [selectedGeminiModel, setSelectedGeminiModel] = useState('');
+
+  // Kimi (lista estática, sin fetch)
+  const [kimiApiKey, setKimiApiKey] = useState('');
+  const [selectedKimiModel, setSelectedKimiModel] = useState(getKimiAvailableModels()[0]?.name || '');
+
+  // DeepSeek (lista estática, sin fetch — no soporta embeddings)
+  const [deepseekApiKey, setDeepseekApiKey] = useState('');
+  const [selectedDeepseekModel, setSelectedDeepseekModel] = useState(getDeepseekAvailableModels()[0]?.name || '');
+
+  // Conexión OpenAI personalizada
+  const [customConnName, setCustomConnName] = useState('');
+  const [customConnBaseUrl, setCustomConnBaseUrl] = useState('');
+  const [customConnApiKey, setCustomConnApiKey] = useState('');
+  const [customConnModels, setCustomConnModels] = useState([]);
+  const [customConnTestStatus, setCustomConnTestStatus] = useState('idle'); // idle | testing | success | error
+  const [selectedCustomChatModel, setSelectedCustomChatModel] = useState('');
+  const [selectedCustomEmbedModel, setSelectedCustomEmbedModel] = useState('');
+
   const [isSaving, setIsSaving] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState('system');
   const [appVersion, setAppVersion] = useState('');
@@ -133,6 +182,93 @@ export default function Onboarding({ onComplete }) {
     }
   };
 
+  const checkLmStudio = async () => {
+    setLmStudioStatus('checking');
+    try {
+      const isAvailable = await checkLMStudioAvailability(lmStudioHost);
+      if (isAvailable) {
+        const models = await getLMStudioModels(lmStudioHost);
+        setLmStudioModels(models);
+
+        const chatModels = models.filter(m => !m.name.toLowerCase().includes('embed'));
+        const embedModels = models.filter(m => m.name.toLowerCase().includes('embed'));
+
+        if (chatModels.length > 0 && !selectedLmStudioModel) {
+          setSelectedLmStudioModel(chatModels[0].name);
+        }
+        if (embedModels.length > 0) {
+          setLmStudioEmbeddingModel(embedModels[0].name);
+        }
+        setLmStudioStatus('success');
+      } else {
+        setLmStudioStatus('error');
+      }
+    } catch (error) {
+      console.error(error);
+      setLmStudioStatus('error');
+    }
+  };
+
+  const loadGeminiModelsOnboarding = async (apiKey) => {
+    if (!apiKey) {
+      setGeminiModels([]);
+      return;
+    }
+    setGeminiModelsLoading(true);
+    try {
+      const models = await getGeminiAvailableModels(apiKey);
+      setGeminiModels(models);
+      if (models.length > 0 && !selectedGeminiModel) {
+        setSelectedGeminiModel(models[0].name);
+      }
+    } catch (error) {
+      console.error('Error cargando modelos de Gemini:', error);
+      setGeminiModels([]);
+    } finally {
+      setGeminiModelsLoading(false);
+    }
+  };
+
+  const loadOpenaiModelsOnboarding = async (apiKey) => {
+    if (!apiKey) {
+      setOpenaiModels([]);
+      return;
+    }
+    setOpenaiModelsLoading(true);
+    try {
+      const client = new CustomOpenAIProvider({ baseUrl: OPENAI_BASE_URL, apiKey });
+      const models = await client.listModels();
+      setOpenaiModels(models);
+      if (models.length > 0 && !selectedOpenaiModel) {
+        setSelectedOpenaiModel(models[0].name);
+      }
+    } catch (error) {
+      console.error('Error cargando modelos de OpenAI:', error);
+      setOpenaiModels([]);
+    } finally {
+      setOpenaiModelsLoading(false);
+    }
+  };
+
+  const testCustomConnection = async () => {
+    if (!customConnBaseUrl.trim()) return;
+    setCustomConnTestStatus('testing');
+    try {
+      const client = new CustomOpenAIProvider({ baseUrl: customConnBaseUrl.trim(), apiKey: customConnApiKey.trim() });
+      const models = await client.listModels();
+      setCustomConnModels(models);
+      if (models.length > 0) {
+        if (!selectedCustomChatModel) setSelectedCustomChatModel(models[0].name);
+        if (!selectedCustomEmbedModel) setSelectedCustomEmbedModel(models[0].name);
+      }
+      setCustomConnTestStatus('success');
+    } catch (error) {
+      console.error('Error probando la conexión personalizada:', error);
+      setCustomConnModels([]);
+      setCustomConnTestStatus('error');
+    }
+  };
+
   const handleNext = async () => {
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(curr => curr + 1);
@@ -150,18 +286,40 @@ export default function Onboarding({ onComplete }) {
   const saveAndClose = async () => {
     setIsSaving(true);
     try {
+      const isChatCustom = chatProviderKey === 'custom';
+      const isEmbedCustom = embedProviderKey === 'custom';
+      const hasCustomConnection = isChatCustom || isEmbedCustom;
+      const customConnectionId = hasCustomConnection ? crypto.randomUUID() : undefined;
+      const resolveProvider = (key) => key === 'custom' ? `custom:${customConnectionId}` : key;
+
+      const usesOllama = chatProviderKey === 'ollama' || embedProviderKey === 'ollama';
+      const usesLmStudio = chatProviderKey === 'lmstudio' || embedProviderKey === 'lmstudio';
+
       const settingsToSave = {
         isFirstRun: false,
-        aiProvider,
+        aiProvider: resolveProvider(chatProviderKey),
+        embeddingProvider: resolveProvider(embedProviderKey),
         ollamaHost,
-        lmStudioHost: aiProvider === 'lmstudio' ? 'http://localhost:1234/v1' : undefined,
-        ollamaModel: selectedOllamaModel,
-        ollamaRagModel: selectedOllamaChatModel || undefined,
-        ollamaEmbeddingModel: aiProvider === 'ollama' ? ollamaEmbeddingModel : undefined,
-        lmStudioEmbeddingModel: aiProvider === 'lmstudio' ? lmStudioEmbeddingModel : undefined,
-        geminiApiKey: aiProvider === 'gemini' ? geminiKey : undefined,
-        kimiApiKey: aiProvider === 'kimi' ? kimiApiKey : undefined,
-        deepseekApiKey: aiProvider === 'deepseek' ? deepseekApiKey : undefined,
+        ollamaModel: usesOllama ? selectedOllamaModel : undefined,
+        ollamaRagModel: chatProviderKey === 'ollama' ? (selectedOllamaChatModel || undefined) : undefined,
+        ollamaEmbeddingModel: embedProviderKey === 'ollama' ? ollamaEmbeddingModel : undefined,
+        lmStudioHost: usesLmStudio ? lmStudioHost : undefined,
+        lmStudioModel: usesLmStudio ? selectedLmStudioModel : undefined,
+        lmStudioRagModel: chatProviderKey === 'lmstudio' ? (selectedLmStudioChatModel || undefined) : undefined,
+        lmStudioEmbeddingModel: embedProviderKey === 'lmstudio' ? lmStudioEmbeddingModel : undefined,
+        openaiApiKey: (chatProviderKey === 'openai' || embedProviderKey === 'openai') ? openaiApiKey : undefined,
+        openaiModel: chatProviderKey === 'openai' ? selectedOpenaiModel : undefined,
+        geminiApiKey: (chatProviderKey === 'gemini' || embedProviderKey === 'gemini') ? geminiKey : undefined,
+        geminiModel: chatProviderKey === 'gemini' ? selectedGeminiModel : undefined,
+        kimiApiKey: (chatProviderKey === 'kimi' || embedProviderKey === 'kimi') ? kimiApiKey : undefined,
+        kimiModel: chatProviderKey === 'kimi' ? selectedKimiModel : undefined,
+        deepseekApiKey: chatProviderKey === 'deepseek' ? deepseekApiKey : undefined,
+        deepseekModel: chatProviderKey === 'deepseek' ? selectedDeepseekModel : undefined,
+        customConnections: hasCustomConnection
+          ? [{ id: customConnectionId, name: customConnName.trim(), baseUrl: customConnBaseUrl.trim(), apiKey: customConnApiKey.trim() }]
+          : undefined,
+        customChatModel: isChatCustom ? selectedCustomChatModel : undefined,
+        embeddingModel: isEmbedCustom ? selectedCustomEmbedModel : undefined,
         notificationsEnabled: notificationStatus === 'granted',
         theme: selectedTheme,
         uiLanguage: i18n.language?.split('-')[0] || 'es',
@@ -328,11 +486,80 @@ export default function Onboarding({ onComplete }) {
   );
 
   const getModelName = () => {
-    if (aiProvider === 'lmstudio') return 'LM Studio';
-    if (aiProvider === 'gemini') return 'Gemini';
-    if (aiProvider === 'kimi') return 'Kimi';
-    if (aiProvider === 'deepseek') return 'DeepSeek';
+    if (chatProviderKey === 'lmstudio') return 'LM Studio';
+    if (chatProviderKey === 'openai') return 'OpenAI';
+    if (chatProviderKey === 'gemini') return 'Gemini';
+    if (chatProviderKey === 'kimi') return 'Kimi';
+    if (chatProviderKey === 'deepseek') return 'DeepSeek';
+    if (chatProviderKey === 'custom') return customConnName || 'Custom';
     return selectedOllamaModel;
+  };
+
+  const isProviderRoleValid = (type, key) => {
+    if (type === 'local') {
+      if (key === 'ollama') return ollamaStatus === 'success';
+      if (key === 'lmstudio') return lmStudioStatus === 'success';
+    }
+    if (type === 'cloud') {
+      if (key === 'openai') return !!openaiApiKey.trim();
+      if (key === 'gemini') return !!geminiKey.trim();
+      if (key === 'kimi') return !!kimiApiKey.trim();
+      if (key === 'deepseek') return !!deepseekApiKey.trim();
+      if (key === 'custom') return !!(customConnName.trim() && customConnBaseUrl.trim());
+    }
+    return false;
+  };
+
+  const aiCanProceed =
+    isProviderRoleValid(chatProviderType, chatProviderKey) &&
+    isProviderRoleValid(embedProviderType, embedProviderKey);
+
+  const aiConfigCtx = {
+    ollama: {
+      host: ollamaHost, setHost: setOllamaHost,
+      status: ollamaStatus, checkConnection: checkOllama,
+      models: ollamaModels,
+      selectedModel: selectedOllamaModel, setSelectedModel: setSelectedOllamaModel,
+      selectedChatModel: selectedOllamaChatModel, setSelectedChatModel: setSelectedOllamaChatModel,
+      embeddingModel: ollamaEmbeddingModel, setEmbeddingModel: setOllamaEmbeddingModel,
+    },
+    lmStudio: {
+      host: lmStudioHost, setHost: setLmStudioHost,
+      status: lmStudioStatus, checkConnection: checkLmStudio,
+      models: lmStudioModels,
+      selectedModel: selectedLmStudioModel, setSelectedModel: setSelectedLmStudioModel,
+      selectedChatModel: selectedLmStudioChatModel, setSelectedChatModel: setSelectedLmStudioChatModel,
+      embeddingModel: lmStudioEmbeddingModel, setEmbeddingModel: setLmStudioEmbeddingModel,
+    },
+    openai: {
+      apiKey: openaiApiKey, setApiKey: setOpenaiApiKey,
+      models: openaiModels, modelsLoading: openaiModelsLoading, loadModels: loadOpenaiModelsOnboarding,
+      selectedModel: selectedOpenaiModel, setSelectedModel: setSelectedOpenaiModel,
+    },
+    gemini: {
+      apiKey: geminiKey, setApiKey: setGeminiKey,
+      models: geminiModels, modelsLoading: geminiModelsLoading, loadModels: loadGeminiModelsOnboarding,
+      selectedModel: selectedGeminiModel, setSelectedModel: setSelectedGeminiModel,
+    },
+    kimi: {
+      apiKey: kimiApiKey, setApiKey: setKimiApiKey,
+      models: getKimiAvailableModels(),
+      selectedModel: selectedKimiModel, setSelectedModel: setSelectedKimiModel,
+    },
+    deepseek: {
+      apiKey: deepseekApiKey, setApiKey: setDeepseekApiKey,
+      models: getDeepseekAvailableModels(),
+      selectedModel: selectedDeepseekModel, setSelectedModel: setSelectedDeepseekModel,
+    },
+    custom: {
+      name: customConnName, setName: setCustomConnName,
+      baseUrl: customConnBaseUrl, setBaseUrl: setCustomConnBaseUrl,
+      apiKey: customConnApiKey, setApiKey: setCustomConnApiKey,
+      testStatus: customConnTestStatus, testConnection: testCustomConnection,
+      models: customConnModels,
+      chatModel: selectedCustomChatModel, setChatModel: setSelectedCustomChatModel,
+      embedModel: selectedCustomEmbedModel, setEmbedModel: setSelectedCustomEmbedModel,
+    },
   };
 
   // Main Render Switch
@@ -357,29 +584,14 @@ export default function Onboarding({ onComplete }) {
       {renderLangSelector()}
       <AiConfigStep
         t={t}
+        activeAiRole={activeAiRole}
+        setActiveAiRole={setActiveAiRole}
         providerType={providerType}
         setProviderType={setProviderType}
         aiProvider={aiProvider}
         setAiProvider={setAiProvider}
-        ollamaHost={ollamaHost}
-        setOllamaHost={setOllamaHost}
-        checkOllama={checkOllama}
-        ollamaStatus={ollamaStatus}
-        ollamaModels={ollamaModels}
-        selectedOllamaModel={selectedOllamaModel}
-        setSelectedOllamaModel={setSelectedOllamaModel}
-        selectedOllamaChatModel={selectedOllamaChatModel}
-        setSelectedOllamaChatModel={setSelectedOllamaChatModel}
-        ollamaEmbeddingModel={ollamaEmbeddingModel}
-        setOllamaEmbeddingModel={setOllamaEmbeddingModel}
-        lmStudioEmbeddingModel={lmStudioEmbeddingModel}
-        setLmStudioEmbeddingModel={setLmStudioEmbeddingModel}
-        geminiKey={geminiKey}
-        setGeminiKey={setGeminiKey}
-        kimiApiKey={kimiApiKey}
-        setKimiApiKey={setKimiApiKey}
-        deepseekApiKey={deepseekApiKey}
-        setDeepseekApiKey={setDeepseekApiKey}
+        ctx={aiConfigCtx}
+        canProceed={aiCanProceed}
         onBack={handleBack}
         onNext={handleNext}
         StepProgressComponent={renderStepProgress()}
