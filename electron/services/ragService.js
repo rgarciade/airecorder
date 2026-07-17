@@ -140,11 +140,15 @@ function createChunks(parsedLines, options = {}) {
 /**
  * Construye un identificador único del modelo de embeddings actual
  * Formato: "provider:model" (ej: "gemini:text-embedding-004", "ollama:nomic-embed-text")
- * @param {{ provider: string }} providerInfo
+ * Para conexiones personalizadas: "custom:{connectionId}:{model}"
+ * @param {{ provider: string, connectionId?: string, model?: string }} providerInfo
  * @returns {string}
  */
 function getEmbeddingModelId(providerInfo) {
-  const model = embeddingService.getEmbeddingModel();
+  const model = providerInfo.model || embeddingService.getEmbeddingModel();
+  if (providerInfo.provider === 'custom-openai' && providerInfo.connectionId) {
+    return `custom:${providerInfo.connectionId}:${model}`;
+  }
   return `${providerInfo.provider}:${model}`;
 }
 
@@ -589,6 +593,56 @@ async function deleteIndex(recordingPath) {
   }
 }
 
+/**
+ * Re-indexa todos los recordings que ya tienen un índice RAG (directorio vectordb/)
+ * usando el provider y modelo de embeddings actualmente configurados.
+ * @param {{ indexFn?: (recordingPath: string) => Promise<object> }} options
+ * @returns {Promise<{ reindexed: number, total: number, lastEmbeddingModelId: string|null, results: Array, error?: string }>}
+ */
+async function reindexAllRecordings({
+  indexFn = indexRecording,
+  baseOutputDir,
+  getRecordings = () => dbService.getAllRecordings(),
+  provider: providerOverride,
+} = {}) {
+  const recordingsBase = baseOutputDir || await getRecordingsPath();
+  const recordings = getRecordings();
+
+  const provider = providerOverride || await embeddingService.detectEmbeddingProvider();
+  if (!provider) {
+    return {
+      reindexed: 0,
+      total: 0,
+      lastEmbeddingModelId: null,
+      results: [],
+      error: 'No hay provider de embeddings disponible',
+    };
+  }
+
+  const lastEmbeddingModelId = getEmbeddingModelId(provider);
+  const results = [];
+
+  for (const recording of recordings) {
+    if (!recording.relative_path) continue;
+
+    const recordingPath = path.join(recordingsBase, recording.relative_path);
+    const vectordbPath = path.join(recordingPath, 'analysis', 'vectordb');
+    if (!fs.existsSync(vectordbPath)) continue;
+
+    const result = await indexFn(recordingPath);
+    results.push({ relativePath: recording.relative_path, ...result });
+  }
+
+  const globalMetadataPath = path.join(recordingsBase, 'rag_metadata.json');
+  fs.writeFileSync(
+    globalMetadataPath,
+    JSON.stringify({ lastEmbeddingModelId, reindexedAt: new Date().toISOString() }, null, 2)
+  );
+
+  const reindexed = results.filter((r) => r.indexed).length;
+  return { reindexed, total: results.length, lastEmbeddingModelId, results };
+}
+
 module.exports = {
   parseTranscriptionTxt,
   createChunks,
@@ -596,4 +650,6 @@ module.exports = {
   searchRecording,
   getStatus,
   deleteIndex,
+  reindexAllRecordings,
+  getEmbeddingModelId,
 };

@@ -4,15 +4,18 @@ import {
 } from 'react-icons/md';
 import styles from '../../Settings.module.css';
 import InfoTooltip from '../../../../components/InfoTooltip/InfoTooltip';
+import RoleBadge from './RoleBadge';
 import { useSettings } from '../../SettingsContext';
 
 const WIKI_URL = import.meta.env.VITE_WIKI_URL || 'https://rgarciade.github.io/airecorder/vp/';
 
-export default function LocalProvidersSection() {
+export default function LocalProvidersSection({ role }) {
   const {
     t,
     aiProvider,
     toggleProvider,
+    embeddingProvider,
+    toggleEmbeddingProvider,
     // Ollama
     ollamaHost, setOllamaHost,
     ollamaAvailable,
@@ -45,6 +48,17 @@ export default function LocalProvidersSection() {
     isDetectingLmCtx,
   } = useSettings();
 
+  // Role-aware helpers
+  const activeProvider = role === 'chat' ? aiProvider : embeddingProvider;
+  const isProviderActive = (provider) => activeProvider === provider;
+  const handleToggle = (provider) => {
+    if (role === 'chat') {
+      toggleProvider(provider);
+    } else {
+      toggleEmbeddingProvider(provider);
+    }
+  };
+
   return (
     <section className={styles.section}>
       <div className={styles.sectionHeader}>
@@ -68,15 +82,15 @@ export default function LocalProvidersSection() {
             <MdOpenInNew size={14} />
             {t('settings.wikiLink')}
           </a>
-          <span className={`${styles.badge} ${['ollama', 'lmstudio'].includes(aiProvider) ? styles.badgeActive : styles.badgeInactive}`}>
-           {aiProvider === 'ollama' ? t('settings.providers.ollamaActive') :
-            aiProvider === 'lmstudio' ? t('settings.providers.lmStudioActive') : t('settings.providers.inactive')}
+          <span className={`${styles.badge} ${['ollama', 'lmstudio'].includes(activeProvider) ? styles.badgeActive : styles.badgeInactive}`}>
+           {activeProvider === 'ollama' ? t('settings.providers.ollamaActive') :
+            activeProvider === 'lmstudio' ? t('settings.providers.lmStudioActive') : t('settings.providers.inactive')}
           </span>
         </div>
       </div>
 
       {/* Ollama (1st) */}
-      <div className={`${styles.card} ${aiProvider !== 'ollama' ? styles.cardDisabled : ''}`}>
+      <div className={`${styles.card} ${!isProviderActive('ollama') ? styles.cardDisabled : ''}`}>
         <div className={styles.cardHeader}>
           <div className={styles.providerInfo}>
             <div className={`${styles.providerIcon} ${styles.ollamaIcon}`}>
@@ -104,6 +118,12 @@ export default function LocalProvidersSection() {
                     },
                   ]}
                 />
+                <RoleBadge
+                  aiProvider={aiProvider}
+                  embeddingProvider={embeddingProvider}
+                  providerKey="ollama"
+                  styles={styles}
+                />
               </div>
               <p className={styles.providerDesc}>{t('settings.providers.localInference')}</p>
             </div>
@@ -112,8 +132,8 @@ export default function LocalProvidersSection() {
             <input
               type="checkbox"
               className={styles.toggleInput}
-              checked={aiProvider === 'ollama'}
-              onChange={() => toggleProvider('ollama')}
+              checked={isProviderActive('ollama')}
+              onChange={() => handleToggle('ollama')}
             />
             <div className={styles.toggleSlider}></div>
           </label>
@@ -128,12 +148,12 @@ export default function LocalProvidersSection() {
               value={ollamaHost}
               onChange={(e) => setOllamaHost(e.target.value)}
               placeholder="http://localhost:11434"
-              disabled={aiProvider !== 'ollama'}
+              disabled={!isProviderActive('ollama')}
             />
             <button
               className={styles.checkBtn}
               onClick={() => checkOllamaConnection(ollamaHost)}
-              disabled={aiProvider !== 'ollama'}
+              disabled={!isProviderActive('ollama')}
             >
               <MdRefresh size={18} />
               {t('settings.buttons.test')}
@@ -150,13 +170,14 @@ export default function LocalProvidersSection() {
           )}
         </div>
 
+        {role !== 'embeddings' && (
         <div className={styles.formGroup}>
           <label className={styles.label}>{t('settings.fields.generalModel')}</label>
           <select
             className={styles.input}
             value={ollamaModel}
             onChange={(e) => handleOllamaModelChange(e.target.value)}
-            disabled={aiProvider !== 'ollama' || !ollamaAvailable || isCheckingModel}
+            disabled={!isProviderActive('ollama') || !ollamaAvailable || isCheckingModel}
           >
             <option value="" disabled>{t('settings.misc.selectModel')}</option>
             {ollamaModels.map(model => (
@@ -176,14 +197,16 @@ export default function LocalProvidersSection() {
           )}
           <p className={styles.helpText}>{t('settings.helpText.generalModel')}</p>
         </div>
+        )}
 
+        {role !== 'embeddings' && (
         <div className={styles.formGroup}>
           <label className={styles.label}>{t('settings.fields.chatModel')}</label>
           <select
             className={styles.input}
             value={ollamaRagModel}
             onChange={(e) => setOllamaRagModel(e.target.value)}
-            disabled={aiProvider !== 'ollama' || !ollamaAvailable}
+            disabled={!isProviderActive('ollama') || !ollamaAvailable}
           >
             <option value="">{t('settings.misc.useMainModel')}</option>
             {ollamaModels.map(model => (
@@ -192,6 +215,7 @@ export default function LocalProvidersSection() {
           </select>
           <p className={styles.helpText}>{t('settings.helpText.chatModel')}</p>
         </div>
+        )}
 
         <div className={styles.formGroup}>
           <label className={styles.label}>{t('settings.fields.embeddingModel', { provider: 'Ollama' })}</label>
@@ -199,7 +223,7 @@ export default function LocalProvidersSection() {
             className={styles.input}
             value={ollamaEmbeddingModel}
             onChange={(e) => setOllamaEmbeddingModel(e.target.value)}
-            disabled={aiProvider !== 'ollama' || !ollamaAvailable}
+            disabled={!isProviderActive('ollama') || !ollamaAvailable}
           >
             {ollamaEmbeddingModels.length === 0 && <option value="">{t('settings.misc.loading')}</option>}
             {ollamaEmbeddingModels.map(model => (
@@ -221,13 +245,13 @@ export default function LocalProvidersSection() {
               value={ollamaContextLengthSaved}
               onChange={(e) => { setOllamaContextLengthSaved(e.target.value); setOllamaCtxStatus(null); }}
               placeholder="4096"
-              disabled={aiProvider !== 'ollama'}
+              disabled={!isProviderActive('ollama')}
               min="512"
             />
             <button
               className={styles.checkBtn}
               onClick={handleDetectOllamaContextLength}
-              disabled={aiProvider !== 'ollama' || !ollamaAvailable || !ollamaModel || isCheckingModel}
+              disabled={!isProviderActive('ollama') || !ollamaAvailable || !ollamaModel || isCheckingModel}
             >
               <MdRefresh size={18} className={isCheckingModel ? styles.spinner : undefined} />
               {t('settings.buttons.detect')}
@@ -251,7 +275,7 @@ export default function LocalProvidersSection() {
       </div>
 
       {/* LM Studio (2nd) */}
-      <div className={`${styles.card} ${aiProvider !== 'lmstudio' ? styles.cardDisabled : ''}`} style={{marginTop: '16px'}}>
+      <div className={`${styles.card} ${!isProviderActive('lmstudio') ? styles.cardDisabled : ''}`} style={{marginTop: '16px'}}>
         <div className={styles.cardHeader}>
           <div className={styles.providerInfo}>
             <div className={`${styles.providerIcon} ${styles.lmStudioIcon}`}>
@@ -279,6 +303,12 @@ export default function LocalProvidersSection() {
                     },
                   ]}
                 />
+                <RoleBadge
+                  aiProvider={aiProvider}
+                  embeddingProvider={embeddingProvider}
+                  providerKey="lmstudio"
+                  styles={styles}
+                />
               </div>
               <p className={styles.providerDesc}>{t('settings.providers.localServer')}</p>
             </div>
@@ -287,8 +317,8 @@ export default function LocalProvidersSection() {
             <input
               type="checkbox"
               className={styles.toggleInput}
-              checked={aiProvider === 'lmstudio'}
-              onChange={() => toggleProvider('lmstudio')}
+              checked={isProviderActive('lmstudio')}
+              onChange={() => handleToggle('lmstudio')}
             />
             <div className={styles.toggleSlider}></div>
           </label>
@@ -303,12 +333,12 @@ export default function LocalProvidersSection() {
               value={lmStudioHost}
               onChange={(e) => setLmStudioHost(e.target.value)}
               placeholder="http://localhost:1234/v1"
-              disabled={aiProvider !== 'lmstudio'}
+              disabled={!isProviderActive('lmstudio')}
             />
             <button
               className={styles.checkBtn}
               onClick={() => checkLMStudioConnection(lmStudioHost)}
-              disabled={aiProvider !== 'lmstudio'}
+              disabled={!isProviderActive('lmstudio')}
             >
               <MdRefresh size={18} />
               {t('settings.buttons.test')}
@@ -325,13 +355,14 @@ export default function LocalProvidersSection() {
           )}
         </div>
 
+        {role !== 'embeddings' && (
         <div className={styles.formGroup}>
           <label className={styles.label}>{t('settings.fields.generalModel')}</label>
           <select
             className={styles.input}
             value={lmStudioModel}
             onChange={(e) => handleLmStudioModelChange(e.target.value)}
-            disabled={aiProvider !== 'lmstudio' || !lmStudioAvailable}
+            disabled={!isProviderActive('lmstudio') || !lmStudioAvailable}
           >
             <option value="" disabled>{t('settings.misc.selectModel')}</option>
             {(lmStudioChatModels.length > 0 ? lmStudioChatModels : lmStudioModels).map(model => (
@@ -345,14 +376,16 @@ export default function LocalProvidersSection() {
           )}
           <p className={styles.helpText}>{t('settings.helpText.generalModel')}</p>
         </div>
+        )}
 
+        {role !== 'embeddings' && (
         <div className={styles.formGroup}>
           <label className={styles.label}>{t('settings.fields.chatModel')}</label>
           <select
             className={styles.input}
             value={lmStudioRagModel}
             onChange={(e) => setLmStudioRagModel(e.target.value)}
-            disabled={aiProvider !== 'lmstudio' || !lmStudioAvailable}
+            disabled={!isProviderActive('lmstudio') || !lmStudioAvailable}
           >
             <option value="">{t('settings.misc.useMainModel')}</option>
             {(lmStudioChatModels.length > 0 ? lmStudioChatModels : lmStudioModels).map(model => (
@@ -361,6 +394,7 @@ export default function LocalProvidersSection() {
           </select>
           <p className={styles.helpText}>{t('settings.helpText.chatModel')}</p>
         </div>
+        )}
 
         <div className={styles.formGroup}>
           <label className={styles.label}>{t('settings.fields.embeddingModel', { provider: 'LM Studio' })}</label>
@@ -368,7 +402,7 @@ export default function LocalProvidersSection() {
             className={styles.input}
             value={lmStudioEmbeddingModel}
             onChange={(e) => setLmStudioEmbeddingModel(e.target.value)}
-            disabled={aiProvider !== 'lmstudio' || !lmStudioAvailable}
+            disabled={!isProviderActive('lmstudio') || !lmStudioAvailable}
           >
             {lmStudioEmbeddingModels.length === 0 && <option value="">{t('settings.misc.noModels')}</option>}
             {lmStudioEmbeddingModels.map(model => (
@@ -390,13 +424,13 @@ export default function LocalProvidersSection() {
               value={lmStudioContextLengthSaved}
               onChange={(e) => { setLmStudioContextLengthSaved(e.target.value); setLmStudioCtxStatus(null); }}
               placeholder="4096"
-              disabled={aiProvider !== 'lmstudio'}
+              disabled={!isProviderActive('lmstudio')}
               min="512"
             />
             <button
               className={styles.checkBtn}
               onClick={handleDetectLmStudioContextLength}
-              disabled={aiProvider !== 'lmstudio' || !lmStudioAvailable || !lmStudioModel || isDetectingLmCtx}
+              disabled={!isProviderActive('lmstudio') || !lmStudioAvailable || !lmStudioModel || isDetectingLmCtx}
             >
               <MdRefresh size={18} className={isDetectingLmCtx ? styles.spinner : undefined} />
               {t('settings.buttons.detect')}

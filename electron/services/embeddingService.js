@@ -23,20 +23,29 @@ const EMBEDDING_DIMENSION = 768;
 const BATCH_SIZE = 10;
 const MAX_INPUT_CHARS = 2000; // Límite de seguridad para no exceder context length del modelo de embeddings
 
+const CUSTOM_PROVIDER_PREFIX = 'custom:';
+
 // Cloud embedding config
 const GEMINI_EMBEDDING_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const GEMINI_EMBEDDING_MODEL = 'text-embedding-004'; // 768 dims — compatible con nomic-embed-text
 const KIMI_EMBEDDING_BASE = 'https://api.moonshot.ai/v1';
 const KIMI_EMBEDDING_MODEL = 'moonshot-embedding-v1';
+const OPENAI_EMBEDDING_BASE = 'https://api.openai.com';
+const OPENAI_EMBEDDING_MODEL = 'text-embedding-3-small';
 
-// Ruta del archivo de configuración
-const { app } = require('electron');
-const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+let settingsPathOverride = null;
+
+function getSettingsPath() {
+  if (settingsPathOverride) return settingsPathOverride;
+  const { app } = require('electron');
+  return path.join(app.getPath('userData'), 'settings.json');
+}
 
 /**
  * Lee la configuración actual desde disco
  */
 function loadSettings() {
+  const settingsPath = getSettingsPath();
   try {
     if (fs.existsSync(settingsPath)) {
       const data = fs.readFileSync(settingsPath, 'utf8');
@@ -51,14 +60,24 @@ function loadSettings() {
 /**
  * Obtiene el modelo de embeddings configurado según el proveedor activo
  */
+function resolveCustomConnection(settings, provider) {
+  if (!provider?.startsWith(CUSTOM_PROVIDER_PREFIX)) return null;
+  const id = provider.slice(CUSTOM_PROVIDER_PREFIX.length);
+  return (settings?.customConnections || []).find((conn) => conn.id === id);
+}
+
 function getEmbeddingModel() {
   const settings = loadSettings();
-  const provider = settings.aiProvider;
+  const provider = settings.embeddingProvider || settings.aiProvider;
 
   if (provider === 'gemini' || provider === 'geminiFree') return GEMINI_EMBEDDING_MODEL;
   if (provider === 'kimi') return KIMI_EMBEDDING_MODEL;
+  if (provider === 'openai') return OPENAI_EMBEDDING_MODEL;
   if (provider === 'lmstudio' && settings.lmStudioEmbeddingModel) {
     return settings.lmStudioEmbeddingModel;
+  }
+  if (typeof provider === 'string' && provider.startsWith(CUSTOM_PROVIDER_PREFIX)) {
+    return settings.embeddingModel || DEFAULT_EMBEDDING_MODEL_FALLBACK;
   }
   return settings.ollamaEmbeddingModel || DEFAULT_EMBEDDING_MODEL_FALLBACK;
 }
@@ -70,7 +89,13 @@ function getEmbeddingModel() {
  */
 async function detectEmbeddingProvider() {
   const settings = loadSettings();
-  const activeProvider = settings.aiProvider;
+  const activeProvider = settings.embeddingProvider || settings.aiProvider;
+
+  // ── DeepSeek guard: no soporta embeddings ───────────────────────────────────
+  if (activeProvider === 'deepseek') {
+    console.warn('[EmbeddingService] DeepSeek does not support embeddings, falling back');
+    // No retornar — continuar con detección de proveedores locales como fallback
+  }
 
   // ── Proveedores cloud: no requieren servidor local ──────────────────────────
   if (activeProvider === 'gemini' && settings.geminiApiKey) {
@@ -84,6 +109,33 @@ async function detectEmbeddingProvider() {
   if (activeProvider === 'kimi' && settings.kimiApiKey) {
     console.log('[EmbeddingService] Usando Kimi para embeddings');
     return { provider: 'kimi', apiKey: settings.kimiApiKey };
+  }
+  if (activeProvider === 'openai' && settings.openaiApiKey) {
+    console.log('[EmbeddingService] Usando OpenAI para embeddings');
+    return {
+      provider: 'custom-openai',
+      baseUrl: OPENAI_EMBEDDING_BASE,
+      apiKey: settings.openaiApiKey,
+      model: OPENAI_EMBEDDING_MODEL,
+    };
+  }
+
+  // ── Conexiones OpenAI personalizadas ────────────────────────────────────────
+  if (typeof activeProvider === 'string' && activeProvider.startsWith(CUSTOM_PROVIDER_PREFIX)) {
+    const connection = resolveCustomConnection(settings, activeProvider);
+    if (connection) {
+      const model = settings.embeddingModel || DEFAULT_EMBEDDING_MODEL_FALLBACK;
+      console.log('[EmbeddingService] Usando conexión personalizada para embeddings:', connection.baseUrl);
+      return {
+        provider: 'custom-openai',
+        connectionId: connection.id,
+        baseUrl: connection.baseUrl,
+        apiKey: connection.apiKey,
+        model,
+      };
+    }
+    console.warn('[EmbeddingService] Conexión personalizada de embeddings no encontrada:', activeProvider);
+    return null;
   }
 
   // ── Proveedores locales ─────────────────────────────────────────────────────
@@ -323,6 +375,43 @@ async function embedWithLMStudio(baseUrl, text) {
   return embedding;
 }
 
+function normalizeCustomBaseUrl(url) {
+  if (!url) return '';
+  return url.replace(/\/v1\/?$/, '').replace(/\/$/, '');
+}
+
+/**
+ * Genera embeddings en lote usando una conexión OpenAI personalizada
+ * @param {string[]} texts
+ * @param {{ baseUrl: string, apiKey: string, model: string }} options
+ * @returns {Promise<number[][]>}
+ */
+async function embedWithCustom(texts, { baseUrl, apiKey, model }) {
+  const normalizedUrl = normalizeCustomBaseUrl(baseUrl);
+  const response = await fetch(`${normalizedUrl}/v1/embeddings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      input: texts,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '');
+    throw new Error(`Custom embeddings error ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  const items = (data?.data || [])
+    .slice()
+    .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+  return items.map((item) => item.embedding);
+}
+
 // ── API pública ───────────────────────────────────────────────────────────────
 
 /**
@@ -345,6 +434,9 @@ async function embed(text, providerInfo, retryCount = 0) {
     return embedWithOllama(providerInfo.baseUrl, safeText, retryCount);
   } else if (providerInfo.provider === 'lmstudio') {
     return embedWithLMStudio(providerInfo.baseUrl, safeText);
+  } else if (providerInfo.provider === 'custom-openai') {
+    const batchResult = await embedWithCustom([safeText], providerInfo);
+    return batchResult[0];
   }
   throw new Error(`Provider de embeddings no soportado: ${providerInfo.provider}`);
 }
@@ -381,6 +473,11 @@ async function embedBatch(texts, providerInfo) {
       await new Promise(resolve => setTimeout(resolve, 100)); // rate limit
     }
     return results;
+  }
+
+  // ── Conexiones OpenAI personalizadas ──────────────────────────────────────
+  if (providerInfo.provider === 'custom-openai') {
+    return embedWithCustom(safeTexts, providerInfo);
   }
 
   // ── Proveedores locales ───────────────────────────────────────────────────
@@ -441,8 +538,8 @@ async function embedBatch(texts, providerInfo) {
  * @returns {Promise<boolean>}
  */
 async function ensureModel(providerInfo) {
-  // Cloud providers: no hay modelo local que verificar
-  if (providerInfo.provider === 'gemini' || providerInfo.provider === 'kimi') {
+  // Cloud providers y conexiones personalizadas: no hay modelo local que verificar
+  if (providerInfo.provider === 'gemini' || providerInfo.provider === 'kimi' || providerInfo.provider === 'custom-openai') {
     return true;
   }
 
@@ -493,8 +590,10 @@ module.exports = {
   detectEmbeddingProvider,
   embed,
   embedBatch,
+  embedWithCustom,
   ensureModel,
   getEmbeddingModel,
   EMBEDDING_DIMENSION,
-  DEFAULT_EMBEDDING_MODEL: DEFAULT_EMBEDDING_MODEL_FALLBACK
+  DEFAULT_EMBEDDING_MODEL: DEFAULT_EMBEDDING_MODEL_FALLBACK,
+  __setSettingsPath: (path) => { settingsPathOverride = path; },
 };
