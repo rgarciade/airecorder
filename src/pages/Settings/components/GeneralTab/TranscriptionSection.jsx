@@ -197,18 +197,12 @@ export default function TranscriptionSection() {
             <p className={styles.helpText}>
               <strong>Sigue estos pasos para configurar la diarización:</strong>
             </p>
-            <ol className={styles.helpText} style={{ paddingLeft: '20px', listStyleType: 'decimal' }}>
-              <li style={{marginBottom: '4px'}}>
-                Ve a <a href="https://huggingface.co/pyannote/speaker-diarization-3.1" target="_blank" rel="noreferrer" style={{color: 'var(--color-primary)', textDecoration: 'underline'}}>pyannote/speaker-diarization-3.1</a> y acepta los términos de uso (haz clic en "Agree and access repository").
-              </li>
-              <li style={{marginBottom: '4px'}}>
-                Haz lo mismo en <a href="https://huggingface.co/pyannote/segmentation-3.0" target="_blank" rel="noreferrer" style={{color: 'var(--color-primary)', textDecoration: 'underline'}}>pyannote/segmentation-3.0</a> (es una dependencia requerida).
-              </li>
-              <li style={{marginBottom: '4px'}}>
-                Crea un Access Token en <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noreferrer" style={{color: 'var(--color-primary)', textDecoration: 'underline'}}>HuggingFace Settings</a>. Debe ser de tipo <strong>Read</strong>.
-              </li>
-              <li>Pega el token aquí arriba y guarda los ajustes.</li>
-            </ol>
+            <div className={styles.helpText} style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+              <span><strong>1.</strong> Ve a <a href="https://huggingface.co/pyannote/speaker-diarization-3.1" target="_blank" rel="noreferrer" style={{color: 'var(--color-primary)', textDecoration: 'underline'}}>pyannote/speaker-diarization-3.1</a> y acepta los términos.</span>
+              <span><strong>2.</strong> Haz lo mismo en <a href="https://huggingface.co/pyannote/segmentation-3.0" target="_blank" rel="noreferrer" style={{color: 'var(--color-primary)', textDecoration: 'underline'}}>pyannote/segmentation-3.0</a>.</span>
+              <span><strong>3.</strong> Crea un token <strong>Read</strong> en <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noreferrer" style={{color: 'var(--color-primary)', textDecoration: 'underline'}}>HuggingFace Settings</a>.</span>
+              <span><strong>4.</strong> Pega el token aquí arriba y guarda.</span>
+            </div>
             <p className={styles.helpText} style={{ color: 'var(--color-warning)', fontWeight: 500, marginTop: '12px' }}>
               ⚠️ Nota: La primera vez que se use, la aplicación descargará varios gigabytes de modelos de IA. Ten paciencia y asegúrate de tener una buena conexión.
             </p>
