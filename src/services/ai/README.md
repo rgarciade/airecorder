@@ -6,12 +6,25 @@ Este directorio maneja todo el enrutamiento y la generación de contenido a trav
 
 Para evitar atar el código de la interfaz a una API de IA específica, el sistema utiliza un **Patrón de Enrutador** (`providerRouter.js`).
 
-*   **Proveedores disponibles:** Gemini (`geminiProvider.js`), Ollama (`ollamaProvider.js`), DeepSeek (`deepseekProvider.js`), Kimi (`kimiProvider.js`), LM Studio (`lmStudioProvider.js`).
-*   **Flujo:** React llama directamente a las APIs de IA usando las claves guardadas en los `Settings`. `providerRouter.js` selecciona el proveedor activo basado en `settings.aiProvider`.
+*   **Proveedores disponibles:** Gemini (`geminiProvider.js`), Ollama (`ollamaProvider.js`), DeepSeek (`deepseekProvider.js`), Kimi (`kimiProvider.js`), LM Studio (`lmStudioProvider.js`), y conexiones OpenAI personalizadas (`customOpenAIProvider.js`).
+*   **Flujo:** React llama directamente a las APIs de IA usando las claves guardadas en los `Settings`. `providerRouter.js` selecciona el proveedor activo basado en `settings.aiProvider`. Los valores con prefijo `custom:{id}` se resuelven a partir de `settings.customConnections`.
 *   **Cómo añadir un nuevo proveedor:** Crea un archivo `nuevoProvider.js` con dos tipos de funciones:
     1. `sendToNuevo(textContent, modelOverride, systemPrompt)` — para análisis/resúmenes con system prompt separado.
     2. `chatCompletionStreaming(messages, onChunk, modelOverride)` — para chat nativo con historial (array de mensajes OpenAI-compatible).
-    Añádelo a los dos `switch` en `providerRouter.js`: `_runCallProvider` (para análisis) y `_runCallChatProviderStreaming` (para chat).
+    Añádelo a los tres `switch` en `providerRouter.js`: `_runCallProvider` (para análisis), `_runCallProviderStreaming` (para streaming) y `_runCallChatProviderStreaming` (para chat).
+
+### Conexiones OpenAI personalizadas
+
+El archivo `customOpenAIProvider.js` expone la clase `CustomOpenAIProvider`, instanciada con `{baseUrl, apiKey, model}`. Implementa los mismos métodos que los proveedores locales:
+
+| Método | Uso |
+|--------|-----|
+| `sendMessage(prompt, systemPrompt)` | Análisis / resúmenes |
+| `sendMessageStreaming(prompt, onChunk, systemPrompt)` | Chat streaming con prompt simple |
+| `chatCompletionStreaming(messages, onChunk)` | Chat nativo con historial de mensajes |
+| `listModels()` | Lista modelos desde `GET /v1/models` |
+
+El router usa `isCustom(provider)` y `resolveCustomConnection(settings, provider)` para detectar el prefijo `custom:` y resolver la conexión. Si el `id` no existe, devuelve un error seguro sin crashear. Los proveedores integrados siguen funcionando sin cambios.
 
 ## 2. Los Prompts y Plantillas (`src/prompts/aiPrompts.js`)
 

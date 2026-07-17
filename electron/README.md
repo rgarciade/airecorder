@@ -71,6 +71,38 @@ ipcMain.handle('mi-evento', async (event, params) => {
 *   **Puente Seguro:** `preload.js` expone de forma segura (Context Bridge) las funciones necesarias al renderizador, mapeándolas con `ipcRenderer.invoke()`.
 *   **Backend al React:** El backend puede enviar eventos no solicitados (como actualizaciones de estado de transcripción) utilizando `win.webContents.send('evento-nombre', datos)`. El frontend debe tener listeners (ej. `window.electronAPI.onQueueUpdate()`).
 
+### IPC: IA / Conexiones OpenAI personalizadas
+
+Se añadió el handler `electron/ipc-handlers/ai.js` para operaciones de IA que deben ejecutarse en el proceso principal.
+
+| Canal IPC | Payload | Respuesta |
+|-----------|---------|-----------|
+| `ai:custom-list-models` | `connectionId` | `{ success: true, models: [{ name, label, description }] }` o `{ success: false, error }` |
+
+Método expuesto en `preload.js`:
+
+```js
+window.electronAPI.listCustomModels(connectionId) // → Promise<{ success, models?, error? }>
+```
+
+El handler lee `settings.customConnections`, busca la conexión por `id` y realiza `GET ${baseUrl}/v1/models` con autenticación Bearer. Cualquier error de red o HTTP se devuelve como objeto `{ success: false, error }` para evitar crasheos en el renderer.
+
+### IPC: RAG — Reindexado masivo
+
+Se añadió el handler `rag:reindex-all` en `electron/ipc-handlers/rag.js` para reindexar todas las grabaciones que ya tienen un índice RAG (`vectordb/`) usando el modelo de embeddings actualmente configurado.
+
+| Canal IPC | Payload | Respuesta |
+|-----------|---------|-----------|
+| `rag:reindex-all` | — | `{ success: true, reindexed: number, total: number, lastEmbeddingModelId: string }` o `{ success: false, error }` |
+
+Método expuesto en `preload.js`:
+
+```js
+window.electronAPI.ragReindexAll() // → Promise<{ success, reindexed?, total?, lastEmbeddingModelId?, error? }>
+```
+
+El handler delega en `ragService.reindexAllRecordings()`; por cada grabación con `vectordb/` existente llama a `indexRecording` y finalmente escribe `{ lastEmbeddingModelId, reindexedAt }` en `rag_metadata.json` dentro del directorio de grabaciones. El frontend compara el nuevo id con `settings.lastEmbeddingModelId` y muestra un banner de aviso cuando cambia, permitiendo al usuario ejecutar el reindexado manualmente.
+
 ### IPC: Wiki de Proyecto
 
 Se añadió un nuevo handler `electron/ipc-handlers/wiki.js` y una API segura en `preload.js` bajo `window.electronAPI.wiki`.
