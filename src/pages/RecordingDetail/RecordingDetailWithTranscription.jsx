@@ -117,7 +117,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [qaHistory, setQaHistory] = useState([]);
   const [questionLoading, setQuestionLoading] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState('');
-  const [aiProvider, setAiProvider] = useState('geminifree');
+  const [aiProvider, setAiProvider] = useState('gemini');
   const [ollamaModels, setOllamaModels] = useState([]);
   const [selectedOllamaModel, setSelectedOllamaModel] = useState('');
   const [lmStudioModels, setLmStudioModels] = useState([]);
@@ -258,7 +258,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
     // Load AI Config
     getSettings().then(settings => {
-      setAiProvider(settings.aiProvider || 'geminifree');
+      setAiProvider(settings.aiProvider || 'gemini');
       setSelectedWhisperModel(settings.whisperModel || 'small');
       setUiLanguage(settings.uiLanguage || 'es');
       if (settings.aiProvider === 'ollama') {
@@ -297,10 +297,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   // Cargar configuración de streaming y escuchar cambios
   useEffect(() => {
     const handleSettingsChange = (settings) => {
-      const provider = settings.aiProvider || 'geminifree';
+      const provider = settings.aiProvider || 'gemini';
       // Todos los proveedores cloud soportan streaming nativamente (y LM Studio)
       // Ollama depende de la configuración del modelo
-      const cloudProviders = ['geminifree', 'gemini', 'deepseek', 'kimi', 'lmstudio'];
+      const cloudProviders = ['gemini', 'openai', 'deepseek', 'kimi', 'lmstudio'];
       const modelSupportsStreaming = cloudProviders.includes(provider) 
         ? true 
         : (settings.ollamaModelSupportsStreaming || false);
@@ -338,7 +338,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         deepseek: settings.deepseekModel,
         kimi: settings.kimiModel,
         gemini: settings.geminiModel,
-        geminifree: settings.geminiFreeModel,
+        openai: settings.openaiModel,
         lmstudio: settings.lmStudioRagModel || settings.lmStudioModel,
       };
       const newSettingsModel = modelByProvider[provider] || '';
@@ -360,7 +360,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         ctxLen = settings.ollamaContextLength;
       } else if (provider === 'lmstudio' && settings.lmStudioContextLength) {
         ctxLen = settings.lmStudioContextLength;
-      } else if (provider === 'gemini' || provider === 'geminifree') {
+      } else if (provider === 'gemini') {
         ctxLen = 1000000; // Gemini tiene 1M+ tokens
       } else if (provider === 'kimi') {
         ctxLen = 32000;
@@ -641,7 +641,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       // Usar estado local actualizado por el listener (más fiable y rápido)
       const provider = aiProvider;
       // Todos los proveedores cloud usan streaming, Ollama depende de configuración
-      const cloudProviders = ['geminifree', 'gemini', 'deepseek', 'kimi', 'lmstudio'];
+      const cloudProviders = ['gemini', 'openai', 'deepseek', 'kimi', 'lmstudio'];
       const shouldUseStreaming = cloudProviders.includes(provider) ? true : supportsStreaming;
 
       console.log('🤖 Preparando chat:', {
@@ -896,8 +896,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       else if (aiProvider === 'deepseek') settingsUpdate.deepseekModel = model;
       else if (aiProvider === 'kimi') settingsUpdate.kimiModel = model;
       else if (aiProvider === 'gemini') settingsUpdate.geminiModel = model;
-      else if (aiProvider === 'geminifree') settingsUpdate.geminiFreeModel = model;
-      
+      else if (aiProvider === 'openai') settingsUpdate.openaiModel = model;
+
       if (Object.keys(settingsUpdate).length > 0) {
         await updateSettings(settingsUpdate);
       }
@@ -1033,7 +1033,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     // Refresh config
     try {
       const settings = await getSettings();
-      const provider = settings.aiProvider || 'geminifree';
+      const provider = settings.aiProvider || 'gemini';
       setAiProvider(provider);
       setSelectedOllamaModel(settings.ollamaModel || '');
       setSelectedLmStudioModel(settings.lmStudioModel || '');
@@ -1856,8 +1856,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                   value={aiProvider}
                   onChange={(e) => setAiProvider(e.target.value)}
                 >
-                  <option value="geminifree">Gemini Free (Google)</option>
-                  <option value="gemini">Gemini Pro (Google)</option>
+                  <option value="gemini">Gemini (Google)</option>
+                  <option value="openai">OpenAI</option>
                   <option value="deepseek">DeepSeek</option>
                   <option value="kimi">Kimi (Moonshot)</option>
                   <option value="ollama">Ollama (Local)</option>

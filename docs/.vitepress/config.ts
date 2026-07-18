@@ -52,6 +52,8 @@ export default defineConfig({
             { text: 'Proyectos', link: '/guide/projects' },
             { text: 'Hablantes', link: '/guide/speakers' },
             { text: 'IA Local', link: '/guide/local-ai' },
+            { text: 'IA en la Nube', link: '/guide/cloud-ai' },
+            { text: 'Conexiones Personalizadas', link: '/guide/custom-ai' },
             { text: 'Ajustes', link: '/guide/settings' },
             { text: 'FAQ', link: '/guide/faq' }
               ]
@@ -104,6 +106,8 @@ export default defineConfig({
               { text: 'Projects', link: '/en/guide/projects' },
               { text: 'Speakers', link: '/en/guide/speakers' },
               { text: 'Local AI', link: '/en/guide/local-ai' },
+              { text: 'Cloud AI', link: '/en/guide/cloud-ai' },
+              { text: 'Custom Connections', link: '/en/guide/custom-ai' },
               { text: 'Settings', link: '/en/guide/settings' },
               { text: 'FAQ', link: '/en/guide/faq' }
               ]

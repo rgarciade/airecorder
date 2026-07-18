@@ -7,6 +7,8 @@ import { getGeminiAvailableModels } from '../../services/ai/geminiProvider';
 import { getDeepseekAvailableModels, getKimiAvailableModels, getLMStudioModels } from '../../services/ai/providerRouter';
 import { checkLMStudioAvailability, getLMStudioModelInfo } from '../../services/ai/lmStudioProvider';
 import { applyTheme } from '../../services/themeService';
+import { useCustomConnections } from '../../hooks/useCustomConnections';
+import { CustomOpenAIProvider, OPENAI_BASE_URL } from '../../services/ai/customOpenAIProvider';
 
 export const mockLanguages = [
   { value: 'es', label: 'Español' },
@@ -70,14 +72,7 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
   const [dbMigrateModal, setDbMigrateModal] = useState(null); // { newPath } | null
   const [dbChangeError, setDbChangeError] = useState('');
 
-  // Gemini Free
-  const [geminiFreeApiKey, setGeminiFreeApiKey] = useState('');
-  const [geminiFreeModel, setGeminiFreeModel] = useState('gemini-2.0-flash');
-  const [geminiFreeModels, setGeminiFreeModels] = useState([]);
-  const [geminiFreeModelsLoading, setGeminiFreeModelsLoading] = useState(false);
-  const [geminiFreeModelsError, setGeminiFreeModelsError] = useState('');
-
-  // Gemini Pro
+  // Gemini
   const [geminiApiKey, setGeminiApiKey] = useState('');
   const [geminiModel, setGeminiModel] = useState('gemini-2.0-flash');
   const [geminiModels, setGeminiModels] = useState([]);
@@ -94,7 +89,14 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
   const [kimiModel, setKimiModel] = useState('kimi-k2');
   const [kimiModels] = useState(getKimiAvailableModels());
 
-  const [aiProvider, setAiProvider] = useState('geminifree'); // 'geminifree' | 'gemini' | 'deepseek' | 'kimi' | 'ollama'
+  // OpenAI
+  const [openaiApiKey, setOpenaiApiKey] = useState('');
+  const [openaiModel, setOpenaiModel] = useState('');
+  const [openaiModels, setOpenaiModels] = useState([]);
+  const [openaiModelsLoading, setOpenaiModelsLoading] = useState(false);
+  const [openaiModelsError, setOpenaiModelsError] = useState('');
+
+  const [aiProvider, setAiProvider] = useState('gemini'); // 'gemini' | 'deepseek' | 'kimi' | 'openai' | 'ollama'
 
   // Ollama
   const [ollamaModel, setOllamaModel] = useState('');
@@ -132,6 +134,29 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
   const [saveMessage, setSaveMessage] = useState('');
   const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
   const hasScrolledRef = useRef(false);
+
+  // Custom OpenAI-compatible connections
+  const {
+    connections: customConnections,
+    stagedDeletions,
+    setConnections: setCustomConnections,
+    addConnection: addCustomConnection,
+    updateConnection: updateCustomConnection,
+    stageDelete: stageDeleteCustomConnection,
+    cancelDelete: cancelDeleteCustomConnection,
+    testConnection: testCustomConnection,
+    testingConnectionId: testingCustomConnectionId,
+    testResults: customConnectionTestResults,
+    validateSave: validateCustomConnectionsSaveState,
+    getConnectionsToSave: getCustomConnectionsToSave,
+  } = useCustomConnections([]);
+  const [embeddingProvider, setEmbeddingProvider] = useState('');
+  const [customChatModel, setCustomChatModel] = useState('');
+  const [embeddingModel, setEmbeddingModel] = useState('');
+  const [lastEmbeddingModelId, setLastEmbeddingModelId] = useState('');
+  const [embeddingModelChanged, setEmbeddingModelChanged] = useState(false);
+  const [isReindexingRag, setIsReindexingRag] = useState(false);
+  const [reindexRagMessage, setReindexRagMessage] = useState('');
 
   // Actualizaciones
   const [appVersion, setAppVersion] = useState('');
@@ -190,11 +215,7 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
           console.warn("Could not fetch system info", e);
         }
 
-        // Gemini Free
-        setGeminiFreeApiKey(savedSettings.geminiFreeApiKey || '');
-        setGeminiFreeModel(savedSettings.geminiFreeModel || 'gemini-2.0-flash');
-
-        // Gemini Pro
+        // Gemini
         setGeminiApiKey(savedSettings.geminiApiKey || '');
         setGeminiModel(savedSettings.geminiModel || 'gemini-1.5-pro');
 
@@ -205,6 +226,18 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
         // Kimi
         setKimiApiKey(savedSettings.kimiApiKey || '');
         setKimiModel(savedSettings.kimiModel || 'kimi-k2');
+
+        // OpenAI
+        setOpenaiApiKey(savedSettings.openaiApiKey || '');
+        setOpenaiModel(savedSettings.openaiModel || '');
+
+        // Custom OpenAI-compatible connections
+        setCustomConnections(savedSettings.customConnections || []);
+        setEmbeddingProvider(savedSettings.embeddingProvider || '');
+        setCustomChatModel(savedSettings.customChatModel || '');
+        setEmbeddingModel(savedSettings.embeddingModel || '');
+        setLastEmbeddingModelId(savedSettings.lastEmbeddingModelId || '');
+        setEmbeddingModelChanged(false);
 
         // LM Studio
         setLmStudioHost(savedSettings.lmStudioHost || 'http://localhost:1234/v1');
@@ -249,11 +282,11 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
       );
 
       // Load Gemini models if API key exists
-      if (savedSettings?.geminiFreeApiKey) {
-        loadGeminiModels(savedSettings.geminiFreeApiKey, true);
-      }
       if (savedSettings?.geminiApiKey) {
-        loadGeminiModels(savedSettings.geminiApiKey, false);
+        loadGeminiModels(savedSettings.geminiApiKey);
+      }
+      if (savedSettings?.openaiApiKey) {
+        loadOpenaiModels(savedSettings.openaiApiKey);
       }
 
       setHasLoadedSettings(true);
@@ -358,56 +391,56 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
     }
   };
 
-  const loadGeminiModels = async (apiKey, isFreeTier = false) => {
+  const loadGeminiModels = async (apiKey) => {
     if (!apiKey) {
-      if (isFreeTier) {
-        setGeminiFreeModels([]);
-        setGeminiFreeModelsError('');
-      } else {
-        setGeminiModels([]);
-        setGeminiModelsError('');
-      }
+      setGeminiModels([]);
+      setGeminiModelsError('');
       return;
     }
 
-    if (isFreeTier) {
-      setGeminiFreeModelsLoading(true);
-      setGeminiFreeModelsError('');
-    } else {
-      setGeminiModelsLoading(true);
-      setGeminiModelsError('');
-    }
+    setGeminiModelsLoading(true);
+    setGeminiModelsError('');
 
     try {
       const models = await getGeminiAvailableModels(apiKey);
-      if (isFreeTier) {
-        setGeminiFreeModels(models);
-        const currentModelExists = models.some(m => m.name === geminiFreeModel);
-        if (!currentModelExists && models.length > 0) {
-          setGeminiFreeModel(models[0].name);
-        }
-      } else {
-        setGeminiModels(models);
-        const currentModelExists = models.some(m => m.name === geminiModel);
-        if (!currentModelExists && models.length > 0) {
-          setGeminiModel(models[0].name);
-        }
+      setGeminiModels(models);
+      const currentModelExists = models.some(m => m.name === geminiModel);
+      if (!currentModelExists && models.length > 0) {
+        setGeminiModel(models[0].name);
       }
     } catch (error) {
       console.error('Error cargando modelos de Gemini:', error);
-      if (isFreeTier) {
-        setGeminiFreeModelsError('No se pudieron cargar los modelos. Verifica tu API Key.');
-        setGeminiFreeModels([]);
-      } else {
-        setGeminiModelsError('No se pudieron cargar los modelos. Verifica tu API Key.');
-        setGeminiModels([]);
-      }
+      setGeminiModelsError('No se pudieron cargar los modelos. Verifica tu API Key.');
+      setGeminiModels([]);
     } finally {
-      if (isFreeTier) {
-        setGeminiFreeModelsLoading(false);
-      } else {
-        setGeminiModelsLoading(false);
-      }
+      setGeminiModelsLoading(false);
+    }
+  };
+
+  const loadOpenaiModels = async (apiKey) => {
+    if (!apiKey) {
+      setOpenaiModels([]);
+      setOpenaiModelsError('');
+      return;
+    }
+
+    setOpenaiModelsLoading(true);
+    setOpenaiModelsError('');
+
+    try {
+      const client = new CustomOpenAIProvider({ baseUrl: OPENAI_BASE_URL, apiKey });
+      const models = await client.listModels();
+      setOpenaiModels(models);
+      setOpenaiModel((current) => {
+        const currentModelExists = models.some(m => m.name === current);
+        return currentModelExists || models.length === 0 ? current : models[0].name;
+      });
+    } catch (error) {
+      console.error('Error cargando modelos de OpenAI:', error);
+      setOpenaiModelsError('No se pudieron cargar los modelos. Verifica tu API Key.');
+      setOpenaiModels([]);
+    } finally {
+      setOpenaiModelsLoading(false);
     }
   };
 
@@ -523,8 +556,22 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
   const handleSaveSettings = async () => {
     setIsSaving(true);
     setSaveMessage('');
+    setReindexRagMessage('');
+
+    const customConnectionsValidation = validateCustomConnectionsSaveState({
+      aiProvider,
+      embeddingProvider,
+    });
+    if (customConnectionsValidation.blocked) {
+      setSaveMessage(t(customConnectionsValidation.error));
+      setIsSaving(false);
+      return;
+    }
 
     try {
+      const newEmbeddingModelId = `${embeddingProvider}:${embeddingModel}`;
+      setEmbeddingModelChanged(newEmbeddingModelId !== lastEmbeddingModelId);
+
       await updateSettings({
         language: selectedLanguage,
         uiLanguage: selectedUiLanguage,
@@ -541,10 +588,7 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
         projectHighlightsCount: projectHighlightsCount,
         whisperModel: whisperModel,
         cpuThreads: cpuThreads,
-        // Gemini Free
-        geminiFreeApiKey: geminiFreeApiKey,
-        geminiFreeModel: geminiFreeModel,
-        // Gemini Pro
+        // Gemini
         geminiApiKey: geminiApiKey,
         geminiModel: geminiModel,
         // DeepSeek
@@ -553,6 +597,9 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
         // Kimi
         kimiApiKey: kimiApiKey,
         kimiModel: kimiModel,
+        // OpenAI
+        openaiApiKey: openaiApiKey,
+        openaiModel: openaiModel,
         // LM Studio
         lmStudioHost: lmStudioHost,
         lmStudioModel: lmStudioModel,
@@ -568,6 +615,11 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
         ollamaContextLength: ollamaContextLengthSaved ? parseInt(ollamaContextLengthSaved) : null,
         // LM Studio (context length)
         lmStudioContextLength: lmStudioContextLengthSaved ? parseInt(lmStudioContextLengthSaved) : null,
+        // Custom OpenAI-compatible connections
+        customConnections: getCustomConnectionsToSave(),
+        embeddingProvider: embeddingProvider,
+        customChatModel: customChatModel,
+        embeddingModel: embeddingModel,
         outputDirectory: outputDirectory,
         databasePath: databasePath || undefined
       });
@@ -579,6 +631,34 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
       setSaveMessage(t('settings.messages.saveError'));
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleReindexAllRag = async () => {
+    if (!window.electronAPI?.ragReindexAll) {
+      setReindexRagMessage(t('settings.customConnections.reindexError'));
+      return;
+    }
+
+    setIsReindexingRag(true);
+    setReindexRagMessage('');
+
+    try {
+      const result = await window.electronAPI.ragReindexAll();
+      if (result?.success) {
+        await updateSettings({ lastEmbeddingModelId: result.lastEmbeddingModelId });
+        setLastEmbeddingModelId(result.lastEmbeddingModelId || '');
+        setEmbeddingModelChanged(false);
+        setReindexRagMessage(t('settings.customConnections.reindexSuccess', { count: result.reindexed || 0 }));
+      } else {
+        setReindexRagMessage(t('settings.customConnections.reindexError', { error: result?.error || 'Unknown error' }));
+      }
+    } catch (error) {
+      console.error('Error reindexando RAG:', error);
+      setReindexRagMessage(t('settings.customConnections.reindexError', { error: error.message || 'Unknown error' }));
+    } finally {
+      setIsReindexingRag(false);
+      setTimeout(() => setReindexRagMessage(''), 5000);
     }
   };
 
@@ -641,6 +721,10 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
     // If I click 'gemini' (active), typically in radio groups you can't deselect.
     // I'll stick to: clicking forces selection.
     setAiProvider(provider);
+  };
+
+  const toggleEmbeddingProvider = (provider) => {
+    setEmbeddingProvider(provider);
   };
 
   const value = {
@@ -711,15 +795,8 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
     handleChangeDatabasePath,
     handleConfirmDbChange,
 
-    // Gemini Free
-    geminiFreeApiKey, setGeminiFreeApiKey,
-    geminiFreeModel, setGeminiFreeModel,
-    geminiFreeModels,
-    geminiFreeModelsLoading,
-    geminiFreeModelsError,
+    // Gemini
     loadGeminiModels,
-
-    // Gemini Pro
     geminiApiKey, setGeminiApiKey,
     geminiModel, setGeminiModel,
     geminiModels,
@@ -736,9 +813,42 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
     kimiModel, setKimiModel,
     kimiModels,
 
+    // OpenAI
+    openaiApiKey, setOpenaiApiKey,
+    openaiModel, setOpenaiModel,
+    openaiModels,
+    openaiModelsLoading,
+    openaiModelsError,
+    loadOpenaiModels,
+
     // Provider selection
     aiProvider,
+    setAiProvider,
     toggleProvider,
+    toggleEmbeddingProvider,
+
+    // Custom OpenAI-compatible connections
+    customConnections,
+    stagedDeletions,
+    addCustomConnection,
+    updateCustomConnection,
+    stageDeleteCustomConnection,
+    cancelDeleteCustomConnection,
+    testCustomConnection,
+    testingCustomConnectionId,
+    customConnectionTestResults,
+    customConnectionsSaveValidation: validateCustomConnectionsSaveState({
+      aiProvider,
+      embeddingProvider,
+    }),
+    embeddingProvider, setEmbeddingProvider,
+    customChatModel, setCustomChatModel,
+    embeddingModel, setEmbeddingModel,
+    lastEmbeddingModelId,
+    embeddingModelChanged,
+    isReindexingRag,
+    reindexRagMessage,
+    handleReindexAllRag,
 
     // Ollama
     ollamaModel,

@@ -155,6 +155,16 @@
       "experts": "Expertos",
       "integrations": "Integraciones"
     },
+    "agentsTabs": {
+      "chat": "Chat",
+      "embeddings": "Embeddings"
+    },
+    "roles": {
+      "chat": "Chat",
+      "embeddings": "Embeddings",
+      "both": "Ambos",
+      "inactive": "Inactivo"
+    },
     "sections": {
       "localProviders": "Proveedores Locales",
       "cloudProviders": "Proveedores en la Nube",
@@ -231,8 +241,13 @@
       "inactive": "Inactivo",
       "localInference": "Inferencia Local",
       "localServer": "Servidor Local (Compatible con OpenAI)",
-      "googleFree": "Google AI - Nivel Gratuito",
-      "googlePaid": "Google AI - Nivel de Pago"
+      "google": "Google AI",
+      "embeddingModelLabel": "Modelo de embedding",
+      "geminiName": "Gemini",
+      "deepseekName": "DeepSeek",
+      "kimiName": "Kimi",
+      "openaiName": "OpenAI",
+      "openaiDesc": "OpenAI (GPT)"
     },
     "buttons": {
       "save": "Guardar Ajustes",
@@ -240,6 +255,8 @@
       "test": "Probar",
       "refresh": "Refrescar",
       "change": "Cambiar",
+      "collapse": "Contraer sección",
+      "expand": "Expandir sección",
       "openDevTools": "Abrir DevTools",
       "openSettings": "Abrir Ajustes",
       "grantPermission": "Otorgar Permiso",
@@ -325,6 +342,44 @@
     "uiLanguages": {
       "es": "Español",
       "en": "English"
+    },
+    "customConnections": {
+      "section": "Conexiones OpenAI Personalizadas",
+      "addConnection": "Añadir conexión",
+      "editConnection": "Editar conexión",
+      "name": "Nombre",
+      "namePlaceholder": "Ej: Mi GPT local",
+      "baseUrl": "URL Base",
+      "baseUrlPlaceholder": "http://localhost:1234/v1",
+      "apiKey": "API Key",
+      "apiKeyPlaceholder": "Introduce tu API key",
+      "chatRole": "Rol Chat",
+      "embeddingsRole": "Rol Embeddings",
+      "selectConnection": "Selecciona una conexión",
+      "selectModel": "Selecciona un modelo",
+      "testConnection": "Probar",
+      "testing": "Probando...",
+      "connected": "Conectado",
+      "connectionError": "Error de conexión",
+      "noModels": "Sin modelos",
+      "testFirst": "Haz clic en Probar para cargar modelos",
+      "saveConnection": "Guardar",
+      "cancel": "Cancelar",
+      "delete": "Eliminar",
+      "stageDelete": "Eliminar",
+      "cancelDelete": "Cancelar eliminación",
+      "confirmDeleteTitle": "Eliminar conexión",
+      "confirmDeleteMessage": "¿Seguro que quieres eliminar la conexión \"{{name}}\"? Se borrará al guardar los cambios.",
+      "empty": "No hay conexiones personalizadas.",
+      "reindexWarning": "Cambió el modelo de embeddings. Reindexa las grabaciones para que RAG use el nuevo modelo.",
+      "reindexNow": "Reindexar ahora",
+      "reindexing": "Reindexando...",
+      "reindexSuccess": "Reindexación completada ({{count}} grabaciones).",
+      "reindexError": "Error reindexando: {{error}}",
+      "errors": {
+        "noAiProvider": "Selecciona un proveedor de IA antes de guardar.",
+        "deletedConnectionInUse": "No puedes eliminar una conexión asignada a un rol activo. Cambia el rol primero."
+      }
     },
     "integrations": {
       "title": "Plataformas de Chat",
@@ -701,6 +756,12 @@
       "recommended": "RECOMENDADO",
       "stable": "✓ 100% Estable",
       "betaWarning": "Los proveedores cloud están en fase beta. Algunas funciones pueden no funcionar correctamente.",
+      "testToContinue": "Prueba la conexión para continuar",
+      "apiKeyToContinue": "Introduce tu API Key para continuar",
+      "roles": {
+        "chatHelp": "Proveedor y modelo que se usará para conversar y analizar tus grabaciones.",
+        "embeddingsHelp": "Proveedor y modelo que se usará para indexar y buscar dentro de tus grabaciones (RAG). Puede ser distinto al de Chat."
+      },
       "ollama": {
         "subtitle": "Procesamiento local",
         "description": "Ejecuta la IA completamente en tu máquina. Ideal para total privacidad y flujos offline, pero requiere hardware potente.",
@@ -724,6 +785,10 @@
         "urlLabel": "URL del servidor LM Studio",
         "urlNote": "* URL por defecto. Puedes cambiarla en ajustes."
       },
+      "openai": {
+        "description": "Modelos GPT de OpenAI. Requiere API key de OpenAI.",
+        "apiKeyLabel": "OpenAI API Key"
+      },
       "gemini": {
         "description": "Modelos Gemini de Google. Requiere API key de Google AI Studio.",
         "apiKeyLabel": "Google AI API Key"
@@ -735,6 +800,13 @@
       "deepseek": {
         "description": "Modelos DeepSeek. Requiere API key de DeepSeek.",
         "apiKeyLabel": "DeepSeek API Key"
+      },
+      "custom": {
+        "title": "Conexión Personalizada",
+        "subtitle": "Compatible con OpenAI",
+        "description": "Conecta cualquier servicio compatible con la API de OpenAI (OpenRouter, Groq, vLLM propio, etc.).",
+        "nameLabel": "Nombre de la conexión",
+        "baseUrlLabel": "URL Base"
       },
       "apiKeyPlaceholder": "Pega tu API key aquí...",
       "canChange": "Puedes cambiar esto en cualquier momento",
