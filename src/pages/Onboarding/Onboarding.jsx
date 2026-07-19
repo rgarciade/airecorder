@@ -286,32 +286,35 @@ export default function Onboarding({ onComplete }) {
   const saveAndClose = async () => {
     setIsSaving(true);
     try {
+      // Embeddings es opcional en el onboarding: solo se persiste si quedó
+      // efectivamente configurado (misma validación que habilita el rol en el paso de IA).
+      const embedValid = isProviderRoleValid(embedProviderType, embedProviderKey);
       const isGeneralCustom = chatProviderKey === 'custom';
-      const isEmbedCustom = embedProviderKey === 'custom';
+      const isEmbedCustom = embedProviderKey === 'custom' && embedValid;
       const hasCustomConnection = isGeneralCustom || isEmbedCustom;
       const customConnectionId = hasCustomConnection ? crypto.randomUUID() : undefined;
       const resolveProvider = (key) => key === 'custom' ? `custom:${customConnectionId}` : key;
 
-      const usesOllama = chatProviderKey === 'ollama' || embedProviderKey === 'ollama';
-      const usesLmStudio = chatProviderKey === 'lmstudio' || embedProviderKey === 'lmstudio';
+      const usesOllama = chatProviderKey === 'ollama' || (embedValid && embedProviderKey === 'ollama');
+      const usesLmStudio = chatProviderKey === 'lmstudio' || (embedValid && embedProviderKey === 'lmstudio');
 
       const settingsToSave = {
         isFirstRun: false,
         aiProvider: resolveProvider(chatProviderKey),
-        embeddingProvider: resolveProvider(embedProviderKey),
+        embeddingProvider: embedValid ? resolveProvider(embedProviderKey) : undefined,
         ollamaHost,
         ollamaModel: usesOllama ? selectedOllamaModel : undefined,
         ollamaRagModel: chatProviderKey === 'ollama' ? (selectedOllamaChatModel || undefined) : undefined,
-        ollamaEmbeddingModel: embedProviderKey === 'ollama' ? ollamaEmbeddingModel : undefined,
+        ollamaEmbeddingModel: (embedValid && embedProviderKey === 'ollama') ? ollamaEmbeddingModel : undefined,
         lmStudioHost: usesLmStudio ? lmStudioHost : undefined,
         lmStudioModel: usesLmStudio ? selectedLmStudioModel : undefined,
         lmStudioRagModel: chatProviderKey === 'lmstudio' ? (selectedLmStudioChatModel || undefined) : undefined,
-        lmStudioEmbeddingModel: embedProviderKey === 'lmstudio' ? lmStudioEmbeddingModel : undefined,
-        openaiApiKey: (chatProviderKey === 'openai' || embedProviderKey === 'openai') ? openaiApiKey : undefined,
+        lmStudioEmbeddingModel: (embedValid && embedProviderKey === 'lmstudio') ? lmStudioEmbeddingModel : undefined,
+        openaiApiKey: (chatProviderKey === 'openai' || (embedValid && embedProviderKey === 'openai')) ? openaiApiKey : undefined,
         openaiModel: chatProviderKey === 'openai' ? selectedOpenaiModel : undefined,
-        geminiApiKey: (chatProviderKey === 'gemini' || embedProviderKey === 'gemini') ? geminiKey : undefined,
+        geminiApiKey: (chatProviderKey === 'gemini' || (embedValid && embedProviderKey === 'gemini')) ? geminiKey : undefined,
         geminiModel: chatProviderKey === 'gemini' ? selectedGeminiModel : undefined,
-        kimiApiKey: (chatProviderKey === 'kimi' || embedProviderKey === 'kimi') ? kimiApiKey : undefined,
+        kimiApiKey: (chatProviderKey === 'kimi' || (embedValid && embedProviderKey === 'kimi')) ? kimiApiKey : undefined,
         kimiModel: chatProviderKey === 'kimi' ? selectedKimiModel : undefined,
         deepseekApiKey: chatProviderKey === 'deepseek' ? deepseekApiKey : undefined,
         deepseekModel: chatProviderKey === 'deepseek' ? selectedDeepseekModel : undefined,
@@ -495,6 +498,15 @@ export default function Onboarding({ onComplete }) {
     return selectedOllamaModel;
   };
 
+  const getEmbedModelName = () => {
+    if (embedProviderKey === 'lmstudio') return 'LM Studio';
+    if (embedProviderKey === 'openai') return 'OpenAI';
+    if (embedProviderKey === 'gemini') return 'Gemini';
+    if (embedProviderKey === 'kimi') return 'Kimi';
+    if (embedProviderKey === 'custom') return customConnName || 'Custom';
+    return ollamaEmbeddingModel;
+  };
+
   const isProviderRoleValid = (type, key) => {
     if (type === 'local') {
       if (key === 'ollama') return ollamaStatus === 'success';
@@ -510,9 +522,8 @@ export default function Onboarding({ onComplete }) {
     return false;
   };
 
-  const aiCanProceed =
-    isProviderRoleValid(chatProviderType, chatProviderKey) &&
-    isProviderRoleValid(embedProviderType, embedProviderKey);
+  // Embeddings es opcional: solo el rol General bloquea el avance del onboarding.
+  const aiCanProceed = isProviderRoleValid(chatProviderType, chatProviderKey);
 
   const aiConfigCtx = {
     ollama: {
@@ -640,8 +651,10 @@ export default function Onboarding({ onComplete }) {
       {renderLangSelector()}
       <ReadyStep
         t={t}
-        aiProvider={aiProvider}
+        aiProvider={chatProviderKey}
         modelName={getModelName()}
+        embedProvider={isProviderRoleValid(embedProviderType, embedProviderKey) ? embedProviderKey : null}
+        embedModelName={getEmbedModelName()}
         onComplete={saveAndClose}
         StepProgressComponent={renderStepProgress()}
       />
