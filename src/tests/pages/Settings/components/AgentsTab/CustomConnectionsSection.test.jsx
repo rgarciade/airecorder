@@ -22,8 +22,8 @@ const mockSettings = {
   embeddingProvider: '',
   setEmbeddingProvider: vi.fn(),
   toggleEmbeddingProvider: mockToggleEmbeddingProvider,
-  customChatModel: '',
-  setCustomChatModel: vi.fn(),
+  customGeneralModel: '',
+  setCustomGeneralModel: vi.fn(),
   embeddingModel: '',
   setEmbeddingModel: vi.fn(),
   lastEmbeddingModelId: null,
@@ -59,7 +59,7 @@ describe('CustomConnectionsSection save validation display', () => {
     mockSettings.stagedDeletions = [];
     mockSettings.aiProvider = 'custom:c1';
     mockSettings.embeddingProvider = '';
-    mockSettings.customChatModel = 'model-chat';
+    mockSettings.customGeneralModel = 'model-chat';
     mockSettings.embeddingModel = '';
     mockSettings.customConnectionTestResults = {};
     mockSettings.customConnectionsSaveValidation = { blocked: false, error: null };
@@ -119,13 +119,13 @@ describe('CustomConnectionsSection — role prop', () => {
     mockSettings.stagedDeletions = [];
     mockSettings.aiProvider = 'custom:c1';
     mockSettings.embeddingProvider = '';
-    mockSettings.customChatModel = 'model-chat';
+    mockSettings.customGeneralModel = 'model-chat';
     mockSettings.embeddingModel = '';
     mockSettings.customConnectionTestResults = {};
     mockSettings.customConnectionsSaveValidation = { blocked: false, error: null };
   });
 
-  it('when role=chat, the chat model selector is shown for the active connection', () => {
+  it('when role=general, the general model selector is shown for the active connection', () => {
     const html = renderToStaticMarkup(<CustomConnectionsSection role="general" defaultOpen />);
     expect(html).toContain('settings.fields.generalModel');
     expect(html).toContain('ChatGPT');

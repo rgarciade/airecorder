@@ -151,7 +151,7 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
     getConnectionsToSave: getCustomConnectionsToSave,
   } = useCustomConnections([]);
   const [embeddingProvider, setEmbeddingProvider] = useState('');
-  const [customChatModel, setCustomChatModel] = useState('');
+  const [customGeneralModel, setCustomGeneralModel] = useState('');
   const [embeddingModel, setEmbeddingModel] = useState('');
   const [lastEmbeddingModelId, setLastEmbeddingModelId] = useState('');
   const [embeddingModelChanged, setEmbeddingModelChanged] = useState(false);
@@ -234,7 +234,7 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
         // Custom OpenAI-compatible connections
         setCustomConnections(savedSettings.customConnections || []);
         setEmbeddingProvider(savedSettings.embeddingProvider || '');
-        setCustomChatModel(savedSettings.customChatModel || '');
+        setCustomGeneralModel(savedSettings.customGeneralModel || '');
         setEmbeddingModel(savedSettings.embeddingModel || '');
         setLastEmbeddingModelId(savedSettings.lastEmbeddingModelId || '');
         setEmbeddingModelChanged(false);
@@ -618,7 +618,7 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
         // Custom OpenAI-compatible connections
         customConnections: getCustomConnectionsToSave(),
         embeddingProvider: embeddingProvider,
-        customChatModel: customChatModel,
+        customGeneralModel: customGeneralModel,
         embeddingModel: embeddingModel,
         outputDirectory: outputDirectory,
         databasePath: databasePath || undefined
@@ -842,7 +842,7 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
       embeddingProvider,
     }),
     embeddingProvider, setEmbeddingProvider,
-    customChatModel, setCustomChatModel,
+    customGeneralModel, setCustomGeneralModel,
     embeddingModel, setEmbeddingModel,
     lastEmbeddingModelId,
     embeddingModelChanged,

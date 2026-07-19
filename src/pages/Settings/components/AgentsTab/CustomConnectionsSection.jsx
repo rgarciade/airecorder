@@ -24,8 +24,8 @@ export default function CustomConnectionsSection({ role, defaultOpen = false }) 
     setAiProvider,
     embeddingProvider,
     setEmbeddingProvider,
-    customChatModel,
-    setCustomChatModel,
+    customGeneralModel,
+    setCustomGeneralModel,
     embeddingModel,
     setEmbeddingModel,
     customConnectionsSaveValidation,
@@ -96,15 +96,15 @@ export default function CustomConnectionsSection({ role, defaultOpen = false }) 
     setDeleteTargetId(null);
   }, [deleteTargetId, stageDeleteCustomConnection]);
 
-  const handleChatConnectionChange = useCallback((connectionId) => {
+  const handleGeneralConnectionChange = useCallback((connectionId) => {
     if (connectionId) {
       setAiProvider(`custom:${connectionId}`);
-      if (!customChatModel) setCustomChatModel('');
+      if (!customGeneralModel) setCustomGeneralModel('');
     } else {
       setAiProvider('');
-      setCustomChatModel('');
+      setCustomGeneralModel('');
     }
-  }, [setAiProvider, setCustomChatModel, customChatModel]);
+  }, [setAiProvider, setCustomGeneralModel, customGeneralModel]);
 
   const handleEmbeddingConnectionChange = useCallback((connectionId) => {
     if (connectionId) {
@@ -227,7 +227,7 @@ export default function CustomConnectionsSection({ role, defaultOpen = false }) 
                 onEdit={() => startEdit(connection)}
                 onToggleActive={() =>
                   role === 'general'
-                    ? handleChatConnectionChange(connection.id)
+                    ? handleGeneralConnectionChange(connection.id)
                     : handleEmbeddingConnectionChange(connection.id)
                 }
                 onToggleDelete={() =>
@@ -235,8 +235,8 @@ export default function CustomConnectionsSection({ role, defaultOpen = false }) 
                     ? cancelDeleteCustomConnection(connection.id)
                     : requestDeleteConnection(connection.id)
                 }
-                selectedModel={role === 'general' ? customChatModel : embeddingModel}
-                onModelChange={role === 'general' ? setCustomChatModel : setEmbeddingModel}
+                selectedModel={role === 'general' ? customGeneralModel : embeddingModel}
+                onModelChange={role === 'general' ? setCustomGeneralModel : setEmbeddingModel}
                 t={t}
               />
             )}

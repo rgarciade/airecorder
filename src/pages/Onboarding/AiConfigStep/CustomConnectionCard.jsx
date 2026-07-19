@@ -3,8 +3,8 @@ import { FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 import { MdAddLink } from 'react-icons/md';
 
 export default function CustomConnectionCard({ t, activeAiRole, aiProvider, setAiProvider, custom }) {
-  const selectedModel = activeAiRole === 'general' ? custom.chatModel : custom.embedModel;
-  const setSelectedModel = activeAiRole === 'general' ? custom.setChatModel : custom.setEmbedModel;
+  const selectedModel = activeAiRole === 'general' ? custom.generalModel : custom.embedModel;
+  const setSelectedModel = activeAiRole === 'general' ? custom.setGeneralModel : custom.setEmbedModel;
 
   return (
     <div

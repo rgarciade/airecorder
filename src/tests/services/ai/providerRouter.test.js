@@ -99,7 +99,7 @@ describe('providerRouter custom dispatch', () => {
     getSettings.mockResolvedValue({
       aiProvider: 'custom:conn-1',
       customConnections: [{ id: 'conn-1', name: 'MyGPT', baseUrl: 'http://gpt.local', apiKey: 'k1' }],
-      customChatModel: 'model-x',
+      customGeneralModel: 'model-x',
     });
     customProviderSendMessage.mockResolvedValue('custom response');
 
@@ -135,7 +135,7 @@ describe('providerRouter custom dispatch', () => {
     getSettings.mockResolvedValue({
       aiProvider: 'custom:conn-1',
       customConnections: [{ id: 'conn-1', name: 'MyGPT', baseUrl: 'http://gpt.local', apiKey: 'k1' }],
-      customChatModel: 'model-x',
+      customGeneralModel: 'model-x',
     });
     customProviderChatCompletionStreaming.mockResolvedValue('stream response');
 

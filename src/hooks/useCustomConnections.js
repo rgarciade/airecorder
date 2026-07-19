@@ -75,7 +75,7 @@ export function buildCustomConnectionsSavePayload({
   stagedDeletions,
   aiProvider,
   embeddingProvider,
-  customChatModel,
+  customGeneralModel,
   embeddingModel,
 }) {
   const validation = validateCustomConnectionsSave({
@@ -93,7 +93,7 @@ export function buildCustomConnectionsSavePayload({
     customConnections: connections.filter((connection) => !stagedDeletions.includes(connection.id)),
     aiProvider,
     embeddingProvider,
-    customChatModel,
+    customGeneralModel,
     embeddingModel,
   };
 

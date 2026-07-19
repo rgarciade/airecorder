@@ -78,7 +78,7 @@ export const getSettings = async () => {
       // Custom OpenAI-compatible connections
       customConnections: [],
       embeddingProvider: '',
-      customChatModel: '',
+      customGeneralModel: '',
       embeddingModel: '',
       lastEmbeddingModelId: ''
     };

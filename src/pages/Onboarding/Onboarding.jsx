@@ -91,7 +91,7 @@ export default function Onboarding({ onComplete }) {
   const [customConnApiKey, setCustomConnApiKey] = useState('');
   const [customConnModels, setCustomConnModels] = useState([]);
   const [customConnTestStatus, setCustomConnTestStatus] = useState('idle'); // idle | testing | success | error
-  const [selectedCustomChatModel, setSelectedCustomChatModel] = useState('');
+  const [selectedCustomGeneralModel, setSelectedCustomGeneralModel] = useState('');
   const [selectedCustomEmbedModel, setSelectedCustomEmbedModel] = useState('');
 
   const [isSaving, setIsSaving] = useState(false);
@@ -258,7 +258,7 @@ export default function Onboarding({ onComplete }) {
       const models = await client.listModels();
       setCustomConnModels(models);
       if (models.length > 0) {
-        if (!selectedCustomChatModel) setSelectedCustomChatModel(models[0].name);
+        if (!selectedCustomGeneralModel) setSelectedCustomGeneralModel(models[0].name);
         if (!selectedCustomEmbedModel) setSelectedCustomEmbedModel(models[0].name);
       }
       setCustomConnTestStatus('success');
@@ -286,9 +286,9 @@ export default function Onboarding({ onComplete }) {
   const saveAndClose = async () => {
     setIsSaving(true);
     try {
-      const isChatCustom = chatProviderKey === 'custom';
+      const isGeneralCustom = chatProviderKey === 'custom';
       const isEmbedCustom = embedProviderKey === 'custom';
-      const hasCustomConnection = isChatCustom || isEmbedCustom;
+      const hasCustomConnection = isGeneralCustom || isEmbedCustom;
       const customConnectionId = hasCustomConnection ? crypto.randomUUID() : undefined;
       const resolveProvider = (key) => key === 'custom' ? `custom:${customConnectionId}` : key;
 
@@ -318,7 +318,7 @@ export default function Onboarding({ onComplete }) {
         customConnections: hasCustomConnection
           ? [{ id: customConnectionId, name: customConnName.trim(), baseUrl: customConnBaseUrl.trim(), apiKey: customConnApiKey.trim() }]
           : undefined,
-        customChatModel: isChatCustom ? selectedCustomChatModel : undefined,
+        customGeneralModel: isGeneralCustom ? selectedCustomGeneralModel : undefined,
         embeddingModel: isEmbedCustom ? selectedCustomEmbedModel : undefined,
         notificationsEnabled: notificationStatus === 'granted',
         theme: selectedTheme,
@@ -557,7 +557,7 @@ export default function Onboarding({ onComplete }) {
       apiKey: customConnApiKey, setApiKey: setCustomConnApiKey,
       testStatus: customConnTestStatus, testConnection: testCustomConnection,
       models: customConnModels,
-      chatModel: selectedCustomChatModel, setChatModel: setSelectedCustomChatModel,
+      generalModel: selectedCustomGeneralModel, setGeneralModel: setSelectedCustomGeneralModel,
       embedModel: selectedCustomEmbedModel, setEmbedModel: setSelectedCustomEmbedModel,
     },
   };
