@@ -66,14 +66,14 @@ describe('CustomConnectionsSection save validation display', () => {
   });
 
   it('renders the section and connection list', () => {
-    const html = renderToStaticMarkup(<CustomConnectionsSection role="chat" defaultOpen />);
+    const html = renderToStaticMarkup(<CustomConnectionsSection role="general" defaultOpen />);
     expect(html).toContain('settings.customConnections.section');
     expect(html).toContain('ChatGPT');
     expect(html).toContain('Unused');
   });
 
   it('is collapsed by default (connection cards hidden, header badge unaffected)', () => {
-    const html = renderToStaticMarkup(<CustomConnectionsSection role="chat" />);
+    const html = renderToStaticMarkup(<CustomConnectionsSection role="general" />);
     // The active-connection name still shows in the header badge — only the card list is gated
     expect(html).not.toContain('http://chat.local');
     expect(html).not.toContain('http://unused.local');
@@ -87,7 +87,7 @@ describe('CustomConnectionsSection save validation display', () => {
     };
     mockSettings.stagedDeletions = ['c1'];
 
-    const html = renderToStaticMarkup(<CustomConnectionsSection role="chat" defaultOpen />);
+    const html = renderToStaticMarkup(<CustomConnectionsSection role="general" defaultOpen />);
     expect(html).toContain('settings.customConnections.errors.deletedConnectionInUse');
   });
 
@@ -98,13 +98,13 @@ describe('CustomConnectionsSection save validation display', () => {
     };
     mockSettings.aiProvider = '';
 
-    const html = renderToStaticMarkup(<CustomConnectionsSection role="chat" defaultOpen />);
+    const html = renderToStaticMarkup(<CustomConnectionsSection role="general" defaultOpen />);
     expect(html).toContain('settings.customConnections.errors.noAiProvider');
   });
 
   it('renders the model selector for the active connection', () => {
-    const html = renderToStaticMarkup(<CustomConnectionsSection role="chat" defaultOpen />);
-    // With role="chat", the active connection (c1) shows the chat model label
+    const html = renderToStaticMarkup(<CustomConnectionsSection role="general" defaultOpen />);
+    // With role="general", the active connection (c1) shows the chat model label
     expect(html).toContain('settings.fields.generalModel');
   });
 });
@@ -126,7 +126,7 @@ describe('CustomConnectionsSection — role prop', () => {
   });
 
   it('when role=chat, the chat model selector is shown for the active connection', () => {
-    const html = renderToStaticMarkup(<CustomConnectionsSection role="chat" defaultOpen />);
+    const html = renderToStaticMarkup(<CustomConnectionsSection role="general" defaultOpen />);
     expect(html).toContain('settings.fields.generalModel');
     expect(html).toContain('ChatGPT');
   });

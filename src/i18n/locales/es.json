@@ -156,11 +156,11 @@
       "integrations": "Integraciones"
     },
     "agentsTabs": {
-      "chat": "Chat",
+      "general": "General",
       "embeddings": "Embeddings"
     },
     "roles": {
-      "chat": "Chat",
+      "general": "General",
       "embeddings": "Embeddings",
       "both": "Ambos",
       "inactive": "Inactivo"
@@ -759,8 +759,8 @@
       "testToContinue": "Prueba la conexión para continuar",
       "apiKeyToContinue": "Introduce tu API Key para continuar",
       "roles": {
-        "chatHelp": "Proveedor y modelo que se usará para conversar y analizar tus grabaciones.",
-        "embeddingsHelp": "Proveedor y modelo que se usará para indexar y buscar dentro de tus grabaciones (RAG). Puede ser distinto al de Chat."
+        "generalHelp": "Proveedor y modelo que se usará para conversar y analizar tus grabaciones.",
+        "embeddingsHelp": "Proveedor y modelo que se usará para indexar y buscar dentro de tus grabaciones (RAG). Puede ser distinto al General."
       },
       "ollama": {
         "subtitle": "Procesamiento local",

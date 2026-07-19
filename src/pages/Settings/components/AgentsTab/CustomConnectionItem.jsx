@@ -26,9 +26,9 @@ export default function CustomConnectionItem({
   t,
 }) {
   const badgeKey = isActiveForRole
-    ? role === 'chat' ? 'chat' : 'embeddings'
+    ? role === 'general' ? 'general' : 'embeddings'
     : isActiveForOtherRole
-      ? role === 'chat' ? 'embeddings' : 'chat'
+      ? role === 'general' ? 'embeddings' : 'general'
       : null;
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export default function CustomConnectionItem({
     onTest(connection.id);
   }, [isActiveForRole, isStagedForDelete, testResult, isTesting, onTest, connection.id]);
 
-  const modelLabel = role === 'chat'
+  const modelLabel = role === 'general'
     ? t('settings.fields.generalModel')
     : t('settings.fields.embeddingModel', { provider: connection.name });
 

@@ -198,7 +198,7 @@ export default function CloudProviderCards({ t, activeAiRole, aiProvider, setAiP
                 onChange={(e) => kimi.setApiKey(e.target.value)}
                 placeholder={t('onboarding.ai.apiKeyPlaceholder')}
               />
-              {activeAiRole === 'chat' ? (
+              {activeAiRole === 'general' ? (
                 <div className="mt-3">
                   <label className="block text-xs font-bold text-slate-600 dark:text-content-secondary mb-2 uppercase tracking-wide">
                     {t('settings.fields.model')}

@@ -36,18 +36,18 @@ export default function Onboarding({ onComplete }) {
   const [outputDirectory, setOutputDirectory] = useState('');
   const [databaseDirectory, setDatabaseDirectory] = useState('');
 
-  // AI Settings State — el rol activo determina qué selección (chat/embeddings) se está editando
-  const [activeAiRole, setActiveAiRole] = useState('chat'); // 'chat' | 'embeddings'
+  // AI Settings State — el rol activo determina qué selección (general/embeddings) se está editando
+  const [activeAiRole, setActiveAiRole] = useState('general'); // 'general' | 'embeddings'
 
   const [chatProviderType, setChatProviderType] = useState('local'); // 'local' | 'cloud'
   const [chatProviderKey, setChatProviderKey] = useState('ollama');
   const [embedProviderType, setEmbedProviderType] = useState('local');
   const [embedProviderKey, setEmbedProviderKey] = useState('ollama');
 
-  const providerType = activeAiRole === 'chat' ? chatProviderType : embedProviderType;
-  const setProviderType = activeAiRole === 'chat' ? setChatProviderType : setEmbedProviderType;
-  const aiProvider = activeAiRole === 'chat' ? chatProviderKey : embedProviderKey;
-  const setAiProvider = activeAiRole === 'chat' ? setChatProviderKey : setEmbedProviderKey;
+  const providerType = activeAiRole === 'general' ? chatProviderType : embedProviderType;
+  const setProviderType = activeAiRole === 'general' ? setChatProviderType : setEmbedProviderType;
+  const aiProvider = activeAiRole === 'general' ? chatProviderKey : embedProviderKey;
+  const setAiProvider = activeAiRole === 'general' ? setChatProviderKey : setEmbedProviderKey;
 
   // Ollama
   const [ollamaHost, setOllamaHost] = useState('http://localhost:11434');

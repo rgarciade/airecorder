@@ -122,7 +122,7 @@ export default function LocalProviderCards({ t, activeAiRole, aiProvider, setAiP
             </div>
           )}
 
-          {ollama.models.length > 0 && activeAiRole === 'chat' && (
+          {ollama.models.length > 0 && activeAiRole === 'general' && (
             <>
               <div className="mt-3">
                 <label className="block text-xs font-bold text-slate-600 dark:text-content-secondary mb-2 uppercase tracking-wide">
@@ -286,7 +286,7 @@ export default function LocalProviderCards({ t, activeAiRole, aiProvider, setAiP
             </div>
           )}
 
-          {lmStudio.models.length > 0 && activeAiRole === 'chat' && (
+          {lmStudio.models.length > 0 && activeAiRole === 'general' && (
             <>
               <div className="mt-3">
                 <label className="block text-xs font-bold text-slate-600 dark:text-content-secondary mb-2 uppercase tracking-wide">

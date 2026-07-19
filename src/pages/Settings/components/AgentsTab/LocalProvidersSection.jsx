@@ -49,10 +49,10 @@ export default function LocalProvidersSection({ role, defaultOpen = false }) {
   } = useSettings();
 
   // Role-aware helpers
-  const activeProvider = role === 'chat' ? aiProvider : embeddingProvider;
+  const activeProvider = role === 'general' ? aiProvider : embeddingProvider;
   const isProviderActive = (provider) => activeProvider === provider;
   const handleToggle = (provider) => {
-    if (role === 'chat') {
+    if (role === 'general') {
       toggleProvider(provider);
     } else {
       toggleEmbeddingProvider(provider);

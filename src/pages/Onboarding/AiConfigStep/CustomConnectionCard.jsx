@@ -3,8 +3,8 @@ import { FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 import { MdAddLink } from 'react-icons/md';
 
 export default function CustomConnectionCard({ t, activeAiRole, aiProvider, setAiProvider, custom }) {
-  const selectedModel = activeAiRole === 'chat' ? custom.chatModel : custom.embedModel;
-  const setSelectedModel = activeAiRole === 'chat' ? custom.setChatModel : custom.setEmbedModel;
+  const selectedModel = activeAiRole === 'general' ? custom.chatModel : custom.embedModel;
+  const setSelectedModel = activeAiRole === 'general' ? custom.setChatModel : custom.setEmbedModel;
 
   return (
     <div
@@ -99,7 +99,7 @@ export default function CustomConnectionCard({ t, activeAiRole, aiProvider, setA
           {custom.models.length > 0 && (
             <div>
               <label className="block text-xs font-bold text-slate-600 dark:text-content-secondary mb-2 uppercase tracking-wide">
-                {activeAiRole === 'chat' ? t('settings.fields.generalModel') : t('settings.fields.embeddingModel', { provider: custom.name })}
+                {activeAiRole === 'general' ? t('settings.fields.generalModel') : t('settings.fields.embeddingModel', { provider: custom.name })}
               </label>
               <select
                 className="w-full p-2.5 border border-slate-300 dark:border-edge-primary rounded-lg text-sm bg-slate-50 dark:bg-surface-tertiary text-slate-700 dark:text-content-primary focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"

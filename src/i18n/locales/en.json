@@ -139,11 +139,11 @@
       "integrations": "Integrations"
     },
     "agentsTabs": {
-      "chat": "Chat",
+      "general": "General",
       "embeddings": "Embeddings"
     },
     "roles": {
-      "chat": "Chat",
+      "general": "General",
       "embeddings": "Embeddings",
       "both": "Both",
       "inactive": "Inactive"
@@ -742,8 +742,8 @@
       "testToContinue": "Test the connection to continue",
       "apiKeyToContinue": "Enter your API Key to continue",
       "roles": {
-        "chatHelp": "Provider and model used to chat with and analyze your recordings.",
-        "embeddingsHelp": "Provider and model used to index and search within your recordings (RAG). Can be different from Chat."
+        "generalHelp": "Provider and model used to chat with and analyze your recordings.",
+        "embeddingsHelp": "Provider and model used to index and search within your recordings (RAG). Can be different from General."
       },
       "ollama": {
         "subtitle": "Self-hosted processing",

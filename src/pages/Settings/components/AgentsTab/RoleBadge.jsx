@@ -4,15 +4,15 @@ import { useTranslation } from 'react-i18next';
 /**
  * Computes the role badge key and active state for a provider.
  * Returns { label: string | null, isActive: boolean }
- * - label: i18n key suffix ("both" / "chat" / "embeddings") for use with t(`settings.roles.${label}`)
+ * - label: i18n key suffix ("both" / "general" / "embeddings") for use with t(`settings.roles.${label}`)
  * - null when inactive in both roles (hide badge)
  */
 export function getRoleBadge(aiProvider, embeddingProvider, providerKey) {
-  const isChat = aiProvider === providerKey;
+  const isGeneral = aiProvider === providerKey;
   const isEmbed = embeddingProvider === providerKey;
 
-  if (isChat && isEmbed) return { label: 'both', isActive: true };
-  if (isChat) return { label: 'chat', isActive: true };
+  if (isGeneral && isEmbed) return { label: 'both', isActive: true };
+  if (isGeneral) return { label: 'general', isActive: true };
   if (isEmbed) return { label: 'embeddings', isActive: true };
   return { label: null, isActive: false };
 }

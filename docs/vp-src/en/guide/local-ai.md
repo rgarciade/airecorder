@@ -31,10 +31,10 @@ AIRecorder uses **two different models** for different tasks. You can configure 
 
 ### Independent Provider per Role
 
-**Settings > AI Agents** has two sub-tabs, **Chat** and **Embeddings**. Each has its own provider selection — you can use Ollama for Chat and a cloud provider for Embeddings (or vice versa), or the same local provider for both with different models. The "Local Providers", "Cloud Providers", and "Custom OpenAI Connections" sections start collapsed — click the title or the arrow on each one to expand it.
+**Settings > AI Agents** has two sub-tabs, **General** and **Embeddings**. Each has its own provider selection — you can use Ollama for General and a cloud provider for Embeddings (or vice versa), or the same local provider for both with different models. The "Local Providers", "Cloud Providers", and "Custom OpenAI Connections" sections start collapsed — click the title or the arrow on each one to expand it.
 
 ::: tip 💡 Also available during Onboarding
-The initial AI setup screen (first time you open AIRecorder) has the same Chat/Embeddings split, with real model selection for each local provider.
+The initial AI setup screen (first time you open AIRecorder) has the same General/Embeddings split, with real model selection for each local provider.
 :::
 
 ---

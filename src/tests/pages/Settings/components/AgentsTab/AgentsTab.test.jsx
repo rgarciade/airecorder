@@ -118,7 +118,7 @@ describe('AgentsTab — sub-tab UI', () => {
   it('renders two sub-tab buttons using i18n keys [RED — hardcoded strings need replacement]', () => {
     const html = renderToStaticMarkup(<AgentsTab />);
 
-    expect(html).toContain('settings.agentsTabs.chat');
+    expect(html).toContain('settings.agentsTabs.general');
     expect(html).toContain('settings.agentsTabs.embeddings');
   });
 

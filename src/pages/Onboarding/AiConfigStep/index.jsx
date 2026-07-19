@@ -44,14 +44,14 @@ const AiConfigStep = ({
           </p>
         </div>
 
-        {/* Role Switcher — Chat / Embeddings */}
+        {/* Role Switcher — General / Embeddings */}
         <div className="flex gap-1 p-1 bg-slate-100 dark:bg-surface-tertiary rounded-xl mb-4 max-w-sm mx-auto w-full">
           <button
-            onClick={() => setActiveAiRole('chat')}
+            onClick={() => setActiveAiRole('general')}
             className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-semibold text-sm transition-all
-              ${activeAiRole === 'chat' ? 'bg-white dark:bg-surface-secondary text-slate-900 dark:text-content-primary shadow-sm' : 'text-slate-500 dark:text-content-secondary hover:text-slate-700 dark:hover:text-content-primary'}`}
+              ${activeAiRole === 'general' ? 'bg-white dark:bg-surface-secondary text-slate-900 dark:text-content-primary shadow-sm' : 'text-slate-500 dark:text-content-secondary hover:text-slate-700 dark:hover:text-content-primary'}`}
           >
-            <FaComments size={12} /> {t('settings.agentsTabs.chat')}
+            <FaComments size={12} /> {t('settings.agentsTabs.general')}
           </button>
           <button
             onClick={() => setActiveAiRole('embeddings')}
@@ -62,7 +62,7 @@ const AiConfigStep = ({
           </button>
         </div>
         <p className="text-center text-xs text-slate-400 dark:text-content-secondary mb-5 max-w-md mx-auto">
-          {activeAiRole === 'chat' ? t('onboarding.ai.roles.chatHelp') : t('onboarding.ai.roles.embeddingsHelp')}
+          {activeAiRole === 'general' ? t('onboarding.ai.roles.generalHelp') : t('onboarding.ai.roles.embeddingsHelp')}
         </p>
 
         {/* Tab Switcher — Local / Cloud */}

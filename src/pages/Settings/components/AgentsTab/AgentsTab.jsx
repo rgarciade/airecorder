@@ -8,18 +8,18 @@ import CustomConnectionsSection from './CustomConnectionsSection';
 
 export default function AgentsTab() {
   const { t } = useTranslation();
-  const [activeRoleTab, setActiveRoleTab] = useState('chat');
+  const [activeRoleTab, setActiveRoleTab] = useState('general');
 
   return (
     <>
       <div className={styles.tabsContainer}>
         <button
           type="button"
-          className={`${styles.tab} ${activeRoleTab === 'chat' ? styles.tabActive : ''}`}
-          onClick={() => setActiveRoleTab('chat')}
+          className={`${styles.tab} ${activeRoleTab === 'general' ? styles.tabActive : ''}`}
+          onClick={() => setActiveRoleTab('general')}
         >
           <MdChat className={styles.tabIcon} size={18} />
-          {t('settings.agentsTabs.chat')}
+          {t('settings.agentsTabs.general')}
         </button>
         <button
           type="button"

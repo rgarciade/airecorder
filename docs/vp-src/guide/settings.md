@@ -11,15 +11,15 @@ AIRecorder tiene 4 pestañas de configuración: **Agentes de IA**, **General**, 
 
 ## Agentes IA
 
-La pestaña principal donde configuras el motor de IA. Tiene dos sub-pestañas, **Chat** y **Embeddings**, con selección de proveedor independiente para cada rol — podés usar, por ejemplo, Ollama para Chat y Gemini para Embeddings al mismo tiempo. Dentro de cada sub-pestaña hay tres secciones colapsables (hacé clic en el título o en la flecha para desplegarlas):
+La pestaña principal donde configuras el motor de IA. Tiene dos sub-pestañas, **General** y **Embeddings**, con selección de proveedor independiente para cada rol — podés usar, por ejemplo, Ollama para General y Gemini para Embeddings al mismo tiempo. Dentro de cada sub-pestaña hay tres secciones colapsables (hacé clic en el título o en la flecha para desplegarlas):
 
 ### Proveedores Locales (Ollama / LM Studio)
 
 | Campo | Descripción |
 |-------|-------------|
 | **Host / Base URL** | Dirección del servidor local. Ollama: `http://localhost:11434`. LM Studio: `http://localhost:1234/v1`. La app lo detecta automáticamente si el servicio está corriendo. |
-| **Modelo General** | Para generar automáticamente resúmenes, tareas, puntos clave y análisis tras cada transcripción. Solo visible en la sub-pestaña Chat. |
-| **Modelo de Chat** | Para las conversaciones interactivas en el panel de chat (RAG). Si se deja vacío, se usa el Modelo General. Solo visible en la sub-pestaña Chat. |
+| **Modelo General** | Para generar automáticamente resúmenes, tareas, puntos clave y análisis tras cada transcripción. Solo visible en la sub-pestaña General. |
+| **Modelo de Chat** | Para las conversaciones interactivas en el panel de chat (RAG). Si se deja vacío, se usa el Modelo General. Solo visible en la sub-pestaña General. |
 | **Modelo de Embedding** | Convierte texto en vectores para la búsqueda semántica (RAG). Solo visible en la sub-pestaña Embeddings. Si cambias este modelo, necesitas re-indexar tus transcripciones. |
 | **Ventana de Contexto** | Tokens máximos que el modelo puede procesar a la vez. Usa el botón **"Detectar"** para auto-configurarlo según tu modelo y hardware. |
 
@@ -27,7 +27,7 @@ Ver [IA Local](/guide/local-ai) para la guía completa de instalación y modelos
 
 ### Proveedores en la Nube
 
-| Proveedor | Requiere | Modelo de Chat | Modelo de Embedding |
+| Proveedor | Requiere | Modelo General | Modelo de Embedding |
 |-----------|----------|-----------------|----------------------|
 | **OpenAI** | API Key de OpenAI | Lista real de tu cuenta | Fijo |
 | **Gemini** | API Key de Google AI Studio | Lista real de tu cuenta | Fijo |

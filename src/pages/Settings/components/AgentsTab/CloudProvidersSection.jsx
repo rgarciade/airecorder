@@ -42,9 +42,9 @@ export default function CloudProvidersSection({ role, defaultOpen = false }) {
     kimiModels,
   } = useSettings();
 
-  const activeProvider = role === 'chat' ? aiProvider : embeddingProvider;
+  const activeProvider = role === 'general' ? aiProvider : embeddingProvider;
   const handleToggle = (provider) => {
-    if (role === 'chat') {
+    if (role === 'general') {
       toggleProvider(provider);
     } else {
       toggleEmbeddingProvider(provider);
