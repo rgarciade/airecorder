@@ -1,10 +1,11 @@
 import React from 'react';
-import { FaCheckCircle, FaMicrophone, FaRobot, FaRocket } from 'react-icons/fa';
-import { MdCloud } from 'react-icons/md';
+import { FaCheckCircle, FaMicrophone, FaRocket } from 'react-icons/fa';
+import AiProviderIcon from '../../components/AiProviderIcon/AiProviderIcon';
 
 const PROVIDER_LABEL = {
   ollama: 'Ollama (Local)',
   lmstudio: 'LM Studio (Local)',
+  openai: 'OpenAI',
   gemini: 'Gemini',
   kimi: 'Kimi (Moonshot)',
   deepseek: 'DeepSeek',
@@ -65,7 +66,7 @@ const ReadyStep = ({
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4 ${
               isLocal ? 'bg-orange-50 text-orange-500' : 'bg-indigo-50 text-indigo-500'
             }`}>
-              {isLocal ? <FaRobot /> : <MdCloud />}
+              <AiProviderIcon provider={aiProvider} />
             </div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-content-secondary mb-1">{t('settings.roles.general')}</p>
             <h3 className="font-bold text-slate-800 dark:text-content-primary text-lg mb-1">{PROVIDER_LABEL[aiProvider] || aiProvider}</h3>
@@ -83,7 +84,7 @@ const ReadyStep = ({
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4 ${
                 isEmbedLocal ? 'bg-orange-50 text-orange-500' : 'bg-indigo-50 text-indigo-500'
               }`}>
-                {isEmbedLocal ? <FaRobot /> : <MdCloud />}
+                <AiProviderIcon provider={embedProvider} />
               </div>
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-content-secondary mb-1">{t('settings.roles.embeddings')}</p>
               <h3 className="font-bold text-slate-800 dark:text-content-primary text-lg mb-1">{PROVIDER_LABEL[embedProvider] || embedProvider}</h3>

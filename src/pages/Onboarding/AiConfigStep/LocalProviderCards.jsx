@@ -1,6 +1,7 @@
 import React from 'react';
 import { FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 import InfoTooltip from '../../../components/InfoTooltip/InfoTooltip';
+import AiProviderIcon from '../../../components/AiProviderIcon/AiProviderIcon';
 
 export default function LocalProviderCards({ t, activeAiRole, aiProvider, setAiProvider, ollama, lmStudio }) {
   return (
@@ -20,10 +21,9 @@ export default function LocalProviderCards({ t, activeAiRole, aiProvider, setAiP
 
         <div className="flex justify-between items-start mb-3 gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-10 h-10 rounded-xl border shadow-sm flex items-center justify-center flex-shrink-0"
+            <div className="w-10 h-10 rounded-xl border shadow-sm flex items-center justify-center flex-shrink-0 text-slate-900 dark:text-content-primary"
               style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border-primary)' }}>
-              <img src="https://ollama.com/public/ollama.png" alt="Ollama" width="24" height="24" className="rounded object-contain"
-                style={{ filter: 'var(--ollama-icon-filter, none)' }} />
+              <AiProviderIcon provider="ollama" size={22} />
             </div>
             <div className="min-w-0">
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
@@ -191,12 +191,7 @@ export default function LocalProviderCards({ t, activeAiRole, aiProvider, setAiP
         <div className="flex justify-between items-start mb-3 gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-white dark:bg-surface-secondary border border-slate-200 dark:border-edge-primary shadow-sm flex items-center justify-center flex-shrink-0">
-              <svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6">
-                <rect width="36" height="36" rx="9" fill="#6D28D9"/>
-                <rect x="7" y="9"  width="22" height="3.5" rx="1.75" fill="rgba(255,255,255,0.95)"/>
-                <rect x="5" y="16" width="26" height="3.5" rx="1.75" fill="rgba(255,255,255,0.95)"/>
-                <rect x="9" y="23" width="18" height="3.5" rx="1.75" fill="rgba(255,255,255,0.95)"/>
-              </svg>
+              <AiProviderIcon provider="lmstudio" className="w-6 h-6" />
             </div>
             <div className="min-w-0">
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
