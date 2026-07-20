@@ -122,6 +122,10 @@ class DbService {
         console.log('[DB] Añadiendo columna transcription_model a la tabla recordings...');
         this.db.prepare("ALTER TABLE recordings ADD COLUMN transcription_model TEXT").run();
       }
+      if (!tableInfo.some(c => c.name === 'skip_diarization')) {
+        console.log('[DB] Añadiendo columna skip_diarization a la tabla recordings...');
+        this.db.prepare("ALTER TABLE recordings ADD COLUMN skip_diarization INTEGER DEFAULT 0").run();
+      }
     } catch (e) {
       console.error('[DB] Error migrando recordings:', e);
     }
@@ -342,6 +346,7 @@ class DbService {
   getRecording(...args) { return this.recordings?.getRecording(...args) ?? null; }
   getRecordingById(...args) { return this.recordings?.getRecordingById(...args) ?? null; }
   deleteRecording(...args) { return this.recordings?.deleteRecording(...args); }
+  setSkipDiarization(...args) { return this.recordings?.setSkipDiarization(...args); }
 
   // Queue
   enqueueTask(...args) { return this.recordings?.enqueueTask(...args) ?? null; }

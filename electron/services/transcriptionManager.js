@@ -90,6 +90,10 @@ class TranscriptionManager {
         return { success: false, error: 'Already queued' };
     }
 
+    if (typeof options.skipDiarization === 'boolean') {
+        dbService.setSkipDiarization(numericId, options.skipDiarization);
+    }
+
     const taskId = dbService.enqueueTask(numericId, options.model);
     console.log(`[Manager] Tarea encolada con taskId=${taskId}`);
     this.notifyUpdate();
@@ -132,9 +136,10 @@ class TranscriptionManager {
             const settingsData = fs.readFileSync(settingsPath, 'utf8');
             const settings = JSON.parse(settingsData);
             
-            if (settings.enableDiarization && settings.hfToken) {
+            const recording = dbService.getRecordingById(this.activeTask.recording_id);
+
+            if (settings.enableDiarization && settings.hfToken && !recording?.skip_diarization) {
                 // 1. Obtener ruta del audio de sistema
-                const recording = dbService.getRecordingById(this.activeTask.recording_id);
                 if (recording) {
                     const sysAudioPath = SUPPORTED_AUDIO_EXTENSIONS
                         .map((ext) => path.join(this.basePath, recording.relative_path, `${recording.relative_path}-system.${ext}`))

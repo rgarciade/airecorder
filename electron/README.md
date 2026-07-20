@@ -71,6 +71,14 @@ ipcMain.handle('mi-evento', async (event, params) => {
 *   **Puente Seguro:** `preload.js` expone de forma segura (Context Bridge) las funciones necesarias al renderizador, mapeándolas con `ipcRenderer.invoke()`.
 *   **Backend al React:** El backend puede enviar eventos no solicitados (como actualizaciones de estado de transcripción) utilizando `win.webContents.send('evento-nombre', datos)`. El frontend debe tener listeners (ej. `window.electronAPI.onQueueUpdate()`).
 
+### IPC: `transcribe-recording` — descarte puntual de diarización
+
+`ipc-handlers/transcription.js` expone `transcribe-recording(recordingId, model, options)`, donde `options.skipDiarization` (boolean opcional) marca `recordings.skip_diarization` vía `transcriptionManager.addTask()` antes de encolar la tarea.
+
+*   `RecordingOverlay.jsx` muestra un checkbox "Descartar diarización" en el diálogo de detalles al terminar la grabación (solo si `settings.enableDiarization` está activo globalmente) y lo pasa como `{ skipDiarization }` a `recordingsService.transcribeRecording()`.
+*   `transcriptionManager.processQueue()` combina `settings.enableDiarization && !recording.skip_diarization` para decidir si ejecuta `diarization_analyzer.py`. El flag persiste en la fila del recording, así que también aplica si la tarea se reintenta o se re-encola manualmente.
+*   Los demás puntos de entrada (`RecordingList`, `RecordingDetail`, `Home`) no pasan `options`, por lo que no tocan el flag y respetan el valor ya guardado en el recording.
+
 ### IPC: IA / Conexiones OpenAI personalizadas
 
 Se añadió el handler `electron/ipc-handlers/ai.js` para operaciones de IA que deben ejecutarse en el proceso principal.
@@ -165,6 +173,7 @@ La captura de audio del sistema usa el paquete `electron-audio-loopback` (requie
     *   Crea tablas con `CREATE TABLE IF NOT EXISTS`.
     *   Añade columnas nuevas dinámicamente usando `ALTER TABLE`.
     *   `recordings.source` se agrega automáticamente si no existe para distinguir el origen de la grabación (`audio` vs `conversation-import`).
+    *   `recordings.skip_diarization` (`INTEGER DEFAULT 0`) se agrega automáticamente si no existe. Permite descartar la diarización para una grabación puntual aunque `settings.enableDiarization` esté activo globalmente.
 *   **Estados atascados:** Restablece tareas con estado `processing` en la cola a `pending` o `failed` si la app se cerró de forma inesperada.
 *   **Ruta configurable:** La BD se inicializa con la ruta que `main.js` le pasa (por defecto `{userData}/recordings.db`, o la personalizada de `settings.databasePath`). El singleton `DbService` expone:
     *   `init(dbPath)` — abre/crea la BD en la ruta indicada y registra `this.dbPath`.

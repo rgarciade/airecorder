@@ -27,6 +27,9 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [newName, setNewName] = useState('');
   const [extraInstructions, setExtraInstructions] = useState('');
+  const [diarizationEnabled, setDiarizationEnabled] = useState(false);
+  const [discardDiarization, setDiscardDiarization] = useState(false);
+  const [showDiscardSavedDialog, setShowDiscardSavedDialog] = useState(false);
 
   // Expanded State
   const [isExpanded, setIsExpanded] = useState(false);
@@ -71,6 +74,13 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
       if (interactionTimerRef.current) clearTimeout(interactionTimerRef.current);
     };
   }, [isExpanded]);
+
+  // Cargar si la diarización global está habilitada, para decidir si mostrar el checkbox de descarte
+  useEffect(() => {
+    getSettings().then((settings) => {
+      setDiarizationEnabled(settings.enableDiarization === true);
+    }).catch(console.error);
+  }, []);
 
   // Show floating window on mount, hide on unmount
   useEffect(() => {
@@ -215,7 +225,7 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
     try {
       const settings = await getSettings();
       if (settings.autoTranscribe !== false && dbId) {
-        recordingsService.transcribeRecording(dbId, settings.whisperModel || null).catch(console.error);
+        recordingsService.transcribeRecording(dbId, settings.whisperModel || null, { skipDiarization: discardDiarization }).catch(console.error);
       }
     } catch (error) {
       console.error('Error al verificar autoTranscribe:', error);
@@ -228,6 +238,29 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
   const handleDiscard = (e) => {
     if(e) e.stopPropagation();
     setShowDiscardDialog(true);
+  };
+
+  const handleDiscardSaved = (e) => {
+    if(e) e.stopPropagation();
+    setShowDiscardSavedDialog(true);
+  };
+
+  const confirmDiscardSaved = async () => {
+    setShowDiscardSavedDialog(false);
+    setShowDetailsDialog(false);
+    setIsDiscarding(true);
+    setShowProcessing(true);
+
+    try {
+      await recordingsService.deleteRecording(dbId);
+    } catch (error) {
+      console.error('Error al descartar la grabación guardada:', error);
+    }
+
+    setShowProcessing(false);
+    setIsDiscarding(false);
+    dispatch(saveAndExit(''));
+    onFinish();
   };
 
   const confirmDiscard = () => {
@@ -417,7 +450,23 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
                   />
                 </div>
 
+                {diarizationEnabled && (
+                  <div className={styles.inputContainer}>
+                    <label className={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        checked={discardDiarization}
+                        onChange={(e) => setDiscardDiarization(e.target.checked)}
+                      />
+                      {t('recordingOverlay.discardDiarization')}
+                    </label>
+                  </div>
+                )}
+
                 <div className={styles.modalButtons}>
+                  <button onClick={handleDiscardSaved} className={styles.discardModalButton}>
+                    {t('recordingOverlay.discardButton')}
+                  </button>
                   <button onClick={handleSaveDetails} className={styles.saveButton}>
                     {t('recordingOverlay.saveAndExit')}
                   </button>
@@ -448,6 +497,24 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
                 {t('common.cancel')}
               </button>
               <button onClick={confirmDiscard} className={styles.discardModalButton}>
+                {t('recordingOverlay.confirmDiscardYes')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmación de descarte de grabación ya guardada */}
+      {showDiscardSavedDialog && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <h3>{t('recordingOverlay.confirmDiscard')}</h3>
+            <p>{t('recordingOverlay.confirmDiscardMessage')}</p>
+            <div className={styles.modalButtons}>
+              <button onClick={() => setShowDiscardSavedDialog(false)} className={styles.cancelButton}>
+                {t('common.cancel')}
+              </button>
+              <button onClick={confirmDiscardSaved} className={styles.discardModalButton}>
                 {t('recordingOverlay.confirmDiscardYes')}
               </button>
             </div>

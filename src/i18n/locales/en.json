@@ -126,7 +126,8 @@
     "mute": "Mute",
     "unmute": "Unmute",
     "extraInstructions": "Instructions & Context (optional)",
-    "extraInstructionsPlaceholder": "E.g.: Sprint planning meeting with the frontend team. Focus on technical decisions and task assignments..."
+    "extraInstructionsPlaceholder": "E.g.: Sprint planning meeting with the frontend team. Focus on technical decisions and task assignments...",
+    "discardDiarization": "Discard diarization (speaker identification) for this meeting"
   },
   "settings": {
     "title": "AIRecorder Settings",

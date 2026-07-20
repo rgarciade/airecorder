@@ -5,6 +5,7 @@ const {
   INSERT_OR_UPDATE_RECORDING,
   UPDATE_STATUS,
   UPDATE_TRANSCRIPTION_MODEL,
+  UPDATE_SKIP_DIARIZATION,
   UPDATE_DURATION,
   GET_DASHBOARD_STATS,
   SELECT_ALL_RECORDINGS,
@@ -54,6 +55,10 @@ class RecordingsDbService extends BaseDbService {
 
   updateTranscriptionModel(relativePath, model) {
     return this._run(UPDATE_TRANSCRIPTION_MODEL, [model, relativePath]);
+  }
+
+  setSkipDiarization(recordingId, skip) {
+    return this._run(UPDATE_SKIP_DIARIZATION, [skip ? 1 : 0, recordingId]);
   }
 
   updateDuration(relativePath, duration) {
