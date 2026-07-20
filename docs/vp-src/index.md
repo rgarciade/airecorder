@@ -3,6 +3,7 @@ layout: home
 
 title: AIRecorder
 titleTemplate: Documentación
+description: "Documentación oficial de AIRecorder: graba, transcribe y analiza tus reuniones con IA local y privada."
 
 hero:
   name: AIRecorder

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Página no encontrada | AIRecorder</title>
+  <meta name="description" content="La página que buscás no existe o fue movida. Volvé al inicio o consultá la documentación de AIRecorder.">
+  <meta name="theme-color" content="#3994EF">
+  <link rel="icon" type="image/png" href="/airecorder/icon.png">
+
+  <!--
+    NOTA: GitHub Pages sirve este archivo para CUALQUIER ruta no encontrada
+    bajo /airecorder/*, pero la URL en la barra del navegador sigue siendo
+    la ruta original (no cambia a /404.html). Por eso TODOS los recursos y
+    enlaces de esta página usan rutas absolutas (/airecorder/...) en lugar
+    de relativas: una ruta relativa como "icon.png" se resolvería contra la
+    ruta profunda que dio 404, no contra la raíz del sitio, y rompería.
+  -->
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --color-primary: #3994EF;
+      --color-primary-hover: #2563EB;
+      --color-primary-light: #EFF6FF;
+      --color-bg: #F8F9FB;
+      --color-white: #FFFFFF;
+      --color-text: #111827;
+      --color-text-secondary: #374151;
+      --color-text-muted: #9CA3AF;
+      --color-border: #E5E7EB;
+      --font-family: 'Plus Jakarta Sans', 'Noto Sans', sans-serif;
+      --radius-md: 12px;
+      --radius-xl: 24px;
+      --radius-pill: 50px;
+      --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      --shadow-button: 0 4px 15px rgba(57, 148, 239, 0.35);
+      --shadow-icon: 0 20px 40px rgba(0, 0, 0, 0.18);
+      --transition: all 0.25s ease;
+    }
+
+    * , *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: 16px;
+      color-scheme: light;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-family);
+      background-color: var(--color-bg);
+      background-image:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(57, 148, 239, 0.08) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(147, 51, 234, 0.04) 0%, transparent 60%);
+      color: var(--color-text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      padding: 24px;
+    }
+
+    a { text-decoration: none; }
+
+    .wrap {
+      max-width: 480px;
+      text-align: center;
+    }
+
+    .icon {
+      width: 96px;
+      height: 96px;
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-icon);
+      margin: 0 auto 32px;
+      background: url('/airecorder/icon.png') 50% 49% / 164% no-repeat;
+    }
+
+    .code {
+      font-size: 4rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--color-primary) 0%, #9333EA 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--color-text);
+      margin-bottom: 12px;
+    }
+
+    p {
+      font-size: 1rem;
+      color: var(--color-text-secondary);
+      margin-bottom: 32px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: var(--radius-pill);
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: var(--transition);
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--color-primary);
+      color: var(--color-white);
+      box-shadow: var(--shadow-button);
+    }
+
+    .btn-primary:hover {
+      background: var(--color-primary-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(57, 148, 239, 0.45);
+    }
+
+    .btn-secondary {
+      background: var(--color-white);
+      color: var(--color-text-secondary);
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-card);
+    }
+
+    .btn-secondary:hover {
+      background: var(--color-bg);
+      color: var(--color-text);
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 480px) {
+      .actions { flex-direction: column; width: 100%; }
+      .actions .btn { width: 100%; justify-content: center; }
+      .code { font-size: 3rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="icon" role="img" aria-label="AIRecorder"></div>
+    <p class="code">404</p>
+    <h1>Página no encontrada</h1>
+    <p>La página que buscás no existe o fue movida a otra ubicación.</p>
+    <div class="actions">
+      <a href="/airecorder/" class="btn btn-primary">Ir al inicio</a>
+      <a href="/airecorder/vp/" class="btn btn-secondary">Ver la documentación</a>
+    </div>
+  </div>
+</body>
+</html>
