@@ -1,6 +1,7 @@
 import React from 'react';
-import { FaRobot, FaServer, FaExternalLinkAlt, FaBrain, FaSearch, FaArrowRight, FaShieldAlt } from 'react-icons/fa';
+import { FaExternalLinkAlt, FaBrain, FaSearch, FaArrowRight, FaShieldAlt } from 'react-icons/fa';
 import OnboardingFooter from './OnboardingFooter';
+import AiProviderIcon from '../../components/AiProviderIcon/AiProviderIcon';
 
 const WIKI_BASE_URL = import.meta.env.VITE_WIKI_URL || 'https://rgarciade.github.io/airecorder/vp/';
 
@@ -53,10 +54,9 @@ const LocalAiInfoStep = ({ t, onNext, onBack, StepProgressComponent }) => {
 
               <div className="flex flex-col gap-4">
                 <div className="flex gap-4 p-4 rounded-xl bg-slate-50 dark:bg-surface-tertiary border border-slate-100 dark:border-edge-primary">
-                  <div className="w-10 h-10 rounded-xl border shadow-sm flex items-center justify-center flex-shrink-0 text-lg"
+                  <div className="w-10 h-10 rounded-xl border shadow-sm flex items-center justify-center flex-shrink-0 text-lg text-slate-900 dark:text-content-primary"
                     style={{ backgroundColor: 'var(--color-bg-primary)', borderColor: 'var(--color-border-primary)' }}>
-                    <img src="https://ollama.com/public/ollama.png" alt="Ollama" width="24" height="24" className="rounded object-contain"
-                      style={{ filter: 'var(--ollama-icon-filter, none)' }} />
+                    <AiProviderIcon provider="ollama" size={22} />
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-900 dark:text-content-primary mb-1">Ollama</h4>
@@ -66,12 +66,7 @@ const LocalAiInfoStep = ({ t, onNext, onBack, StepProgressComponent }) => {
 
                 <div className="flex gap-4 p-4 rounded-xl bg-slate-50 dark:bg-surface-tertiary border border-slate-100 dark:border-edge-primary">
                   <div className="w-10 h-10 rounded-xl bg-white dark:bg-surface-secondary border border-slate-200 dark:border-edge-primary shadow-sm flex items-center justify-center flex-shrink-0 text-lg">
-                    <svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6">
-                      <rect width="36" height="36" rx="9" fill="#6D28D9"/>
-                      <rect x="7" y="9"  width="22" height="3.5" rx="1.75" fill="rgba(255,255,255,0.95)"/>
-                      <rect x="5" y="16" width="26" height="3.5" rx="1.75" fill="rgba(255,255,255,0.95)"/>
-                      <rect x="9" y="23" width="18" height="3.5" rx="1.75" fill="rgba(255,255,255,0.95)"/>
-                    </svg>
+                    <AiProviderIcon provider="lmstudio" className="w-6 h-6" />
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-900 dark:text-content-primary mb-1">LM Studio</h4>

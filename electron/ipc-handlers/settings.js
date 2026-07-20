@@ -5,33 +5,7 @@ const os = require('os');
 const notificationService = require('../services/notificationService');
 const { settingsPath, DEFAULT_BASE_RECORDER_PATH } = require('../utils/paths');
 const dbService = require('../database/dbService');
-
-/**
- * Migra settings.json legacy: 'geminifree' se fusionó con 'gemini' (una sola configuración,
- * sin distinción free/pro). Normaliza el provider y rescata la API Key/modelo del tier free
- * si el tier pago no estaba configurado.
- * @returns {boolean} true si modificó `settings` (hay que persistir)
- */
-function migrateGeminiFreeTier(settings) {
-  let changed = false;
-  if (settings.aiProvider === 'geminifree') {
-    settings.aiProvider = 'gemini';
-    changed = true;
-  }
-  if (settings.embeddingProvider === 'geminifree') {
-    settings.embeddingProvider = 'gemini';
-    changed = true;
-  }
-  if (!settings.geminiApiKey && settings.geminiFreeApiKey) {
-    settings.geminiApiKey = settings.geminiFreeApiKey;
-    changed = true;
-  }
-  if (!settings.geminiModel && settings.geminiFreeModel) {
-    settings.geminiModel = settings.geminiFreeModel;
-    changed = true;
-  }
-  return changed;
-}
+const { migrateGeminiFreeTier, migrateCustomChatModelField } = require('../utils/settingsMigrations');
 
 module.exports.registerSettingsHandlers = () => {
 
@@ -81,7 +55,12 @@ module.exports.registerSettingsHandlers = () => {
         const data = await fs.promises.readFile(settingsPath, 'utf8');
         const settings = JSON.parse(data);
 
-        if (migrateGeminiFreeTier(settings)) {
+        const needsPersist = [
+          migrateGeminiFreeTier(settings),
+          migrateCustomChatModelField(settings),
+        ].some(Boolean);
+
+        if (needsPersist) {
           const tmpPath = settingsPath + '.tmp';
           await fs.promises.writeFile(tmpPath, JSON.stringify(settings, null, 2));
           await fs.promises.rename(tmpPath, settingsPath);
@@ -187,3 +166,7 @@ module.exports.registerSettingsHandlers = () => {
   });
 
 };
+
+// Exportadas para tests unitarios de las migraciones de settings.json
+module.exports.migrateGeminiFreeTier = migrateGeminiFreeTier;
+module.exports.migrateCustomChatModelField = migrateCustomChatModelField;

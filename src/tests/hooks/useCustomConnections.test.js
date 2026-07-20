@@ -163,7 +163,7 @@ describe('useCustomConnections helpers', () => {
         stagedDeletions: ['c1'],
         aiProvider: 'custom:c1',
         embeddingProvider: '',
-        customChatModel: 'model-chat',
+        customGeneralModel: 'model-chat',
         embeddingModel: '',
       });
 
@@ -180,7 +180,7 @@ describe('useCustomConnections helpers', () => {
         stagedDeletions: ['c2'],
         aiProvider: 'custom:c1',
         embeddingProvider: '',
-        customChatModel: 'model-chat',
+        customGeneralModel: 'model-chat',
         embeddingModel: '',
       });
 
@@ -188,7 +188,7 @@ describe('useCustomConnections helpers', () => {
       expect(result.payload.customConnections).toHaveLength(1);
       expect(result.payload.customConnections[0].id).toBe('c1');
       expect(result.payload.aiProvider).toBe('custom:c1');
-      expect(result.payload.customChatModel).toBe('model-chat');
+      expect(result.payload.customGeneralModel).toBe('model-chat');
     });
   });
 

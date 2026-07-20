@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import {
-  MdComputer, MdTerminal, MdSmartToy, MdRefresh, MdOpenInNew, MdExpandMore, MdExpandLess
+  MdComputer, MdRefresh, MdOpenInNew, MdExpandMore, MdExpandLess
 } from 'react-icons/md';
 import styles from '../../Settings.module.css';
 import InfoTooltip from '../../../../components/InfoTooltip/InfoTooltip';
+import AiProviderIcon from '../../../../components/AiProviderIcon/AiProviderIcon';
 import RoleBadge from './RoleBadge';
 import { useSettings } from '../../SettingsContext';
 
@@ -49,10 +50,10 @@ export default function LocalProvidersSection({ role, defaultOpen = false }) {
   } = useSettings();
 
   // Role-aware helpers
-  const activeProvider = role === 'chat' ? aiProvider : embeddingProvider;
+  const activeProvider = role === 'general' ? aiProvider : embeddingProvider;
   const isProviderActive = (provider) => activeProvider === provider;
   const handleToggle = (provider) => {
-    if (role === 'chat') {
+    if (role === 'general') {
       toggleProvider(provider);
     } else {
       toggleEmbeddingProvider(provider);
@@ -109,7 +110,7 @@ export default function LocalProvidersSection({ role, defaultOpen = false }) {
         <div className={styles.cardHeader}>
           <div className={styles.providerInfo}>
             <div className={`${styles.providerIcon} ${styles.ollamaIcon}`}>
-              <MdTerminal size={24} />
+              <AiProviderIcon provider="ollama" size={24} />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -296,7 +297,7 @@ export default function LocalProvidersSection({ role, defaultOpen = false }) {
         <div className={styles.cardHeader}>
           <div className={styles.providerInfo}>
             <div className={`${styles.providerIcon} ${styles.lmStudioIcon}`}>
-              <MdSmartToy size={24} />
+              <AiProviderIcon provider="lmstudio" size={24} />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

@@ -1,7 +1,7 @@
 import React from 'react';
-import { FaRobot, FaExclamationTriangle, FaBrain } from 'react-icons/fa';
-import { MdAutoAwesome, MdRefresh } from 'react-icons/md';
-import { SiOpenai } from 'react-icons/si';
+import { FaExclamationTriangle } from 'react-icons/fa';
+import { MdRefresh } from 'react-icons/md';
+import AiProviderIcon from '../../../components/AiProviderIcon/AiProviderIcon';
 
 const GEMINI_EMBEDDING_MODEL = 'text-embedding-004';
 const KIMI_EMBEDDING_MODEL = 'moonshot-embedding-v1';
@@ -73,7 +73,7 @@ export default function CloudProviderCards({ t, activeAiRole, aiProvider, setAiP
           <div className="flex justify-between items-start mb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
-                <SiOpenai />
+                <AiProviderIcon provider="openai" />
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 dark:text-content-primary">OpenAI</h3>
@@ -122,7 +122,7 @@ export default function CloudProviderCards({ t, activeAiRole, aiProvider, setAiP
           <div className="flex justify-between items-start mb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center text-xl">
-                <MdAutoAwesome />
+                <AiProviderIcon provider="gemini" />
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 dark:text-content-primary">Gemini</h3>
@@ -171,7 +171,7 @@ export default function CloudProviderCards({ t, activeAiRole, aiProvider, setAiP
           <div className="flex justify-between items-start mb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-500 flex items-center justify-center text-xl">
-                <FaRobot />
+                <AiProviderIcon provider="kimi" />
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 dark:text-content-primary">Kimi</h3>
@@ -198,7 +198,7 @@ export default function CloudProviderCards({ t, activeAiRole, aiProvider, setAiP
                 onChange={(e) => kimi.setApiKey(e.target.value)}
                 placeholder={t('onboarding.ai.apiKeyPlaceholder')}
               />
-              {activeAiRole === 'chat' ? (
+              {activeAiRole === 'general' ? (
                 <div className="mt-3">
                   <label className="block text-xs font-bold text-slate-600 dark:text-content-secondary mb-2 uppercase tracking-wide">
                     {t('settings.fields.model')}
@@ -235,7 +235,7 @@ export default function CloudProviderCards({ t, activeAiRole, aiProvider, setAiP
           <div className="flex justify-between items-start mb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-violet-50 text-violet-500 flex items-center justify-center text-xl">
-                <FaBrain />
+                <AiProviderIcon provider="deepseek" />
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 dark:text-content-primary">DeepSeek</h3>

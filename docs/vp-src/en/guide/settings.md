@@ -11,15 +11,15 @@ AIRecorder has 4 settings tabs: **AI Agents**, **General**, **Experts**, and **I
 
 ## AI Agents
 
-The main tab where you configure the AI engine. It has two sub-tabs, **Chat** and **Embeddings**, each with an independent provider selection — you can use, for example, Ollama for Chat and Gemini for Embeddings at the same time. Inside each sub-tab there are three collapsible sections (click the title or the arrow to expand them):
+The main tab where you configure the AI engine. It has two sub-tabs, **General** and **Embeddings**, each with an independent provider selection — you can use, for example, Ollama for General and Gemini for Embeddings at the same time. Inside each sub-tab there are three collapsible sections (click the title or the arrow to expand them):
 
 ### Local Providers (Ollama / LM Studio)
 
 | Field | Description |
 |-------|-------------|
 | **Host / Base URL** | Local server address. Ollama: `http://localhost:11434`. LM Studio: `http://localhost:1234/v1`. The app auto-detects it if the service is running. |
-| **General Model** | Generates automatic summaries, tasks, key points, and analysis after each transcription. Only visible on the Chat sub-tab. |
-| **Chat Model** | For interactive conversations in the chat panel (RAG). If left empty, the General Model is used. Only visible on the Chat sub-tab. |
+| **General Model** | Generates automatic summaries, tasks, key points, and analysis after each transcription. Only visible on the General sub-tab. |
+| **Chat Model** | For interactive conversations in the chat panel (RAG). If left empty, the General Model is used. Only visible on the General sub-tab. |
 | **Embedding Model** | Converts text into vectors for semantic search (RAG). Only visible on the Embeddings sub-tab. If you change this model, you need to re-index your transcriptions. |
 | **Context Window** | Maximum tokens the model can process at once. Use the **"Detect"** button to auto-configure it based on your model and hardware. |
 
@@ -27,7 +27,7 @@ See [Local AI](/en/guide/local-ai) for the full setup guide and recommended mode
 
 ### Cloud Providers
 
-| Provider | Requires | Chat Model | Embedding Model |
+| Provider | Requires | General Model | Embedding Model |
 |----------|----------|------------|------------------|
 | **OpenAI** | OpenAI API Key | Real list from your account | Fixed |
 | **Gemini** | Google AI Studio API Key | Real list from your account | Fixed |

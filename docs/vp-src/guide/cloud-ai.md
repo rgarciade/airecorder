@@ -13,7 +13,7 @@ Los proveedores cloud están en fase beta. Algunas funciones pueden no funcionar
 
 ## Proveedores Disponibles
 
-| Proveedor | Requiere | Modelo de Chat | Modelo de Embedding |
+| Proveedor | Requiere | Modelo General | Modelo de Embedding |
 |-----------|----------|-----------------|----------------------|
 | **OpenAI** | API Key de OpenAI | Se elige de la lista de modelos de tu cuenta | Fijo (`text-embedding-3-small`) |
 | **Gemini** | API Key de Google AI Studio | Se elige de la lista de modelos de tu cuenta | Fijo (`text-embedding-004`) |
@@ -21,11 +21,11 @@ Los proveedores cloud están en fase beta. Algunas funciones pueden no funcionar
 | **DeepSeek** | API Key de DeepSeek | Se elige de una lista corta predefinida | No soportado |
 
 ::: tip 💡 Gemini ya no distingue Free / Pro
-Antes existían "Gemini Free" y "Gemini Pro" como proveedores separados. Ahora es una única configuración de Gemini: una sola API Key, un solo modelo de chat elegido de la lista real de tu cuenta.
+Antes existían "Gemini Free" y "Gemini Pro" como proveedores separados. Ahora es una única configuración de Gemini: una sola API Key, un solo modelo general elegido de la lista real de tu cuenta.
 :::
 
 ::: warning ⚠️ DeepSeek no soporta Embeddings
-Si estás en la pestaña **Embeddings** de Ajustes, la card de DeepSeek no aparece — no tiene un modelo de embedding disponible. Usalo solo para Chat.
+Si estás en la pestaña **Embeddings** de Ajustes, la card de DeepSeek no aparece — no tiene un modelo de embedding disponible. Usalo solo para General.
 :::
 
 ---
@@ -33,15 +33,15 @@ Si estás en la pestaña **Embeddings** de Ajustes, la card de DeepSeek no apare
 ## Configuración en AIRecorder
 
 1. Ve a **Ajustes > Agentes IA**
-2. Elige la sub-pestaña **Chat** o **Embeddings** según qué rol quieras configurar — podés usar un proveedor distinto para cada uno (por ejemplo, Gemini para Chat y Ollama local para Embeddings)
+2. Elige la sub-pestaña **General** o **Embeddings** según qué rol quieras configurar — podés usar un proveedor distinto para cada uno (por ejemplo, Gemini para General y Ollama local para Embeddings)
 3. Abrí la sección **"Proveedores en la Nube"** (arranca colapsada — hacé clic en el título o en la flecha para desplegarla)
 4. Selecciona la card del proveedor que quieras usar
 5. Pega tu API Key
 6. Para OpenAI y Gemini: pulsá **"Refrescar"** para traer la lista real de modelos de tu cuenta y elegí uno
 7. Para Kimi y DeepSeek: elegí un modelo de la lista predefinida
 
-::: tip 💡 Chat y Embeddings son independientes
-La API Key de cada proveedor es compartida entre ambos roles, pero el proveedor activo (y el modelo, cuando aplica) se elige por separado en cada sub-pestaña. Podés tener, por ejemplo, OpenAI para Chat y Gemini para Embeddings al mismo tiempo.
+::: tip 💡 General y Embeddings son independientes
+La API Key de cada proveedor es compartida entre ambos roles, pero el proveedor activo (y el modelo, cuando aplica) se elige por separado en cada sub-pestaña. Podés tener, por ejemplo, OpenAI para General y Gemini para Embeddings al mismo tiempo.
 :::
 
 ---

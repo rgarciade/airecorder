@@ -28,12 +28,12 @@ If you use a provider that exposes an OpenAI-compatible API but isn't one of the
 
 ## Activating and Choosing a Model
 
-Each connection is activated separately for **Chat** and for **Embeddings** (sub-tabs above AI Agents):
+Each connection is activated separately for **General** and for **Embeddings** (sub-tabs above AI Agents):
 
 1. Toggle the connection on in its card
 2. AIRecorder automatically tests the connection (`GET {URL}/v1/models`) and fetches the real list of available models
-3. Pick the model — the selector shows "General Model" on the Chat sub-tab, or "Embedding Model" on the Embeddings sub-tab
-4. You can use the **same connection** with a different model for each role (e.g. a large chat model and a lighter embedding model)
+3. Pick the model — the selector shows "General Model" on the General sub-tab, or "Embedding Model" on the Embeddings sub-tab
+4. You can use the **same connection** with a different model for each role (e.g. a large general model and a lighter embedding model)
 
 ::: tip 💡 "Test" button
 If you need to refresh the model list manually (for example, after adding a new model on your provider's side), use the **"Test"** button on the connection's card.

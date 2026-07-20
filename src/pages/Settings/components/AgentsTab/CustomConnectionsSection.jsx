@@ -24,8 +24,8 @@ export default function CustomConnectionsSection({ role, defaultOpen = false }) 
     setAiProvider,
     embeddingProvider,
     setEmbeddingProvider,
-    customChatModel,
-    setCustomChatModel,
+    customGeneralModel,
+    setCustomGeneralModel,
     embeddingModel,
     setEmbeddingModel,
     customConnectionsSaveValidation,
@@ -40,7 +40,7 @@ export default function CustomConnectionsSection({ role, defaultOpen = false }) 
   const [draft, setDraft] = useState(EMPTY_DRAFT);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
 
-  const activeProviderForRole = role === 'chat' ? aiProvider : embeddingProvider;
+  const activeProviderForRole = role === 'general' ? aiProvider : embeddingProvider;
   const activeConnectionForRole = customConnections.find(
     (c) => activeProviderForRole === `custom:${c.id}`
   );
@@ -96,15 +96,15 @@ export default function CustomConnectionsSection({ role, defaultOpen = false }) 
     setDeleteTargetId(null);
   }, [deleteTargetId, stageDeleteCustomConnection]);
 
-  const handleChatConnectionChange = useCallback((connectionId) => {
+  const handleGeneralConnectionChange = useCallback((connectionId) => {
     if (connectionId) {
       setAiProvider(`custom:${connectionId}`);
-      if (!customChatModel) setCustomChatModel('');
+      if (!customGeneralModel) setCustomGeneralModel('');
     } else {
       setAiProvider('');
-      setCustomChatModel('');
+      setCustomGeneralModel('');
     }
-  }, [setAiProvider, setCustomChatModel, customChatModel]);
+  }, [setAiProvider, setCustomGeneralModel, customGeneralModel]);
 
   const handleEmbeddingConnectionChange = useCallback((connectionId) => {
     if (connectionId) {
@@ -192,11 +192,11 @@ export default function CustomConnectionsSection({ role, defaultOpen = false }) 
         const isEditing = editingId === connection.id;
         const isStagedForDelete = stagedDeletions.includes(connection.id);
         const isActiveForRole =
-          role === 'chat'
+          role === 'general'
             ? aiProvider === `custom:${connection.id}`
             : embeddingProvider === `custom:${connection.id}`;
         const isActiveForOtherRole =
-          role === 'chat'
+          role === 'general'
             ? embeddingProvider === `custom:${connection.id}`
             : aiProvider === `custom:${connection.id}`;
 
@@ -226,8 +226,8 @@ export default function CustomConnectionsSection({ role, defaultOpen = false }) 
                 onTest={testCustomConnection}
                 onEdit={() => startEdit(connection)}
                 onToggleActive={() =>
-                  role === 'chat'
-                    ? handleChatConnectionChange(connection.id)
+                  role === 'general'
+                    ? handleGeneralConnectionChange(connection.id)
                     : handleEmbeddingConnectionChange(connection.id)
                 }
                 onToggleDelete={() =>
@@ -235,8 +235,8 @@ export default function CustomConnectionsSection({ role, defaultOpen = false }) 
                     ? cancelDeleteCustomConnection(connection.id)
                     : requestDeleteConnection(connection.id)
                 }
-                selectedModel={role === 'chat' ? customChatModel : embeddingModel}
-                onModelChange={role === 'chat' ? setCustomChatModel : setEmbeddingModel}
+                selectedModel={role === 'general' ? customGeneralModel : embeddingModel}
+                onModelChange={role === 'general' ? setCustomGeneralModel : setEmbeddingModel}
                 t={t}
               />
             )}

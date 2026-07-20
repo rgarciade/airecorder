@@ -117,7 +117,7 @@ async function _runCallProvider(prompt, options) {
       if (isCustom(provider)) {
         const connection = resolveCustomConnection(settings, provider);
         if (!connection) throw new Error('Conexión personalizada no encontrada');
-        const model = options.model || settings.customChatModel;
+        const model = options.model || settings.customGeneralModel;
         if (!model) throw new Error('No se ha seleccionado un modelo para la conexión personalizada.');
         const client = new CustomOpenAIProvider({
           baseUrl: connection.baseUrl,
@@ -206,7 +206,7 @@ async function _runCallProviderStreaming(prompt, onChunk, options) {
       if (isCustom(provider)) {
         const connection = resolveCustomConnection(settings, provider);
         if (!connection) throw new Error('Conexión personalizada no encontrada');
-        const model = options.model || settings.customChatModel;
+        const model = options.model || settings.customGeneralModel;
         if (!model) throw new Error('No se ha seleccionado un modelo para la conexión personalizada.');
         const client = new CustomOpenAIProvider({
           baseUrl: connection.baseUrl,
@@ -334,7 +334,7 @@ export async function validateProviderConfig() {
   if (isCustom(settings.aiProvider)) {
     const connection = resolveCustomConnection(settings, settings.aiProvider);
     if (!connection) return { valid: false, error: 'Conexión personalizada no encontrada' };
-    if (!settings.customChatModel) return { valid: false, error: 'Falta seleccionar un modelo para la conexión personalizada' };
+    if (!settings.customGeneralModel) return { valid: false, error: 'Falta seleccionar un modelo para la conexión personalizada' };
   }
 
   return { valid: true, error: null };
@@ -457,7 +457,7 @@ async function _runCallChatProviderStreaming(messages, onChunk, options) {
       if (isCustom(provider)) {
         const connection = resolveCustomConnection(settings, provider);
         if (!connection) throw new Error('Conexión personalizada no encontrada');
-        const model = options.model || options.ragModel || settings.customChatModel;
+        const model = options.model || options.ragModel || settings.customGeneralModel;
         if (!model) throw new Error('No se ha seleccionado un modelo para la conexión personalizada.');
         const client = new CustomOpenAIProvider({
           baseUrl: connection.baseUrl,

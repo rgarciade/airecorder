@@ -76,7 +76,7 @@ describe('LocalProvidersSection — role prop', () => {
   });
 
   it('accepts role prop and renders without error', () => {
-    const html = renderToStaticMarkup(<LocalProvidersSection role="chat" defaultOpen />);
+    const html = renderToStaticMarkup(<LocalProvidersSection role="general" defaultOpen />);
     expect(html.length).toBeGreaterThan(0);
     expect(html).toContain('Ollama');
     expect(html).toContain('LM Studio');
@@ -84,7 +84,7 @@ describe('LocalProvidersSection — role prop', () => {
 
   it('is collapsed by default, regardless of which provider is active', () => {
     mockSettings.aiProvider = 'ollama';
-    const html = renderToStaticMarkup(<LocalProvidersSection role="chat" />);
+    const html = renderToStaticMarkup(<LocalProvidersSection role="general" />);
     expect(html).not.toContain('Ollama');
     expect(html).not.toContain('LM Studio');
     expect(html).toContain('aria-label="settings.buttons.expand"');
@@ -92,7 +92,7 @@ describe('LocalProvidersSection — role prop', () => {
 
   it('when role=chat, renders with toggleProvider used for disabled state', () => {
     mockSettings.aiProvider = 'ollama';
-    const html = renderToStaticMarkup(<LocalProvidersSection role="chat" defaultOpen />);
+    const html = renderToStaticMarkup(<LocalProvidersSection role="general" defaultOpen />);
 
     // LM Studio card should be disabled (not active)
     const cardDisabledCount = (html.match(/cardDisabled/g) || []).length;
@@ -122,7 +122,7 @@ describe('LocalProvidersSection — role prop', () => {
 
   it('when role=chat and aiProvider=lmstudio, LM Studio toggle is checked', () => {
     mockSettings.aiProvider = 'lmstudio';
-    const html = renderToStaticMarkup(<LocalProvidersSection role="chat" defaultOpen />);
+    const html = renderToStaticMarkup(<LocalProvidersSection role="general" defaultOpen />);
 
     expect(html).toContain('Ollama');
     expect(html).toContain('LM Studio');
@@ -130,7 +130,7 @@ describe('LocalProvidersSection — role prop', () => {
 
   it('when role=chat, toggle checked belongs to Ollama (aiProvider)', () => {
     mockSettings.aiProvider = 'ollama';
-    const html = renderToStaticMarkup(<LocalProvidersSection role="chat" defaultOpen />);
+    const html = renderToStaticMarkup(<LocalProvidersSection role="general" defaultOpen />);
 
     // There should be exactly 1 checked toggle (the active provider)
     const checkedMatches = html.match(/checked=""/g) || [];
@@ -158,19 +158,19 @@ describe('LocalProvidersSection — role prop', () => {
   });
 
   describe('Role Badge', () => {
-    it('when provider is active for chat only, badge uses i18n key [RED — hardcoded strings need replacement]', () => {
+    it('when provider is active for general only, badge uses i18n key [RED — hardcoded strings need replacement]', () => {
       mockSettings.aiProvider = 'ollama';
       mockSettings.embeddingProvider = '';
-      const html = renderToStaticMarkup(<LocalProvidersSection role="chat" defaultOpen />);
-      // Badge should show i18n key for "Chat"
-      expect(html).toContain('settings.roles.chat');
+      const html = renderToStaticMarkup(<LocalProvidersSection role="general" defaultOpen />);
+      // Badge should show i18n key for "General"
+      expect(html).toContain('settings.roles.general');
       expect(html).not.toContain('>Chat<');
     });
 
     it('when provider is active for embeddings only, badge uses i18n key [RED]', () => {
       mockSettings.aiProvider = '';
       mockSettings.embeddingProvider = 'ollama';
-      const html = renderToStaticMarkup(<LocalProvidersSection role="chat" defaultOpen />);
+      const html = renderToStaticMarkup(<LocalProvidersSection role="general" defaultOpen />);
       expect(html).toContain('settings.roles.embeddings');
       expect(html).not.toContain('>Embeddings<');
     });
@@ -178,7 +178,7 @@ describe('LocalProvidersSection — role prop', () => {
     it('when provider is active for both roles, badge uses i18n key [RED]', () => {
       mockSettings.aiProvider = 'ollama';
       mockSettings.embeddingProvider = 'ollama';
-      const html = renderToStaticMarkup(<LocalProvidersSection role="chat" defaultOpen />);
+      const html = renderToStaticMarkup(<LocalProvidersSection role="general" defaultOpen />);
       expect(html).toContain('settings.roles.both');
       expect(html).not.toContain('>Both<');
     });
@@ -191,7 +191,7 @@ describe('LocalProvidersSection — role prop', () => {
     });
 
     it('when role=chat, general model and chat model selectors are visible for Ollama, embedding model is hidden', () => {
-      const html = renderToStaticMarkup(<LocalProvidersSection role="chat" defaultOpen />);
+      const html = renderToStaticMarkup(<LocalProvidersSection role="general" defaultOpen />);
       // General model and chat model selectors should be rendered
       expect(html).toContain('settings.fields.generalModel');
       expect(html).toContain('settings.fields.chatModel');

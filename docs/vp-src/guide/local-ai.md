@@ -31,10 +31,10 @@ AIRecorder usa **dos modelos distintos** para tareas diferentes. Los puedes conf
 
 ### Proveedor Independiente por Rol
 
-En **Ajustes > Agentes IA** hay dos sub-pestañas, **Chat** y **Embeddings**. Cada una tiene su propia selección de proveedor — podés usar Ollama para Chat y un proveedor cloud para Embeddings (o al revés), o el mismo proveedor local para ambos con modelos distintos. Las secciones "Proveedores Locales", "Proveedores en la Nube" y "Conexiones OpenAI Personalizadas" arrancan colapsadas — hacé clic en el título o en la flecha de cada una para desplegarla.
+En **Ajustes > Agentes IA** hay dos sub-pestañas, **General** y **Embeddings**. Cada una tiene su propia selección de proveedor — podés usar Ollama para General y un proveedor cloud para Embeddings (o al revés), o el mismo proveedor local para ambos con modelos distintos. Las secciones "Proveedores Locales", "Proveedores en la Nube" y "Conexiones OpenAI Personalizadas" arrancan colapsadas — hacé clic en el título o en la flecha de cada una para desplegarla.
 
 ::: tip 💡 También disponible en el Onboarding
-La pantalla de configuración inicial de IA (primera vez que abrís AIRecorder) tiene el mismo split Chat/Embeddings, con selección real de modelo para cada proveedor local.
+La pantalla de configuración inicial de IA (primera vez que abrís AIRecorder) tiene el mismo split General/Embeddings, con selección real de modelo para cada proveedor local.
 :::
 
 ---

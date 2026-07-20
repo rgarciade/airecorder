@@ -1,26 +1,33 @@
 import React from 'react';
-import { FaCheckCircle, FaMicrophone, FaRobot, FaServer, FaRocket } from 'react-icons/fa';
-import { MdCloud } from 'react-icons/md';
+import { FaCheckCircle, FaMicrophone, FaRocket } from 'react-icons/fa';
+import AiProviderIcon from '../../components/AiProviderIcon/AiProviderIcon';
+
+const PROVIDER_LABEL = {
+  ollama: 'Ollama (Local)',
+  lmstudio: 'LM Studio (Local)',
+  openai: 'OpenAI',
+  gemini: 'Gemini',
+  kimi: 'Kimi (Moonshot)',
+  deepseek: 'DeepSeek',
+};
+
+const isLocalProvider = (provider) => provider === 'ollama' || provider === 'lmstudio';
 
 const ReadyStep = ({
   t,
   aiProvider,
   modelName,
+  embedProvider,
+  embedModelName,
   onComplete,
   StepProgressComponent
 }) => {
-  const isLocal = aiProvider === 'ollama' || aiProvider === 'lmstudio';
-
-  const providerLabel = {
-    ollama: 'Ollama (Local)',
-    lmstudio: 'LM Studio (Local)',
-    gemini: 'Gemini',
-    kimi: 'Kimi (Moonshot)',
-    deepseek: 'DeepSeek',
-  }[aiProvider] || aiProvider;
+  const isLocal = isLocalProvider(aiProvider);
+  const isEmbedLocal = isLocalProvider(embedProvider);
 
   // Solo Ollama tiene un modelo seleccionado con nombre significativo
   const showModelName = aiProvider === 'ollama' && modelName;
+  const showEmbedModelName = embedProvider === 'ollama' && embedModelName;
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 dark:bg-surface-primary overflow-y-auto">
@@ -40,7 +47,7 @@ const ReadyStep = ({
         </div>
 
         {/* Configuration Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl mb-12">
+        <div className={`grid grid-cols-1 ${embedProvider ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-6 w-full max-w-3xl mb-12`}>
 
           {/* Audio Status */}
           <div className="bg-white dark:bg-surface-secondary border border-slate-200 dark:border-edge-primary rounded-2xl p-6 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-shadow">
@@ -54,14 +61,15 @@ const ReadyStep = ({
             </span>
           </div>
 
-          {/* AI Status */}
+          {/* AI Status — rol General */}
           <div className="bg-white dark:bg-surface-secondary border border-slate-200 dark:border-edge-primary rounded-2xl p-6 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-shadow">
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4 ${
               isLocal ? 'bg-orange-50 text-orange-500' : 'bg-indigo-50 text-indigo-500'
             }`}>
-              {isLocal ? <FaRobot /> : <MdCloud />}
+              <AiProviderIcon provider={aiProvider} />
             </div>
-            <h3 className="font-bold text-slate-800 dark:text-content-primary text-lg mb-1">{providerLabel}</h3>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-content-secondary mb-1">{t('settings.roles.general')}</p>
+            <h3 className="font-bold text-slate-800 dark:text-content-primary text-lg mb-1">{PROVIDER_LABEL[aiProvider] || aiProvider}</h3>
             {showModelName && (
               <p className="text-slate-500 dark:text-content-secondary text-sm mb-3 truncate max-w-full px-4">{modelName}</p>
             )}
@@ -69,6 +77,25 @@ const ReadyStep = ({
               <FaCheckCircle size={10} /> {t('onboarding.finish.active')}
             </span>
           </div>
+
+          {/* Embeddings Status — opcional, solo si quedó configurado */}
+          {embedProvider && (
+            <div className="bg-white dark:bg-surface-secondary border border-slate-200 dark:border-edge-primary rounded-2xl p-6 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-shadow">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4 ${
+                isEmbedLocal ? 'bg-orange-50 text-orange-500' : 'bg-indigo-50 text-indigo-500'
+              }`}>
+                <AiProviderIcon provider={embedProvider} />
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-content-secondary mb-1">{t('settings.roles.embeddings')}</p>
+              <h3 className="font-bold text-slate-800 dark:text-content-primary text-lg mb-1">{PROVIDER_LABEL[embedProvider] || embedProvider}</h3>
+              {showEmbedModelName && (
+                <p className="text-slate-500 dark:text-content-secondary text-sm mb-3 truncate max-w-full px-4">{embedModelName}</p>
+              )}
+              <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                <FaCheckCircle size={10} /> {t('onboarding.finish.active')}
+              </span>
+            </div>
+          )}
 
         </div>
 

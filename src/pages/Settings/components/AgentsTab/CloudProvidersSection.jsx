@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
-  MdCloud, MdAutoAwesome, MdVisibility, MdVisibilityOff, MdRefresh, MdOpenInNew, MdExpandMore, MdExpandLess
+  MdCloud, MdVisibility, MdVisibilityOff, MdRefresh, MdOpenInNew, MdExpandMore, MdExpandLess
 } from 'react-icons/md';
 import styles from '../../Settings.module.css';
+import AiProviderIcon from '../../../../components/AiProviderIcon/AiProviderIcon';
 import RoleBadge from './RoleBadge';
 import { useSettings } from '../../SettingsContext';
 
@@ -42,9 +43,9 @@ export default function CloudProvidersSection({ role, defaultOpen = false }) {
     kimiModels,
   } = useSettings();
 
-  const activeProvider = role === 'chat' ? aiProvider : embeddingProvider;
+  const activeProvider = role === 'general' ? aiProvider : embeddingProvider;
   const handleToggle = (provider) => {
-    if (role === 'chat') {
+    if (role === 'general') {
       toggleProvider(provider);
     } else {
       toggleEmbeddingProvider(provider);
@@ -105,7 +106,7 @@ export default function CloudProvidersSection({ role, defaultOpen = false }) {
         <div className={styles.cardHeader}>
           <div className={styles.providerInfo}>
             <div className={`${styles.providerIcon}`} style={{backgroundColor: '#e2e8f0', color: '#10a37f'}}>
-              <MdAutoAwesome size={24} />
+              <AiProviderIcon provider="openai" size={24} />
             </div>
             <div>
               <h4 className={styles.providerName}>OpenAI</h4>
@@ -200,7 +201,7 @@ export default function CloudProvidersSection({ role, defaultOpen = false }) {
         <div className={styles.cardHeader}>
           <div className={styles.providerInfo}>
             <div className={`${styles.providerIcon} ${styles.geminiIcon}`}>
-              <MdAutoAwesome size={24} />
+              <AiProviderIcon provider="gemini" size={24} />
             </div>
             <div>
               <h4 className={styles.providerName}>Gemini</h4>
@@ -296,7 +297,7 @@ export default function CloudProvidersSection({ role, defaultOpen = false }) {
         <div className={styles.cardHeader}>
           <div className={styles.providerInfo}>
             <div className={`${styles.providerIcon}`} style={{backgroundColor: '#dbeafe', color: '#3b82f6'}}>
-              <MdAutoAwesome size={24} />
+              <AiProviderIcon provider="deepseek" size={24} />
             </div>
             <div>
               <h4 className={styles.providerName}>DeepSeek</h4>
@@ -361,7 +362,7 @@ export default function CloudProvidersSection({ role, defaultOpen = false }) {
         <div className={styles.cardHeader}>
           <div className={styles.providerInfo}>
             <div className={`${styles.providerIcon}`} style={{backgroundColor: '#fce7f3', color: '#ec4899'}}>
-              <MdAutoAwesome size={24} />
+              <AiProviderIcon provider="kimi" size={24} />
             </div>
             <div>
               <h4 className={styles.providerName}>Kimi</h4>

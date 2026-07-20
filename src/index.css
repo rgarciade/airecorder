@@ -74,7 +74,6 @@ html[data-font-size="xlarge"] { font-size: 20px; }
   --color-toggle-bg:         #CBD5E1;
   --color-scrollbar-thumb:   #CBD5E1;
   --color-scrollbar-hover:   #94A3B8;
-  --ollama-icon-filter:      none;
 
   /* Status pill colors */
   --color-status-backlog-bg:          #F1F5F9;
@@ -167,7 +166,6 @@ html[data-theme="dark"] {
   --color-toggle-bg:         #252C3A;
   --color-scrollbar-thumb:   #252C3A;
   --color-scrollbar-hover:   #2E3646;
-  --ollama-icon-filter:      invert(1);
 
   /* Status pill colors — dark */
   --color-status-backlog-bg:          #1E2535;
