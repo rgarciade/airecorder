@@ -1,4 +1,73 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { defineConfig } from 'vitepress'
+
+// ============================================================
+// SEO helpers — shared by transformPageData (per-page canonical /
+// hreflang / OG tags) and buildEnd (sitemap.xml generation), so the
+// es<->en URL pairing logic lives in exactly one place.
+// ============================================================
+
+const SITE_ORIGIN = 'https://rgarciade.github.io/airecorder'
+const WIKI_BASE = `${SITE_ORIGIN}/vp/`
+const SITE_NAME = 'AIRecorder'
+const OG_IMAGE = `${SITE_ORIGIN}/icon.png`
+
+// Mirrors VitePress's own internal route-normalization regex (see
+// INDEX_OR_EXT_RE in vitepress/dist/node/chunk-*.js): strips a trailing
+// "index.md" (collapsing to the parent directory) or a bare ".md"
+// extension, matching exactly how `cleanUrls: true` resolves real URLs.
+// e.g. "index.md" -> "", "guide/index.md" -> "guide/", "guide/faq.md" -> "guide/faq"
+const INDEX_OR_EXT_RE = /(?:(^|\/)index)?\.md$/
+
+/**
+ * Given a page's `relativePath` (as found on `pageData.relativePath` in
+ * transformPageData, or as an entry of `siteConfig.pages` in buildEnd —
+ * both share the exact same "path/relative/to/srcDir.md" format), resolve
+ * its locale, its clean route, and the canonical + es/en sibling URLs.
+ */
+function resolvePageMeta(relativePath: string) {
+  const route = relativePath.replace(INDEX_OR_EXT_RE, '$1')
+  const locale: 'es' | 'en' = route === 'en' || route.startsWith('en/') ? 'en' : 'es'
+  const bareRoute = locale === 'en' ? route.slice(3) : route // strips "en/"
+  const es = `${WIKI_BASE}${bareRoute}`
+  const en = `${WIKI_BASE}en/${bareRoute}`
+  const canonical = locale === 'en' ? en : es
+  return { route, bareRoute, locale, canonical, es, en }
+}
+
+/** Priority/changefreq convention carried over from the previous hand-written sitemap. */
+function computeSeoWeight(bareRoute: string, locale: 'es' | 'en') {
+  let priority: number
+  let changefreq: 'weekly' | 'monthly'
+
+  if (bareRoute === '') {
+    priority = 0.9
+    changefreq = 'weekly'
+  } else if (bareRoute === 'guide/') {
+    priority = 0.8
+    changefreq = 'weekly'
+  } else if (bareRoute === 'reference/') {
+    priority = 0.6
+    changefreq = 'monthly'
+  } else if (bareRoute.startsWith('guide/')) {
+    priority = bareRoute === 'guide/local-ai' ? 0.8 : 0.7
+    changefreq = 'weekly'
+  } else if (bareRoute.startsWith('reference/')) {
+    priority = 0.5
+    changefreq = 'monthly'
+  } else {
+    priority = 0.5
+    changefreq = 'monthly'
+  }
+
+  // English pages mirror their Spanish counterpart one tier down, same
+  // convention the previous manual sitemap already used (e.g. es guide
+  // subpages 0.7 -> en guide subpages 0.6).
+  if (locale === 'en') priority = Math.round((priority - 0.1) * 10) / 10
+
+  return { priority: priority.toFixed(1), changefreq }
+}
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -137,5 +206,96 @@ export default defineConfig({
 
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: '/airecorder/icon.png' }]
-  ]
+  ],
+
+  // FIX 1: inject canonical + hreflang + OG/Twitter tags into every page's
+  // frontmatter.head (VitePress merges this array into the real <head>).
+  transformPageData(pageData) {
+    // Skip the virtual "not found" page — it has no real route to canonicalize.
+    if (pageData.isNotFound || pageData.relativePath === '404.md') return
+
+    const { locale, canonical, es, en } = resolvePageMeta(pageData.relativePath)
+    const frontmatter = pageData.frontmatter
+
+    const title = frontmatter.title || pageData.title || SITE_NAME
+    const ogTitle = title === SITE_NAME ? SITE_NAME : `${title} | ${SITE_NAME}`
+    const description =
+      frontmatter.description ||
+      pageData.description ||
+      (locale === 'en' ? 'AIRecorder documentation' : 'Documentación de AIRecorder')
+    const ogLocale = locale === 'en' ? 'en_US' : 'es_ES'
+
+    frontmatter.head ??= []
+    frontmatter.head.push(
+      ['link', { rel: 'canonical', href: canonical }],
+      // Self-referencing entry is mandatory in hreflang sets, not just the sibling.
+      ['link', { rel: 'alternate', hreflang: 'es', href: es }],
+      ['link', { rel: 'alternate', hreflang: 'en', href: en }],
+      ['link', { rel: 'alternate', hreflang: 'x-default', href: es }],
+      ['meta', { property: 'og:title', content: ogTitle }],
+      ['meta', { property: 'og:description', content: description }],
+      ['meta', { property: 'og:url', content: canonical }],
+      ['meta', { property: 'og:type', content: 'website' }],
+      ['meta', { property: 'og:image', content: OG_IMAGE }],
+      ['meta', { property: 'og:locale', content: ogLocale }],
+      ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+      ['meta', { name: 'twitter:title', content: ogTitle }],
+      ['meta', { name: 'twitter:description', content: description }],
+      ['meta', { name: 'twitter:image', content: OG_IMAGE }]
+    )
+  },
+
+  // FIX 2: regenerate docs/sitemap.xml (covers the whole site, not just the
+  // VitePress wiki) from the actual page list on every build — no manual drift.
+  buildEnd(siteConfig) {
+    const today = new Date().toISOString().slice(0, 10)
+
+    const wikiPages = siteConfig.pages
+      .map((relativePath) => {
+        const meta = resolvePageMeta(relativePath)
+        const { priority, changefreq } = computeSeoWeight(meta.bareRoute, meta.locale)
+        return { ...meta, priority, changefreq }
+      })
+      .sort((a, b) => a.canonical.localeCompare(b.canonical))
+
+    const staticEntries = [
+      { loc: `${SITE_ORIGIN}/`, changefreq: 'weekly', priority: '1.0' },
+      { loc: `${SITE_ORIGIN}/changelog.html`, changefreq: 'monthly', priority: '0.6' }
+    ]
+
+    const lines: string[] = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">'
+    ]
+
+    for (const entry of staticEntries) {
+      lines.push(
+        '  <url>',
+        `    <loc>${entry.loc}</loc>`,
+        `    <changefreq>${entry.changefreq}</changefreq>`,
+        `    <priority>${entry.priority}</priority>`,
+        '  </url>'
+      )
+    }
+
+    for (const page of wikiPages) {
+      lines.push(
+        '  <url>',
+        `    <loc>${page.canonical}</loc>`,
+        `    <lastmod>${today}</lastmod>`,
+        `    <changefreq>${page.changefreq}</changefreq>`,
+        `    <priority>${page.priority}</priority>`,
+        `    <xhtml:link rel="alternate" hreflang="es" href="${page.es}"/>`,
+        `    <xhtml:link rel="alternate" hreflang="en" href="${page.en}"/>`,
+        `    <xhtml:link rel="alternate" hreflang="x-default" href="${page.es}"/>`,
+        '  </url>'
+      )
+    }
+
+    lines.push('</urlset>', '')
+
+    // outDir is docs/vp — sitemap.xml must live at docs/sitemap.xml (site root)
+    const sitemapPath = path.resolve(siteConfig.outDir, '../sitemap.xml')
+    fs.writeFileSync(sitemapPath, lines.join('\n'), 'utf-8')
+  }
 })
