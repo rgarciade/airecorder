@@ -7,6 +7,7 @@ module.exports = {
       duration REAL DEFAULT 0,
       status TEXT CHECK(status IN ('recorded', 'transcribed', 'analyzed')) DEFAULT 'recorded',
       transcription_model TEXT,
+      skip_diarization INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `,
@@ -27,6 +28,10 @@ module.exports = {
 
   UPDATE_TRANSCRIPTION_MODEL: `
     UPDATE recordings SET transcription_model = ? WHERE relative_path = ?;
+  `,
+
+  UPDATE_SKIP_DIARIZATION: `
+    UPDATE recordings SET skip_diarization = ? WHERE id = ?;
   `,
 
   UPDATE_DURATION: `

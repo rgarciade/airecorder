@@ -358,6 +358,16 @@
   margin-bottom: 8px;
 }
 
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
 .input {
   width: 100%;
   padding: 12px 16px;
@@ -425,7 +435,7 @@
 }
 
 .saveButton {
-  width: 100%;
+  flex: 1;
   padding: 12px 24px;
   background-color: var(--color-primary-hover);
   color: white;

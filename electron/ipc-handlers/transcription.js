@@ -5,10 +5,10 @@ const transcriptionManager = require('../services/transcriptionManager');
 module.exports.registerTranscriptionHandlers = () => {
 
   // Manejador para añadir a la cola
-  ipcMain.handle('transcribe-recording', async (event, recordingId, model = null) => {
-    console.log(`[IPC] transcribe-recording: recordingId=${recordingId}, model=${model}`);
+  ipcMain.handle('transcribe-recording', async (event, recordingId, model = null, options = {}) => {
+    console.log(`[IPC] transcribe-recording: recordingId=${recordingId}, model=${model}, options=`, options);
     try {
-      const result = transcriptionManager.addTask(recordingId, { name: recordingId, model: model });
+      const result = transcriptionManager.addTask(recordingId, { name: recordingId, model: model, skipDiarization: options?.skipDiarization });
       console.log(`[IPC] transcribe-recording resultado:`, result);
       return result;
     } catch (error) {

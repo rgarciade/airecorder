@@ -151,14 +151,16 @@ class RecordingsService {
    * Lanza el proceso de transcripción para una grabación
    * @param {string} recordingId
    * @param {string} model - Tamaño del modelo opcional
+   * @param {Object} options
+   * @param {boolean} [options.skipDiarization] - Descarta la diarización solo para esta grabación
    * @returns {Promise<Object>} Estado de la transcripción
    */
-  async transcribeRecording(recordingId, model = null) {
+  async transcribeRecording(recordingId, model = null, options = {}) {
     try {
       if (!window.electronAPI?.transcribeRecording) {
         throw new Error('API de Electron no disponible');
       }
-      const result = await window.electronAPI.transcribeRecording(recordingId, model);
+      const result = await window.electronAPI.transcribeRecording(recordingId, model, options);
       return result;
     } catch (error) {
       console.error('Error lanzando transcripción:', error);
