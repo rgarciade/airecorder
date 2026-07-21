@@ -1,5 +1,6 @@
 const Sentry = require('@sentry/electron/main');
 const { app } = require('electron');
+const { getOrCreateInstallationId } = require('../utils/installationId');
 
 class SentryService {
   constructor() {
@@ -20,6 +21,7 @@ class SentryService {
           environment: isDev ? 'development' : 'production',
         });
         this.isInitialized = true;
+        Sentry.setUser({ id: getOrCreateInstallationId() });
       } catch (error) {   
         console.error('[SentryService] Error inicializando Sentry:', error);
       }
