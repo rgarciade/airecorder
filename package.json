@@ -120,7 +120,8 @@
         }
       ],
       "category": "AudioVideo",
-      "icon": "build/icons/png"
+      "icon": "build/icons/png",
+      "maintainer": "https://github.com/rgarciade/airecorder/issues"
     }
   },
   "description": "AI-powered audio recorder and transcription tool",
