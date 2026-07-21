@@ -88,7 +88,7 @@ airecorder/
 │   └── services/           # Audio capture, AI providers, Redux store
 ├── python/                 # Audio processing & transcription backend
 │   └── audio_sync_analyzer.py
-├── scripts/                # Build utilities (obfuscation, ASAR protection…)
+├── scripts/                # Build utilities (Python binary, env injection…)
 └── requirements.txt        # Python dependencies
 ```
 

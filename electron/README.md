@@ -394,15 +394,14 @@ Permite importar archivos de conversación en texto plano (`.txt`, `.md`, `.vtt`
 | `selectConversationFile()` | Abre el diálogo de selección de archivo de conversación |
 | `saveConversationImport(data)` | Guarda la conversación parseada como nueva grabación transcripción |
 
-## 5. Protección de Código (Build de producción)
+## 5. Preparación del Código (Build de producción)
 
-El build de producción aplica 3 capas de protección:
+El código es open source (repositorio público en GitHub), por lo que no se aplica ofuscación. El build de producción solo prepara el código:
 
-1. **Ofuscación JS** (`scripts/obfuscate-electron.js`): Copia `electron/` → `electron-obfuscated/` y ofusca todos los `.js` con `javascript-obfuscator` (control flow flattening, string array encoding, dead code injection).
-2. **Protección ASAR** (`scripts/protect-asar.js`): Hook `afterPack` de electron-builder que aplica `asarmor` (bloat patch) al `.asar` para dificultar la extracción.
-3. **Minificación frontend**: Vite minifica el código React en producción.
+1. **Inyección de variables** (`scripts/prepare-electron.js`): Copia `electron/` → `electron-dist/` y reemplaza `process.env.VITE_*` por los valores literales del `.env`. Necesario porque la app empaquetada no incluye `.env` y esas variables serían `undefined` en runtime (Sentry DSN, etc.).
+2. **Minificación frontend**: Vite minifica el código React en producción.
 
-**Nota**: La ofuscación solo se ejecuta en la cadena de build (`npm run electron:build`). En desarrollo (`npm run dev`), se usa el código original sin modificar.
+**Nota**: La preparación solo se ejecuta en la cadena de build (`npm run electron:build`). En desarrollo (`npm run dev`), se usa el código original y `dotenv` carga el `.env` directamente.
 
 ## 6. Adjuntos de Grabaciones (`ipc-handlers/attachments.js`)
 

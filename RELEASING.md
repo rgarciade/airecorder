@@ -160,9 +160,8 @@ Cuando los usuarios reciban la actualización:
 ## Notas Importantes
 
 ### Seguridad del Código
-- ✅ El DMG incluye código ofuscado (difícil de copiar)
-- ✅ El ASAR está protegido con asarmor
-- ✅ No es 100% imposible extraerlo (nada lo es), pero requiere mucho esfuerzo
+- El código es open source (repositorio público en GitHub), por lo que no se aplica ofuscación ni protección del ASAR
+- El build inyecta las variables `VITE_*` del `.env` como literales (`scripts/prepare-electron.js`) — el `.env` en sí nunca se empaqueta
 
 ### Rollback (si algo sale mal)
 ```bash
@@ -176,8 +175,8 @@ git push --delete origin v0.0.2  # Elimina en GitHub
 ### Cambios Futuros
 Si modificas el `package.json` para cambiar campos como `"main"` o `"build.files"`, recuerda:
 - En desarrollo: El campo `"main"` apunta a `electron/main.js`
-- En build: `electron-builder` usa `"main"` de `build.extraMetadata` que apunta a `electron-obfuscated/main.js`
-- El script `obfuscate:electron` maneja automáticamente todo
+- En build: `electron-builder` usa `"main"` de `build.extraMetadata` que apunta a `electron-dist/main.js`
+- El script `prepare:electron` maneja automáticamente todo
 
 ---
 

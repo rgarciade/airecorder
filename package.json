@@ -11,15 +11,17 @@
     "electron:dev": "cross-env NODE_ENV=development electron .",
     "python:build": "bash scripts/build-python.sh",
     "python:build:win": "powershell -ExecutionPolicy Bypass -File scripts/build-python.ps1",
-    "obfuscate:electron": "node scripts/obfuscate-electron.js",
-    "clean:obfuscated": "rm -rf electron-obfuscated",
-    "electron:build": "npm run python:build && vite build && npm run obfuscate:electron && electron-builder --mac && npm run clean:obfuscated",
-    "electron:build:win": "npm run python:build:win && vite build && npm run obfuscate:electron && electron-builder --win && npm run clean:obfuscated",
-    "electron:build:js": "vite build && npm run obfuscate:electron && electron-builder --mac && npm run clean:obfuscated",
-    "electron:build:dir": "npm run python:build && vite build && npm run obfuscate:electron && electron-builder --mac --dir && npm run clean:obfuscated",
+    "prepare:electron": "node scripts/prepare-electron.js",
+    "clean:prepared": "node -e \"require('fs').rmSync('electron-dist',{recursive:true,force:true})\"",
+    "electron:build": "npm run python:build && vite build && npm run prepare:electron && electron-builder --mac && npm run clean:prepared",
+    "electron:build:win": "npm run python:build:win && vite build && npm run prepare:electron && electron-builder --win && npm run clean:prepared",
+    "electron:build:js": "vite build && npm run prepare:electron && electron-builder --mac && npm run clean:prepared",
+    "electron:build:dir": "npm run python:build && vite build && npm run prepare:electron && electron-builder --mac --dir && npm run clean:prepared",
+    "electron:build:linux": "vite build && npm run prepare:electron && electron-builder --linux && npm run clean:prepared",
     "reset:onboarding": "node scripts/reset-onboarding.js",
     "rebuild": "electron-rebuild --arch=arm64",
     "rebuild:win": "electron-rebuild --arch=x64",
+    "rebuild:linux": "electron-rebuild --arch=x64",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:unit": "vitest run",
@@ -37,25 +39,15 @@
     },
     "files": [
       "dist/**/*",
-      "electron-obfuscated/**/*",
+      "electron-dist/**/*",
       "package.json"
     ],
-    "afterPack": "scripts/protect-asar.js",
     "extraMetadata": {
-      "main": "electron-obfuscated/main.js"
+      "main": "electron-dist/main.js"
     },
     "asarUnpack": [
       "node_modules/ffmpeg-static/**/*",
       "node_modules/ffprobe-static/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "python-dist/${arch}/audio_sync_analyzer",
-        "to": "python-bin",
-        "filter": [
-          "**/*"
-        ]
-      }
     ],
     "mac": {
       "target": [
@@ -75,7 +67,16 @@
         "NSAudioCaptureUsageDescription": "AIRecorder necesita acceso a la captura de audio para grabar el audio del sistema.",
         "NSNetworkVolumesUsageDescription": "AIRecorder necesita acceso a volúmenes de red para guardar y leer bases de datos y grabaciones.",
         "NSRemovableVolumesUsageDescription": "AIRecorder necesita acceso a volúmenes extraíbles para guardar y leer bases de datos y grabaciones."
-      }
+      },
+      "extraResources": [
+        {
+          "from": "python-dist/${arch}/audio_sync_analyzer",
+          "to": "python-bin",
+          "filter": [
+            "**/*"
+          ]
+        }
+      ]
     },
     "win": {
       "target": [
@@ -86,13 +87,40 @@
           ]
         }
       ],
-      "icon": "build/icons/win/icon.ico"
+      "icon": "build/icons/win/icon.ico",
+      "extraResources": [
+        {
+          "from": "python-dist/${arch}/audio_sync_analyzer",
+          "to": "python-bin",
+          "filter": [
+            "**/*"
+          ]
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "installerIcon": "build/icons/win/icon.ico",
       "uninstallerIcon": "build/icons/win/icon.ico"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "AudioVideo",
+      "icon": "build/icons/png"
     }
   },
   "description": "AI-powered audio recorder and transcription tool",
@@ -139,7 +167,6 @@
     "@types/react": "^18.2.64",
     "@types/react-dom": "^18.2.21",
     "@vitejs/plugin-react": "^4.2.1",
-    "asarmor": "^3.0.2",
     "autoprefixer": "^10.4.19",
     "concurrently": "^8.2.2",
     "cross-env": "^10.1.0",
@@ -150,7 +177,6 @@
     "eslint-plugin-react": "^7.34.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
-    "javascript-obfuscator": "^5.3.0",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.1",
     "vite": "^5.1.6",
