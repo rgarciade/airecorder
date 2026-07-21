@@ -1,6 +1,6 @@
 {
-  "version": "0.6.1",
-  "releaseDate": "2026-06-14",
+  "version": "0.7.1",
+  "releaseDate": "2026-07-21",
   "i18n": {
     "es": {
       "modalTitle": "Novedades de esta versión",
@@ -13,9 +13,9 @@
       "pageSubheading": "Todos los cambios y mejoras de cada versión",
       "pageVersionLabel": "Versión",
       "pageReleaseDateLabel": "Fecha de lanzamiento",
-      "releaseTitle": "Wiki por Proyectos, Widget Flotante y Correcciones",
-      "releaseDateFormatted": "Junio 2026",
-      "catNew": "Nuevas funciones y correcciones"
+      "releaseTitle": "Esquema Mind-Map, Conexiones IA Personalizadas y SEO",
+      "releaseDateFormatted": "Julio 2026",
+      "catNew": "Nuevas funciones y mejoras"
     },
     "en": {
       "modalTitle": "What's New",
@@ -28,82 +28,106 @@
       "pageSubheading": "All changes and improvements for each version",
       "pageVersionLabel": "Version",
       "pageReleaseDateLabel": "Release date",
-      "releaseTitle": "Project Wiki, Floating Widget & Fixes",
-      "releaseDateFormatted": "June 2026",
-      "catNew": "New features & fixes"
+      "releaseTitle": "Mind-Map Schema, Custom Connections & SEO",
+      "releaseDateFormatted": "July 2026",
+      "catNew": "New features & improvements"
     }
   },
   "changes": [
     {
-      "id": "project-wiki",
-      "icon": "📓",
+      "id": "schema-mindmap",
+      "icon": "🧠",
       "es": {
-        "title": "Wiki por proyectos",
-        "desc": "Nueva sección Wiki dentro de cada proyecto. Permite crear, editar y organizar páginas de documentación vinculadas al proyecto."
+        "title": "Esquema con vista Mind-Map",
+        "desc": "Nueva pestaña Esquema que genera un mapa mental interactivo de la grabación con outline navegable, salto directo al audio, zoom, exportación a PNG/Markdown y contexto para el chat con IA."
       },
       "en": {
-        "title": "Project Wiki",
-        "desc": "New Wiki section inside each project. Create, edit and organize documentation pages linked to the project."
+        "title": "Mind-Map Schema View",
+        "desc": "New Schema tab that generates an interactive mind map of the recording with a navigable outline, direct jump to audio, zoom controls, PNG/Markdown export, and AI chat context."
       }
     },
     {
-      "id": "floating-widget",
-      "icon": "🎛️",
+      "id": "custom-ai-connections",
+      "icon": "🔌",
       "es": {
-        "title": "Widget flotante de grabación",
-        "desc": "Nuevo widget flotante que muestra el estado de la grabación activa y permite controlarla sin necesitar abrir la ventana principal."
+        "title": "Conexiones IA personalizadas",
+        "desc": "Soporte para conectar cualquier proveedor OpenAI-compatible, sección oficial de OpenAI, fusión de Gemini Free/Pro en una sola configuración, y embeddings desacoplados del proveedor de chat."
       },
       "en": {
-        "title": "Floating Recording Widget",
-        "desc": "New floating widget showing active recording status with controls, without needing to open the main window."
+        "title": "Custom AI Connections",
+        "desc": "Support for connecting any OpenAI-compatible provider, an official OpenAI section, Gemini Free/Pro merged into one config, and embeddings decoupled from the chat provider."
       }
     },
     {
-      "id": "paste-conversations",
-      "icon": "💬",
+      "id": "onboarding-ai-rework",
+      "icon": "🧭",
       "es": {
-        "title": "Importar conversaciones",
-        "desc": "Soporte para pegar o importar conversaciones de chat (texto plano, archivos, o conversaciones analizadas por IA) directamente en una grabación."
+        "title": "Onboarding de IA renovado",
+        "desc": "Paso de configuración de IA rediseñado con soporte para roles duales (General y Embeddings), rol Embeddings ahora opcional y visible en el paso final."
       },
       "en": {
-        "title": "Import Conversations",
-        "desc": "Support for pasting or importing chat conversations (plain text, files, or AI-analyzed conversations) directly into a recording."
+        "title": "Revamped AI Onboarding",
+        "desc": "Redesigned AI setup step with dual-role support (General and Embeddings), Embeddings role now optional and shown in the final step."
       }
     },
     {
-      "id": "template-editor",
-      "icon": "✏️",
+      "id": "agents-ui-clarity",
+      "icon": "🗂️",
       "es": {
-        "title": "Editor de plantillas",
-        "desc": "Nuevo editor y selector modal de plantillas para personalizar los prompts usados en el análisis y chat con IA."
+        "title": "Agentes IA: interfaz más clara",
+        "desc": "Secciones de Agentes con colapsar/expandir (arrancan colapsadas), título clickeable, rol \"Chat\" renombrado a \"General\", y logos de proveedores unificados."
       },
       "en": {
-        "title": "Template Editor",
-        "desc": "New template editor and selector modal to customize the prompts used in AI analysis and chat."
+        "title": "AI Agents: Clearer Interface",
+        "desc": "Agent sections with collapse/expand (start collapsed), clickable title, \"Chat\" role renamed to \"General\", and unified provider logos."
       }
     },
     {
-      "id": "speaker-improvements",
-      "icon": "🗣️",
+      "id": "recording-finish-controls",
+      "icon": "🎙️",
       "es": {
-        "title": "Mejoras en gestión de hablantes",
-        "desc": "Nuevo selector de hablantes, hooks dedicados para lista y fusión, y resolución correcta de segmentos heredados del sistema de diarización."
+        "title": "Control al finalizar grabación",
+        "desc": "Ahora podés descartar la diarización o la grabación completa al finalizar, con instrucciones más claras."
       },
       "en": {
-        "title": "Speaker Management Improvements",
-        "desc": "New speaker dropdown, dedicated hooks for listing and merging speakers, and correct resolution of legacy diarization system segments."
+        "title": "Recording Finish Controls",
+        "desc": "You can now discard diarization or the entire recording when finishing, with clearer instructions."
       }
     },
     {
-      "id": "stability-fixes",
+      "id": "seo-public-wiki",
+      "icon": "🔍",
+      "es": {
+        "title": "SEO y wiki pública",
+        "desc": "Canonical, hreflang, Open Graph/Twitter Cards y sitemap dinámico en web y wiki, para mejor indexación y vistas previas al compartir."
+      },
+      "en": {
+        "title": "SEO & Public Wiki",
+        "desc": "Canonical, hreflang, Open Graph/Twitter Cards, and dynamic sitemap across website and wiki, for better indexing and share previews."
+      }
+    },
+    {
+      "id": "install-telemetry",
+      "icon": "📊",
+      "es": {
+        "title": "Telemetría de instalación",
+        "desc": "Identificador único de instalación para medir adopción de versiones en Sentry."
+      },
+      "en": {
+        "title": "Install Telemetry",
+        "desc": "Unique install identifier to track version adoption in Sentry."
+      }
+    },
+    {
+      "id": "misc-fixes-0-7-1",
       "icon": "🐛",
       "es": {
-        "title": "Correcciones de estabilidad",
-        "desc": "Se corrigen 4 bugs: el monitor de micrófono fallaba al compilar su binario en la app distribuida; settings.json podía corromperse por escrituras concurrentes; el historial de chat fallaba para grabaciones con ID numérico; stale closure en el widget flotante al detener la grabación."
+        "title": "Correcciones varias",
+        "desc": "Se asegura la creación del directorio de settings antes de guardar, evitando errores en instalaciones nuevas."
       },
       "en": {
-        "title": "Stability Fixes",
-        "desc": "Fixed 4 bugs: microphone monitor failed to compile its binary in the distributed app; settings.json could get corrupted by concurrent writes causing recordings not to load; chat history failed for recordings with numeric IDs; stale closure in the floating widget when stopping a recording."
+        "title": "Misc Fixes",
+        "desc": "Ensures the settings directory exists before saving, preventing errors on fresh installs."
       }
     }
   ]
