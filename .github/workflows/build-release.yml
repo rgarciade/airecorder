@@ -33,7 +33,10 @@ jobs:
           } > .env
 
       - name: Install dependencies
-        run: npm install
+        shell: bash
+        run: |
+          rm -f package-lock.json
+          npm install
 
       - name: Rebuild native modules for Electron (x64)
         run: npm run rebuild:win
@@ -78,7 +81,10 @@ jobs:
           } > .env
 
       - name: Install dependencies
-        run: npm install
+        shell: bash
+        run: |
+          rm -f package-lock.json
+          npm install
 
       - name: Rebuild native modules for Electron (arm64)
         run: npm run rebuild
@@ -118,7 +124,10 @@ jobs:
           } > .env
 
       - name: Install dependencies
-        run: npm install
+        shell: bash
+        run: |
+          rm -f package-lock.json
+          npm install
 
       - name: Rebuild native modules for Electron (x64)
         run: npm run rebuild:linux

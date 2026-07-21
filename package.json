@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "electron:dev": "cross-env NODE_ENV=development electron .",
     "python:build": "bash scripts/build-python.sh",
-    "python:build:win": "powershell -ExecutionPolicy Bypass -File scripts/build-python.ps1",
+    "python:build:win": "pwsh -ExecutionPolicy Bypass -File scripts/build-python.ps1",
     "prepare:electron": "node scripts/prepare-electron.js",
     "clean:prepared": "node -e \"require('fs').rmSync('electron-dist',{recursive:true,force:true})\"",
     "electron:build": "npm run python:build && vite build && npm run prepare:electron && electron-builder --mac && npm run clean:prepared",
@@ -34,6 +34,7 @@
     "appId": "com.airecorder.app",
     "productName": "AIRecorder",
     "npmRebuild": false,
+    "publish": "never",
     "directories": {
       "output": "dist-electron"
     },
