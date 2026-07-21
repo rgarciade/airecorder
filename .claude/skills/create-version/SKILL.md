@@ -1,6 +1,6 @@
 ---
 name: create-version
-description: Crea una nueva versión completa de AIRecorder. Actualiza package.json, genera las notas de versión (changelog + whatsNew.json), lanza la build de producción macOS DMG, y guía al usuario en los pasos finales de release.
+description: Crea una nueva versión completa de AIRecorder. Actualiza package.json, genera las notas de versión (changelog + whatsNew.json), lanza una build local de macOS para verificación, y guía al usuario en el flujo de release (tag → draft → CI multiplataforma vía .github/workflows/build-release.yml).
 ---
 
 # Skill: create-version
@@ -73,7 +73,9 @@ Solo cambia el campo `version`. No toques ningún otro campo.
 
 ---
 
-## Paso 4: Confirmar antes de la build
+## Paso 4: Confirmar antes de la build local
+
+La build real multiplataforma (Windows/macOS/Linux) la hace el CI (`.github/workflows/build-release.yml`) al pushear el tag — ver Paso 7. Este paso es solo una build LOCAL de macOS para verificar que todo compila antes de tagear.
 
 Muestra un resumen de todo lo que se hará y pide confirmación explícita:
 
@@ -85,18 +87,18 @@ Archivos actualizados:
   ✅ docs/changelog.html
   ✅ package.json → "version": "X.Y.Z"
 
-A continuación se ejecutará:
+A continuación se ejecutará (verificación local, no es el release final):
   ▶ npm run electron:build
-  (genera el DMG para macOS arm64, tarda varios minutos)
+  (genera el DMG local para macOS arm64, tarda varios minutos)
 
-¿Lanzar la build ahora? [s/n]
+¿Lanzar la build de verificación ahora? [s/n]
 ```
 
-Si el usuario responde "n" o "no", para aquí y muestra los próximos pasos manuales (Paso 6).
+Si el usuario responde "n" o "no", para aquí y muestra los próximos pasos manuales (Paso 7).
 
 ---
 
-## Paso 5: Ejecutar la build
+## Paso 5: Ejecutar la build local de verificación
 
 ```bash
 npm run electron:build
@@ -104,10 +106,12 @@ npm run electron:build
 
 Este comando tarda varios minutos. Informa al usuario que la build está en curso. Cuando termine, verifica que no haya errores en la salida.
 
-El DMG generado estará en `dist/` o `release/` (busca el archivo `.dmg` al finalizar):
+El DMG generado estará en `dist-electron/` (no `dist/` ni `release/` — ese es el `directories.output` configurado en electron-builder):
 ```bash
-ls -lh dist/*.dmg 2>/dev/null || ls -lh release/*.dmg 2>/dev/null
+ls -lh dist-electron/*.dmg 2>/dev/null
 ```
+
+Este DMG es solo para probar la app localmente. **No se sube a mano a la release** — el binario oficial de la release lo genera el CI en el Paso 7.
 
 ---
 
@@ -171,16 +175,16 @@ Genera el cuerpo de la release en Markdown, en **español**, usando los mismos i
 
 ## Paso 7: Próximos pasos (post-build)
 
-Muestra siempre este checklist al finalizar, tanto si la build se ejecutó como si no:
+Muestra siempre este checklist al finalizar, tanto si la build local se ejecutó como si no:
 
 ```
 ✅ VERSIÓN vX.Y.Z LISTA
 
-📦 DMG generado: [ruta/nombre.dmg]
+📦 DMG local de verificación: [ruta/nombre.dmg] (dist-electron/)
 
 PRÓXIMOS PASOS (manuales):
 
-  1. Revisa el DMG y prueba la app
+  1. Revisa el DMG local y prueba la app
 
   2. Commit de los cambios:
        git add package.json src/data/whatsNew.json docs/changelog.html
@@ -189,18 +193,38 @@ PRÓXIMOS PASOS (manuales):
   3. Crea el tag anotado (usa el mensaje generado arriba):
        git tag -a vX.Y.Z -m "[mensaje de tag]"
 
-  4. Sube el tag al remoto:
+  4. Sube el tag al remoto — esto DISPARA el workflow de CI
+     (.github/workflows/build-release.yml: build-win + build-mac + build-linux
+     en paralelo, tarda varios minutos):
        git push origin main --tags
 
-  5. Crea la release en GitHub como borrador (usa la descripción generada arriba):
-       gh release create vX.Y.Z [ruta/nombre.dmg] \
+  5. INMEDIATAMENTE después del push, crea la release en GitHub como borrador
+     con la MISMA tag (usa la descripción generada arriba). El tag ya existe
+     en remoto por el paso 4, así que `gh release create` lo reutiliza sin
+     crear uno nuevo. NO adjuntes archivos acá — el CI los adjunta al terminar:
+       gh release create vX.Y.Z \
          --title "AIRecorder vX.Y.Z" \
          --notes-file /tmp/release-notes-vX.Y.Z.md \
          --draft
+     (Si te da "release already exists" es que el CI terminó antes y creó el
+     borrador él mismo — en ese caso ponle título y notas con:
+       gh release edit vX.Y.Z --title "..." --notes-file ... --draft)
 
-  6. Revisa el borrador en GitHub y publícalo manualmente cuando esté listo
+  6. Espera a que termine el workflow (revisa la pestaña Actions o
+     `gh run watch`). Su job final `release` encuentra ESTE borrador por el
+     nombre del tag y le adjunta los binarios (.dmg, .exe, .AppImage, .deb)
+     sin crear uno nuevo ni publicarlo.
+
+  7. Revisa el borrador con los 3 binarios adjuntos y publícalo manualmente
        (Releases → editar borrador → "Publish release")
 ```
+
+**Por qué este orden (tag → push → recién ahí crear el draft):** si el draft
+se crea ANTES de que el tag exista en remoto, `gh release create` (a diferencia
+de la UI web de GitHub) crea automáticamente un tag apuntando al HEAD de la
+rama por defecto en ese mismo momento — puede no coincidir con el commit real
+del release y pisar el tag que se sube después. Pusheando el tag primero se
+evita esa ambigüedad por completo.
 
 ---
 
@@ -208,6 +232,9 @@ PRÓXIMOS PASOS (manuales):
 
 - **Nunca crees commits ni tags de forma autónoma** — el usuario gestiona git
 - La release de GitHub se crea siempre como **draft** (`--draft`) — el usuario la publica manualmente tras revisarla
-- Si la build falla, muestra el error completo y sugiere ejecutar `npm run rebuild` antes de reintentar
+- El binario oficial de la release (Windows/macOS/Linux) lo genera **`.github/workflows/build-release.yml`** al pushear el tag, no la build local del Paso 5 (esa es solo verificación en macOS)
+- El tag que se pushea debe coincidir **EXACTAMENTE** (con el prefijo `v`) con el tag usado en `gh release create` — el workflow dispara por `push: tags: v*` y el job `release` busca el draft por ese mismo nombre de tag
+- El CI reconstruye `.env` desde GitHub secrets (`VITE_SENTRY_DSN`, `VITE_WIKI_URL`, y opcionalmente `SENTRY_ORG`/`SENTRY_PROJECT`/`SENTRY_AUTH_TOKEN` para subir sourcemaps) — si esos secrets no están configurados en el repo, los binarios del CI salen sin Sentry ni wiki URL
+- Si la build local falla, muestra el error completo y sugiere ejecutar `npm run rebuild` antes de reintentar
 - El campo `version` en `package.json` debe actualizarse **antes** de la build para que quede reflejado en el ejecutable
 - Si el usuario ya tiene cambios sin commitear no relacionados con la release, avísale antes de continuar

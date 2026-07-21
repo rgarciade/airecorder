@@ -6,6 +6,7 @@ Last updated: 2026-07-21
 
 ## Sources scanned
 
+- .claude/skills
 - .agents/skills
 - /Users/raul.garciad/.agents/skills
 - /Users/raul.garciad/.config/opencode/skills
@@ -33,7 +34,7 @@ Last updated: 2026-07-21
 | `cognitive-doc-design` | Design docs that reduce cognitive load. Trigger: writing guides, READMEs, RFCs, onboarding, architecture, or review-facing docs. | user | `/Users/raul.garciad/.config/opencode/skills/cognitive-doc-design/SKILL.md` |
 | `comment-writer` | Write warm, direct collaboration comments. Trigger: PR feedback, issue replies, reviews, Slack messages, or GitHub comments. | user | `/Users/raul.garciad/.config/opencode/skills/comment-writer/SKILL.md` |
 | `contrast-checker` | Color contrast analyzer for WCAG compliance. Use when analyzing color contrast in code files, when user mentions WCAG compliance, color accessibility, contrast ratios, or when discussing colors in UI components. Calculates contrast ratios, identifies violations, and suggests accessible color alternatives that preserve design themes. | user | `/Users/raul.garciad/.agents/skills/contrast-checker/SKILL.md` |
-| `create-version` | Crea una nueva versión completa de AIRecorder. Actualiza package.json, genera las notas de versión (changelog + whatsNew.json), lanza la build de producción macOS DMG, y guía al usuario en los pasos finales de release. | user | `/Users/raul.garciad/.claude/skills/create-version/SKILL.md` |
+| `create-version` | Crea una nueva versión completa de AIRecorder. Actualiza package.json, genera las notas de versión (changelog + whatsNew.json), lanza una build local de macOS para verificación, y guía al usuario en el flujo de release (tag → draft → CI multiplataforma vía .github/workflows/build-release.yml). | project | `/Users/raul.garciad/Proyectos/personal/airecorder/.claude/skills/create-version/SKILL.md` |
 | `electron` | Provides comprehensive guidance for Electron framework including main process, renderer process, IPC communication, window management, and desktop app development. Use when the user asks about Electron, needs to create desktop applications, implement Electron features, or build cross-platform desktop apps. | project | `/Users/raul.garciad/Proyectos/personal/airecorder/.agents/skills/electron/SKILL.md` |
 | `go-testing` | Trigger: Go tests, go test coverage, Bubbletea teatest, golden files. Apply focused Go testing patterns. | user | `/Users/raul.garciad/.config/opencode/skills/go-testing/SKILL.md` |
 | `issue-creation` | Create Gentle AI issues with issue-first checks. Trigger: creating GitHub issues, bug reports, or feature requests. | user | `/Users/raul.garciad/.config/opencode/skills/issue-creation/SKILL.md` |
