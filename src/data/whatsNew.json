@@ -13,7 +13,7 @@
       "pageSubheading": "Todos los cambios y mejoras de cada versión",
       "pageVersionLabel": "Versión",
       "pageReleaseDateLabel": "Fecha de lanzamiento",
-      "releaseTitle": "Esquema Mind-Map, Conexiones IA Personalizadas y SEO",
+      "releaseTitle": "Esquema Mind-Map y Conexiones IA Personalizadas",
       "releaseDateFormatted": "Julio 2026",
       "catNew": "Nuevas funciones y mejoras"
     },
@@ -28,7 +28,7 @@
       "pageSubheading": "All changes and improvements for each version",
       "pageVersionLabel": "Version",
       "pageReleaseDateLabel": "Release date",
-      "releaseTitle": "Mind-Map Schema, Custom Connections & SEO",
+      "releaseTitle": "Mind-Map Schema & Custom AI Connections",
       "releaseDateFormatted": "July 2026",
       "catNew": "New features & improvements"
     }
@@ -92,18 +92,6 @@
       "en": {
         "title": "Recording Finish Controls",
         "desc": "You can now discard diarization or the entire recording when finishing, with clearer instructions."
-      }
-    },
-    {
-      "id": "seo-public-wiki",
-      "icon": "🔍",
-      "es": {
-        "title": "SEO y wiki pública",
-        "desc": "Canonical, hreflang, Open Graph/Twitter Cards y sitemap dinámico en web y wiki, para mejor indexación y vistas previas al compartir."
-      },
-      "en": {
-        "title": "SEO & Public Wiki",
-        "desc": "Canonical, hreflang, Open Graph/Twitter Cards, and dynamic sitemap across website and wiki, for better indexing and share previews."
       }
     },
     {

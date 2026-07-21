@@ -150,6 +150,7 @@
     .release-date { font-size: 0.875rem; font-weight: 600; color: var(--color-text-muted); background: var(--color-bg); padding: 4px 12px; border-radius: var(--radius-pill); border: 1px solid var(--color-border); }
     .release-branch { font-size: 0.78rem; font-weight: 700; color: var(--color-primary); background: var(--color-primary-light); padding: 4px 12px; border-radius: var(--radius-pill); font-family: monospace; }
     .release-tag { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 4px 12px; border-radius: var(--radius-pill); background: rgba(16,185,129,0.12); color: #059669; }
+    .release-preview { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 4px 12px; border-radius: var(--radius-pill); background: rgba(245,158,11,0.12); color: #D97706; display: inline-flex; align-items: center; gap: 4px; }
     .release-title { font-size: 1.25rem; font-weight: 800; color: var(--color-text); margin-bottom: 32px; line-height: 1.3; }
 
     /* Change list */
@@ -222,8 +223,9 @@
             <span class="release-version">v0.7.1</span>
             <span class="release-date" data-i18n="v071date">Julio 2026</span>
             <span class="release-branch">main</span>
+            <span class="release-preview" data-i18n="v071preview">Preview · macOS</span>
           </div>
-          <div class="release-title" data-i18n="v071Title">Esquema Mind-Map, Conexiones IA Personalizadas y SEO</div>
+          <div class="release-title" data-i18n="v071Title">Esquema Mind-Map y Conexiones IA Personalizadas</div>
 
           <div class="release-category">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -284,17 +286,6 @@
                 <div class="change-desc"
                   data-es="Ahora podés descartar la diarización o la grabación completa al finalizar, con instrucciones más claras."
                   data-en="You can now discard diarization or the entire recording when finishing, with clearer instructions.">Ahora podés descartar la diarización o la grabación completa al finalizar, con instrucciones más claras.</div>
-              </div>
-            </div>
-            <div class="change-item">
-              <div class="change-emoji">🔍</div>
-              <div class="change-content">
-                <div class="change-title"
-                  data-es="SEO y wiki pública"
-                  data-en="SEO & Public Wiki">SEO y wiki pública</div>
-                <div class="change-desc"
-                  data-es="Canonical, hreflang, Open Graph/Twitter Cards y sitemap dinámico en web y wiki, para mejor indexación y vistas previas al compartir."
-                  data-en="Canonical, hreflang, Open Graph/Twitter Cards, and dynamic sitemap across website and wiki, for better indexing and share previews.">Canonical, hreflang, Open Graph/Twitter Cards y sitemap dinámico en web y wiki, para mejor indexación y vistas previas al compartir.</div>
               </div>
             </div>
             <div class="change-item">
@@ -973,6 +964,15 @@
         heroBadgeText:    'Historial de versiones',
         changelogTitle:   'Novedades',
         changelogSubtitle:'Mejoras y nuevas funcionalidades incorporadas en cada versión.',
+        // v0.7.1
+        v071date:    'Julio 2026',
+        v071Title:   'Esquema Mind-Map y Conexiones IA Personalizadas',
+        v071Cat:     'Nuevas funciones y mejoras',
+        v071preview: 'Preview · macOS',
+        // v0.6.1
+        v061date:  'Junio 2026',
+        v061Title: 'Wiki por Proyectos, Widget Flotante y Correcciones',
+        v061Cat:   'Nuevas funciones y correcciones',
         // v0.5.1
         v051date:  'Abril 2026',
         v051Title: 'Hablantes, Auto-análisis IA y Prompts de Experto',
@@ -1024,6 +1024,15 @@
         heroBadgeText:    'Version history',
         changelogTitle:   "What's New",
         changelogSubtitle:'Improvements and new features added in each version.',
+        // v0.7.1
+        v071date:    'July 2026',
+        v071Title:   'Mind-Map Schema & Custom AI Connections',
+        v071Cat:     'New features & improvements',
+        v071preview: 'Preview · macOS',
+        // v0.6.1
+        v061date:  'June 2026',
+        v061Title: 'Project Wiki, Floating Widget & Fixes',
+        v061Cat:   'New features & fixes',
         // v0.5.1
         v051date:  'April 2026',
         v051Title: 'Speakers, Auto-Analysis AI & Expert Prompts',
