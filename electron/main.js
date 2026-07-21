@@ -68,11 +68,11 @@ function sendLogToRenderer(...args) {
 }
 
 console.log = (...args) => {
-  originalLog(...args);
+  try { originalLog(...args); } catch (_) { /* stdout puede estar roto (ej. app lanzada sin consola adjunta) */ }
   sendLogToRenderer(...args);
 };
 console.error = (...args) => {
-  originalError(...args);
+  try { originalError(...args); } catch (_) { /* stderr puede estar roto (ej. app lanzada sin consola adjunta) */ }
 
   // Enviar a Sentry a través del nuevo servicio centralizado
   sentryService.logError(args.map(a => typeof a === 'object' && a instanceof Error ? a.stack || a.message : (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' '));
@@ -88,7 +88,7 @@ console.error = (...args) => {
   } catch (_) { /* ignore */ }
 };
 console.warn = (...args) => {
-  originalWarn(...args);
+  try { originalWarn(...args); } catch (_) { /* stderr puede estar roto (ej. app lanzada sin consola adjunta) */ }
   try {
     const windows = BrowserWindow.getAllWindows();
     if (windows.length > 0 && windows[0].webContents) {

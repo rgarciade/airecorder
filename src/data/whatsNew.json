@@ -1,5 +1,5 @@
 {
-  "version": "0.7.2",
+  "version": "0.7.3",
   "releaseDate": "2026-07-21",
   "i18n": {
     "es": {
@@ -116,6 +116,30 @@
       "en": {
         "title": "Misc Fixes",
         "desc": "Ensures the settings directory exists before saving, preventing errors on fresh installs."
+      }
+    },
+    {
+      "id": "silent-transcription-fix-0-7-3",
+      "icon": "🐛",
+      "es": {
+        "title": "Corrección de transcripción silenciosa",
+        "desc": "Se corrigió un error que impedía generar la transcripción al abrir la app normalmente (Finder/Dock/Spotlight) — la grabación se guardaba bien, pero el texto no se generaba."
+      },
+      "en": {
+        "title": "Silent Transcription Fix",
+        "desc": "Fixed a bug preventing transcription from completing when launching the app normally (Finder/Dock/Spotlight) — recording was saved correctly, but the transcript text was never generated."
+      }
+    },
+    {
+      "id": "system-audio-entitlements-fix-0-7-3",
+      "icon": "🎧",
+      "es": {
+        "title": "Corrección de captura de audio del sistema",
+        "desc": "El build de macOS no incluía los entitlements necesarios para la captura de audio del sistema, impidiendo grabar aunque el permiso estuviera activado. Ya se corrigió en el proceso de build."
+      },
+      "en": {
+        "title": "System Audio Capture Fix",
+        "desc": "The macOS build was missing the entitlements required for system audio capture, blocking recording even with the permission enabled. Fixed in the build process."
       }
     }
   ]
