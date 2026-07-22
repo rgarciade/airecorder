@@ -8,6 +8,7 @@ on:
       - 'docs/vp-src/**'
       - 'docs/.vitepress/**'
       - 'docs/sitemap.xml'
+      - 'docs/*.html'
   workflow_dispatch:
 
 permissions:
