@@ -343,7 +343,11 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
         alert(t('home.errorImportingConversation', { error: saveResult?.error || 'Error desconocido' }));
       }
     } catch (err) {
-      alert(t('home.errorImportingConversation', { error: err.message }));
+      if (err.cancelled) {
+        console.log('Importación de conversación cancelada por el usuario');
+      } else {
+        alert(t('home.errorImportingConversation', { error: err.message }));
+      }
     }
   };
 
@@ -418,7 +422,11 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
         alert(t('home.errorImportingConversation', { error: saveResult?.error || 'Error desconocido' }));
       }
     } catch (err) {
-      alert(t('home.errorImportingConversation', { error: err.message }));
+      if (err.cancelled) {
+        console.log('Importación de conversación cancelada por el usuario');
+      } else {
+        alert(t('home.errorImportingConversation', { error: err.message }));
+      }
     }
   };
 

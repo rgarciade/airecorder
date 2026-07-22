@@ -137,6 +137,7 @@ class ProjectChatService {
         projectId, question, recordingIds, recordingTitles, chatHistory, ragMode, options, onChunk
       );
     } catch (error) {
+      if (error.cancelled) throw error;
       console.error('Error generando respuesta IA:', error);
       return { text: 'Lo siento, ha ocurrido un error al procesar tu pregunta.', contextInfo: null };
     }

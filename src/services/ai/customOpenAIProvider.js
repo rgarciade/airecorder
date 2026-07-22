@@ -105,9 +105,10 @@ export class CustomOpenAIProvider {
    * Envía un prompt a la conexión personalizada (modo normal, para análisis/resúmenes).
    * @param {string} prompt - Contenido del usuario
    * @param {string|null} systemPrompt - Instrucciones de sistema (opcional)
+   * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
    * @returns {Promise<string>}
    */
-  async sendMessage(prompt, systemPrompt = null) {
+  async sendMessage(prompt, systemPrompt = null, signal = null) {
     this._requireModel();
 
     const messages = [
@@ -123,6 +124,7 @@ export class CustomOpenAIProvider {
         messages,
         stream: false,
       }),
+      signal,
     });
 
     if (!response.ok) {
@@ -139,9 +141,10 @@ export class CustomOpenAIProvider {
    * @param {string} prompt - Contenido del usuario
    * @param {Function} onChunk - Callback por chunk
    * @param {string|null} systemPrompt - Instrucciones de sistema (opcional)
+   * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
    * @returns {Promise<string>}
    */
-  async sendMessageStreaming(prompt, onChunk, systemPrompt = null) {
+  async sendMessageStreaming(prompt, onChunk, systemPrompt = null, signal = null) {
     this._requireModel();
 
     const messages = [
@@ -149,21 +152,22 @@ export class CustomOpenAIProvider {
       { role: 'user', content: prompt },
     ];
 
-    return this._streamChatCompletions(messages, onChunk);
+    return this._streamChatCompletions(messages, onChunk, signal);
   }
 
   /**
    * Chat nativo con array de mensajes (modo streaming).
    * @param {Array<{role:string, content:string}>} messages
    * @param {Function} onChunk
+   * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
    * @returns {Promise<string>}
    */
-  async chatCompletionStreaming(messages, onChunk) {
+  async chatCompletionStreaming(messages, onChunk, signal = null) {
     this._requireModel();
-    return this._streamChatCompletions(messages, onChunk);
+    return this._streamChatCompletions(messages, onChunk, signal);
   }
 
-  async _streamChatCompletions(messages, onChunk) {
+  async _streamChatCompletions(messages, onChunk, signal) {
     const response = await fetch(`${this.baseUrl}${CUSTOM_ENDPOINTS.chatCompletions}`, {
       method: 'POST',
       headers: this._headers(),
@@ -172,6 +176,7 @@ export class CustomOpenAIProvider {
         messages,
         stream: true,
       }),
+      signal,
     });
 
     if (!response.ok) {

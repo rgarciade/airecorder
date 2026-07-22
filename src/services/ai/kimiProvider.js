@@ -60,9 +60,10 @@ export function getKimiAvailableModels() {
  * @param {string} textContent - El contenido a enviar (mensaje de usuario)
  * @param {string|null} modelOverride - Modelo a usar (opcional)
  * @param {string|null} systemPrompt - Instrucciones de sistema (opcional, reemplaza el genérico de Kimi)
+ * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
  * @returns {Promise<string>} - Respuesta generada
  */
-export async function sendToKimi(textContent, modelOverride = null, systemPrompt = null) {
+export async function sendToKimi(textContent, modelOverride = null, systemPrompt = null, signal = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
@@ -96,6 +97,7 @@ export async function sendToKimi(textContent, modelOverride = null, systemPrompt
           'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify(body),
+        signal,
       });
 
       if (response.status === 429) {
@@ -120,7 +122,9 @@ export async function sendToKimi(textContent, modelOverride = null, systemPrompt
         continue;
       }
 
-      console.error('Error enviando a Kimi:', error);
+      if (!(error?.cancelled || error?.name === 'AbortError')) {
+        console.error('Error enviando a Kimi:', error);
+      }
       throw error;
     }
   }
@@ -132,9 +136,10 @@ export async function sendToKimi(textContent, modelOverride = null, systemPrompt
  * @param {Function} onChunk - Callback que recibe cada chunk de texto
  * @param {string|null} modelOverride - Modelo a usar (opcional)
  * @param {string|null} systemPrompt - Instrucciones de sistema (opcional)
+ * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
  * @returns {Promise<string>} - Texto completo de la respuesta
  */
-export async function sendToKimiStreaming(textContent, onChunk, modelOverride = null, systemPrompt = null) {
+export async function sendToKimiStreaming(textContent, onChunk, modelOverride = null, systemPrompt = null, signal = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
@@ -171,6 +176,7 @@ export async function sendToKimiStreaming(textContent, onChunk, modelOverride = 
           'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify(body),
+        signal,
       });
 
       console.log(`[Kimi] Respuesta recibida: ${response.status} ${response.statusText}`);
@@ -232,7 +238,9 @@ export async function sendToKimiStreaming(textContent, onChunk, modelOverride = 
         continue;
       }
 
-      console.error('Error en streaming de Kimi:', error);
+      if (!(error?.cancelled || error?.name === 'AbortError')) {
+        console.error('Error en streaming de Kimi:', error);
+      }
       throw error;
     }
   }
@@ -247,9 +255,10 @@ export async function sendToKimiStreaming(textContent, onChunk, modelOverride = 
  * @param {Array<{role:'system'|'user'|'assistant', content: string}>} messages
  * @param {Function} onChunk
  * @param {string|null} modelOverride
+ * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
  * @returns {Promise<string>}
  */
-export async function chatCompletionStreaming(messages, onChunk, modelOverride = null) {
+export async function chatCompletionStreaming(messages, onChunk, modelOverride = null, signal = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
@@ -268,6 +277,7 @@ export async function chatCompletionStreaming(messages, onChunk, modelOverride =
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
         body: JSON.stringify(body),
+        signal,
       });
 
       if (response.status === 429) throw new Error('429 Too Many Requests');
@@ -286,7 +296,9 @@ export async function chatCompletionStreaming(messages, onChunk, modelOverride =
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
-      console.error('Error en chatCompletionStreaming de Kimi:', error);
+      if (!(error?.cancelled || error?.name === 'AbortError')) {
+        console.error('Error en chatCompletionStreaming de Kimi:', error);
+      }
       throw error;
     }
   }

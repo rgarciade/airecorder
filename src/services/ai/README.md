@@ -9,9 +9,9 @@ Para evitar atar el código de la interfaz a una API de IA específica, el siste
 *   **Proveedores disponibles:** Gemini (`geminiProvider.js`, config única — sin distinción Free/Pro), OpenAI (`customOpenAIProvider.js` con `baseUrl` fija `OPENAI_BASE_URL`), Ollama (`ollamaProvider.js`), DeepSeek (`deepseekProvider.js`), Kimi (`kimiProvider.js`), LM Studio (`lmStudioProvider.js`), y conexiones OpenAI-compatible personalizadas (`customOpenAIProvider.js` con `baseUrl` configurable por el usuario).
 *   **Flujo:** React llama directamente a las APIs de IA usando las claves guardadas en los `Settings`. `providerRouter.js` selecciona el proveedor activo basado en `settings.aiProvider`. Los valores con prefijo `custom:{id}` se resuelven a partir de `settings.customConnections`.
 *   **Cómo añadir un nuevo proveedor:** Crea un archivo `nuevoProvider.js` con dos tipos de funciones:
-    1. `sendToNuevo(textContent, modelOverride, systemPrompt)` — para análisis/resúmenes con system prompt separado.
-    2. `chatCompletionStreaming(messages, onChunk, modelOverride)` — para chat nativo con historial (array de mensajes OpenAI-compatible).
-    Añádelo a los tres `switch` en `providerRouter.js`: `_runCallProvider` (para análisis), `_runCallProviderStreaming` (para streaming) y `_runCallChatProviderStreaming` (para chat).
+    1. `sendToNuevo(textContent, modelOverride, systemPrompt, signal)` — para análisis/resúmenes con system prompt separado.
+    2. `chatCompletionStreaming(messages, onChunk, modelOverride, signal)` — para chat nativo con historial (array de mensajes OpenAI-compatible).
+    Añádelo a los tres `switch` en `providerRouter.js`: `_runCallProvider` (para análisis), `_runCallProviderStreaming` (para streaming) y `_runCallChatProviderStreaming` (para chat). El `signal` (último parámetro, opcional) debe reenviarse al `fetch` — ver [Cancelación de la tarea en curso](#cancelación-de-la-tarea-en-curso-abortcontroller).
 
 ### Conexiones OpenAI personalizadas
 
@@ -19,10 +19,12 @@ El archivo `customOpenAIProvider.js` expone la clase `CustomOpenAIProvider`, ins
 
 | Método | Uso |
 |--------|-----|
-| `sendMessage(prompt, systemPrompt)` | Análisis / resúmenes |
-| `sendMessageStreaming(prompt, onChunk, systemPrompt)` | Chat streaming con prompt simple |
-| `chatCompletionStreaming(messages, onChunk)` | Chat nativo con historial de mensajes |
+| `sendMessage(prompt, systemPrompt, signal)` | Análisis / resúmenes |
+| `sendMessageStreaming(prompt, onChunk, systemPrompt, signal)` | Chat streaming con prompt simple |
+| `chatCompletionStreaming(messages, onChunk, signal)` | Chat nativo con historial de mensajes |
 | `listModels()` | Lista modelos desde `GET /v1/models` |
+
+`signal` es un `AbortSignal` opcional (default `null`) para cancelar la petición en curso — ver [Cancelación de la tarea en curso](#cancelación-de-la-tarea-en-curso-abortcontroller).
 
 El router usa `isCustom(provider)` y `resolveCustomConnection(settings, provider)` para detectar el prefijo `custom:` y resolver la conexión. Si el `id` no existe, devuelve un error seguro sin crashear. Los proveedores integrados siguen funcionando sin cambios.
 
@@ -140,6 +142,20 @@ se guarda en `ollamaRagModel` / `lmStudioRagModel` — **nunca sobrescribe el Mo
 | **DeepSeek** | Mensaje `{ role: 'system', content }` antes del mensaje de usuario |
 | **Kimi** | Reemplaza el system genérico hardcodeado por el system prompt específico de la tarea |
 | **LM Studio** | Mensaje `{ role: 'system', content }` antes del mensaje de usuario |
+
+### Cancelación de la tarea en curso (`AbortController`)
+
+El Monitor de Procesos (`src/pages/AiQueue/AiQueue.jsx`) permite cancelar la tarea que está `processing`, no solo las pendientes en cola:
+
+*   `aiQueueService.enqueue(taskFn, meta)` invoca `taskFn(signal)` con un `AbortSignal` propio por tarea (`aiQueueService.js`, `_processNext`).
+*   `aiQueueService.cancel(taskId)` hace doble función: si `taskId` está en `_queue` (pendiente), la quita sin ejecutarla; si `taskId` es `_current.id`, llama a `_currentAbortController.abort(reason)` pasando explícitamente un `Error('Cancelado por el usuario')` con `.cancelled = true` como `reason` — así el `fetch` de cada proveedor rechaza con ESE error exacto (no con el `DOMException` genérico "signal is aborted without reason" que da un `abort()` sin argumentos).
+*   El `signal` viaja desde `callProvider` / `callProviderStreaming` / `callChatProviderStreaming` a través de `_runCallProvider` / `_runCallProviderStreaming` / `_runCallChatProviderStreaming` (`providerRouter.js`) hasta el `fetch(...)` de cada proveedor.
+*   Todos los proveedores aceptan `signal` como último parámetro opcional (default `null`) y lo pasan directo a `fetch(url, { ..., signal })`. Ollama es la excepción: `generateContent(model, prompt, options)` recibe `options.signal` en vez de un parámetro posicional, porque ya usaba un objeto `options`.
+*   `_processNext` detecta la cancelación con `error?.cancelled === true || error?.name === 'AbortError'` (el segundo caso es fallback defensivo, por si algún día un abort no pasa por `aiQueueService.cancel` y llega sin `reason` propio) y marca la tarea como `cancelled` en el historial, igual que una cancelación de tarea pendiente.
+*   Cada proveedor también chequea `error?.cancelled || error?.name === 'AbortError'` antes de hacer `console.error` en sus loops de reintento (429/5xx) — una cancelación intencional del usuario no debe ensuciar la consola como si fuera un fallo real de la API.
+*   **Al añadir un nuevo proveedor:** su función de análisis/streaming debe aceptar `signal` como último parámetro, pasarlo al `fetch`, y silenciar el `console.error` de su catch cuando el error sea una cancelación (mismo patrón que `sendToGemini`/`sendToDeepseek`/etc.).
+
+**Contrato para quien consume `callProvider`/`callChatProviderStreaming`:** la promesa rechaza con `error.cancelled === true` cuando la tarea fue cancelada por el usuario (a diferencia de un error real de la IA). Todo `catch` que muestre un `alert()`, un modal de error o persista la respuesta en disco/DB **debe** chequear `error.cancelled` primero y omitir esa acción — si no, cancelar una tarea muestra un falso mensaje de error (`"signal is aborted without reason"`) o, peor, persiste ese texto como si fuera la respuesta real de la IA. Ver `RecordingDetailWithTranscription.jsx` (regenerar, tareas, chat), `ProjectDetail.jsx` (chat de proyecto) y `recordingAiService.js` (`generateEsquema`, `extractParticipants`, etc. re-lanzan el error si `error.cancelled` en vez de devolver `null`/`[]`/valores por defecto) para el patrón a seguir.
 
 ### Protocolo de mensajes del Chat (V2)
 

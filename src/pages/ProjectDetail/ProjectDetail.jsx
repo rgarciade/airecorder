@@ -700,8 +700,14 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
 
       chatPendingService.clearPending(pendingKey);
     } catch (error) {
-      console.error('Error enviando mensaje:', error);
-      chatPendingService.setError(pendingKey, error.message);
+      if (error.cancelled) {
+        console.log('Mensaje de chat de proyecto cancelado por el usuario');
+        chatPendingService.clearPending(pendingKey);
+        setChatHistory(prev => prev.filter(m => m.id !== `streaming_${tempId}`));
+      } else {
+        console.error('Error enviando mensaje:', error);
+        chatPendingService.setError(pendingKey, error.message);
+      }
     } finally {
       setIsSendingMessage(false);
     }

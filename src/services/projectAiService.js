@@ -452,6 +452,7 @@ class ProjectAiService {
         contextInfo: { mode: 'full', estimatedTokens }
       };
     } catch (error) {
+      if (error.cancelled) throw error;
       console.error('Error en askProjectQuestion:', error);
       return { text: 'Error al procesar la consulta con la IA.', contextInfo: null };
     }

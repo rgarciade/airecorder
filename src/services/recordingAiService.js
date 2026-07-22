@@ -612,6 +612,7 @@ class RecordingAiService {
         
         return participantsWithIds;
       } catch (error) {
+        if (error.cancelled) throw error;
         console.error('Error extrayendo participantes:', error);
         return [];
       } finally {
@@ -706,6 +707,7 @@ class RecordingAiService {
       return tasksWithIds;
 
     } catch (error) {
+      if (error.cancelled) throw error;
       console.error('Error sugiriendo tareas:', error);
       return [];
     }
@@ -757,6 +759,7 @@ class RecordingAiService {
         layer: (improved.layer || improved.capa || task.layer).toLowerCase()
       };
     } catch (error) {
+      if (error.cancelled) throw error;
       console.error('Error mejorando tarea:', error);
       return task;
     }
@@ -856,6 +859,7 @@ class RecordingAiService {
 
       return normalized;
     } catch (error) {
+      if (error.cancelled) throw error;
       console.error('[generateEsquema] Error:', error);
       return null;
     }
