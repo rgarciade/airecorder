@@ -149,6 +149,8 @@ python python/audio_sync_analyzer.py \
   --threads 4
 ```
 
+**ffmpeg/ffprobe bundled (`--ffmpeg` / `--ffprobe`):** in the packaged app, the manager passes explicit paths to the bundled `ffmpeg-static` and `ffprobe-static` binaries. These live in **different** directories, and pydub probes audio via a bare `ffprobe` resolved from `PATH` (it ignores `AudioSegment.ffprobe`). The analyzer therefore prepends **both** binaries' directories to `PATH`. This is required because a GUI launch (Finder/Dock/Spotlight) does not inherit a shell `PATH`, so without it audio decoding fails with `[Errno 2] No such file or directory: 'ffprobe'` and no transcript is produced.
+
 ### Diarización y Extracción de Embeddings
 
 Cuando la diarización está habilitada (Ajustes → HuggingFace Token), el pipeline ejecuta `diarization_analyzer.py` como paso previo a la transcripción. A partir de la versión `2.0` del schema de salida, el JSON generado tiene el siguiente formato:

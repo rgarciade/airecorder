@@ -1141,6 +1141,14 @@ def main():
         from pydub import AudioSegment
 
         AudioSegment.ffprobe = args.ffprobe
+        # pydub probes via get_prober_name(), which resolves a bare "ffprobe"
+        # from PATH and ignores AudioSegment.ffprobe. ffprobe lives in a
+        # different directory than ffmpeg, so its own dir must be on PATH too;
+        # otherwise audio decoding fails when launched without a shell PATH
+        # (e.g. GUI launch from Finder/Dock).
+        os.environ["PATH"] = (
+            os.path.dirname(args.ffprobe) + os.pathsep + os.environ.get("PATH", "")
+        )
         print(f"ffprobe configurado: {args.ffprobe}", flush=True)
 
     # Usar el directorio base proporcionado o el default
