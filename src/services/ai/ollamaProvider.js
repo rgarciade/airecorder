@@ -138,7 +138,7 @@ function extractNumCtxFromParams(params) {
  * Incluye reintentos automáticos para errores de red y errores 5xx
  * @param {string} model - Nombre del modelo a usar
  * @param {string} prompt - Prompt de usuario
- * @param {Object} options - Opciones adicionales (ej: { format: 'json', images: [{base64, mimeType}], systemPrompt: string })
+ * @param {Object} options - Opciones adicionales (ej: { format: 'json', images: [{base64, mimeType}], systemPrompt: string, signal: AbortSignal })
  * @returns {Promise<string>} Respuesta generada
  */
 export async function generateContent(model, prompt, options = {}) {
@@ -165,6 +165,7 @@ export async function generateContent(model, prompt, options = {}) {
           ...(options.format ? { format: options.format } : {}),
           ...(imagesBase64 ? { images: imagesBase64 } : {})
         }),
+        signal: options.signal,
       });
 
       if (response.status >= 500) {
@@ -191,7 +192,9 @@ export async function generateContent(model, prompt, options = {}) {
         continue;
       }
 
-      console.error('Error generando contenido con Ollama:', error);
+      if (!(error?.cancelled || error?.name === 'AbortError')) {
+        console.error('Error generando contenido con Ollama:', error);
+      }
       throw error;
     }
   }
@@ -203,8 +206,9 @@ export async function generateContent(model, prompt, options = {}) {
  * @param {string} prompt - Prompt
  * @param {Function} onChunk - Callback por chunk
  * @param {Array<{base64: string, mimeType: string}>} [images] - Imágenes (modelos de visión)
+ * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
  */
-export async function generateContentStreaming(model, prompt, onChunk, images = []) {
+export async function generateContentStreaming(model, prompt, onChunk, images = [], signal = null) {
   const url = await getBaseUrl();
   // Extraer imágenes base64 si las hay
   const imagesBase64 = images && images.length > 0
@@ -220,6 +224,7 @@ export async function generateContentStreaming(model, prompt, onChunk, images = 
         stream: true,
         ...(imagesBase64 ? { images: imagesBase64 } : {})
       }),
+      signal,
     });
 
     if (!response.ok) {
@@ -267,7 +272,9 @@ export async function generateContentStreaming(model, prompt, onChunk, images = 
 
     return fullResponse;
   } catch (error) {
-    console.error('Error generando contenido con Ollama (streaming):', error);
+    if (!(error?.cancelled || error?.name === 'AbortError')) {
+      console.error('Error generando contenido con Ollama (streaming):', error);
+    }
     throw error;
   }
 }
@@ -282,9 +289,10 @@ export async function generateContentStreaming(model, prompt, onChunk, images = 
  * @param {Array<{role:'system'|'user'|'assistant', content: string}>} messages - Historial completo
  * @param {Function} onChunk - Callback por chunk de texto
  * @param {Array<{base64: string, mimeType: string}>} [images] - Imágenes para el último mensaje (multimodal)
+ * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
  * @returns {Promise<string>} Respuesta completa
  */
-export async function chatCompletionStreaming(model, messages, onChunk, images = []) {
+export async function chatCompletionStreaming(model, messages, onChunk, images = [], signal = null) {
   const url = await getBaseUrl();
 
   // Si hay imágenes, las añadimos al último mensaje del usuario
@@ -304,6 +312,7 @@ export async function chatCompletionStreaming(model, messages, onChunk, images =
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model, messages: finalMessages, stream: true }),
+      signal,
     });
 
     if (!response.ok) {
@@ -340,7 +349,9 @@ export async function chatCompletionStreaming(model, messages, onChunk, images =
 
     return fullResponse;
   } catch (error) {
-    console.error('Error en chatCompletionStreaming de Ollama:', error);
+    if (!(error?.cancelled || error?.name === 'AbortError')) {
+      console.error('Error en chatCompletionStreaming de Ollama:', error);
+    }
     throw error;
   }
 }

@@ -51,8 +51,12 @@ export default function SchemaTab({ recordingId, hasTranscription, onSeek }) {
       await recordingsService.saveRecordingSchema(recordingId, generated);
       setSchema(generated);
     } catch (err) {
-      console.error('[SchemaTab] Error generating schema:', err);
-      setError(err.message);
+      if (err.cancelled) {
+        console.log('[SchemaTab] Generación de esquema cancelada por el usuario');
+      } else {
+        console.error('[SchemaTab] Error generating schema:', err);
+        setError(err.message);
+      }
     } finally {
       setGenerating(false);
     }

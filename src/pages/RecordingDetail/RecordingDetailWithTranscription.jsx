@@ -781,6 +781,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       chatPendingService.clearPending(pendingKey);
 
     } catch (err) {
+      if (err.cancelled) {
+        console.log('Pregunta de chat cancelada por el usuario');
+        chatPendingService.clearPending(pendingKey);
+        return;
+      }
+
       console.error('Error en handleAskQuestion:', err);
 
       // Calcular hint de context length (solo Ollama, ya que LM Studio no expone el valor por API)
@@ -1143,8 +1149,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       }
 
     } catch (error) {
-      console.error("Error regenerando AI:", error);
-      alert("Error al regenerar datos de IA: " + error.message);
+      if (error.cancelled) {
+        console.log('Regeneración de IA cancelada por el usuario');
+      } else {
+        console.error("Error regenerando AI:", error);
+        alert("Error al regenerar datos de IA: " + error.message);
+      }
     } finally {
       setIsGeneratingAi(false);
     }
@@ -1239,8 +1249,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       setTasks(prev => [...prev, ...addedTasks]);
       setNewTaskIds(prev => new Set([...prev, ...addedTasks.map(t => t.id)]));
     } catch (error) {
-      console.error('Error generando tareas:', error);
-      alert('Error al generar tareas: ' + error.message);
+      if (error.cancelled) {
+        console.log('Generación de tareas cancelada por el usuario');
+      } else {
+        console.error('Error generando tareas:', error);
+        alert('Error al generar tareas: ' + error.message);
+      }
     } finally {
       setIsGeneratingTasks(false);
     }
@@ -1275,8 +1289,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       );
       if (saved) setTasks(prev => prev.map(t => t.id === taskId ? saved : t));
     } catch (error) {
-      console.error('Error mejorando tarea:', error);
-      alert('Error al mejorar tarea: ' + error.message);
+      if (error.cancelled) {
+        console.log('Mejora de tarea cancelada por el usuario');
+      } else {
+        console.error('Error mejorando tarea:', error);
+        alert('Error al mejorar tarea: ' + error.message);
+      }
     } finally {
       setImprovingTaskId(null);
     }
@@ -1424,8 +1442,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       // Show success feedback
       console.log('Note generated:', result.noteId);
     } catch (error) {
-      console.error('Error generating from template:', error);
-      alert('Error generating note: ' + error.message);
+      if (error.cancelled) {
+        console.log('Generación de nota cancelada por el usuario');
+      } else {
+        console.error('Error generating from template:', error);
+        alert('Error generating note: ' + error.message);
+      }
     } finally {
       setIsGeneratingNote(false);
     }

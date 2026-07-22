@@ -70,8 +70,9 @@ function _resolveEngineName(settings, provider, options = {}) {
 
 /**
  * Lógica real de callProvider (sin cola). Se ejecuta dentro de la tarea encolada.
+ * @param {AbortSignal} [signal] - Permite cancelar la llamada HTTP en curso.
  */
-async function _runCallProvider(prompt, options) {
+async function _runCallProvider(prompt, options, signal) {
   const settings = await getSettings();
   const provider = options.providerOverride || settings.aiProvider || 'ollama';
   const systemPrompt = options.systemPrompt || null;
@@ -80,26 +81,26 @@ async function _runCallProvider(prompt, options) {
     case 'ollama': {
       const model = options.model || options.ragModel || settings.ollamaModel;
       if (!model) throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
-      const response = await ollamaGenerate(model, prompt, { ...options, images: options.images || [], systemPrompt });
+      const response = await ollamaGenerate(model, prompt, { ...options, images: options.images || [], systemPrompt, signal });
       return { text: response || 'Sin respuesta', provider: 'ollama', model };
     }
 
     case 'lmstudio': {
       const model = options.model || options.ragModel || settings.lmStudioModel;
       if (!model) throw new Error('No se ha seleccionado un modelo en LM Studio.');
-      const response = await sendToLMStudio(prompt, model, systemPrompt);
+      const response = await sendToLMStudio(prompt, model, systemPrompt, signal);
       return { text: response || 'Sin respuesta', provider: 'lmstudio', model };
     }
 
     case 'deepseek': {
       if (!settings.deepseekApiKey) throw new Error('No se ha configurado la DeepSeek API Key en los ajustes.');
-      const response = await sendToDeepseek(prompt, options.model || null, systemPrompt);
+      const response = await sendToDeepseek(prompt, options.model || null, systemPrompt, signal);
       return { text: response || 'Sin respuesta', provider: 'deepseek' };
     }
 
     case 'kimi': {
       if (!settings.kimiApiKey) throw new Error('No se ha configurado la Kimi API Key en los ajustes.');
-      const response = await sendToKimi(prompt, options.model || null, systemPrompt);
+      const response = await sendToKimi(prompt, options.model || null, systemPrompt, signal);
       return { text: response || 'Sin respuesta', provider: 'kimi' };
     }
 
@@ -108,7 +109,7 @@ async function _runCallProvider(prompt, options) {
       const model = options.model || settings.openaiModel;
       if (!model) throw new Error('No se ha seleccionado un modelo de OpenAI.');
       const client = new CustomOpenAIProvider({ baseUrl: OPENAI_BASE_URL, apiKey: settings.openaiApiKey, model });
-      const response = await client.sendMessage(prompt, systemPrompt);
+      const response = await client.sendMessage(prompt, systemPrompt, signal);
       return { text: response || 'Sin respuesta', provider: 'openai', model };
     }
 
@@ -124,12 +125,12 @@ async function _runCallProvider(prompt, options) {
           apiKey: connection.apiKey,
           model,
         });
-        const response = await client.sendMessage(prompt, systemPrompt);
+        const response = await client.sendMessage(prompt, systemPrompt, signal);
         return { text: response || 'Sin respuesta', provider, model };
       }
 
       if (!settings.geminiApiKey) throw new Error('No se ha configurado la Gemini API Key en los ajustes.');
-      const result = await sendToGemini(prompt, true, options.images || [], systemPrompt);
+      const result = await sendToGemini(prompt, true, options.images || [], systemPrompt, signal);
       const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta';
       return { text, provider: 'gemini' };
     }
@@ -138,8 +139,9 @@ async function _runCallProvider(prompt, options) {
 
 /**
  * Lógica real de callProviderStreaming (sin cola). Se ejecuta dentro de la tarea encolada.
+ * @param {AbortSignal} [signal] - Permite cancelar la llamada HTTP en curso.
  */
-async function _runCallProviderStreaming(prompt, onChunk, options) {
+async function _runCallProviderStreaming(prompt, onChunk, options, signal) {
   const settings = await getSettings();
   const provider = options.providerOverride || settings.aiProvider || 'gemini';
   const systemPrompt = options.systemPrompt || null;
@@ -149,7 +151,7 @@ async function _runCallProviderStreaming(prompt, onChunk, options) {
   switch (provider) {
     case 'gemini': {
       console.log('[callProviderStreaming] Iniciando streaming con Gemini');
-      const fullResponse = await sendToGeminiStreaming(prompt, onChunk, options.images || []);
+      const fullResponse = await sendToGeminiStreaming(prompt, onChunk, options.images || [], signal);
       return { text: fullResponse || 'Sin respuesta', provider: 'gemini', streaming: true };
     }
 
@@ -159,19 +161,19 @@ async function _runCallProviderStreaming(prompt, onChunk, options) {
       if (!model) throw new Error('No se ha seleccionado un modelo de OpenAI.');
       console.log(`[callProviderStreaming] Iniciando streaming con OpenAI modelo: ${model}`);
       const client = new CustomOpenAIProvider({ baseUrl: OPENAI_BASE_URL, apiKey: settings.openaiApiKey, model });
-      const fullResponse = await client.sendMessageStreaming(prompt, onChunk, systemPrompt);
+      const fullResponse = await client.sendMessageStreaming(prompt, onChunk, systemPrompt, signal);
       return { text: fullResponse || 'Sin respuesta', provider: 'openai', model, streaming: true };
     }
 
     case 'deepseek': {
       console.log('[callProviderStreaming] Iniciando streaming con DeepSeek');
-      const fullResponse = await sendToDeepseekStreaming(prompt, onChunk, options.model || null);
+      const fullResponse = await sendToDeepseekStreaming(prompt, onChunk, options.model || null, signal);
       return { text: fullResponse || 'Sin respuesta', provider: 'deepseek', streaming: true };
     }
 
     case 'kimi': {
       console.log('[callProviderStreaming] Iniciando streaming con Kimi');
-      const fullResponse = await sendToKimiStreaming(prompt, onChunk, options.model || null);
+      const fullResponse = await sendToKimiStreaming(prompt, onChunk, options.model || null, null, signal);
       return { text: fullResponse || 'Sin respuesta', provider: 'kimi', streaming: true };
     }
 
@@ -179,7 +181,7 @@ async function _runCallProviderStreaming(prompt, onChunk, options) {
       const model = options.model || options.ragModel || settings.lmStudioModel;
       if (!model) throw new Error('No se ha seleccionado un modelo en LM Studio.');
       console.log(`[callProviderStreaming] Iniciando streaming con LM Studio modelo: ${model}`);
-      const fullResponse = await sendToLMStudioStreaming(prompt, onChunk, model);
+      const fullResponse = await sendToLMStudioStreaming(prompt, onChunk, model, signal);
       return { text: fullResponse || 'Sin respuesta', provider: 'lmstudio', model, streaming: true };
     }
 
@@ -191,13 +193,13 @@ async function _runCallProviderStreaming(prompt, onChunk, options) {
 
       if (useStreaming) {
         console.log(`[callProviderStreaming] Iniciando streaming con Ollama modelo: ${model}`);
-        const fullResponse = await ollamaGenerateStreaming(model, prompt, onChunk, options.images || []);
+        const fullResponse = await ollamaGenerateStreaming(model, prompt, onChunk, options.images || [], signal);
         return { text: fullResponse || 'Sin respuesta', provider: 'ollama', model, streaming: true };
       }
 
       // Fallback no-streaming
       console.log(`🔄 Usando modo no-streaming para Ollama${options.ragModel ? ` (RAG model: ${model})` : ''}`);
-      const result = await _runCallProvider(prompt, options);
+      const result = await _runCallProvider(prompt, options, signal);
       if (onChunk && result.text) onChunk(result.text);
       return { ...result, streaming: false };
     }
@@ -213,12 +215,12 @@ async function _runCallProviderStreaming(prompt, onChunk, options) {
           apiKey: connection.apiKey,
           model,
         });
-        const fullResponse = await client.sendMessageStreaming(prompt, onChunk, systemPrompt);
+        const fullResponse = await client.sendMessageStreaming(prompt, onChunk, systemPrompt, signal);
         return { text: fullResponse || 'Sin respuesta', provider, model, streaming: true };
       }
 
       console.log(`🔄 Usando modo no-streaming para ${provider}`);
-      const result = await _runCallProvider(prompt, options);
+      const result = await _runCallProvider(prompt, options, signal);
       if (onChunk && result.text) onChunk(result.text);
       return { ...result, streaming: false };
     }
@@ -259,7 +261,7 @@ export async function callProvider(prompt, options = {}) {
     prompt,
   };
 
-  return aiQueueService.enqueue(() => _runCallProvider(prompt, options), meta);
+  return aiQueueService.enqueue((signal) => _runCallProvider(prompt, options, signal), meta);
 }
 
 /**
@@ -290,7 +292,7 @@ export async function callProviderStreaming(prompt, onChunk, options = {}) {
   };
 
   return aiQueueService.enqueue(
-    () => _runCallProviderStreaming(prompt, onChunk, options),
+    (signal) => _runCallProviderStreaming(prompt, onChunk, options, signal),
     meta
   );
 }
@@ -402,7 +404,7 @@ export async function getActiveProviderContextWindow(settings) {
  * @param {Function} onChunk
  * @param {Object} options
  */
-async function _runCallChatProviderStreaming(messages, onChunk, options) {
+async function _runCallChatProviderStreaming(messages, onChunk, options, signal) {
   const settings = await getSettings();
   const provider = options.providerOverride || settings.aiProvider || 'gemini';
   const images = options.images || [];
@@ -411,7 +413,7 @@ async function _runCallChatProviderStreaming(messages, onChunk, options) {
 
   switch (provider) {
     case 'gemini': {
-      const fullResponse = await sendToGeminiChatStreaming(messages, onChunk, images);
+      const fullResponse = await sendToGeminiChatStreaming(messages, onChunk, images, signal);
       return { text: fullResponse || 'Sin respuesta', provider: 'gemini', streaming: true };
     }
 
@@ -420,19 +422,19 @@ async function _runCallChatProviderStreaming(messages, onChunk, options) {
       const model = options.model || options.ragModel || settings.openaiModel;
       if (!model) throw new Error('No se ha seleccionado un modelo de OpenAI.');
       const client = new CustomOpenAIProvider({ baseUrl: OPENAI_BASE_URL, apiKey: settings.openaiApiKey, model });
-      const fullResponse = await client.chatCompletionStreaming(messages, onChunk);
+      const fullResponse = await client.chatCompletionStreaming(messages, onChunk, signal);
       return { text: fullResponse || 'Sin respuesta', provider: 'openai', model, streaming: true };
     }
 
     case 'deepseek': {
       if (!settings.deepseekApiKey) throw new Error('No se ha configurado la DeepSeek API Key en los ajustes.');
-      const fullResponse = await deepseekChatStreaming(messages, onChunk, options.model || null);
+      const fullResponse = await deepseekChatStreaming(messages, onChunk, options.model || null, signal);
       return { text: fullResponse || 'Sin respuesta', provider: 'deepseek', streaming: true };
     }
 
     case 'kimi': {
       if (!settings.kimiApiKey) throw new Error('No se ha configurado la Kimi API Key en los ajustes.');
-      const fullResponse = await kimiChatStreaming(messages, onChunk, options.model || null);
+      const fullResponse = await kimiChatStreaming(messages, onChunk, options.model || null, signal);
       return { text: fullResponse || 'Sin respuesta', provider: 'kimi', streaming: true };
     }
 
@@ -440,7 +442,7 @@ async function _runCallChatProviderStreaming(messages, onChunk, options) {
       // Prioridad: override explícito > ragModel de contexto > modelo de chat configurado > modelo general
       const model = options.model || options.ragModel || settings.lmStudioRagModel || settings.lmStudioModel;
       if (!model) throw new Error('No se ha seleccionado un modelo en LM Studio.');
-      const fullResponse = await lmStudioChatStreaming(messages, onChunk, model);
+      const fullResponse = await lmStudioChatStreaming(messages, onChunk, model, signal);
       return { text: fullResponse || 'Sin respuesta', provider: 'lmstudio', model, streaming: true };
     }
 
@@ -449,7 +451,7 @@ async function _runCallChatProviderStreaming(messages, onChunk, options) {
       const model = options.model || options.ragModel || settings.ollamaRagModel || settings.ollamaModel;
       if (!model) throw new Error('No se ha seleccionado un modelo de Ollama en los ajustes.');
       console.log(`[callChatProviderStreaming] Ollama /api/chat modelo: ${model}`);
-      const fullResponse = await ollamaChatStreaming(model, messages, onChunk, images);
+      const fullResponse = await ollamaChatStreaming(model, messages, onChunk, images, signal);
       return { text: fullResponse || 'Sin respuesta', provider: 'ollama', model, streaming: true };
     }
 
@@ -464,7 +466,7 @@ async function _runCallChatProviderStreaming(messages, onChunk, options) {
           apiKey: connection.apiKey,
           model,
         });
-        const fullResponse = await client.chatCompletionStreaming(messages, onChunk);
+        const fullResponse = await client.chatCompletionStreaming(messages, onChunk, signal);
         return { text: fullResponse || 'Sin respuesta', provider, model, streaming: true };
       }
 
@@ -502,7 +504,7 @@ export async function callChatProviderStreaming(messages, onChunk, options = {})
   };
 
   return aiQueueService.enqueue(
-    () => _runCallChatProviderStreaming(messages, onChunk, options),
+    (signal) => _runCallChatProviderStreaming(messages, onChunk, options, signal),
     meta
   );
 }

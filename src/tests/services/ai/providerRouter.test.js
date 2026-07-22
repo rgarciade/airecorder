@@ -106,7 +106,7 @@ describe('providerRouter custom dispatch', () => {
     const result = await callProvider('prompt', { systemPrompt: 'sys' });
 
     expect(result).toEqual({ text: 'custom response', provider: 'custom:conn-1', model: 'model-x' });
-    expect(customProviderSendMessage).toHaveBeenCalledWith('prompt', 'sys');
+    expect(customProviderSendMessage).toHaveBeenCalledWith('prompt', 'sys', expect.any(AbortSignal));
   });
 
   it('returns a safe error for unknown custom id', async () => {
@@ -149,7 +149,8 @@ describe('providerRouter custom dispatch', () => {
     });
     expect(customProviderChatCompletionStreaming).toHaveBeenCalledWith(
       [{ role: 'user', content: 'hi' }],
-      expect.any(Function)
+      expect.any(Function),
+      expect.any(AbortSignal)
     );
   });
 

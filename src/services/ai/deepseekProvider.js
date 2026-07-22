@@ -60,9 +60,10 @@ export function getDeepseekAvailableModels() {
  * @param {string} textContent - El contenido a enviar (mensaje de usuario)
  * @param {string|null} modelOverride - Modelo a usar (opcional)
  * @param {string|null} systemPrompt - Instrucciones de sistema (opcional)
+ * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
  * @returns {Promise<string>} - Respuesta generada
  */
-export async function sendToDeepseek(textContent, modelOverride = null, systemPrompt = null) {
+export async function sendToDeepseek(textContent, modelOverride = null, systemPrompt = null, signal = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
@@ -95,6 +96,7 @@ export async function sendToDeepseek(textContent, modelOverride = null, systemPr
           'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify(body),
+        signal,
       });
 
       if (response.status === 429) {
@@ -119,7 +121,9 @@ export async function sendToDeepseek(textContent, modelOverride = null, systemPr
         continue;
       }
 
-      console.error('Error enviando a DeepSeek:', error);
+      if (!(error?.cancelled || error?.name === 'AbortError')) {
+        console.error('Error enviando a DeepSeek:', error);
+      }
       throw error;
     }
   }
@@ -129,9 +133,10 @@ export async function sendToDeepseek(textContent, modelOverride = null, systemPr
  * Envía el texto a DeepSeek en modo streaming
  * @param {string} textContent - El contenido a enviar
  * @param {Function} onChunk - Callback que recibe cada chunk de texto
+ * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
  * @returns {Promise<string>} - Texto completo de la respuesta
  */
-export async function sendToDeepseekStreaming(textContent, onChunk, modelOverride = null) {
+export async function sendToDeepseekStreaming(textContent, onChunk, modelOverride = null, signal = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
@@ -164,6 +169,7 @@ export async function sendToDeepseekStreaming(textContent, onChunk, modelOverrid
           'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify(body),
+        signal,
       });
 
       console.log(`[DeepSeek] Respuesta recibida: ${response.status} ${response.statusText}`);
@@ -225,7 +231,9 @@ export async function sendToDeepseekStreaming(textContent, onChunk, modelOverrid
         continue;
       }
 
-      console.error('Error en streaming de DeepSeek:', error);
+      if (!(error?.cancelled || error?.name === 'AbortError')) {
+        console.error('Error en streaming de DeepSeek:', error);
+      }
       throw error;
     }
   }
@@ -240,9 +248,10 @@ export async function sendToDeepseekStreaming(textContent, onChunk, modelOverrid
  * @param {Array<{role:'system'|'user'|'assistant', content: string}>} messages
  * @param {Function} onChunk
  * @param {string|null} modelOverride
+ * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
  * @returns {Promise<string>}
  */
-export async function chatCompletionStreaming(messages, onChunk, modelOverride = null) {
+export async function chatCompletionStreaming(messages, onChunk, modelOverride = null, signal = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
@@ -261,6 +270,7 @@ export async function chatCompletionStreaming(messages, onChunk, modelOverride =
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
         body: JSON.stringify(body),
+        signal,
       });
 
       if (response.status === 429) throw new Error('429 Too Many Requests');
@@ -279,7 +289,9 @@ export async function chatCompletionStreaming(messages, onChunk, modelOverride =
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
-      console.error('Error en chatCompletionStreaming de DeepSeek:', error);
+      if (!(error?.cancelled || error?.name === 'AbortError')) {
+        console.error('Error en chatCompletionStreaming de DeepSeek:', error);
+      }
       throw error;
     }
   }

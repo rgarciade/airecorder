@@ -126,9 +126,10 @@ const defaultPrompt = `A continuación tienes una transcripción. Quiero que me 
  * @param {boolean} isRaw - Si es true, envía textContent tal cual. Si es false, le añade el defaultPrompt.
  * @param {Array<{base64: string, mimeType: string}>} [images] - Imágenes adjuntas (multimodal)
  * @param {string} [systemPrompt] - Instrucciones de sistema (se envía como system_instruction separado)
+ * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
  * @returns {Promise<Object>} - Respuesta de Gemini
  */
-export async function sendToGemini(textContent, isRaw = false, images = [], systemPrompt = null) {
+export async function sendToGemini(textContent, isRaw = false, images = [], systemPrompt = null, signal = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000; // 2 segundos
 
@@ -169,6 +170,7 @@ export async function sendToGemini(textContent, isRaw = false, images = [], syst
           'X-goog-api-key': GEMINI_API_KEY,
         },
         body: JSON.stringify(body),
+        signal,
       });
 
       if (response.status === 429) {
@@ -193,7 +195,9 @@ export async function sendToGemini(textContent, isRaw = false, images = [], syst
         continue;
       }
 
-      console.error('Error enviando a Gemini:', error);
+      if (!(error?.cancelled || error?.name === 'AbortError')) {
+        console.error('Error enviando a Gemini:', error);
+      }
       throw error;
     }
   }
@@ -204,9 +208,10 @@ export async function sendToGemini(textContent, isRaw = false, images = [], syst
  * @param {string} textContent - El contenido a enviar (prompt + contexto)
  * @param {Function} onChunk - Callback que recibe cada chunk de texto
  * @param {Array<{base64: string, mimeType: string}>} [images] - Imágenes adjuntas (multimodal)
+ * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
  * @returns {Promise<string>} - Texto completo de la respuesta
  */
-export async function sendToGeminiStreaming(textContent, onChunk, images = []) {
+export async function sendToGeminiStreaming(textContent, onChunk, images = [], signal = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
@@ -242,6 +247,7 @@ export async function sendToGeminiStreaming(textContent, onChunk, images = []) {
           'X-goog-api-key': GEMINI_API_KEY,
         },
         body: JSON.stringify(body),
+        signal,
       });
 
       if (response.status === 429) {
@@ -299,7 +305,9 @@ export async function sendToGeminiStreaming(textContent, onChunk, images = []) {
         continue;
       }
 
-      console.error('Error en streaming de Gemini:', error);
+      if (!(error?.cancelled || error?.name === 'AbortError')) {
+        console.error('Error en streaming de Gemini:', error);
+      }
       throw error;
     }
   }
@@ -318,9 +326,10 @@ export async function sendToGeminiStreaming(textContent, onChunk, images = []) {
  * @param {Array<{role:'system'|'user'|'assistant', content: string}>} messages
  * @param {Function} onChunk
  * @param {Array<{base64: string, mimeType: string}>} [images] - Imágenes del último turno
+ * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
  * @returns {Promise<string>}
  */
-export async function sendToGeminiChatStreaming(messages, onChunk, images = []) {
+export async function sendToGeminiChatStreaming(messages, onChunk, images = [], signal = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
@@ -364,6 +373,7 @@ export async function sendToGeminiChatStreaming(messages, onChunk, images = []) 
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-goog-api-key': GEMINI_API_KEY },
         body: JSON.stringify(body),
+        signal,
       });
 
       if (response.status === 429) throw new Error('429 Too Many Requests');
@@ -412,7 +422,9 @@ export async function sendToGeminiChatStreaming(messages, onChunk, images = []) 
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
-      console.error('Error en sendToGeminiChatStreaming:', error);
+      if (!(error?.cancelled || error?.name === 'AbortError')) {
+        console.error('Error en sendToGeminiChatStreaming:', error);
+      }
       throw error;
     }
   }
