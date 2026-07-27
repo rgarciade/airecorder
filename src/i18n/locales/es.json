@@ -30,11 +30,32 @@
     "ready": "Contexto listo",
     "auto": "Auto",
     "detailed": "Detallado",
+    "limitExceeded": "⚠ Límite superado",
+    "limitExceededTooltip": "El contexto supera el límite configurado del modelo",
+    "nearLimit": "⚠ Cerca del límite ({{pct}}%)",
+    "nearLimitTooltip": "El contexto se acerca al límite configurado del modelo",
+    "compactAction": "Compactar",
+    "compacting": "Compactando...",
     "tooltips": {
       "projectAuto": "Reparte el contexto entre todas las grabaciones. Más rápido.",
       "projectDetailed": "Busca más fragmentos por grabación. Respuestas más completas.",
       "recordingAuto": "Extrae el contexto esencial. Respuesta más rápida.",
       "recordingDetailed": "Analiza mucha más información para dar respuestas exhaustivas."
+    }
+  },
+  "chatCommands": {
+    "menuTitle": "Comandos disponibles",
+    "unknown": "Comando no reconocido.",
+    "busy": "Espera a que termine la tarea actual antes de ejecutar otro comando.",
+    "compact": {
+      "label": "Compactar",
+      "description": "Resume el historial y libera contexto",
+      "argsPlaceholder": "Instrucciones opcionales, ej: céntrate en las decisiones",
+      "running": "Compactando…",
+      "summaryHeader": "Resumen del chat anterior ({{count}} mensajes compactados)",
+      "tooShort": "El historial es demasiado corto para compactar.",
+      "empty": "La IA no devolvió un resumen válido. Inténtalo de nuevo.",
+      "error": "No se pudo compactar el chat. Inténtalo de nuevo."
     }
   },
   "modelInfo": {
