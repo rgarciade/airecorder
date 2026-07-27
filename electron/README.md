@@ -111,6 +111,26 @@ window.electronAPI.ragReindexAll() // → Promise<{ success, reindexed?, total?,
 
 El handler delega en `ragService.reindexAllRecordings()`; por cada grabación con `vectordb/` existente llama a `indexRecording` y finalmente escribe `{ lastEmbeddingModelId, reindexedAt }` en `rag_metadata.json` dentro del directorio de grabaciones. El frontend compara el nuevo id con `settings.lastEmbeddingModelId` y muestra un banner de aviso cuando cambia, permitiendo al usuario ejecutar el reindexado manualmente.
 
+### IPC: Reemplazo atómico del historial de chat (comando `/compact`, issue #18)
+
+El comando `/compact` del chat (`src/hooks/useChatCommands.js`) reemplaza todo el historial por `[resumen, ...últimos N mensajes]` de una sola vez, en vez de `clear` + N×`save` (que dejaría una ventana en la que un fallo a mitad de camino borra el historial sin dejar el resumen persistido).
+
+| Canal IPC | Handler | Payload | Respuesta |
+|-----------|---------|---------|-----------|
+| `replace-question-history` | `ipc-handlers/analysis.js` | `recordingId, history[]` | `{ success: true }` \| `{ success: false, error }` |
+| `replace-project-chat-messages` | `ipc-handlers/projects.js` | `chatId, messages[]` | `{ success: true }` \| `{ success: false, error }` |
+
+- **Grabación:** `replace-question-history` hace un único `fs.promises.writeFile` sobre `questions_history.json` (mismo patrón que `clear-question-history`, pero con el array completo en vez de `[]`).
+- **Proyecto:** `replace-project-chat-messages` delega en `dbService.replaceChatMessages(chatId, messages)` — ver sección 3 (Bases de Datos) para el detalle de la transacción SQLite.
+
+Métodos expuestos en preload:
+```js
+window.electronAPI.replaceQuestionHistory(recordingId, history)      // → Promise<{ success, error? }>
+window.electronAPI.replaceProjectChatMessages(chatId, messages)      // → Promise<{ success, error? }>
+```
+
+Frontend: `recordingsService.replaceQuestionHistory(recordingId, history)` y `projectChatService.replaceChatHistory(chatId, messages)`.
+
 ### IPC: Wiki de Proyecto
 
 Se añadió un nuevo handler `electron/ipc-handlers/wiki.js` y una API segura en `preload.js` bajo `window.electronAPI.wiki`.
@@ -231,6 +251,20 @@ window.electronAPI.getRecordingSchema(recordingId)           // → Promise<{ su
 ```
 
 Frontend: `src/services/recordingsService.js` expone `saveRecordingSchema(id, schema)` y `getRecordingSchema(id)`.
+
+### `ChatsDbService.replaceChatMessages(chatId, messages)` (issue #18 — `/compact`)
+
+`electron/database/chats/dbService.js` expone `replaceChatMessages(chatId, messages)`, usado por el IPC `replace-project-chat-messages`. Reemplaza atómicamente todos los mensajes de un chat de proyecto (`project_messages`) dentro de una única `this.db.transaction(...)` de better-sqlite3:
+
+```js
+const runReplace = this.db.transaction((id, msgs) => {
+  deleteStmt.run(id);                          // DELETE_CHAT_MESSAGES
+  for (const m of msgs) insertStmt.run(id, m.tipo, m.contenido); // INSERT_MESSAGE
+  updateTimeStmt.run(id);                       // UPDATE_CHAT_TIME
+});
+```
+
+Al ser una transacción, o se aplican los tres pasos o ninguno — nunca queda el chat a medio borrar si algo falla entre el `DELETE` y los `INSERT`. Mismo patrón que `updateTasksSortOrder` en `database/tasks/dbService.js`.
 
 ### Almacenamiento Dual (Dual Storage)
 El sistema guarda metadatos en la base de datos (ID, duración, estados), pero el contenido pesado (archivos WAV, archivos JSON de los resúmenes de IA, transcripciones txt) reside en el sistema de archivos (Filesystem).
