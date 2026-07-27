@@ -26,6 +26,8 @@ import chatPendingService from '../../services/chatPendingService';
 import { getAttachments } from '../../services/attachmentsService';
 import ChannelPickerModal from '../../components/ChannelPickerModal/ChannelPickerModal';
 import WikiTab from './components/WikiTab/WikiTab';
+import { useChatCommands } from '../../hooks/useChatCommands';
+import { estimateHistoryTokens } from '../../services/chat/chatTokens';
 
 const DEEPSEEK_CHAT_MODELS = [
   { value: 'deepseek-chat', label: 'DeepSeek Chat' },
@@ -39,7 +41,7 @@ const KIMI_CHAT_MODELS = [
 ];
 
 export default function ProjectDetail({ project, onBack, onNavigateToRecording: navigateToRecordingProp }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   // Wrapper para usar el prop renombrado
   const props = { onNavigateToRecording: navigateToRecordingProp };
   
@@ -577,6 +579,51 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     }
   };
 
+  // --- Comandos de chat (/compact, ...) ---
+  const handleReplaceChatHistory = async (entries) => {
+    await projectChatService.replaceChatHistory(activeChatId, entries);
+    setChatHistory(entries);
+  };
+
+  const handleChatCompacted = (result, entries) => {
+    // Solo el historial cambió — recalculamos historyTokens sobre el contextInfo
+    // existente para que la barra baje al instante, sin esperar al siguiente mensaje.
+    setLastContextInfo(prev => {
+      if (!prev) return prev;
+      const historyTokens = estimateHistoryTokens(entries);
+      const baseTokens = prev.systemTokens + historyTokens;
+      return { ...prev, historyTokens, baseTokens, estimatedTokens: baseTokens + (prev.attachmentTokens || 0) };
+    });
+  };
+
+  const { runCommand } = useChatCommands({
+    scope: 'project',
+    lang: i18n.language,
+    model: sessionModel || undefined,
+    getHistory: () => chatHistory,
+    replaceHistory: handleReplaceChatHistory,
+    isBusy: isSendingMessage,
+    setBusy: setIsSendingMessage,
+    onCompacted: handleChatCompacted,
+    t,
+  });
+
+  const handleCompactChat = async () => {
+    if (!activeChatId) return;
+    // Mismo patrón de errores de chat ya establecido en handleSendMessage: registramos
+    // la petición como pendiente para que la suscripción a chatPendingService (arriba)
+    // sea la que gestione el error de forma consistente, incluso si el usuario navega
+    // fuera del chat mientras /compact está en curso.
+    const pendingKey = `chat_${activeChatId}`;
+    chatPendingService.setPending(pendingKey, '/compact');
+    const result = await runCommand('compact');
+    if (result && result.success === false && result.error) {
+      chatPendingService.setError(pendingKey, result.error);
+    } else {
+      chatPendingService.clearPending(pendingKey);
+    }
+  };
+
   const handleReIndexRAG = async () => {
     const chat = chats.find(c => c.id === activeChatId);
     if (!chat?.contexto?.length) return;
@@ -1074,12 +1121,15 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                   ragMode={ragMode}
                   onRagModeChange={setRagMode}
                   isProject={true}
+                  onCompact={handleCompactChat}
+                  compacting={isSendingMessage}
                 />
               )}
               <div className={styles.chatInterfaceWrapper}>
                 <ChatInterface
                   chatHistory={chatHistory}
                   onSendMessage={handleSendMessage}
+                  onCommand={runCommand}
                   isLoading={isSendingMessage || isAnyIndexing}
                   placeholder={isAnyIndexing ? 'Indexando grabaciones...' : 'Haz una pregunta sobre el proyecto...'}
                   title={activeChat ? `Chat: ${activeChat.nombre}` : "Chat del Proyecto"}

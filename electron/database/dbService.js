@@ -377,6 +377,7 @@ class DbService {
   getChatMessages(...args) { return this.chats?.getChatMessages(...args) ?? []; }
   clearChatMessages(...args) { return this.chats?.clearChatMessages(...args); }
   saveProjectChatMessage(...args) { return this.chats?.saveProjectChatMessage(...args) ?? null; }
+  replaceChatMessages(...args) { return this.chats?.replaceChatMessages(...args) ?? { success: false, error: 'DB no inicializada' }; }
 
   // Tasks
   getTaskSuggestions(...args) { return this.tasks?.getTaskSuggestions(...args) ?? []; }

@@ -85,6 +85,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   updateLastQuestionHistory: (recordingId, qa) => ipcRenderer.invoke('update-last-question-history', recordingId, qa),
   getQuestionHistory: (recordingId) => ipcRenderer.invoke('get-question-history', recordingId),
   clearQuestionHistory: (recordingId) => ipcRenderer.invoke('clear-question-history', recordingId),
+  replaceQuestionHistory: (recordingId, history) => ipcRenderer.invoke('replace-question-history', recordingId, history),
   // Guardar y leer participantes
   saveParticipants: (recordingId, participants) => ipcRenderer.invoke('save-participants', recordingId, participants),
   getParticipants: (recordingId) => ipcRenderer.invoke('get-participants', recordingId),
@@ -136,6 +137,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getProjectChatHistory: (chatId) => ipcRenderer.invoke('get-project-chat-history', chatId),
   saveProjectChatMessage: (chatId, message) => ipcRenderer.invoke('save-project-chat-message', chatId, message),
   clearProjectChatMessages: (chatId) => ipcRenderer.invoke('clear-project-chat-messages', chatId),
+  replaceProjectChatMessages: (chatId, messages) => ipcRenderer.invoke('replace-project-chat-messages', chatId, messages),
 
   // Obtener duración total del proyecto
   getProjectTotalDuration: (projectId) => ipcRenderer.invoke('get-project-total-duration', projectId),

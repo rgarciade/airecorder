@@ -20,6 +20,44 @@
     "reportBug": "Report a bug",
     "quickSummary": "Quick Summary"
   },
+  "contextBar": {
+    "context": "Context",
+    "chunks": "chunks",
+    "tokens": "tokens",
+    "fullMode": "Full summary",
+    "indexing": "Preparing context...",
+    "skipped": "Context unavailable · transcript too short",
+    "ready": "Context ready",
+    "auto": "Auto",
+    "detailed": "Detailed",
+    "limitExceeded": "⚠ Limit exceeded",
+    "limitExceededTooltip": "The context exceeds the model's configured limit",
+    "nearLimit": "⚠ Near the limit ({{pct}}%)",
+    "nearLimitTooltip": "The context is approaching the model's configured limit",
+    "compactAction": "Compact",
+    "compacting": "Compacting...",
+    "tooltips": {
+      "projectAuto": "Splits the context across all recordings. Faster.",
+      "projectDetailed": "Searches more chunks per recording. More complete answers.",
+      "recordingAuto": "Extracts the essential context. Faster response.",
+      "recordingDetailed": "Analyzes much more information for exhaustive answers."
+    }
+  },
+  "chatCommands": {
+    "menuTitle": "Available commands",
+    "unknown": "Unrecognized command.",
+    "busy": "Wait for the current task to finish before running another command.",
+    "compact": {
+      "label": "Compact",
+      "description": "Summarizes the history and frees up context",
+      "argsPlaceholder": "Optional instructions, e.g: focus on the decisions",
+      "running": "Compacting…",
+      "summaryHeader": "Previous chat summary ({{count}} messages compacted)",
+      "tooShort": "The history is too short to compact.",
+      "empty": "The AI did not return a valid summary. Try again.",
+      "error": "Could not compact the chat. Try again."
+    }
+  },
   "modelInfo": {
     "title": "Recommended models",
     "generalModel": "General Model",

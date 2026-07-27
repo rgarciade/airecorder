@@ -16,6 +16,9 @@ import { buildSystemPrompt, FEATURE_TYPES } from '../../services/ai/promptBuilde
 import ragService from '../../services/ragService';
 import recordingAiService from '../../services/recordingAiService';
 import chatPendingService from '../../services/chatPendingService';
+import { buildContextInfo, estimateHistoryTokens, CHARS_PER_TOKEN } from '../../services/chat/chatTokens';
+import { normalizeChatHistory } from '../../services/chat/chatHistory';
+import { useChatCommands } from '../../hooks/useChatCommands';
 import { checkModelVisionSupport } from '../../services/ai/huggingFaceService';
 import { generateFromTemplate } from '../../services/noteTemplateService';
 
@@ -253,8 +256,15 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       .catch(() => setTranscriptionError('Transcription not available'))
       .finally(() => setTranscriptionLoading(false));
 
-    // Load Chat History
-    recordingsService.getQuestionHistory(currentRecordingDbId).then(setQaHistory);
+    // Load Chat History — en modo RAG precalculamos contextInfo con el historial ya
+    // conocido (los chunks reales solo se saben tras la primera consulta), para que la
+    // barra de tokens no quede oculta hasta enviar el primer mensaje del chat.
+    recordingsService.getQuestionHistory(currentRecordingDbId).then((history) => {
+      setQaHistory(history);
+      if (chatContextMode === 'rag' && history.length > 0) {
+        setContextInfo(buildContextInfo({ mode: 'rag', history, chunksUsed: 0 }));
+      }
+    });
 
     // Load Attachments
     getAttachments(currentRecordingDbId).then(setRecordAttachments);
@@ -695,14 +705,18 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
         let systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, ragSystemPrompt(ragChunks, docContext));
         if (schemaContext) systemContent += `\n\n${schemaContext}`;
-        sentCharsEstimate = systemContent.length + docContext.length;
 
+        // Nota: no sumamos docContext.length aparte — ragSystemPrompt() ya lo embebe en systemContent.
         const attachmentTokens = attachmentImages.length * 256;
-        setContextInfo({
+        const ragContextInfo = buildContextInfo({
           mode: 'rag',
+          systemContent,
+          history: qaHistory,
+          attachmentTokens,
           chunksUsed: ragChunks.length,
-          estimatedTokens: Math.ceil(sentCharsEstimate / 4) + attachmentTokens
         });
+        sentCharsEstimate = (ragContextInfo.systemTokens + ragContextInfo.historyTokens) * CHARS_PER_TOKEN;
+        setContextInfo(ragContextInfo);
 
         // Construir array de mensajes: system + historial completo + pregunta actual
         const historyMessages = mapHistoryToMessages(qaHistory);
@@ -741,13 +755,16 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         }
 
         let systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, chatSystemPrompt(context || 'No context available.', uiLanguage, docContext));
-        sentCharsEstimate = systemContent.length;
 
         const attachmentTokens = attachmentImages.length * 256;
-        setContextInfo({
+        const fullContextInfo = buildContextInfo({
           mode: 'full',
-          estimatedTokens: Math.ceil(sentCharsEstimate / 4) + attachmentTokens
+          systemContent,
+          history: qaHistory,
+          attachmentTokens,
         });
+        sentCharsEstimate = (fullContextInfo.systemTokens + fullContextInfo.historyTokens) * CHARS_PER_TOKEN;
+        setContextInfo(fullContextInfo);
 
         // Construir array de mensajes: system + historial completo + pregunta actual
         const historyMessages = mapHistoryToMessages(qaHistory);
@@ -807,7 +824,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       // Calcular hint de context length (solo Ollama, ya que LM Studio no expone el valor por API)
       let tokenHint = null;
       try {
-        const sentTokensEstimate = sentCharsEstimate ? Math.ceil(sentCharsEstimate / 4) : null;
+        const sentTokensEstimate = sentCharsEstimate ? Math.ceil(sentCharsEstimate / CHARS_PER_TOKEN) : null;
 
         if (aiProvider === 'ollama' && selectedOllamaModel && sentTokensEstimate) {
           const currentSettings = await getSettings();
@@ -963,6 +980,42 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
   };
 
+  // --- Comandos de chat (/compact, ...) ---
+  const handleReplaceChatHistory = async (entries) => {
+    await recordingsService.replaceQuestionHistory(recording.id, entries);
+    setQaHistory(entries);
+  };
+
+  const handleChatCompacted = (result, entries) => {
+    // Solo el historial cambió — recalculamos historyTokens sobre el contextInfo
+    // existente para que la barra baje al instante, sin esperar al siguiente mensaje.
+    setContextInfo(prev => {
+      if (!prev) return prev;
+      const historyTokens = estimateHistoryTokens(entries);
+      const baseTokens = prev.systemTokens + historyTokens;
+      return { ...prev, historyTokens, baseTokens, estimatedTokens: baseTokens + (prev.attachmentTokens || 0) };
+    });
+  };
+
+  const { runCommand } = useChatCommands({
+    scope: 'recording',
+    lang: uiLanguage,
+    model: sessionModel || undefined,
+    getHistory: () => qaHistory,
+    replaceHistory: handleReplaceChatHistory,
+    isBusy: questionLoading,
+    setBusy: setQuestionLoading,
+    onCompacted: handleChatCompacted,
+    t,
+  });
+
+  const handleCompactChat = async () => {
+    const result = await runCommand('compact');
+    if (result && result.success === false && result.error) {
+      setAiError({ message: result.error });
+    }
+  };
+
   const applyContextModeChange = async (mode) => {
     setChatContextMode(mode);
     setQaHistory([]);
@@ -978,7 +1031,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     if (mode === 'full') {
       try {
         const text = detailedSummary || await recordingsService.getTranscriptionTxt(recording.id);
-        if (text) setContextInfo({ mode: 'full', estimatedTokens: Math.ceil(text.length / 4) });
+        // Historial vacío recién reseteado — usamos buildContextInfo también aquí para que
+        // baseTokens quede fijado desde el primer momento (evita el bug de doble conteo
+        // de tokens al activar adjuntos descrito en handleActiveAttachmentsChange).
+        if (text) setContextInfo(buildContextInfo({ mode: 'full', systemContent: text, history: [] }));
       } catch (err) {
         console.warn('Error precalculando tokens modo completo:', err);
       }
@@ -1009,24 +1065,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   };
 
   const convertChatHistory = () => {
-    // Manejar tres formatos posibles del historial:
-    // 1. Mensaje individual en memoria: tiene `tipo` y `contenido` — devolver tal cual
-    // 2. Par pregunta/respuesta V2 en JSON: tiene `tipo` y `pregunta` (pero no `contenido`) — expandir en dos
-    // 3. Par pregunta/respuesta V1 en JSON (legacy): solo tiene `pregunta`, sin `tipo` — expandir en dos
-    const history = qaHistory.flatMap((item, i) => {
-      // Caso 1: mensaje individual en memoria (tiene contenido explícito)
-      if (item.tipo && item.contenido !== undefined) {
-        return [item];
-      }
-      // Casos 2 y 3: par pregunta/respuesta guardado en JSON — expandir en mensajes separados
-      const msgs = [
-        { id: `u_${i}`, tipo: 'usuario', contenido: item.pregunta, fecha: item.fecha, adjuntos: item.adjuntos || [] }
-      ];
-      if (item.respuesta) {
-        msgs.push({ id: `a_${i}`, tipo: 'asistente', contenido: item.respuesta, fecha: item.fecha });
-      }
-      return msgs;
-    });
+    // La normalización de los 3 formatos posibles del historial vive en
+    // normalizeChatHistory (src/services/chat/chatHistory.js) — reutilizada también
+    // por chatCompactService para el comando /compact. Aquí solo añadimos el
+    // mensaje de streaming en curso, que depende de estado local de React.
+    const history = normalizeChatHistory(qaHistory);
 
     // Agregar mensaje en streaming si existe
     if (streamingMessage) {
@@ -1812,12 +1855,15 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             onRagModeChange={setRagMode}
             chatContextMode={chatContextMode}
             onChatContextModeChange={handleChatModeChangeRequest}
+            onCompact={handleCompactChat}
+            compacting={questionLoading}
             initialSeekSeconds={initialSeekSeconds}
             onInitialSeekDone={() => setInitialSeekSeconds(null)}
             recordingId={currentRecordingDbId}
             chatProps={{
               chatHistory: convertChatHistory(),
               onSendMessage: handleAskQuestion,
+              onCommand: runCommand,
               isLoading: questionLoading || ragIndexed === false,
               placeholder: ragIndexed === false ? 'Indexando transcripción...' : undefined,
               title: "AI Assistant",

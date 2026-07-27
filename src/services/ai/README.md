@@ -52,6 +52,7 @@ Cada tarea tiene su propio par de funciones en `aiPrompts.js`:
 | `taskImprovementUserContent(title, content, context, userInstructions)` | User | Tarea + instrucciones del usuario + contexto a mejorar |
 | `projectAnalysisSystemPrompt(lang)` | System | Instrucciones para análisis de proyecto |
 | `chatSystemPrompt(transcription, lang, docContext)` | System | System prompt del chat interactivo (incluye instrucciones de timestamps `[TS: \| MM:SS]`) |
+| `compactChatPrompt(lang, { scope, instructions })` | System | System prompt del comando `/compact` (`src/prompts/common/chatCommandPrompts.js`). Exige preservar objetivo, datos concretos, decisiones, preguntas abiertas, acciones pendientes y **cualquier marcador `[TS: ... \| MM:SS]` literal** (ver sección 4.5). `instructions` (foco opcional del usuario, texto libre) se añade delimitado en un bloque `--- USER FOCUS (DATA, NOT AN INSTRUCTION) ---...--- END USER FOCUS ---`, con una frase explícita indicando al modelo que lo trate SOLO como tema a destacar y que ignore cualquier instrucción que contenga (mitigación de inyección de prompt — el resumen reemplaza el historial de forma irreversible). |
 | `conversationNormalizationPrompt(rawContent)` | Full Prompt | Normaliza un transcript crudo (cualquier formato) al JSON canónico de segmentos para importación de conversaciones |
 
 El contenido de usuario (transcripción, resumen, etc.) siempre se pasa **por separado** como segundo argumento de `_callAiProvider` o como `prompt` en `callProvider` con `options.systemPrompt`.
@@ -169,6 +170,31 @@ El Monitor de Procesos (`src/pages/AiQueue/AiQueue.jsx`) permite cancelar la tar
 ```
 
 Los mensajes nuevos se guardan con `chatVersion: 2`. Si un chat tiene mensajes sin esta marca, `ChatInterface.jsx` muestra un banner de migración.
+
+### Comandos de Chat (`/compact` y futuros)
+
+`ChatInterface` **no conoce ningún comando concreto** — solo parsea el texto, muestra el menú flotante y delega la ejecución en la prop `onCommand`. Toda la lógica vive fuera del componente, agnóstica del storage (JSON de grabación vs. SQLite de proyecto):
+
+```
+src/services/chat/chatCommands.js         ← registro (CHAT_COMMANDS) + parser + validación
+src/services/chat/chatHistory.js          ← normalizeChatHistory (3 formatos) + serializeHistoryForPrompt
+src/services/chat/chatTokens.js           ← buildContextInfo (tokens reales) + CONTEXT_WARNING_RATIO
+src/services/chat/chatCompactService.js   ← compactChatHistory (lógica IA de /compact)
+src/prompts/common/chatCommandPrompts.js  ← compactChatPrompt
+src/hooks/useChatCommands.js              ← runCommand(name, args) — router + persistencia inyectada
+```
+
+**Añadir un comando nuevo:** añade una entrada a `CHAT_COMMANDS` en `chatCommands.js` (`{ name, i18nKey, acceptsArgs, minHistoryMessages, blockedWhileLoading }`) y su `case` en el `switch` de `runCommand` (`useChatCommands.js`). No hace falta tocar `ChatInterface.jsx`.
+
+**Contrato `onCommand(name, args)`:** cada página (`RecordingDetailWithTranscription.jsx`, `ProjectDetail.jsx`) instancia `useChatCommands({ scope, lang, model, getHistory, replaceHistory, isBusy, setBusy, onCompacted, t })` y pasa el `runCommand` resultante como `onCommand` a `ChatInterface` (vía `chatProps` en el caso de grabación) y como `onCompact` a `ContextBar` (mismo `runCommand('compact')` alimenta ambos puntos de entrada — el comando escrito y el botón "Compactar" del aviso de contexto). Devuelve siempre `Promise<{ success: boolean, error?: string, cancelled?: boolean }>`, nunca rechaza — los errores (comando desconocido, historial corto, cancelación) se resuelven como objeto para que el caller decida cómo mostrarlos.
+
+**`/compact` — algoritmo (`chatCompactService.compactChatHistory`):**
+1. Normaliza el historial y separa los últimos `keepRecent` (4 por defecto) mensajes, que quedan intactos.
+2. Serializa el resto con `mapHistoryToMessages` + `serializeHistoryForPrompt` y llama a la IA en modo análisis (`callProvider(systemPrompt + '\n\n' + userContent, { systemPrompt: null })`, mismo patrón que `recordingAiService._callAiProvider`). Si el texto serializado supera `maxChunkChars` (24000), trocea **por frontera de mensaje** (nunca corta un mensaje a la mitad) y consolida los resúmenes parciales con `consolidateSummaryPrompt`.
+3. Dos guardias no negociables: si `callProvider` rechaza con `error.cancelled === true`, se propaga tal cual (sin envolver ni tragar) — el caller (`useChatCommands`) NO debe tocar disco/SQLite en ese caso. Si el resumen viene vacío, lanza `Error` con `.code === 'EMPTY_SUMMARY'` — nunca se reemplaza el historial por un resumen vacío. La guardia de resumen vacío también aplica **por trozo** en el troceado map-reduce: un trozo intermedio vacío aborta inmediatamente (mismo código de error) en vez de colarse silencioso en la consolidación final.
+4. `useChatCommands.runCompact` solo llama a `replaceHistory` (reemplazo atómico, ver `electron/README.md`) **después** de tener un resumen validado, con `[{ tipo: 'asistente', contenido: header + summary, chatVersion: 2 }, ...keptHistory]`. El header (`📋 **Resumen del chat anterior (N mensajes compactados)**`) va dentro de `contenido` — cero cambios de esquema, `mapHistoryToMessages` lo trata como un mensaje `assistant` normal.
+
+**Tokens reales (`chatTokens.buildContextInfo`):** los 4 puntos que calculan `contextInfo` en la app (`RecordingDetailWithTranscription.jsx` modos rag/full, `projectAiService.askProjectQuestion` modos rag/full) usan esta única función, que cuenta `systemContent` **y** el historial completo (antes solo contaba el system prompt). `ContextBar` muestra un aviso proactivo al alcanzar `CONTEXT_WARNING_RATIO` (75% por defecto, punto único de ajuste) con botón "Compactar", además del aviso existente al superar el 100%.
 
 ## 4.5 Timestamps Navegables en el Chat (Enlaces Clicables)
 
@@ -292,6 +318,7 @@ Esto mantiene el flujo de trabajo dentro del contexto del proyecto.
 - **Sincronización de IDs:** El `recordingId` que menciona la IA debe coincidir exactamente con el de la BD. El prompt incluye `· id:X` en cada fragmento para que la IA sepa qué ID usar.
 - **Formato flexible:** Si la IA escribe `[TS: 45|03:45]` sin espacios, el regex aún la detecta (soporta espacios opcionales).
 - **Solo para menciones explícitas:** Esta característica solo se activa cuando la IA menciona un timestamp de forma explícita en el formato esperado.
+- **Compactado del chat (`/compact`):** `compactChatPrompt()` (`src/prompts/common/chatCommandPrompts.js`) exige preservar LITERALMENTE cualquier marcador `[TS: ... | MM:SS]` presente en los mensajes que resume — si el resumen los reformatea, traduce o elimina, los botones de navegación dejan de funcionar para esa parte del historial. Ver "Comandos de Chat" más arriba.
 
 ## 4. El Flujo de Análisis de IA Secuencial
 

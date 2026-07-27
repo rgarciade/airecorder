@@ -179,6 +179,28 @@ module.exports.registerAnalysisHandlers = () => {
     }
   });
 
+  // Reemplazar atómicamente todo el histórico de preguntas (usado por /compact:
+  // evita la ventana de "clear + N saves" donde un fallo a mitad de camino
+  // borraría el historial sin dejar el resumen persistido).
+  ipcMain.handle('replace-question-history', async (event, recordingId, history) => {
+    try {
+      const folderName = await getFolderPathFromId(recordingId);
+      const baseOutputDir = await getRecordingsPath();
+      const analysisDir = path.join(baseOutputDir, folderName, 'analysis');
+
+      if (!fs.existsSync(analysisDir)) {
+        fs.mkdirSync(analysisDir, { recursive: true });
+      }
+
+      const filePath = path.join(analysisDir, 'questions_history.json');
+      await fs.promises.writeFile(filePath, JSON.stringify(history || [], null, 2), 'utf8');
+      return { success: true };
+    } catch (error) {
+      console.error('Error replacing question history:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // Guardar participantes
   ipcMain.handle('save-participants', async (event, recordingId, participants) => {
     try {
