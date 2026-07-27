@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useTranslation } from 'react-i18next';
 import styles from './ChatInterface.module.css';
 import {
   MdSend, MdPerson, MdSmartToy, MdDeleteOutline, MdMoreHoriz,
   MdAdd, MdAttachFile, MdClose, MdImage, MdPictureAsPdf, MdDescription, MdInsertDriveFile, MdTableChart,
   MdVisibility, MdVisibilityOff, MdLink, MdContentPaste
 } from 'react-icons/md';
+import { parseChatCommand, getCommandMenuQuery, validateChatCommand, filterChatCommands } from '../../services/chat/chatCommands';
 
 function AttachmentTypeIcon({ type, size = 14 }) {
   if (type === 'image') return <MdImage size={size} />;
@@ -44,7 +46,9 @@ export default function ChatInterface({
   onActiveAttachmentsChange,
   allowNewAttachments = true,
   onAddChannel = null,
+  onCommand = null,
 }) {
+  const { t } = useTranslation();
   const [newMessage, setNewMessage] = useState('');
   const [showOptions, setShowOptions] = useState(false);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
@@ -52,6 +56,15 @@ export default function ChatInterface({
   const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [attachmentSearch, setAttachmentSearch] = useState('');
+
+  // Comandos de chat (/compact, ...)
+  const [showCommandMenu, setShowCommandMenu] = useState(false);
+  const [commandQuery, setCommandQuery] = useState('');
+  const [commandIndex, setCommandIndex] = useState(0);
+  const [commandError, setCommandError] = useState(null);
+  // Guarda el i18nKey del comando en curso (no solo un booleano) para poder
+  // mostrar un texto específico ("Compactando…") en vez de uno genérico.
+  const [commandRunning, setCommandRunning] = useState(null);
 
   // Estado del modal de pegar conversación
   const [showPasteModal, setShowPasteModal] = useState(false);
@@ -64,6 +77,7 @@ export default function ChatInterface({
   const modelDropdownRef = useRef(null);
   const plusMenuRef = useRef(null);
   const attachmentPickerRef = useRef(null);
+  const commandMenuRef = useRef(null);
 
   // Cerrar menús al hacer click fuera
   useEffect(() => {
@@ -80,6 +94,9 @@ export default function ChatInterface({
       if (attachmentPickerRef.current && !attachmentPickerRef.current.contains(event.target)) {
         setShowAttachmentPicker(false);
       }
+      if (commandMenuRef.current && !commandMenuRef.current.contains(event.target)) {
+        setShowCommandMenu(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -94,20 +111,105 @@ export default function ChatInterface({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || isLoading) return;
+    if (!newMessage.trim() || isLoading || commandRunning) return;
 
-    const message = newMessage.trim();
+    const raw = newMessage.trim();
+    const parsed = onCommand ? parseChatCommand(raw) : { isCommand: false };
+
+    // Rama de comando: parsear ANTES del camino normal. Los comandos no consumen
+    // adjuntos ni pasan por onSendMessage — se resuelven enteramente aquí.
+    if (parsed.isCommand) {
+      setNewMessage('');
+      setShowCommandMenu(false);
+
+      const validation = validateChatCommand(parsed.command, {
+        isBusy: isLoading || commandRunning,
+        historyLength: chatHistory.length,
+      });
+
+      if (!validation.valid) {
+        // Genérico por diseño: cualquier comando futuro con minHistoryMessages usa su
+        // propio i18nKey (registrado en chatCommands.js), no el de /compact hardcodeado.
+        // validateChatCommand garantiza parsed.command != null cuando reason === 'tooShort'.
+        setCommandError(
+          validation.reason === 'busy' ? t('chatCommands.busy') :
+          validation.reason === 'tooShort' ? t(`${parsed.command.i18nKey}.tooShort`) :
+          t('chatCommands.unknown')
+        );
+        return;
+      }
+
+      setCommandError(null);
+      setCommandRunning(parsed.command.i18nKey);
+      try {
+        const result = await onCommand(parsed.name, parsed.args);
+        if (result && result.success === false && result.error) {
+          setCommandError(result.error);
+        }
+      } finally {
+        setCommandRunning(null);
+      }
+      return;
+    }
+
+    const message = raw;
     setNewMessage('');
-    
+
     // Guardamos los adjuntos actuales para esta petición
     const currentAttachments = [...activeAttachments];
-    
+
     // Limpiamos la barra de input para que no sigan seleccionados visualmente
     if (onActiveAttachmentsChange) {
       onActiveAttachmentsChange([]);
     }
-    
+
     await onSendMessage(message, currentAttachments);
+  };
+
+  // Detecta si el input encaja con "/nombre-en-construcción" para abrir el menú de comandos.
+  const handleMessageInputChange = (e) => {
+    const value = e.target.value;
+    setNewMessage(value);
+    setCommandError(null);
+
+    if (!onCommand) return;
+
+    const query = getCommandMenuQuery(value);
+    if (query !== null) {
+      setShowCommandMenu(true);
+      setCommandQuery(query);
+      setCommandIndex(0);
+    } else {
+      setShowCommandMenu(false);
+    }
+  };
+
+  // Navegación por teclado del menú de comandos: ↓/↑ navegan, Enter/Tab autocompletan
+  // (con preventDefault — imprescindible, el input vive dentro de un <form onSubmit>), Esc cierra.
+  const handleInputKeyDown = (e) => {
+    if (!showCommandMenu) return;
+    const commands = filterChatCommands(commandQuery);
+    if (commands.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setCommandIndex((i) => (i + 1) % commands.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setCommandIndex((i) => (i - 1 + commands.length) % commands.length);
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      const cmd = commands[Math.min(commandIndex, commands.length - 1)];
+      setNewMessage(`/${cmd.name} `);
+      setShowCommandMenu(false);
+    } else if (e.key === 'Escape') {
+      setShowCommandMenu(false);
+    }
+  };
+
+  const handleCommandItemSelect = (cmd) => {
+    setNewMessage(`/${cmd.name} `);
+    setShowCommandMenu(false);
   };
 
   const handleSuggestionClick = (text) => {
@@ -401,6 +503,11 @@ export default function ChatInterface({
     td: ({ children }) => <td className={styles.messageTableCell}>{children}</td>,
   };
 
+  // Comando activo resuelto desde el registro (no hardcodea ningún nombre concreto):
+  // si el input actual encaja con un comando conocido, su i18nKey decide el placeholder
+  // de argumentos ("/compact <foco>", o el que declare un futuro segundo comando).
+  const activeCommand = onCommand ? parseChatCommand(newMessage).command : null;
+
   return (
     <div className={styles.container}>
       <div className={styles.chatContainer}>
@@ -527,7 +634,19 @@ export default function ChatInterface({
               </div>
             ))
           )}
-          {isLoading && !(chatHistory.length > 0 && chatHistory[chatHistory.length - 1]?.id === 'streaming') && (
+          {commandRunning && (
+            <div className={`${styles.message} ${styles.asistente}`}>
+              <div className={styles.messageAvatar}>
+                <MdSmartToy size={16} />
+              </div>
+              <div className={styles.messageContent}>
+                <div className={styles.messageText}>
+                  {t(`${commandRunning}.running`)}
+                </div>
+              </div>
+            </div>
+          )}
+          {!commandRunning && isLoading && !(chatHistory.length > 0 && chatHistory[chatHistory.length - 1]?.id === 'streaming') && (
             <div className={`${styles.message} ${styles.asistente}`}>
               <div className={styles.messageAvatar}>
                 <MdSmartToy size={16} />
@@ -581,7 +700,38 @@ export default function ChatInterface({
             </div>
           )}
 
+          {/* Error inline de comandos (comando desconocido, historial corto, fallo de IA...) */}
+          {commandError && (
+            <div className={styles.commandErrorBanner}>{commandError}</div>
+          )}
+
           <div className={styles.messageInputContainer}>
+
+            {/* Menú flotante de comandos ("/") — solo si el padre soporta comandos */}
+            {onCommand && showCommandMenu && (
+              <div className={styles.commandMenu} ref={commandMenuRef}>
+                <div className={styles.commandMenuTitle}>{t('chatCommands.menuTitle')}</div>
+                {filterChatCommands(commandQuery).length === 0 ? (
+                  <div className={styles.commandMenuEmpty}>{t('chatCommands.unknown')}</div>
+                ) : (
+                  filterChatCommands(commandQuery).map((cmd, idx) => (
+                    <button
+                      key={cmd.name}
+                      type="button"
+                      className={`${styles.commandMenuItem} ${idx === commandIndex ? styles.commandMenuItemActive : ''}`}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleCommandItemSelect(cmd)}
+                    >
+                      <div className={styles.commandMenuItemTop}>
+                        <span className={styles.commandMenuName}>/{cmd.name}</span>
+                        <span className={styles.commandMenuLabel}>{t(`${cmd.i18nKey}.label`)}</span>
+                      </div>
+                      <span className={styles.commandMenuDesc}>{t(`${cmd.i18nKey}.description`)}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
 
             {/* Botón + (subir archivo nuevo) - Solo si hay onPickNewAttachment */}
             {onPickNewAttachment && (
@@ -747,14 +897,19 @@ export default function ChatInterface({
             <input
               type="text"
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder={placeholder}
+              onChange={handleMessageInputChange}
+              onKeyDown={handleInputKeyDown}
+              placeholder={
+                commandRunning ? t(`${commandRunning}.running`) :
+                activeCommand ? t(`${activeCommand.i18nKey}.argsPlaceholder`) :
+                placeholder
+              }
               className={styles.messageInput}
-              disabled={isLoading}
+              disabled={isLoading || commandRunning}
             />
             <button
               type="submit"
-              disabled={!newMessage.trim() || isLoading}
+              disabled={!newMessage.trim() || isLoading || commandRunning}
               className={styles.sendButton}
             >
               <MdSend size={18} />

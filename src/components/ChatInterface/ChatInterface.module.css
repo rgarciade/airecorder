@@ -346,6 +346,7 @@
 }
 
 .messageInputContainer {
+  position: relative; /* ancla del menú de comandos (.commandMenu) */
   display: flex;
   align-items: center; /* Alineación central vertical */
   gap: 8px;
@@ -355,6 +356,92 @@
   padding: 6px 6px 6px 16px; /* Padding para el input y espacio para el botón */
   box-shadow: 0 2px 4px var(--color-shadow);
   transition: all 0.2s;
+}
+
+/* Banner de error inline de comandos de chat (comando desconocido, historial corto, fallo IA...) */
+.commandErrorBanner {
+  padding: 6px 12px;
+  margin-bottom: 8px;
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Menú flotante de comandos de chat ("/") — mismo patrón que .plusMenu, pero ancho completo */
+.commandMenu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px var(--color-shadow-md);
+  z-index: 110;
+  overflow: hidden;
+}
+
+.commandMenuTitle {
+  padding: 8px 14px 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.commandMenuEmpty {
+  padding: 6px 14px 12px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.commandMenuItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.commandMenuItem:last-child {
+  padding-bottom: 10px;
+}
+
+.commandMenuItem:hover,
+.commandMenuItemActive {
+  background: var(--color-bg-tertiary);
+}
+
+.commandMenuItemTop {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.commandMenuName {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.commandMenuLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.commandMenuDesc {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
 }
 
 .messageInputContainer:focus-within {
