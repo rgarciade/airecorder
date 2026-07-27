@@ -19,6 +19,8 @@ export default function TranscriptionChatTab({
   onRagModeChange,
   chatContextMode,
   onChatContextModeChange,
+  onCompact = null,
+  compacting = false,
   transcriptionModel,
   audioUrls,
   duration,
@@ -56,8 +58,10 @@ export default function TranscriptionChatTab({
       const newWidth = containerRect.right - e.clientX;
 
       if (newWidth < 300) return;
+      // Deja al menos 400px para la columna de transcripción; fuera de eso,
+      // el único límite es un tope absoluto generoso para pantallas grandes.
       if (newWidth > containerRect.width - 400) return;
-      if (newWidth > 800) return;
+      if (newWidth > 1600) return;
 
       setChatWidth(newWidth);
     };
@@ -204,6 +208,8 @@ export default function TranscriptionChatTab({
           onRagModeChange={onRagModeChange}
           chatContextMode={chatContextMode}
           onChatContextModeChange={onChatContextModeChange}
+          onCompact={onCompact}
+          compacting={compacting}
         />
         <ChatInterface {...chatProps} onSeekToTime={handleSeek} />
       </div>

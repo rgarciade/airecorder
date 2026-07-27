@@ -1,6 +1,45 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './ContextBar.module.css';
+import { CONTEXT_WARNING_RATIO } from '../../services/chat/chatTokens';
+
+// Barra de progreso + tokens + aviso de límite, compartida por las ramas 'rag' y 'full'
+// (antes duplicaban ~15 líneas cada una y el aviso solo vivía en 'full').
+const ContextUsage = ({ estimatedTokens, maxContextLength, onCompact, compacting, t }) => {
+  const pct = Math.min((estimatedTokens / maxContextLength) * 100, 100);
+  const ratio = maxContextLength > 0 ? estimatedTokens / maxContextLength : 0;
+  const colorClass = pct >= 80 ? styles.red : pct >= 50 ? styles.yellow : styles.green;
+  const exceeded = ratio >= 1;
+  const near = ratio >= CONTEXT_WARNING_RATIO;
+
+  return (
+    <>
+      <span className={styles.tokens}>~{estimatedTokens.toLocaleString()} / {maxContextLength.toLocaleString()} {t('contextBar.tokens')}</span>
+      <div className={styles.bar}>
+        <div className={`${styles.fill} ${colorClass}`} style={{ width: `${pct}%` }} />
+      </div>
+      {(near || exceeded) && (
+        <span
+          className={exceeded ? styles.tokenWarning : styles.tokenNearWarning}
+          title={exceeded ? t('contextBar.limitExceededTooltip') : t('contextBar.nearLimitTooltip')}
+        >
+          {exceeded ? t('contextBar.limitExceeded') : t('contextBar.nearLimit', { pct: Math.round(pct) })}
+        </span>
+      )}
+      {(near || exceeded) && onCompact && (
+        <button
+          type="button"
+          className={styles.compactBtn}
+          onClick={onCompact}
+          disabled={compacting}
+          aria-busy={compacting || undefined}
+        >
+          {compacting ? t('contextBar.compacting') : t('contextBar.compactAction')}
+        </button>
+      )}
+    </>
+  );
+};
 
 const ModeToggle = ({ ragMode, onRagModeChange, isProject, t }) => (
   <div className={styles.modeToggle}>
@@ -49,14 +88,11 @@ const TogglesGroup = ({ chatContextMode, onChatContextModeChange, ragMode, onRag
   );
 };
 
-const ContextBar = ({ contextInfo, maxContextLength = 8000, ragIndexed, ragTotalChunks = 0, ragMode, onRagModeChange, isProject = false, chatContextMode, onChatContextModeChange }) => {
+const ContextBar = ({ contextInfo, maxContextLength = 8000, ragIndexed, ragTotalChunks = 0, ragMode, onRagModeChange, isProject = false, chatContextMode, onChatContextModeChange, onCompact, compacting = false }) => {
   const { t } = useTranslation();
 
   // Modo activo: RAG usado en el último mensaje
   if (contextInfo && contextInfo.mode === 'rag') {
-    const pct = Math.min((contextInfo.estimatedTokens / maxContextLength) * 100, 100);
-    const colorClass = pct >= 80 ? styles.red : pct >= 50 ? styles.yellow : styles.green;
-
     return (
       <div className={styles.container}>
         <span className={`${styles.dot} ${styles.dotActive}`} />
@@ -64,10 +100,7 @@ const ContextBar = ({ contextInfo, maxContextLength = 8000, ragIndexed, ragTotal
           {t('contextBar.context')} · {contextInfo.chunksUsed} {t('contextBar.chunks')}
         </span>
         <span className={styles.sep}>·</span>
-        <span className={styles.tokens}>~{contextInfo.estimatedTokens.toLocaleString()} / {maxContextLength.toLocaleString()} {t('contextBar.tokens')}</span>
-        <div className={styles.bar}>
-          <div className={`${styles.fill} ${colorClass}`} style={{ width: `${pct}%` }} />
-        </div>
+        <ContextUsage estimatedTokens={contextInfo.estimatedTokens} maxContextLength={maxContextLength} onCompact={onCompact} compacting={compacting} t={t} />
         <TogglesGroup chatContextMode={chatContextMode} onChatContextModeChange={onChatContextModeChange} ragMode={ragMode} onRagModeChange={onRagModeChange} isProject={isProject} t={t} />
       </div>
     );
@@ -75,21 +108,12 @@ const ContextBar = ({ contextInfo, maxContextLength = 8000, ragIndexed, ragTotal
 
   // Modo completo: resumen completo enviado al LLM
   if (contextInfo && contextInfo.mode === 'full') {
-    const pct = Math.min((contextInfo.estimatedTokens / maxContextLength) * 100, 100);
-    const colorClass = pct >= 80 ? styles.red : pct >= 50 ? styles.yellow : styles.green;
-
     return (
       <div className={styles.container}>
         <span className={`${styles.dot} ${styles.dotFull}`} />
         <span className={`${styles.label} ${styles.labelMuted}`}>{t('contextBar.fullMode')}</span>
         <span className={styles.sep}>·</span>
-        <span className={styles.tokens}>~{contextInfo.estimatedTokens.toLocaleString()} / {maxContextLength.toLocaleString()} {t('contextBar.tokens')}</span>
-        <div className={styles.bar}>
-          <div className={`${styles.fill} ${colorClass}`} style={{ width: `${pct}%` }} />
-        </div>
-        {contextInfo.estimatedTokens > maxContextLength && (
-          <span className={styles.tokenWarning} title="El contexto supera el límite configurado del modelo">⚠ límite superado</span>
-        )}
+        <ContextUsage estimatedTokens={contextInfo.estimatedTokens} maxContextLength={maxContextLength} onCompact={onCompact} compacting={compacting} t={t} />
         <TogglesGroup chatContextMode={chatContextMode} onChatContextModeChange={onChatContextModeChange} ragMode={ragMode} onRagModeChange={onRagModeChange} isProject={isProject} t={t} />
       </div>
     );

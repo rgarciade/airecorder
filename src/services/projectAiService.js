@@ -10,6 +10,7 @@ import { projectAnalysisSystemPrompt, chatSystemPrompt } from '../prompts/aiProm
 import { projectRagSystemPrompt, mapHistoryToMessages } from '../prompts/ragPrompts';
 import { getSettings } from './settingsService';
 import { buildSystemPrompt, FEATURE_TYPES } from './ai/promptBuilder';
+import { buildContextInfo } from './chat/chatTokens';
 
 class ProjectAiService {
   constructor() {
@@ -394,7 +395,7 @@ class ProjectAiService {
           { role: 'user', content: question },
         ];
 
-        const estimatedTokens = Math.round(systemContent.length / 4);
+        const contextInfo = buildContextInfo({ mode: 'rag', systemContent, history: chatHistory, chunksUsed: allChunks.length });
         let answer = '';
         const response = await callChatProviderStreaming(messages, (chunk) => {
           answer += chunk;
@@ -406,7 +407,7 @@ class ProjectAiService {
 
         return {
           text: response.text || answer || 'No he podido generar una respuesta en este momento.',
-          contextInfo: { mode: 'rag', chunksUsed: allChunks.length, estimatedTokens }
+          contextInfo
         };
       }
 
@@ -437,7 +438,7 @@ class ProjectAiService {
         { role: 'user', content: question },
       ];
 
-      const estimatedTokens = Math.round(systemContent.length / 4);
+      const contextInfo = buildContextInfo({ mode: 'full', systemContent, history: chatHistory });
       let answer = '';
       const response = await callChatProviderStreaming(messages, (chunk) => {
         answer += chunk;
@@ -449,7 +450,7 @@ class ProjectAiService {
 
       return {
         text: response.text || answer || 'No he podido generar una respuesta en este momento.',
-        contextInfo: { mode: 'full', estimatedTokens }
+        contextInfo
       };
     } catch (error) {
       if (error.cancelled) throw error;
