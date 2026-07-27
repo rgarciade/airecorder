@@ -329,6 +329,25 @@ class RecordingsService {
   }
 
   /**
+   * Reemplaza atómicamente todo el historial de preguntas (usado por el comando /compact).
+   * Un único write en vez de clear+N saves: evita perder el historial si algo falla a mitad.
+   * @param {string|number} recordingId
+   * @param {Array} history - Historial completo ya normalizado a persistir
+   * @returns {Promise<boolean>}
+   */
+  async replaceQuestionHistory(recordingId, history) {
+    try {
+      if (!window.electronAPI?.replaceQuestionHistory) throw new Error('API de Electron no disponible');
+      const result = await window.electronAPI.replaceQuestionHistory(recordingId, history);
+      if (!result.success) throw new Error(result.error);
+      return true;
+    } catch (error) {
+      console.error('Error reemplazando histórico de preguntas:', error);
+      return false;
+    }
+  }
+
+  /**
    * Borra el historial de preguntas del chat
    * @param {string|number} recordingId
    * @returns {Promise<boolean>}

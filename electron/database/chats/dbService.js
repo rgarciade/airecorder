@@ -80,6 +80,36 @@ class ChatsDbService extends BaseDbService {
       fecha: new Date().toISOString()
     };
   }
+
+  /**
+   * Reemplaza atómicamente todos los mensajes de un chat (usado por /compact).
+   * DELETE + N INSERT dentro de una única transacción de better-sqlite3: o se
+   * aplica todo o no se aplica nada, nunca queda el chat a medio borrar.
+   * @param {string} chatId
+   * @param {Array<{tipo: 'usuario'|'asistente', contenido: string}>} messages
+   */
+  replaceChatMessages(chatId, messages = []) {
+    if (!this.db) return { success: false, error: 'DB no inicializada' };
+    try {
+      const deleteStmt = this.db.prepare(DELETE_CHAT_MESSAGES);
+      const insertStmt = this.db.prepare(INSERT_MESSAGE);
+      const updateTimeStmt = this.db.prepare(UPDATE_CHAT_TIME);
+
+      const runReplace = this.db.transaction((id, msgs) => {
+        deleteStmt.run(id);
+        for (const m of msgs) {
+          insertStmt.run(id, m.tipo, m.contenido);
+        }
+        updateTimeStmt.run(id);
+      });
+
+      runReplace(chatId, messages);
+      return { success: true };
+    } catch (error) {
+      this._log(`Error en replaceChatMessages: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 module.exports = ChatsDbService;
