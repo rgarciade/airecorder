@@ -34,14 +34,13 @@ function buildCustomError(response, errBody) {
 }
 
 module.exports.registerAiHandlers = (ipcMainInstance = ipcMain) => {
-  ipcMainInstance.handle('ai:custom-list-models', async (event, connectionId) => {
+  ipcMainInstance.handle('ai:custom-list-models', async (event, connectionId, connectionData) => {
     try {
       if (!connectionId) {
         return { success: false, error: 'Falta el identificador de conexión' };
       }
 
-      const settings = loadSettings();
-      const connection = findCustomConnection(settings, connectionId);
+      const connection = connectionData || findCustomConnection(loadSettings(), connectionId);
       if (!connection) {
         return { success: false, error: 'Conexión personalizada no encontrada' };
       }

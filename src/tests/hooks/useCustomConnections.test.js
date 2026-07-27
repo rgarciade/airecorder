@@ -216,7 +216,7 @@ describe('useCustomConnections helpers', () => {
 
       const result = await capturedHook.testConnection('c1');
 
-      expect(listCustomModels).toHaveBeenCalledWith('c1');
+      expect(listCustomModels).toHaveBeenCalledWith('c1', { id: 'c1', name: 'Test', baseUrl: 'http://x', apiKey: 'k' });
       expect(result.success).toBe(true);
       expect(result.models).toHaveLength(1);
       expect(result.models[0].name).toBe('model-a');

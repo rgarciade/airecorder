@@ -50,6 +50,7 @@ export default function CustomConnectionsSection({ role, defaultOpen = false }) 
     setDraft(EMPTY_DRAFT);
     setIsAdding(true);
     setEditingId(null);
+    setIsOpen(true);
   }, []);
 
   const startEdit = useCallback((connection) => {

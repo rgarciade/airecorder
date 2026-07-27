@@ -9,7 +9,7 @@ import { getAvailableModels, checkModelSupportsStreaming, getOllamaModelInfo } f
 import { getLMStudioModels } from '../../services/ai/lmStudioProvider';
 // generateWithContext y generateWithContextStreaming se mantienen para el análisis (resúmenes, etc.)
 // El chat de grabaciones usa callChatProviderStreaming directamente.
-import { callProvider, callProviderStreaming, callChatProviderStreaming } from '../../services/ai/providerRouter';
+import { callProvider, callProviderStreaming, callChatProviderStreaming, isCustom } from '../../services/ai/providerRouter';
 import { chatSystemPrompt } from '../../prompts/aiPrompts';
 import { ragSystemPrompt, mapHistoryToMessages } from '../../prompts/ragPrompts';
 import { buildSystemPrompt, FEATURE_TYPES } from '../../services/ai/promptBuilder';
@@ -122,6 +122,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [selectedOllamaModel, setSelectedOllamaModel] = useState('');
   const [lmStudioModels, setLmStudioModels] = useState([]);
   const [selectedLmStudioModel, setSelectedLmStudioModel] = useState('');
+  const [customConnections, setCustomConnections] = useState([]);
+  const [customConnectionModels, setCustomConnectionModels] = useState([]);
+  const [selectedCustomConnectionModel, setSelectedCustomConnectionModel] = useState('');
   const [ollamaRagModel, setOllamaRagModel] = useState(''); // Modelo específico para RAG (Ollama)
   const [lmStudioRagModel, setLmStudioRagModel] = useState(''); // Modelo específico para RAG (LM Studio)
   const [supportsStreaming, setSupportsStreaming] = useState(true);
@@ -404,6 +407,18 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           }
         })
         .catch(err => console.error("Error fetching LM Studio models:", err));
+    }
+    if (isCustom(aiProvider)) {
+      const connection = customConnections.find((c) => aiProvider === `custom:${c.id}`);
+      if (connection && window.electronAPI?.listCustomModels) {
+        window.electronAPI.listCustomModels(connection.id, connection)
+          .then(result => {
+            if (result?.success) {
+              setCustomConnectionModels((result.models || []).map(m => m.name || m));
+            }
+          })
+          .catch(err => console.error("Error fetching custom connection models:", err));
+      }
     }
   }, [aiProvider]);
 
@@ -1043,6 +1058,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       setAiProvider(provider);
       setSelectedOllamaModel(settings.ollamaModel || '');
       setSelectedLmStudioModel(settings.lmStudioModel || '');
+      setCustomConnections(settings.customConnections || []);
+      setSelectedCustomConnectionModel(settings.customGeneralModel || '');
 
       if (provider === 'ollama') {
         const models = await getAvailableModels();
@@ -1051,6 +1068,17 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       if (provider === 'lmstudio') {
         const models = await getLMStudioModels();
         setLmStudioModels(models.map(m => m.name || m));
+      }
+      if (isCustom(provider)) {
+        const connection = (settings.customConnections || []).find(
+          (c) => provider === `custom:${c.id}`
+        );
+        if (connection && window.electronAPI?.listCustomModels) {
+          const result = await window.electronAPI.listCustomModels(connection.id, connection);
+          if (result?.success) {
+            setCustomConnectionModels((result.models || []).map(m => m.name || m));
+          }
+        }
       }
     } catch (e) {
       console.error("Error loading settings for regenerate modal:", e);
@@ -1081,6 +1109,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       providerOverride: aiProvider,
       ...(aiProvider === 'ollama' && selectedOllamaModel ? { model: selectedOllamaModel } : {}),
       ...(aiProvider === 'lmstudio' && selectedLmStudioModel ? { model: selectedLmStudioModel } : {}),
+      ...(isCustom(aiProvider) && selectedCustomConnectionModel ? { model: selectedCustomConnectionModel } : {}),
     };
 
     try {
@@ -1884,6 +1913,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                   <option value="kimi">Kimi (Moonshot)</option>
                   <option value="ollama">Ollama (Local)</option>
                   <option value="lmstudio">LM Studio (Local)</option>
+                  {customConnections.map(connection => (
+                    <option key={connection.id} value={`custom:${connection.id}`}>{connection.name}</option>
+                  ))}
                 </select>
 
                 {aiProvider === 'ollama' && (
@@ -1917,6 +1949,22 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                           ))
                         : <option value="" disabled>LM Studio no disponible o sin modelos</option>
                       }
+                    </select>
+                  </>
+                )}
+
+                {isCustom(aiProvider) && (
+                  <>
+                    <label className={styles.modalLabel}>Model</label>
+                    <select
+                      className={styles.select}
+                      value={selectedCustomConnectionModel}
+                      onChange={(e) => setSelectedCustomConnectionModel(e.target.value)}
+                    >
+                      <option value="" disabled>Select a model...</option>
+                      {customConnectionModels.map(model => (
+                        <option key={model} value={model}>{model}</option>
+                      ))}
                     </select>
                   </>
                 )}

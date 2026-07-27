@@ -60,7 +60,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   transcribeRecording: (recordingId, model, options) => ipcRenderer.invoke('transcribe-recording', recordingId, model, options),
 
   // Listar modelos de una conexión OpenAI personalizada
-  listCustomModels: (connectionId) => ipcRenderer.invoke('ai:custom-list-models', connectionId),
+  listCustomModels: (connectionId, connectionData) => ipcRenderer.invoke('ai:custom-list-models', connectionId, connectionData),
 
   // Cola de transcripción
   getTranscriptionQueue: () => ipcRenderer.invoke('get-transcription-queue'),

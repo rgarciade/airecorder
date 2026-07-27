@@ -178,11 +178,11 @@ describe('providerRouter custom dispatch', () => {
     expect(result.error).toMatch(/no encontrada/);
   });
 
-  it('getActiveProviderContextWindow returns null for custom provider', async () => {
+  it('getActiveProviderContextWindow returns standard 250000 window for custom provider', async () => {
     const settings = { aiProvider: 'custom:conn-1', customConnections: [] };
 
     const result = await getActiveProviderContextWindow(settings);
 
-    expect(result).toBeNull();
+    expect(result).toBe(250000);
   });
 });

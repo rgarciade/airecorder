@@ -365,9 +365,9 @@ export async function getActiveProviderContextWindow(settings) {
     return null;
   }
 
-  // Conexiones personalizadas: no hay ventana de contexto cacheada por defecto
+  // Conexiones personalizadas: sin detección automática, se asume un contexto amplio estándar
   if (isCustom(provider)) {
-    return null;
+    return 250000;
   }
 
   if (provider === 'ollama') {

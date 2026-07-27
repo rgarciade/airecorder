@@ -231,19 +231,24 @@ class RecordingAiService {
    * Calcula el límite de caracteres según la ventana de contexto del proveedor
    * @param {Object} settings - Configuración actual
    * @param {number} promptOverheadTokens - Margen de seguridad para el prompt (por defecto 800)
+   * @param {Object} providerOverrides - Override temporal de proveedor/modelo { providerOverride, model }
    * @returns {Promise<number>} Número máximo de caracteres permitidos
    */
-  async _calculateMaxContextChars(settings, promptOverheadTokens = 800) {
-    const isCloudProvider = ['gemini', 'deepseek', 'kimi'].includes(settings.aiProvider);
+  async _calculateMaxContextChars(settings, promptOverheadTokens = 800, providerOverrides = {}) {
+    const effectiveSettings = providerOverrides.providerOverride
+      ? { ...settings, aiProvider: providerOverrides.providerOverride }
+      : settings;
+
+    const isCloudProvider = ['gemini', 'deepseek', 'kimi'].includes(effectiveSettings.aiProvider);
     if (isCloudProvider) {
       return Number.MAX_SAFE_INTEGER; // Los proveedores cloud no necesitan chunking/truncado
     }
-    
-    const detectedCtx = await getActiveProviderContextWindow(settings);
+
+    const detectedCtx = await getActiveProviderContextWindow(effectiveSettings);
     const numCtx = detectedCtx || 4096; // Fallback: mínimo habitual en modelos locales
     const responseReserve = Math.max(512, Math.floor(numCtx * 0.25)); // Espacio para la respuesta del modelo
     const maxChars = Math.max(4000, (numCtx - promptOverheadTokens - responseReserve) * 4);
-    
+
     return maxChars;
   }
 
@@ -307,7 +312,7 @@ class RecordingAiService {
         console.log('📋 Generando resumen detallado...');
 
         // Optimización para transcripciones muy largas (Map-Reduce básico).
-        const CHUNK_SIZE = await this._calculateMaxContextChars(settings, 800);
+        const CHUNK_SIZE = await this._calculateMaxContextChars(settings, 800, providerOverrides);
         console.log(`📐 Límite de contexto calculado: ${CHUNK_SIZE} caracteres`);
 
         if (txt && txt.length > CHUNK_SIZE) {
@@ -372,7 +377,7 @@ class RecordingAiService {
         
         // Ahora pasamos los resúmenes combinados (ya reducidos a un tamaño seguro) como contexto para el final
         // para que la respuesta sea más coherente y rápida.
-        const maxCharsForShort = await this._calculateMaxContextChars(settings, 1200);
+        const maxCharsForShort = await this._calculateMaxContextChars(settings, 1200, providerOverrides);
         
         const shortTasks = [];
         
@@ -513,7 +518,7 @@ class RecordingAiService {
         const lang = settings.uiLanguage || 'es';
 
         // Asegurar que el contexto no exceda la ventana máxima del modelo
-        const maxChars = await this._calculateMaxContextChars(settings, 500);
+        const maxChars = await this._calculateMaxContextChars(settings, 500, providerOverrides);
         if (contextText.length > maxChars) {
           console.warn(`⚠️ Texto demasiado largo para extraer participantes (${contextText.length} > ${maxChars}). Truncando...`);
           contextText = contextText.substring(0, maxChars);
@@ -813,7 +818,7 @@ class RecordingAiService {
       // Respetar límite de contexto del proveedor activo.
       // Reservamos hasta 2000 chars para contextExtra y truncamos los segmentos al resto,
       // de forma que el input total (segments + contextExtra) nunca supere maxChars.
-      const maxChars = await this._calculateMaxContextChars(settings, 1000);
+      const maxChars = await this._calculateMaxContextChars(settings, 1000, providerOverrides);
       const contextReserve = Math.min(contextExtra.length, 2000);
       const maxForSegments = Math.max(1000, maxChars - contextReserve);
       let inputText;
