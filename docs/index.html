@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AIRecorder — Graba y Transcribe Reuniones con IA Local</title>
-  <meta name="description" content="Aplicación macOS que graba, transcribe con Whisper y analiza tus reuniones con IA local. 100% privado. Compatible con Ollama, LM Studio, Gemini y DeepSeek.">
-  <meta name="keywords" content="grabadora reuniones, transcripción automática, IA local, Whisper, Ollama, LM Studio, macOS, privacidad, diarización, análisis reuniones">
+  <title>AIRecorder | IA local para reuniones, transcripción y conocimiento de proyectos</title>
+  <meta name="description" content="Aplicación de escritorio para macOS y Windows que graba reuniones, las transcribe localmente con Whisper, genera resúmenes y salidas estructuradas, y te permite chatear con el conocimiento de tus reuniones y proyectos. IA local por defecto; proveedores externos opcionales.">
+  <meta name="keywords" content="grabadora de reuniones con IA local, grabador de reuniones offline, grabador de reuniones local, grabaciones de reuniones seguras, alternativa gratis a Plaud, transcripción privada de reuniones, chat con transcripciones, resúmenes de reuniones con IA, IA local vs IA en la nube, Whisper, Ollama, LM Studio, macOS, Windows">
   <meta name="author" content="Raul Garcia">
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#3994EF">
@@ -13,8 +13,8 @@
   <link rel="canonical" href="https://rgarciade.github.io/airecorder/">
 
   <!-- Open Graph -->
-  <meta property="og:title" content="AIRecorder — Graba y Transcribe Reuniones con IA Local">
-  <meta property="og:description" content="Aplicación macOS que graba, transcribe con Whisper y analiza tus reuniones con IA local. 100% privado. Compatible con Ollama, LM Studio, Gemini y DeepSeek.">
+  <meta property="og:title" content="AIRecorder | IA local para reuniones, transcripción y conocimiento de proyectos">
+  <meta property="og:description" content="Aplicación de escritorio para macOS y Windows que graba reuniones, las transcribe localmente con Whisper, genera resúmenes y salidas estructuradas, y te permite chatear con el conocimiento de tus reuniones y proyectos. IA local por defecto; proveedores externos opcionales.">
   <meta property="og:image" content="https://rgarciade.github.io/airecorder/icon.png">
   <meta property="og:url" content="https://rgarciade.github.io/airecorder/">
   <meta property="og:type" content="website">
@@ -23,8 +23,8 @@
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="AIRecorder — Graba y Transcribe Reuniones con IA Local">
-  <meta name="twitter:description" content="Aplicación macOS que graba, transcribe con Whisper y analiza tus reuniones con IA local. 100% privado. Compatible con Ollama, LM Studio, Gemini y DeepSeek.">
+  <meta name="twitter:title" content="AIRecorder | IA local para reuniones, transcripción y conocimiento de proyectos">
+  <meta name="twitter:description" content="Aplicación de escritorio para macOS y Windows que graba reuniones, las transcribe localmente con Whisper, genera resúmenes y salidas estructuradas, y te permite chatear con el conocimiento de tus reuniones y proyectos. IA local por defecto; proveedores externos opcionales.">
   <meta name="twitter:image" content="https://rgarciade.github.io/airecorder/icon.png">
 
   <!-- Structured Data -->
@@ -33,9 +33,9 @@
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "AIRecorder",
-    "description": "Aplicación de escritorio para macOS que graba audio, transcribe con Whisper y analiza reuniones con IA local. 100% privado, sin servidor.",
+    "description": "Aplicación de escritorio para macOS y Windows que graba audio, transcribe localmente con Whisper, genera resúmenes estructurados de reuniones y permite chatear con el conocimiento de reuniones y proyectos. IA local por defecto (Ollama, LM Studio); proveedores externos opcionales (Gemini, DeepSeek, Kimi).",
     "applicationCategory": "ProductivityApplication",
-    "operatingSystem": "macOS",
+    "operatingSystem": "macOS, Windows",
     "offers": {
       "@type": "Offer",
       "price": "0",
@@ -51,14 +51,137 @@
       "url": "https://github.com/rgarciade"
     },
     "featureList": [
+      "Chat con el conocimiento de reuniones y proyectos",
+      "Resúmenes estructurados, decisiones y tareas",
       "Grabación de audio local",
       "Transcripción automática con Whisper",
       "Análisis de reuniones con IA",
       "Diarización de hablantes con pyannote",
       "Sistema RAG con LanceDB",
-      "Compatible con Ollama, LM Studio, Gemini, DeepSeek"
+      "IA local por defecto (Ollama, LM Studio); proveedores externos opcionales (Gemini, DeepSeek)"
     ],
     "screenshot": "https://rgarciade.github.io/airecorder/docs/screenshots/screen-home.png"
+  }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "¿Por qué AIRecorder frente a Otter o Fireflies?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "AIRecorder es la única opción 100% local. Otter y Fireflies suben tu audio a sus servidores para procesarlo. Con AIRecorder, tus datos nunca salen de tu equipo. Además, es gratuito y open source."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Necesito conexión a internet?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Con Ollama o LM Studio puedes grabar, transcribir y analizar completamente offline. Si usas proveedores cloud como Gemini, solo necesitas internet para la parte de análisis; la transcripción con Whisper siempre es local."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Qué necesito para usarlo?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Un Mac con Apple Silicon (M1/M2/M3/M4) y macOS 13+, o un PC con Windows 10/11 (x64). Para transcripción, Whisper se instala automáticamente. Para análisis con IA, puedes usar Ollama (gratuito, local) o conectarlo a Gemini/DeepSeek con tu propia API key."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Es realmente gratis?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sí. AIRecorder es completamente gratuito y open source (MIT). No hay planes de pago, suscripciones ni funcionalidades premium. Si quieres apoyar el proyecto, puedes invitarme a un café en Ko-fi."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Qué idiomas soporta la transcripción?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Whisper soporta más de 90 idiomas con alta precisión, incluyendo español, inglés, francés, alemán, portugués, italiano y muchos más. Puedes elegir el modelo y el idioma para cada grabación."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Puedo chatear con mis reuniones y proyectos?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sí. Cada reunión y cada proyecto tienen su propio chat con IA: puedes preguntar por decisiones, fechas, compromisos o cualquier detalle. El sistema usa RAG (búsqueda semántica con LanceDB) para encontrar el fragmento exacto entre horas de grabaciones."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Por qué usar IA local en vez de un proveedor en la nube?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Porque tus reuniones suelen contener información sensible. Con Ollama o LM Studio, el análisis corre en tu equipo y nada sale de él. Los proveedores externos (Gemini, DeepSeek, Kimi) son opcionales: los activas solo si necesitas más potencia y aceptas enviar ese contenido a la nube."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Cómo graba AIRecorder el audio de una reunión?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "AIRecorder captura al mismo tiempo tu micrófono y el audio del sistema como dos pistas independientes, así no pierdes ni tu voz ni la de los demás participantes, sea en una llamada de Meet, Zoom, Teams o presencial con el micrófono del equipo."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Qué resúmenes genera AIRecorder de una reunión?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "La IA genera un resumen detallado, extrae decisiones, identifica participantes y convierte los compromisos en tareas accionables organizadas en un tablero Kanban (Backlog, En progreso, Bloqueado, Hecho). Todo a partir de la transcripción, sin trabajo manual."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿AIRecorder identifica quién habla en cada momento?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sí. Usa diarización de hablantes con pyannote para separar y etiquetar cada intervención por participante, incluso en reuniones con varias personas hablando en el mismo canal de audio."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Puedo exportar las actas o resúmenes de mis reuniones?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sí, con un clic exportas transcripción y resumen a DOCX, PDF o Markdown, listos para compartir como acta de reunión sin retocar nada."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿AIRecorder es un grabador de reuniones offline y local?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sí. AIRecorder es un grabador de reuniones 100% local y offline: graba, transcribe con Whisper y analiza con Ollama o LM Studio sin salir de tu equipo. No necesitas internet ni subir audio a ningún servidor, a diferencia de las grabadoras de reuniones basadas en la nube."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Hay una alternativa gratis y local a Plaud?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sí, AIRecorder. Plaud requiere comprar un dispositivo dedicado y su transcripción gratuita tiene un límite mensual de minutos; superarlo exige suscripción paga. AIRecorder es software gratuito y de código abierto, sin límite de minutos: usa el micrófono y el audio de tu equipo, y con Ollama o LM Studio la transcripción y el análisis corren 100% en tu equipo, no en un servidor externo."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "¿Son seguras las grabaciones si se guardan localmente?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sí. Tus grabaciones y transcripciones se guardan solo en el sistema de archivos y la base de datos SQLite de tu equipo: nunca se suben a un servidor ni se comparten con terceros. AIRecorder no tiene telemetría ni analytics. Si conectas integraciones opcionales (Google, Teams), esas credenciales se cifran en tu equipo con el almacenamiento seguro del sistema operativo (Keychain en macOS, DPAPI en Windows)."
+        }
+      }
+    ]
   }
   </script>
 
@@ -1579,19 +1702,19 @@
       <div class="hero-content">
         <div class="hero-badge animate-on-scroll">
           <span class="hero-badge-dot"></span>
-          <span data-i18n="heroBadge">Disponible para macOS — Apple Silicon</span>
+          <span data-i18n="heroBadge">Disponible para macOS y Windows</span>
         </div>
 
         <div class="hero-icon-wrap animate-on-scroll delay-1" role="img" aria-label="AIRecorder"></div>
 
         <h1 class="hero-title animate-on-scroll delay-2" data-i18n-html="heroTitle">
-          Toma el control de<br>
-          <span>tus reuniones</span>
+          Tus reuniones y proyectos,<br>
+          <span>entendidos por IA local</span>
         </h1>
 
         <p class="hero-tagline animate-on-scroll delay-3" data-i18n-html="heroTagline">
-          Graba, transcribe y analiza tus reuniones y proyectos con IA.<br>
-          Todo en tu equipo, sin servidores externos, 100% privado.
+          Graba, transcribe y chatea con el conocimiento de tus reuniones y proyectos.<br>
+          IA local por defecto, 100% privada — proveedores externos solo si tú los activas.
         </p>
 
         <div class="hero-actions animate-on-scroll delay-4">
@@ -2019,7 +2142,7 @@
               <div class="privacy-check">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
-              <p class="privacy-item-text" data-i18n-html="priv1"><strong>Transcripción 100% local</strong> con Whisper ejecutándose directamente en tu Mac.</p>
+              <p class="privacy-item-text" data-i18n-html="priv1"><strong>Transcripción 100% local</strong> con Whisper ejecutándose directamente en tu equipo.</p>
             </li>
             <li class="privacy-item animate-on-scroll delay-4">
               <div class="privacy-check">
@@ -2192,7 +2315,7 @@
             <span data-i18n="faq3Q">¿Qué necesito para usarlo?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq3A">Un Mac con Apple Silicon (M1/M2/M3/M4) y macOS 13+. Para transcripción, Whisper se instala automáticamente. Para análisis con IA, puedes usar Ollama (gratuito, local) o conectarlo a Gemini/DeepSeek con tu propia API key.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq3A">Un Mac con Apple Silicon (M1/M2/M3/M4) y macOS 13+, o un PC con Windows 10/11 (x64). Para transcripción, Whisper se instala automáticamente. Para análisis con IA, puedes usar Ollama (gratuito, local) o conectarlo a Gemini/DeepSeek con tu propia API key.</div></div>
         </div>
 
         <div class="faq-item">
@@ -2209,6 +2332,78 @@
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq5A">Whisper soporta más de 90 idiomas con alta precisión, incluyendo español, inglés, francés, alemán, portugués, italiano y muchos más. Puedes elegir el modelo y el idioma para cada grabación.</div></div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+            <span data-i18n="faq6Q">¿Puedo chatear con mis reuniones y proyectos?</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq6A">Sí. Cada reunión y cada proyecto tienen su propio chat con IA: puedes preguntar por decisiones, fechas, compromisos o cualquier detalle. El sistema usa RAG (búsqueda semántica con LanceDB) para encontrar el fragmento exacto entre horas de grabaciones.</div></div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+            <span data-i18n="faq7Q">¿Por qué usar IA local en vez de un proveedor en la nube?</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq7A">Porque tus reuniones suelen contener información sensible. Con Ollama o LM Studio, el análisis corre en tu equipo y nada sale de él. Los proveedores externos (Gemini, DeepSeek, Kimi) son opcionales: los activas solo si necesitas más potencia y aceptas enviar ese contenido a la nube.</div></div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+            <span data-i18n="faq8Q">¿Cómo graba AIRecorder el audio de una reunión?</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq8A">AIRecorder captura al mismo tiempo tu micrófono y el audio del sistema como dos pistas independientes, así no perdés ni tu voz ni la de los demás participantes, sea en una llamada de Meet, Zoom, Teams o presencial con el micrófono del equipo.</div></div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+            <span data-i18n="faq9Q">¿Qué resúmenes genera AIRecorder de una reunión?</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq9A">La IA genera un resumen detallado, extrae decisiones, identifica participantes y convierte los compromisos en tareas accionables organizadas en un tablero Kanban (Backlog, En progreso, Bloqueado, Hecho). Todo a partir de la transcripción, sin trabajo manual.</div></div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+            <span data-i18n="faq10Q">¿AIRecorder identifica quién habla en cada momento?</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq10A">Sí. Usa diarización de hablantes con pyannote para separar y etiquetar cada intervención por participante, incluso en reuniones con varias personas hablando en el mismo canal de audio.</div></div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+            <span data-i18n="faq11Q">¿Puedo exportar las actas o resúmenes de mis reuniones?</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq11A">Sí, con un clic exportás transcripción y resumen a DOCX, PDF o Markdown, listos para compartir como acta de reunión sin retocar nada.</div></div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+            <span data-i18n="faq12Q">¿AIRecorder es un grabador de reuniones offline y local?</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq12A">Sí. AIRecorder es un grabador de reuniones 100% local y offline: graba, transcribe con Whisper y analiza con Ollama o LM Studio sin salir de tu equipo. No necesitás internet ni subir audio a ningún servidor, a diferencia de las grabadoras de reuniones basadas en la nube.</div></div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+            <span data-i18n="faq13Q">¿Hay una alternativa gratis y local a Plaud?</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq13A">Sí, AIRecorder. Plaud requiere comprar un dispositivo dedicado y su transcripción gratuita tiene un límite mensual de minutos; superarlo exige suscripción paga. AIRecorder es software gratuito y de código abierto, sin límite de minutos: usa el micrófono y el audio de tu equipo, y con Ollama o LM Studio la transcripción y el análisis corren 100% en tu equipo, no en un servidor externo.</div></div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
+            <span data-i18n="faq14Q">¿Son seguras las grabaciones si se guardan localmente?</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq14A">Sí. Tus grabaciones y transcripciones se guardan solo en el sistema de archivos y la base de datos SQLite de tu equipo: nunca se suben a un servidor ni se comparten con terceros. AIRecorder no tiene telemetría ni analytics. Si conectás integraciones opcionales (Google, Teams), esas credenciales se cifran en tu equipo con el almacenamiento seguro del sistema operativo (Keychain en macOS, DPAPI en Windows).</div></div>
         </div>
       </div>
     </div>
@@ -2424,12 +2619,12 @@
     // === Traducciones / Translations ===
     const TRANSLATIONS = {
       es: {
-        pageTitle: 'AIRecorder — Graba, Transcribe y Analiza Reuniones con IA',
+        pageTitle: 'AIRecorder | IA local para reuniones, transcripción y conocimiento de proyectos',
         navFeatures: 'Funciones', navPrivacy: 'Privacidad', navProviders: 'Proveedores IA',
         navDocs: 'Guía IA Local', navChangelog: 'Novedades', navDownload: 'Descargar',
-        heroBadge: 'Disponible para macOS — Apple Silicon',
-        heroTitle: 'Toma el control de<br><span>tus reuniones</span>',
-        heroTagline: 'Graba, transcribe y analiza tus reuniones y proyectos con IA.<br>Todo en tu equipo, sin servidores externos, 100% privado.',
+        heroBadge: 'Disponible para macOS y Windows',
+        heroTitle: 'Tus reuniones y proyectos,<br><span>entendidos por IA local</span>',
+        heroTagline: 'Graba, transcribe y chatea con el conocimiento de tus reuniones y proyectos.<br>IA local por defecto, 100% privada — proveedores externos solo si tú los activas.',
         heroBtnMac: 'Descargar para macOS', heroBtnWin: 'Descargar para PC', heroBtnGH: 'Ver en GitHub',
         heroNote: 'macOS y Windows · Código abierto en GitHub',
         screenshotsLabel: 'Vista previa', screenshotsTitle: 'Mira cómo funciona',
@@ -2470,16 +2665,34 @@
         faq2Q: '¿Necesito conexión a internet?',
         faq2A: 'No. Con Ollama o LM Studio puedes grabar, transcribir y analizar completamente offline. Si usas proveedores cloud como Gemini, solo necesitas internet para la parte de análisis; la transcripción con Whisper siempre es local.',
         faq3Q: '¿Qué necesito para usarlo?',
-        faq3A: 'Un Mac con Apple Silicon (M1/M2/M3/M4) y macOS 13+. Para transcripción, Whisper se instala automáticamente. Para análisis con IA, puedes usar Ollama (gratuito, local) o conectarlo a Gemini/DeepSeek con tu propia API key.',
+        faq3A: 'Un Mac con Apple Silicon (M1/M2/M3/M4) y macOS 13+, o un PC con Windows 10/11 (x64). Para transcripción, Whisper se instala automáticamente. Para análisis con IA, puedes usar Ollama (gratuito, local) o conectarlo a Gemini/DeepSeek con tu propia API key.',
         faq4Q: '¿Es realmente gratis?',
         faq4A: 'Sí. AIRecorder es completamente gratuito y open source (MIT). No hay planes de pago, suscripciones ni funcionalidades premium. Si quieres apoyar el proyecto, puedes invitarme a un café en Ko-fi.',
         faq5Q: '¿Qué idiomas soporta la transcripción?',
         faq5A: 'Whisper soporta más de 90 idiomas con alta precisión, incluyendo español, inglés, francés, alemán, portugués, italiano y muchos más. Puedes elegir el modelo y el idioma para cada grabación.',
+        faq6Q: '¿Puedo chatear con mis reuniones y proyectos?',
+        faq6A: 'Sí. Cada reunión y cada proyecto tienen su propio chat con IA: puedes preguntar por decisiones, fechas, compromisos o cualquier detalle. El sistema usa RAG (búsqueda semántica con LanceDB) para encontrar el fragmento exacto entre horas de grabaciones.',
+        faq7Q: '¿Por qué usar IA local en vez de un proveedor en la nube?',
+        faq7A: 'Porque tus reuniones suelen contener información sensible. Con Ollama o LM Studio, el análisis corre en tu equipo y nada sale de él. Los proveedores externos (Gemini, DeepSeek, Kimi) son opcionales: los activas solo si necesitas más potencia y aceptas enviar ese contenido a la nube.',
+        faq8Q: '¿Cómo graba AIRecorder el audio de una reunión?',
+        faq8A: 'AIRecorder captura al mismo tiempo tu micrófono y el audio del sistema como dos pistas independientes, así no perdés ni tu voz ni la de los demás participantes, sea en una llamada de Meet, Zoom, Teams o presencial con el micrófono del equipo.',
+        faq9Q: '¿Qué resúmenes genera AIRecorder de una reunión?',
+        faq9A: 'La IA genera un resumen detallado, extrae decisiones, identifica participantes y convierte los compromisos en tareas accionables organizadas en un tablero Kanban (Backlog, En progreso, Bloqueado, Hecho). Todo a partir de la transcripción, sin trabajo manual.',
+        faq10Q: '¿AIRecorder identifica quién habla en cada momento?',
+        faq10A: 'Sí. Usa diarización de hablantes con pyannote para separar y etiquetar cada intervención por participante, incluso en reuniones con varias personas hablando en el mismo canal de audio.',
+        faq11Q: '¿Puedo exportar las actas o resúmenes de mis reuniones?',
+        faq11A: 'Sí, con un clic exportás transcripción y resumen a DOCX, PDF o Markdown, listos para compartir como acta de reunión sin retocar nada.',
+        faq12Q: '¿AIRecorder es un grabador de reuniones offline y local?',
+        faq12A: 'Sí. AIRecorder es un grabador de reuniones 100% local y offline: graba, transcribe con Whisper y analiza con Ollama o LM Studio sin salir de tu equipo. No necesitás internet ni subir audio a ningún servidor, a diferencia de las grabadoras de reuniones basadas en la nube.',
+        faq13Q: '¿Hay una alternativa gratis y local a Plaud?',
+        faq13A: 'Sí, AIRecorder. Plaud requiere comprar un dispositivo dedicado y su transcripción gratuita tiene un límite mensual de minutos; superarlo exige suscripción paga. AIRecorder es software gratuito y de código abierto, sin límite de minutos: usa el micrófono y el audio de tu equipo, y con Ollama o LM Studio la transcripción y el análisis corren 100% en tu equipo, no en un servidor externo.',
+        faq14Q: '¿Son seguras las grabaciones si se guardan localmente?',
+        faq14A: 'Sí. Tus grabaciones y transcripciones se guardan solo en el sistema de archivos y la base de datos SQLite de tu equipo: nunca se suben a un servidor ni se comparten con terceros. AIRecorder no tiene telemetría ni analytics. Si conectás integraciones opcionales (Google, Teams), esas credenciales se cifran en tu equipo con el almacenamiento seguro del sistema operativo (Keychain en macOS, DPAPI en Windows).',
         floatingCta: 'Descargar gratis',
         privLabel: 'Privacidad',
         privTitle: 'Tu privacidad,<br>nuestra prioridad',
         privSubtitle: 'Tus reuniones contienen información sensible. AIRecorder está diseñado para que tus datos nunca salgan de tu equipo.',
-        priv1: '<strong>Transcripción 100% local</strong> con Whisper ejecutándose directamente en tu Mac.',
+        priv1: '<strong>Transcripción 100% local</strong> con Whisper ejecutándose directamente en tu equipo.',
         priv2: '<strong>Sin servidores externos</strong> para tus audios. Las grabaciones viven en tu sistema de archivos.',
         priv3: '<strong>IA completamente local</strong> con Ollama y LM Studio: análisis sin ninguna petición a internet.',
         priv4: '<strong>Base de datos local</strong> en SQLite. Sin telemetría, sin analytics, sin tracking.',
@@ -2503,12 +2716,12 @@
         modalCancel: 'Cancelar', modalConfirm: 'Entendido y Descargar',
       },
       en: {
-        pageTitle: 'AIRecorder — Record, Transcribe & Analyze Meetings with AI',
+        pageTitle: 'AIRecorder | Local AI for meetings, transcription, and project knowledge',
         navFeatures: 'Features', navPrivacy: 'Privacy', navProviders: 'AI Providers',
         navDocs: 'Local AI Guide', navChangelog: "What's New", navDownload: 'Download',
-        heroBadge: 'Available for macOS — Apple Silicon',
-        heroTitle: 'Take control of<br><span>your meetings</span>',
-        heroTagline: 'Record, transcribe, and analyze your meetings and projects with AI.<br>Everything on your machine, no external servers, 100% private.',
+        heroBadge: 'Available for macOS and Windows',
+        heroTitle: 'Your meetings and projects,<br><span>understood by local AI</span>',
+        heroTagline: 'Record, transcribe, and chat with the knowledge in your meetings and projects.<br>Local AI by default, 100% private — external providers only if you enable them.',
         heroBtnMac: 'Download for macOS', heroBtnWin: 'Download for PC', heroBtnGH: 'View on GitHub',
         heroNote: 'macOS & Windows · Open source on GitHub',
         screenshotsLabel: 'Preview', screenshotsTitle: 'See it in action',
@@ -2549,16 +2762,34 @@
         faq2Q: 'Do I need an internet connection?',
         faq2A: 'No. With Ollama or LM Studio you can record, transcribe, and analyze completely offline. If you use cloud providers like Gemini, you only need internet for the analysis part; transcription with Whisper is always local.',
         faq3Q: 'What do I need to run it?',
-        faq3A: 'A Mac with Apple Silicon (M1/M2/M3/M4) and macOS 13+. For transcription, Whisper installs automatically. For AI analysis, you can use Ollama (free, local) or connect to Gemini/DeepSeek with your own API key.',
+        faq3A: 'A Mac with Apple Silicon (M1/M2/M3/M4) and macOS 13+, or a Windows 10/11 PC (x64). For transcription, Whisper installs automatically. For AI analysis, you can use Ollama (free, local) or connect to Gemini/DeepSeek with your own API key.',
         faq4Q: 'Is it really free?',
         faq4A: 'Yes. AIRecorder is completely free and open source (MIT). There are no paid plans, subscriptions, or premium features. If you want to support the project, you can buy me a coffee on Ko-fi.',
         faq5Q: 'What languages does transcription support?',
         faq5A: 'Whisper supports over 90 languages with high accuracy, including Spanish, English, French, German, Portuguese, Italian, and many more. You can choose the model and language for each recording.',
+        faq6Q: 'Can I chat with my meetings and projects?',
+        faq6A: "Yes. Every meeting and every project has its own AI chat: ask about decisions, dates, commitments, or any detail. The system uses RAG (semantic search with LanceDB) to find the exact fragment across hours of recordings.",
+        faq7Q: 'Why use local AI instead of a cloud provider?',
+        faq7A: 'Because your meetings often contain sensitive information. With Ollama or LM Studio, analysis runs on your machine and nothing leaves it. External providers (Gemini, DeepSeek, Kimi) are optional — enable them only if you need more power and accept sending that content to the cloud.',
+        faq8Q: 'How does AIRecorder record a meeting?',
+        faq8A: "AIRecorder captures your microphone and system audio at the same time as two independent tracks, so you never lose your voice or anyone else's — whether it's a Meet, Zoom, or Teams call, or an in-person meeting through your device's mic.",
+        faq9Q: 'What kind of meeting summaries does AIRecorder generate?',
+        faq9A: 'The AI generates a detailed summary, extracts decisions, identifies participants, and turns commitments into actionable tasks organized on a Kanban board (Backlog, In Progress, Blocked, Done). All from the transcript, no manual work.',
+        faq10Q: "Does AIRecorder identify who's speaking?",
+        faq10A: "Yes. It uses speaker diarization with pyannote to separate and label each participant's turns, even in meetings with several people speaking on the same audio channel.",
+        faq11Q: 'Can I export my meeting minutes or summaries?',
+        faq11A: 'Yes, export the transcript and summary to DOCX, PDF, or Markdown with one click — ready to share as meeting minutes with no extra editing.',
+        faq12Q: 'Is AIRecorder an offline, local meeting recorder?',
+        faq12A: 'Yes. AIRecorder is a 100% local, offline meeting recorder: it records, transcribes with Whisper, and analyzes with Ollama or LM Studio without ever leaving your machine. No internet required, no audio uploaded to any server — unlike cloud-based meeting recorders.',
+        faq13Q: 'Is there a free, local alternative to Plaud?',
+        faq13A: "Yes — AIRecorder. Plaud requires buying a dedicated hardware device, and its free transcription tier has a monthly minute cap; going beyond it requires a paid subscription. AIRecorder is free, open-source software with no minute limits: it uses your computer's microphone and system audio, and with Ollama or LM Studio, both transcription and analysis run fully on your machine, not on an external server.",
+        faq14Q: 'Are local recordings secure?',
+        faq14A: "Yes. Your recordings and transcripts are stored only in your machine's file system and local SQLite database — never uploaded to a server or shared with third parties. AIRecorder has no telemetry or analytics. If you connect optional integrations (Google, Teams), those credentials are encrypted on your device using the OS's secure storage (Keychain on macOS, DPAPI on Windows).",
         floatingCta: 'Download free',
         privLabel: 'Privacy',
         privTitle: 'Your privacy,<br>our priority',
         privSubtitle: 'Your meetings contain sensitive information. AIRecorder is designed so your data never leaves your machine.',
-        priv1: '<strong>100% local transcription</strong> with Whisper running directly on your Mac.',
+        priv1: '<strong>100% local transcription</strong> with Whisper running directly on your machine.',
         priv2: '<strong>No external servers</strong> for your audio. Recordings live on your file system.',
         priv3: '<strong>Fully local AI</strong> with Ollama and LM Studio: analysis with zero internet requests.',
         priv4: '<strong>Local database</strong> in SQLite. No telemetry, no analytics, no tracking.',

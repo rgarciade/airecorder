@@ -3,7 +3,7 @@
 
   <h1>AIRecorder</h1>
 
-  <p>Desktop audio recorder with AI-powered transcription, summaries, and chat</p>
+  <p>Local-first meeting and project intelligence — record, transcribe, and chat with your knowledge, powered by local AI</p>
 
   ![Version](https://img.shields.io/badge/version-0.3.2-blue?style=flat-square)
   ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey?style=flat-square)
@@ -17,9 +17,9 @@
 
 ## What is AIRecorder?
 
-AIRecorder captures both your **microphone** and **system audio** simultaneously, transcribes them with [OpenAI Whisper](https://github.com/openai/whisper), and lets you chat with the content using your AI provider of choice — all running locally or via cloud APIs.
+AIRecorder turns your meetings and project audio into structured, chatable knowledge. It captures both your **microphone** and **system audio** simultaneously, transcribes locally with [OpenAI Whisper](https://github.com/openai/whisper), and generates structured summaries, decisions, and action items. Local AI (Ollama, LM Studio) is the default — external providers like Gemini or DeepSeek are available only if you configure them.
 
-Perfect for meetings, interviews, lectures, and any audio you need to revisit.
+Then chat with the knowledge inside any single meeting or across an entire project.
 
 ## Features
 
