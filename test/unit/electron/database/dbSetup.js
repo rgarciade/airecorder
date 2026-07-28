@@ -32,6 +32,12 @@ export function initTestDB(db) {
   const integrations = new IntegrationsDbService(db);
 
   recordings.init();
+
+  const recordingColumns = db.prepare('PRAGMA table_info(recordings)').all();
+  if (!recordingColumns.some(column => column.name === 'source')) {
+    db.exec('ALTER TABLE recordings ADD COLUMN source TEXT');
+  }
+
   projects.init();
   chats.init();
   tasks.init();

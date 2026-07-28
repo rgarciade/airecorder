@@ -110,6 +110,21 @@ describe('ProjectsDbService', () => {
   });
 
   describe('Relaciones proyecto-grabación', () => {
+    it('debería completar el flujo crear proyecto, asignar, consultar y quitar una grabación', () => {
+      const project = projects.createProject('Proyecto de integración');
+      const recording = recordings.saveRecording('test/integration-flow.wav', 120.5);
+
+      const assignment = projects.addRecordingToProject(project.id, recording.id);
+      expect(assignment.success).toBe(true);
+      expect(projects.getProjectRecordingIds(project.id)).toEqual([recording.id]);
+      expect(projects.getRecordingProject(recording.id)?.id).toBe(project.id);
+
+      const removal = projects.removeRecordingFromProject(project.id, recording.id);
+      expect(removal.success).toBe(true);
+      expect(projects.getProjectRecordingIds(project.id)).toEqual([]);
+      expect(projects.getRecordingProject(recording.id)).toBeNull();
+    });
+
     it('debería añadir una grabación a un proyecto', () => {
       const project = projects.createProject('Test');
       recordings.saveRecording('test/audio1.wav', 120.5);
@@ -133,6 +148,39 @@ describe('ProjectsDbService', () => {
       projects.removeRecordingFromProject(project.id, 1);
       const ids = projects.getProjectRecordingIds(project.id);
       expect(ids).not.toContain(1);
+    });
+
+    it('debería mantener una sola asignación al asignar la misma grabación dos veces', () => {
+      const project = projects.createProject('Test');
+      const recording = recordings.saveRecording('test/duplicated-assignment.wav', 120.5);
+
+      expect(projects.addRecordingToProject(project.id, recording.id).success).toBe(true);
+      expect(projects.addRecordingToProject(project.id, recording.id).success).toBe(true);
+
+      expect(projects.getProjectRecordingIds(project.id)).toEqual([recording.id]);
+    });
+
+    it('debería reasignar una grabación al proyecto más reciente', () => {
+      const firstProject = projects.createProject('Primero');
+      const secondProject = projects.createProject('Segundo');
+      const recording = recordings.saveRecording('test/reassigned-recording.wav', 120.5);
+
+      projects.addRecordingToProject(firstProject.id, recording.id);
+      const reassignment = projects.addRecordingToProject(secondProject.id, recording.id);
+
+      expect(reassignment.success).toBe(true);
+      expect(projects.getProjectRecordingIds(firstProject.id)).toEqual([]);
+      expect(projects.getProjectRecordingIds(secondProject.id)).toEqual([recording.id]);
+      expect(projects.getRecordingProject(recording.id)?.id).toBe(secondProject.id);
+    });
+
+    it('debería rechazar asignaciones con proyecto o grabación inexistentes', () => {
+      const project = projects.createProject('Test');
+      const recording = recordings.saveRecording('test/existing-recording.wav', 120.5);
+
+      expect(projects.addRecordingToProject(project.id, 999).success).toBe(false);
+      expect(projects.addRecordingToProject(999, recording.id).success).toBe(false);
+      expect(projects.getProjectRecordingIds(project.id)).toEqual([]);
     });
 
     it('debería obtener el proyecto de una grabación', () => {
