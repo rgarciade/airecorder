@@ -317,6 +317,10 @@ Sistema de notificación de actualizaciones manuales usando GitHub Releases API 
 4. El usuario puede verificar manualmente desde Settings → General → "Buscar actualizaciones".
 5. Si acepta, se abre el navegador con `shell.openExternal(release.html_url)` para descarga manual.
 
+### Notas de versión en el diálogo nativo
+
+GitHub entrega `release.body` en Markdown, pero `dialog.showMessageBox` solo renderiza texto plano. Antes de mostrar las novedades, `electron/utils/releaseNotes.js` elimina la sintaxis Markdown y conserva títulos, listas y enlaces en un formato legible. También normaliza espacios y saltos de línea, usa un texto de respaldo si las notas están vacías y limita el resultado a 600 caracteres buscando un límite natural para evitar palabras cortadas.
+
 ### Métodos expuestos en `preload.js`
 | Método | Descripción |
 |--------|-------------|
