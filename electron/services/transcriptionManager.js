@@ -5,8 +5,17 @@ const { app } = require('electron');
 const dbService = require('../database/dbService');
 const notificationService = require('./notificationService');
 const { getSetting } = require('../utils/paths');
+const ffprobeInstaller = require('@ffprobe-installer/ffprobe');
 
 const SUPPORTED_AUDIO_EXTENSIONS = ['webm', 'wav', 'mp3', 'm4a', 'ogg', 'aac', 'flac'];
+
+// @ffprobe-installer resolves the correct native binary per-arch (os.arch()),
+// unlike ffprobe-static which only ships an x86_64 binary under its arm64 path.
+// require() returns a path pointing inside app.asar; the real file lives in the
+// unpacked sibling dir (asarUnpack), so child_process needs the swapped path.
+function getFfprobePath() {
+  return ffprobeInstaller.path.replace('app.asar', 'app.asar.unpacked');
+}
 
 class TranscriptionManager {
   constructor() {
@@ -157,12 +166,11 @@ class TranscriptionManager {
                         if (!app.isPackaged) {
                             // En dev, intentar usar los de node_modules
                             ffmpegPath = path.join(__dirname, '../../node_modules/ffmpeg-static/ffmpeg');
-                            ffprobePath = path.join(__dirname, '../../node_modules/ffprobe-static/bin/darwin/arm64/ffprobe'); // Nota: ruta específica mac arm64
                         } else {
                             const resourcesPath = process.resourcesPath;
                             ffmpegPath = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'ffmpeg-static', 'ffmpeg');
-                            ffprobePath = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'ffprobe-static', 'bin', 'darwin', 'arm64', 'ffprobe');
                         }
+                        ffprobePath = getFfprobePath();
 
                         const diarizationArgs = [
                             '--audio_file', sysAudioPath,
@@ -288,7 +296,7 @@ runTranscriptionProcess(task, diarizationFile, onProgress) {
             executablePath = path.join(resourcesPath, 'python-bin', 'audio_sync_analyzer');
             execArgs = [];
             ffmpegPath = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'ffmpeg-static', 'ffmpeg');
-            ffprobePath = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'ffprobe-static', 'bin', 'darwin', 'arm64', 'ffprobe');
+            ffprobePath = getFfprobePath();
         }
 
         let folderName = task.recording_id;
