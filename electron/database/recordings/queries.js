@@ -8,6 +8,7 @@ module.exports = {
       status TEXT CHECK(status IN ('recorded', 'transcribed', 'analyzed')) DEFAULT 'recorded',
       transcription_model TEXT,
       skip_diarization INTEGER DEFAULT 0,
+      source TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `,

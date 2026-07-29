@@ -436,6 +436,11 @@ module.exports.registerIntegrationsOAuthHandlers = () => {
  * @param {string} url  e.g. "airecorder://google-chat-callback?code=...&state=..."
  */
 async function handleOAuthCallback(url) {
+  // Declarado fuera del try para que el catch pueda resolver la promesa del
+  // flujo correcto si el intercambio de tokens falla después de este punto
+  // (antes se perdía la referencia a `resolve`, dejando la promesa de
+  // start-oauth-flow colgada para siempre — ver test de regresión asociado).
+  let pendingFlow = null;
   try {
     const parsed = new URL(url);
     const code = parsed.searchParams.get('code');
@@ -447,8 +452,9 @@ async function handleOAuthCallback(url) {
       return;
     }
 
-    const { platform, settings, resolve } = pendingOAuthFlows.get(state);
+    pendingFlow = pendingOAuthFlows.get(state);
     pendingOAuthFlows.delete(state);
+    const { platform, settings, resolve } = pendingFlow;
 
     if (error) {
       return resolve({ success: false, error: `OAuth denegado: ${error}` });
@@ -491,10 +497,19 @@ async function handleOAuthCallback(url) {
     });
   } catch (err) {
     console.error('[OAuth] Error en callback:', err);
-    const firstPending = [...pendingOAuthFlows.values()][0];
-    if (firstPending) {
-      pendingOAuthFlows.clear();
-      firstPending.resolve({ success: false, error: err.message });
+    if (pendingFlow) {
+      // Ya sabemos qué flujo falló (el exchange/getUserInfo/DB tiró después
+      // de identificar el state) — resolverlo directamente, sin adivinar.
+      pendingFlow.resolve({ success: false, error: err.message });
+    } else {
+      // El error ocurrió antes de poder identificar el state (ej. URL de
+      // callback malformada) — no hay forma de saber qué flujo falló, así
+      // que se usa el primero pendiente como mejor esfuerzo.
+      const firstPending = [...pendingOAuthFlows.values()][0];
+      if (firstPending) {
+        pendingOAuthFlows.clear();
+        firstPending.resolve({ success: false, error: err.message });
+      }
     }
   }
 }
