@@ -1,23 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestDB, initTestDB } from './dbSetup.js';
 import * as wikiQueries from '../../../../electron/database/wiki/queries.js';
-
-const WIKI_TABLE_SQL = `
-  CREATE TABLE IF NOT EXISTS project_wiki_pages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    project_id INTEGER NOT NULL,
-    slug TEXT NOT NULL,
-    title TEXT NOT NULL,
-    content_md TEXT DEFAULT '',
-    source_recording_ids TEXT DEFAULT '[]',
-    version INTEGER DEFAULT 1,
-    is_verified INTEGER DEFAULT 0,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    UNIQUE(project_id, slug)
-  );
-`;
 
 describe('wikiQueries', () => {
   let db;
@@ -27,7 +10,6 @@ describe('wikiQueries', () => {
     db = createTestDB();
     const services = initTestDB(db);
     projects = services.projects;
-    db.exec(WIKI_TABLE_SQL);
     wikiQueries.__setDatabase(db);
   });
 
@@ -123,6 +105,32 @@ describe('wikiQueries', () => {
 
     expect(wikiQueries.countPagesByProject(projectA.id)).toBe(2);
     expect(wikiQueries.countPagesByProject(projectB.id)).toBe(1);
+  });
+
+  it('rechaza slugs repetidos dentro de un proyecto y permite reutilizarlos entre proyectos', () => {
+    const projectA = projects.createProject('Project A');
+    const projectB = projects.createProject('Project B');
+    wikiQueries.createPage({ project_id: projectA.id, slug: 'shared-slug', title: 'A' });
+
+    expect(() => wikiQueries.createPage({ project_id: projectA.id, slug: 'shared-slug', title: 'Duplicate' })).toThrow();
+    const reused = wikiQueries.createPage({ project_id: projectB.id, slug: 'shared-slug', title: 'B' });
+
+    expect(reused).toMatchObject({ project_id: projectB.id, slug: 'shared-slug', title: 'B' });
+    expect(wikiQueries.countPagesByProject(projectA.id)).toBe(1);
+  });
+
+  it('preserva source_recording_ids y devuelve null o false para mutaciones inexistentes', () => {
+    const project = projects.createProject('Source IDs');
+    const created = wikiQueries.createPage({
+      project_id: project.id,
+      slug: 'sources',
+      title: 'Sources',
+      source_recording_ids: '[10,20]'
+    });
+
+    expect(wikiQueries.getPageById(created.id).source_recording_ids).toBe('[10,20]');
+    expect(wikiQueries.updatePage(999999, { title: 'Missing', slug: 'missing', content_md: '' })).toBeNull();
+    expect(wikiQueries.deletePage(999999)).toBe(false);
   });
 
   it('eliminar proyecto hace cascade delete sobre project_wiki_pages (REQ-WIKI-033)', () => {
