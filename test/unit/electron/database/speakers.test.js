@@ -239,5 +239,44 @@ describe('SpeakersDbService', () => {
       expect(resolutions['SPEAKER_00'].speakerId).toBe(speaker2.id);
       expect(resolutions['SPEAKER_01'].speakerId).toBe(speaker2.id);
     });
+
+    it('elimina atómicamente solo la relación del speaker para la grabación indicada', () => {
+      const firstRecording = recordings.saveRecording('test/target-speaker.wav', 20);
+      const secondRecording = recordings.saveRecording('test/other-speaker.wav', 30);
+      const speaker = speakers.createSpeaker('Relación objetivo');
+      speakers.saveSpeakerEmbedding(speaker.id, Buffer.from([1, 2]), firstRecording.id);
+      speakers.saveSpeakerEmbedding(speaker.id, Buffer.from([3, 4]), secondRecording.id);
+      speakers.upsertRecordingSpeakerResolution(firstRecording.id, 'SPEAKER_00', speaker.id);
+      speakers.upsertRecordingSpeakerResolution(secondRecording.id, 'SPEAKER_00', speaker.id);
+
+      const result = speakers.deleteSpeakerRecordingRelationAtomically(speaker.id, firstRecording.id);
+
+      expect(result).toMatchObject({ success: true, deletedEmbeddings: 1, deletedResolutions: 1, deletedCount: 1 });
+      expect(speakers.getRecordingSpeakerResolutions(firstRecording.id)).toBeNull();
+      expect(speakers.getRecordingSpeakerResolutions(secondRecording.id)?.SPEAKER_00.speakerId).toBe(speaker.id);
+      expect(speakers.getEmbeddingsBySpeakerId(speaker.id).map(item => item.recording_id)).toEqual([secondRecording.id]);
+    });
+  });
+
+  describe('consultas de directorio y estadísticas', () => {
+    it('devuelve membresías y contadores de grabaciones persistidos', () => {
+      const firstRecording = recordings.saveRecording('test/directory-first.wav', 20);
+      const secondRecording = recordings.saveRecording('test/directory-second.wav', 30);
+      const mainSpeaker = speakers.createSpeaker('Con grabaciones');
+      const emptySpeaker = speakers.createSpeaker('Sin embeddings');
+      speakers.saveSpeakerEmbedding(mainSpeaker.id, Buffer.from([1, 2]), firstRecording.id);
+      speakers.saveSpeakerEmbedding(mainSpeaker.id, Buffer.from([3, 4]), secondRecording.id);
+      speakers.upsertRecordingSpeakerResolution(firstRecording.id, 'SPEAKER_00', mainSpeaker.id);
+      speakers.upsertRecordingSpeakerResolution(secondRecording.id, 'SPEAKER_01', mainSpeaker.id);
+
+      const stats = speakers.getSpeakerStats();
+      const directory = speakers.getSpeakersWithRecordingCount();
+      const membership = speakers.getSpeakerRecordings(mainSpeaker.id);
+
+      expect(stats).toMatchObject({ totalSpeakers: 2, totalEmbeddings: 2, speakersWithRecordings: 1, recordingsWithResolution: 2, speakersWithoutEmbeddings: 1 });
+      expect(directory.find(item => item.id === mainSpeaker.id)).toMatchObject({ recordingsCount: 2, embeddingsCount: 2 });
+      expect(directory.find(item => item.id === emptySpeaker.id)).toMatchObject({ recordingsCount: 0, embeddingsCount: 0 });
+      expect(membership.recordings.map(recording => recording.id).sort()).toEqual([firstRecording.id, secondRecording.id]);
+    });
   });
 });

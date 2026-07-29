@@ -98,6 +98,25 @@ describe('ProjectsDbService', () => {
       const project = projects.getProjectById(created.id);
       expect(project).toBeNull();
     });
+
+    it('limpia las asociaciones de grabaciones al eliminar el proyecto', () => {
+      const project = projects.createProject('Proyecto eliminado');
+      const recording = recordings.saveRecording('test/project-cascade.wav', 42);
+      projects.addRecordingToProject(project.id, recording.id);
+
+      const result = projects.deleteProject(project.id);
+
+      expect(result.success).toBe(true);
+      expect(db.prepare('SELECT * FROM project_recordings WHERE recording_id = ?').get(recording.id)).toBeUndefined();
+      expect(recordings.getRecordingById(recording.id)?.id).toBe(recording.id);
+    });
+
+    it('caracteriza el resultado al eliminar un proyecto inexistente', () => {
+      const result = projects.deleteProject(999999);
+
+      expect(result.success).toBe(true);
+      expect(result.info.changes).toBe(0);
+    });
   });
 
   describe('updateProjectSyncStatus', () => {
@@ -110,6 +129,21 @@ describe('ProjectsDbService', () => {
   });
 
   describe('Relaciones proyecto-grabación', () => {
+    it('debería completar el flujo crear proyecto, asignar, consultar y quitar una grabación', () => {
+      const project = projects.createProject('Proyecto de integración');
+      const recording = recordings.saveRecording('test/integration-flow.wav', 120.5);
+
+      const assignment = projects.addRecordingToProject(project.id, recording.id);
+      expect(assignment.success).toBe(true);
+      expect(projects.getProjectRecordingIds(project.id)).toEqual([recording.id]);
+      expect(projects.getRecordingProject(recording.id)?.id).toBe(project.id);
+
+      const removal = projects.removeRecordingFromProject(project.id, recording.id);
+      expect(removal.success).toBe(true);
+      expect(projects.getProjectRecordingIds(project.id)).toEqual([]);
+      expect(projects.getRecordingProject(recording.id)).toBeNull();
+    });
+
     it('debería añadir una grabación a un proyecto', () => {
       const project = projects.createProject('Test');
       recordings.saveRecording('test/audio1.wav', 120.5);
@@ -133,6 +167,81 @@ describe('ProjectsDbService', () => {
       projects.removeRecordingFromProject(project.id, 1);
       const ids = projects.getProjectRecordingIds(project.id);
       expect(ids).not.toContain(1);
+    });
+
+    it('no elimina la relación ni cambia el sync del proyecto propietario al quitarla desde otro proyecto', () => {
+      const owner = projects.createProject('Propietario');
+      const other = projects.createProject('Otro');
+      const recording = recordings.saveRecording('test/cross-project.wav', 20);
+      projects.addRecordingToProject(owner.id, recording.id);
+      projects.updateProjectSyncStatus(owner.id, 1);
+
+      const removal = projects.removeRecordingFromProject(other.id, recording.id);
+
+      expect(removal.success).toBe(true);
+      expect(removal.info.changes).toBe(0);
+      expect(projects.getProjectRecordingIds(owner.id)).toEqual([recording.id]);
+      expect(projects.getProjectById(owner.id).is_updated).toBe(1);
+      expect(projects.getProjectById(other.id).is_updated).toBe(0);
+    });
+
+    it('elimina la asociación cuando se borra la grabación', () => {
+      const project = projects.createProject('Proyecto con grabación');
+      const recording = recordings.saveRecording('test/recording-delete-cascade.wav', 20);
+      projects.addRecordingToProject(project.id, recording.id);
+
+      const result = recordings.deleteRecording('test/recording-delete-cascade.wav');
+
+      expect(result.success).toBe(true);
+      expect(projects.getProjectRecordingIds(project.id)).toEqual([]);
+      expect(db.prepare('SELECT * FROM project_recordings WHERE recording_id = ?').get(recording.id)).toBeUndefined();
+    });
+
+    it('debería mantener una sola asignación al asignar la misma grabación dos veces', () => {
+      const project = projects.createProject('Test');
+      const recording = recordings.saveRecording('test/duplicated-assignment.wav', 120.5);
+
+      expect(projects.addRecordingToProject(project.id, recording.id).success).toBe(true);
+      expect(projects.addRecordingToProject(project.id, recording.id).success).toBe(true);
+
+      expect(projects.getProjectRecordingIds(project.id)).toEqual([recording.id]);
+    });
+
+    it('debería reasignar una grabación al proyecto más reciente', () => {
+      const firstProject = projects.createProject('Primero');
+      const secondProject = projects.createProject('Segundo');
+      const recording = recordings.saveRecording('test/reassigned-recording.wav', 120.5);
+
+      projects.addRecordingToProject(firstProject.id, recording.id);
+      const reassignment = projects.addRecordingToProject(secondProject.id, recording.id);
+
+      expect(reassignment.success).toBe(true);
+      expect(projects.getProjectRecordingIds(firstProject.id)).toEqual([]);
+      expect(projects.getProjectRecordingIds(secondProject.id)).toEqual([recording.id]);
+      expect(projects.getRecordingProject(recording.id)?.id).toBe(secondProject.id);
+    });
+
+    it('mantiene una sola asociación y sincroniza ambos totales tras reasignar', () => {
+      const firstProject = projects.createProject('Proyecto primero');
+      const secondProject = projects.createProject('Proyecto segundo');
+      const recording = recordings.saveRecording('test/reassignment-total.wav', 75);
+      projects.addRecordingToProject(firstProject.id, recording.id);
+
+      const result = projects.addRecordingToProject(secondProject.id, recording.id);
+
+      expect(result.success).toBe(true);
+      expect(db.prepare('SELECT COUNT(*) AS count FROM project_recordings WHERE recording_id = ?').get(recording.id).count).toBe(1);
+      expect(projects.getProjectTotalDuration(firstProject.id)).toBe(0);
+      expect(projects.getProjectTotalDuration(secondProject.id)).toBe(75);
+    });
+
+    it('debería rechazar asignaciones con proyecto o grabación inexistentes', () => {
+      const project = projects.createProject('Test');
+      const recording = recordings.saveRecording('test/existing-recording.wav', 120.5);
+
+      expect(projects.addRecordingToProject(project.id, 999).success).toBe(false);
+      expect(projects.addRecordingToProject(999, recording.id).success).toBe(false);
+      expect(projects.getProjectRecordingIds(project.id)).toEqual([]);
     });
 
     it('debería obtener el proyecto de una grabación', () => {
@@ -167,6 +276,24 @@ describe('ProjectsDbService', () => {
       const project = projects.createProject('Test');
       const duration = projects.getProjectTotalDuration(project.id);
       expect(duration).toBe(0);
+    });
+
+    it('calcula totales con duración cero y null, y los actualiza al borrar', () => {
+      const project = projects.createProject('Duraciones especiales');
+      const zero = recordings.saveRecording('test/zero-duration.wav', 0);
+      const nullDuration = recordings.saveRecording('test/null-duration.wav', null);
+      projects.addRecordingToProject(project.id, zero.id);
+      projects.addRecordingToProject(project.id, nullDuration.id);
+
+      expect(projects.getProjectTotalDuration(project.id)).toBe(0);
+      recordings.deleteRecording('test/null-duration.wav');
+      expect(projects.getProjectTotalDuration(project.id)).toBe(0);
+    });
+  });
+
+  describe('updateProject', () => {
+    it('devuelve null al actualizar un proyecto inexistente', () => {
+      expect(projects.updateProject(999999, 'No existe', '', [])).toBeNull();
     });
   });
 });
