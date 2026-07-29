@@ -3,6 +3,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const { settingsPath } = require('../utils/paths');
+const { formatReleaseNotes } = require('../utils/releaseNotes');
 
 const GITHUB_OWNER = 'rgarciade';
 const GITHUB_REPO = 'airecorder';
@@ -194,7 +195,7 @@ ${platformDetail}
 
 ────────────────────────────
 Novedades de v${updateInfo.latestVersion}:
-${(updateInfo.releaseNotes || 'Mejoras y correcciones.').slice(0, 600)}`,
+${formatReleaseNotes(updateInfo.releaseNotes)}`,
       buttons: ['Entendido y Descargar', 'Más tarde', 'No mostrar para esta versión'],
       defaultId: 0,
       cancelId: 1,
