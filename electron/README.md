@@ -137,7 +137,7 @@ Se añadió un nuevo handler `electron/ipc-handlers/wiki.js` y una API segura en
 
 | Canal IPC | Payload | Respuesta |
 |-----------|---------|-----------|
-| `wiki:list-pages` | `projectId` | `{ success: true, pages: WikiPage[] }` |
+| `wiki:list-pages` | `projectId, { domainIds? }` | `{ success: true, pages: WikiPage[] }` |
 | `wiki:create-page` | `{ project_id, title, slug? }` | `{ success: true, page }` |
 | `wiki:update-page` | `id, { title, slug, content_md }` | `{ success: true, page }` |
 | `wiki:delete-page` | `id` | `{ success: true }` |
@@ -147,13 +147,17 @@ Métodos expuestos en preload:
 
 ```js
 window.electronAPI.wiki = {
-  listPages(projectId),
+  listPages(projectId, options), // options.domainIds?: number[] — filtro opcional por dominio, OR/ANY
   createPage(data),
   updatePage(id, data),
   deletePage(id),
   generateStarterPage(projectId, options),
 }
 ```
+
+**Filtro opcional por dominio de conocimiento (`listPages`):** `options.domainIds` se reenvía tal cual, siguiendo el mismo patrón de parámetro opcional que ya usa `generateStarterPage(projectId, options)`. Sin `domainIds` (u omitido/vacío), el comportamiento es idéntico al de antes de esta capa (`wikiQueries.listPagesByProject(projectId)`, sin segundo argumento) — la lectura project-global no cambia. Con uno o más `domainIds`, se reenvía como `{ domainIds }` a `wikiQueries.listPagesByProject`, que aplica el filtro OR/ANY descrito en la sección 3 (Bases de Datos → Dominios de conocimiento). El envelope de éxito/error (`{ success, pages }` / `{ success: false, error }`) no cambia. La forma de `domainIds` (array de IDs internos) es un detalle interno del filtro, no un contrato público congelado — ver Contract Boundary en el diseño de la feature.
+
+Frontend: `src/services/wikiService.js` expone `listPages(projectId, options)` con la misma regla de reenvío condicional (`domainIds` no vacío → se reenvía; si no, se llama a `window.electronAPI.wiki.listPages(projectId)` sin segundo argumento, igual que antes).
 
 ### Bundle budget (NFR-WIKI-004)
 
@@ -220,6 +224,22 @@ Tabla para páginas Markdown de wiki por proyecto.
 Restricciones extra:
 - `UNIQUE(project_id, slug)`
 - FK `project_id -> projects(id)` con borrado en cascada
+
+### Dominios de conocimiento
+
+`database/knowledgeDomains/` agrega una clasificación extensible y local a cada proyecto sin duplicar el contenido de sus entidades fuente.
+
+- `knowledge_items` mantiene una identidad canónica única por `(project_id, entity_type, entity_id)`; las filas de origen, como `project_wiki_pages`, siguen siendo la fuente de verdad.
+- `knowledge_domains` guarda dominios con `slug` inmutable y etiqueta editable, con ciclo de vida `active`, `archived` o `merged`. Cada proyecto recibe los dominios ordinarios `technical`, `business` y `unclassified` mediante un trigger de creación.
+- `knowledge_item_domains` guarda membresías confirmadas únicas. Las claves foráneas compuestas impiden relacionar ítems y dominios de proyectos diferentes.
+- `knowledge_item_domain_proposals` conserva sugerencias de IA y su procedencia para revisión; una propuesta no crea una membresía hasta que una confirmación explícita la aprueba.
+
+Durante `dbService.init()` la inicialización es transaccional y repetible: crea el esquema, siembra proyectos existentes, registra páginas wiki legacy y asigna solamente `unclassified` a los ítems sin clasificación previa. Los merges de dominios mueven membresías y propuestas pendientes en una transacción, deduplicando membresías por su restricción única.
+
+**Integración con `database/wiki/queries.js`:**
+- `createPage` y `deletePage` comparten una sola transacción `better-sqlite3` con `knowledgeDomains/service.js`: crear una página también registra su ítem canónico (`entity_type: 'wiki_page'`) sin asignarle ningún dominio por defecto; eliminar una página también elimina ese ítem, y sus membresías/propuestas pendientes se limpian en cascada por las claves foráneas compuestas del esquema. Si cualquiera de los dos pasos falla, ambos se revierten juntos.
+- `listPagesByProject(projectId, { domainIds })` sigue devolviendo todas las páginas del proyecto cuando no se pasan `domainIds` (comportamiento sin cambios, incluye ítems con cero membresías). Con uno o más `domainIds`, filtra con un predicado `EXISTS` sobre membresías confirmadas usando semántica OR/ANY (una página aparece si tiene al menos una membresía confirmada en cualquiera de los dominios pedidos), sin duplicar la fila fuente aunque el ítem coincida con varios dominios filtrados.
+- El filtro opcional se reenvía a través de IPC/preload/`wikiService` (`wiki:list-pages`, ver sección 2 → IPC: Wiki de Proyecto). La forma exacta de `domainIds` sigue siendo un detalle interno del filtro (array de IDs internos de `knowledge_domains`), no un contrato público congelado — no hay IDs opacos ni forma de respuesta nueva definidos por este reenvío.
 
 ### IPC: Esquema / Mind-Map de Grabación
 

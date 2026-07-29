@@ -144,7 +144,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Wiki de proyecto
   wiki: {
-    listPages: (projectId) => ipcRenderer.invoke('wiki:list-pages', projectId),
+    listPages: (projectId, options) => ipcRenderer.invoke('wiki:list-pages', projectId, options),
     createPage: (data) => ipcRenderer.invoke('wiki:create-page', data),
     updatePage: (id, data) => ipcRenderer.invoke('wiki:update-page', id, data),
     deletePage: (id) => ipcRenderer.invoke('wiki:delete-page', id),

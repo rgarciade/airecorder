@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTestDB, initTestDB } from './dbSetup.js';
 import * as wikiQueries from '../../../../electron/database/wiki/queries.js';
+import KnowledgeDomainsService from '../../../../electron/database/knowledgeDomains/service.js';
 
 describe('wikiQueries', () => {
   let db;
@@ -149,5 +150,185 @@ describe('wikiQueries', () => {
 
     expect(remainingA.count).toBe(0);
     expect(remainingB.count).toBe(1);
+  });
+
+  describe('integración con dominios de conocimiento', () => {
+    let service;
+
+    beforeEach(() => {
+      service = new KnowledgeDomainsService(db);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    function knowledgeItemFor(projectId, pageId) {
+      return db
+        .prepare('SELECT * FROM knowledge_items WHERE project_id = ? AND entity_type = ? AND entity_id = ?')
+        .get(projectId, 'wiki_page', String(pageId));
+    }
+
+    function domain(projectId, slug) {
+      return db.prepare('SELECT * FROM knowledge_domains WHERE project_id = ? AND slug = ?').get(projectId, slug);
+    }
+
+    it('createPage registra atómicamente un ítem de conocimiento canónico sin membresías', () => {
+      const project = projects.createProject('Atomic Create');
+
+      const page = wikiQueries.createPage({ project_id: project.id, slug: 'atomic-create', title: 'Atomic Create' });
+
+      const item = knowledgeItemFor(project.id, page.id);
+      expect(item).toBeTruthy();
+      expect(db.prepare('SELECT COUNT(*) AS count FROM knowledge_item_domains WHERE item_id = ?').get(item.id).count).toBe(0);
+    });
+
+    it('deletePage elimina atómicamente el ítem de conocimiento y sus membresías', () => {
+      const project = projects.createProject('Atomic Delete');
+      const page = wikiQueries.createPage({ project_id: project.id, slug: 'atomic-delete', title: 'Atomic Delete' });
+      const item = knowledgeItemFor(project.id, page.id);
+      const technical = domain(project.id, 'technical');
+      service.addMembership({ projectId: project.id, itemId: item.id, domainId: technical.id });
+
+      const deleted = wikiQueries.deletePage(page.id);
+
+      expect(deleted).toBe(true);
+      expect(knowledgeItemFor(project.id, page.id)).toBeUndefined();
+      expect(db.prepare('SELECT COUNT(*) AS count FROM knowledge_item_domains WHERE item_id = ?').get(item.id).count).toBe(0);
+    });
+
+    it('listPagesByProject sin filtro conserva el comportamiento actual (todas las páginas del proyecto)', () => {
+      const project = projects.createProject('Unfiltered Reads');
+      const classifiedPage = wikiQueries.createPage({ project_id: project.id, slug: 'classified', title: 'Classified' });
+      wikiQueries.createPage({ project_id: project.id, slug: 'unclassified-page', title: 'Unclassified Page' });
+      const technical = domain(project.id, 'technical');
+      const classifiedItem = knowledgeItemFor(project.id, classifiedPage.id);
+      service.addMembership({ projectId: project.id, itemId: classifiedItem.id, domainId: technical.id });
+
+      const pages = wikiQueries.listPagesByProject(project.id);
+
+      expect(pages.map(p => p.slug).sort()).toEqual(['classified', 'unclassified-page']);
+    });
+
+    it('un ítem con cero membresías permanece alcanzable en una lectura sin filtro', () => {
+      const project = projects.createProject('Zero Membership');
+      wikiQueries.createPage({ project_id: project.id, slug: 'no-domain', title: 'No Domain' });
+
+      const pages = wikiQueries.listPagesByProject(project.id);
+
+      expect(pages.map(p => p.slug)).toContain('no-domain');
+    });
+
+    it('filtra por múltiples dominios con semántica OR/ANY', () => {
+      const project = projects.createProject('OR Filter');
+      const technical = domain(project.id, 'technical');
+      const business = domain(project.id, 'business');
+      const techPage = wikiQueries.createPage({ project_id: project.id, slug: 'tech-page', title: 'Tech' });
+      const bizPage = wikiQueries.createPage({ project_id: project.id, slug: 'biz-page', title: 'Biz' });
+      wikiQueries.createPage({ project_id: project.id, slug: 'unrelated-page', title: 'Unrelated' });
+      service.addMembership({ projectId: project.id, itemId: knowledgeItemFor(project.id, techPage.id).id, domainId: technical.id });
+      service.addMembership({ projectId: project.id, itemId: knowledgeItemFor(project.id, bizPage.id).id, domainId: business.id });
+
+      const filtered = wikiQueries.listPagesByProject(project.id, { domainIds: [technical.id, business.id] });
+
+      expect(filtered.map(p => p.slug).sort()).toEqual(['biz-page', 'tech-page']);
+    });
+
+    it('no duplica la fila fuente cuando un ítem coincide con más de un dominio filtrado', () => {
+      const project = projects.createProject('No Duplicate Rows');
+      const technical = domain(project.id, 'technical');
+      const business = domain(project.id, 'business');
+      const page = wikiQueries.createPage({ project_id: project.id, slug: 'multi-domain', title: 'Multi Domain' });
+      const item = knowledgeItemFor(project.id, page.id);
+      service.addMembership({ projectId: project.id, itemId: item.id, domainId: technical.id });
+      service.addMembership({ projectId: project.id, itemId: item.id, domainId: business.id });
+
+      const filtered = wikiQueries.listPagesByProject(project.id, { domainIds: [technical.id, business.id] });
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].slug).toBe('multi-domain');
+    });
+
+    it('un dominio filtrado sin coincidencias no devuelve ese ítem, aunque tenga otras membresías', () => {
+      const project = projects.createProject('Non-matching Domain');
+      const technical = domain(project.id, 'technical');
+      const business = domain(project.id, 'business');
+      const page = wikiQueries.createPage({ project_id: project.id, slug: 'only-technical', title: 'Only Technical' });
+      service.addMembership({ projectId: project.id, itemId: knowledgeItemFor(project.id, page.id).id, domainId: technical.id });
+
+      const filtered = wikiQueries.listPagesByProject(project.id, { domainIds: [business.id] });
+
+      expect(filtered).toEqual([]);
+    });
+
+    it('domainIds vacío se comporta igual que una lectura sin filtro', () => {
+      const project = projects.createProject('Empty Filter');
+      wikiQueries.createPage({ project_id: project.id, slug: 'empty-filter-page', title: 'Empty Filter Page' });
+
+      const unfiltered = wikiQueries.listPagesByProject(project.id);
+      const emptyFiltered = wikiQueries.listPagesByProject(project.id, { domainIds: [] });
+
+      expect(emptyFiltered).toEqual(unfiltered);
+    });
+
+    it('createPage revierte la inserción de la página si registerItem falla dentro de la transacción compartida', () => {
+      const project = projects.createProject('Rollback Create');
+      // `wiki/queries.js` resuelve `KnowledgeDomainsService` con `require()` nativo de Node
+      // (CommonJS), mientras que este archivo de test lo importa con ESM `import`. Bajo
+      // Vitest/vite-node ambos caminos no comparten el mismo cache de módulo (son instancias
+      // de clase distintas), así que `vi.spyOn` sobre el `import` de arriba NO intercepta la
+      // instancia que usa `queries.js` internamente. Para espiar el prototipo correcto hay que
+      // resolver la clase con el mismo `require()` nativo que usa el código bajo prueba.
+      const InternalKnowledgeDomainsService = require('../../../../electron/database/knowledgeDomains/service.js');
+      vi.spyOn(InternalKnowledgeDomainsService.prototype, 'registerItem').mockImplementation(() => {
+        throw new Error('simulated registerItem failure');
+      });
+
+      expect(() => wikiQueries.createPage({ project_id: project.id, slug: 'rollback-create', title: 'Rollback Create' })).toThrow('simulated registerItem failure');
+
+      const page = db.prepare('SELECT * FROM project_wiki_pages WHERE project_id = ? AND slug = ?').get(project.id, 'rollback-create');
+      expect(page).toBeUndefined();
+      expect(db.prepare('SELECT COUNT(*) AS count FROM knowledge_items WHERE project_id = ?').get(project.id).count).toBe(0);
+    });
+
+    it('deletePage revierte el borrado de la página si removeItem falla dentro de la transacción compartida', () => {
+      const project = projects.createProject('Rollback Delete');
+      const page = wikiQueries.createPage({ project_id: project.id, slug: 'rollback-delete', title: 'Rollback Delete' });
+      const item = knowledgeItemFor(project.id, page.id);
+      // Ver comentario del test anterior: hay que espiar la clase resuelta vía `require()`
+      // nativo, no la importada por ESM, para interceptar la instancia que usa `queries.js`.
+      const InternalKnowledgeDomainsService = require('../../../../electron/database/knowledgeDomains/service.js');
+      vi.spyOn(InternalKnowledgeDomainsService.prototype, 'removeItem').mockImplementation(() => {
+        throw new Error('simulated removeItem failure');
+      });
+
+      expect(() => wikiQueries.deletePage(page.id)).toThrow('simulated removeItem failure');
+
+      const survivingPage = db.prepare('SELECT * FROM project_wiki_pages WHERE id = ?').get(page.id);
+      expect(survivingPage).toBeTruthy();
+      expect(survivingPage.slug).toBe('rollback-delete');
+      expect(knowledgeItemFor(project.id, page.id)).toEqual(item);
+    });
+
+    it('una propuesta de IA pendiente sin confirmar no aparece en el filtro OR/ANY por dominio', () => {
+      const project = projects.createProject('Pending Proposal Filter');
+      const technical = domain(project.id, 'technical');
+      const page = wikiQueries.createPage({ project_id: project.id, slug: 'proposed-only', title: 'Proposed Only' });
+      const item = knowledgeItemFor(project.id, page.id);
+
+      service.createProposal({
+        projectId: project.id,
+        itemId: item.id,
+        domainId: technical.id,
+        confidence: 0.9,
+        origin: 'ai-classification',
+        idempotencyKey: 'proposed-only:technical',
+      });
+
+      const filtered = wikiQueries.listPagesByProject(project.id, { domainIds: [technical.id] });
+
+      expect(filtered).toEqual([]);
+      expect(db.prepare('SELECT COUNT(*) AS count FROM knowledge_item_domains WHERE item_id = ?').get(item.id).count).toBe(0);
+    });
   });
 });

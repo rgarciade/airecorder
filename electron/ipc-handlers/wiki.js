@@ -67,9 +67,12 @@ function pathToFileURL(filePath) {
 }
 
 function registerWikiHandlers(ipcMain) {
-  ipcMain.handle('wiki:list-pages', async (_event, projectId) => {
+  ipcMain.handle('wiki:list-pages', async (_event, projectId, options = {}) => {
     try {
-      const pages = wikiQueries.listPagesByProject(projectId);
+      const { domainIds } = options || {};
+      const pages = Array.isArray(domainIds) && domainIds.length > 0
+        ? wikiQueries.listPagesByProject(projectId, { domainIds })
+        : wikiQueries.listPagesByProject(projectId);
       return { success: true, pages };
     } catch (error) {
       return { success: false, error: error.message };

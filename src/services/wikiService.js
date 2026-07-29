@@ -4,9 +4,12 @@ function ensureWikiAPI() {
   }
 }
 
-export async function listPages(projectId) {
+export async function listPages(projectId, options = {}) {
   ensureWikiAPI();
-  const result = await window.electronAPI.wiki.listPages(projectId);
+  const { domainIds } = options || {};
+  const result = Array.isArray(domainIds) && domainIds.length > 0
+    ? await window.electronAPI.wiki.listPages(projectId, { domainIds })
+    : await window.electronAPI.wiki.listPages(projectId);
   if (!result?.success) {
     throw new Error(result?.error || 'Error listando páginas wiki');
   }

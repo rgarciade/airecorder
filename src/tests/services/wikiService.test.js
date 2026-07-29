@@ -29,6 +29,20 @@ describe('wikiService', () => {
     expect(pages).toEqual([{ id: 1 }]);
   });
 
+  it('listPages reenvía domainIds opcionales cuando se proveen', async () => {
+    window.electronAPI.wiki.listPages.mockResolvedValue({ success: true, pages: [{ id: 9 }] });
+    const pages = await listPages(7, { domainIds: [1, 2] });
+    expect(window.electronAPI.wiki.listPages).toHaveBeenCalledWith(7, { domainIds: [1, 2] });
+    expect(pages).toEqual([{ id: 9 }]);
+  });
+
+  it('listPages con domainIds vacío se comporta igual que sin filtro', async () => {
+    window.electronAPI.wiki.listPages.mockResolvedValue({ success: true, pages: [{ id: 1 }] });
+    const pages = await listPages(7, { domainIds: [] });
+    expect(window.electronAPI.wiki.listPages).toHaveBeenCalledWith(7);
+    expect(pages).toEqual([{ id: 1 }]);
+  });
+
   it('createPage llama electronAPI.wiki.createPage(data)', async () => {
     const payload = { project_id: 7, title: 'Nueva página' };
     window.electronAPI.wiki.createPage.mockResolvedValue({ success: true, page: { id: 2 } });
