@@ -50,6 +50,34 @@ describe('wiki handlers', () => {
     expect(result).toEqual({ success: true, pages: [{ id: 1, title: 'Page' }] });
   });
 
+  it('wiki:list-pages reenvía domainIds opcionales a listPagesByProject cuando se proveen', async () => {
+    queryMocks.listPagesByProject.mockReturnValue([{ id: 3, title: 'Filtered' }]);
+
+    const result = await handlers.get('wiki:list-pages')(null, 42, { domainIds: [1, 2] });
+
+    expect(queryMocks.listPagesByProject).toHaveBeenCalledWith(42, { domainIds: [1, 2] });
+    expect(result).toEqual({ success: true, pages: [{ id: 3, title: 'Filtered' }] });
+  });
+
+  it('wiki:list-pages con domainIds vacío preserva la lectura sin filtro (sin segundo argumento)', async () => {
+    queryMocks.listPagesByProject.mockReturnValue([{ id: 1, title: 'Page' }]);
+
+    const result = await handlers.get('wiki:list-pages')(null, 42, { domainIds: [] });
+
+    expect(queryMocks.listPagesByProject).toHaveBeenCalledWith(42);
+    expect(result).toEqual({ success: true, pages: [{ id: 1, title: 'Page' }] });
+  });
+
+  it('wiki:list-pages propaga error con el mismo envelope existente cuando listPagesByProject lanza', async () => {
+    queryMocks.listPagesByProject.mockImplementation(() => {
+      throw new Error('db exploded');
+    });
+
+    const result = await handlers.get('wiki:list-pages')(null, 42, { domainIds: [1] });
+
+    expect(result).toEqual({ success: false, error: 'db exploded' });
+  });
+
   it('registra wiki:create-page y resuelve colisión de slug', async () => {
     queryMocks.getPageBySlug
       .mockReturnValueOnce({ id: 10, slug: 'decisiones-tecnicas' })

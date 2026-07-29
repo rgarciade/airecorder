@@ -12,6 +12,7 @@ const IntegrationsDbService = require('./integrations/dbService');
 const expertQueries = require('./experts/queries');
 const templateQueries = require('./templates/queries');
 const { seedBuiltinTemplates } = require('./templates/builtinTemplates');
+const { initializeKnowledgeDomains } = require('./knowledgeDomains/schema');
 
 class DbService {
   constructor() {
@@ -90,6 +91,9 @@ class DbService {
           UNIQUE(project_id, slug)
         );
       `);
+
+      // ── Knowledge Domains ───────────────────────────────────────────────────
+      initializeKnowledgeDomains(this.db);
 
       // ── Expert Customizations ───────────────────────────────────────────────
       this.db.exec(expertQueries.CREATE_TABLE_EXPERT_CUSTOMIZATIONS);

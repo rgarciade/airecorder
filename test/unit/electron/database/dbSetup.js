@@ -12,6 +12,7 @@ import IntegrationsDbService from '../../../../electron/database/integrations/db
 import expertQueries from '../../../../electron/database/experts/queries.js';
 import templateQueries from '../../../../electron/database/templates/queries.js';
 import { seedBuiltinTemplates } from '../../../../electron/database/templates/builtinTemplates.js';
+import { initializeKnowledgeDomains } from '../../../../electron/database/knowledgeDomains/schema.js';
 
 const CREATE_TABLE_PROJECT_WIKI_PAGES = `
   CREATE TABLE IF NOT EXISTS project_wiki_pages (
@@ -69,6 +70,7 @@ export function initTestDB(db) {
   db.exec(templateQueries.CREATE_TABLE_RECORDING_NOTES);
   db.exec(templateQueries.CREATE_INDEX_RECORDING_NOTES);
   seedBuiltinTemplates(db);
+  initializeKnowledgeDomains(db);
 
   return { recordings, projects, chats, tasks, speakers, integrations };
 }
