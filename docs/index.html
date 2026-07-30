@@ -887,7 +887,7 @@
     }
     @keyframes fp-type-cycle {
       0% { width: 0; opacity: 1; border-color: var(--color-text-muted); }
-      28% { width: 100%; opacity: 1; border-color: var(--color-text-muted); }
+      16% { width: 100%; opacity: 1; border-color: var(--color-text-muted); }
       32% { width: 100%; opacity: 1; border-color: transparent; }
       36%, 100% { width: 100%; opacity: 0; border-color: transparent; }
     }
@@ -901,7 +901,8 @@
 
     /* Stage 3: summary */
     .fp-summary-grid { display: flex; gap: 14px; }
-    .fp-summary-card-lg { flex: 1.6; background: var(--color-primary-light); border-radius: var(--radius-md); padding: 16px 18px; }
+    .fp-main-col { flex: 1.6; display: flex; flex-direction: column; gap: 12px; }
+    .fp-summary-card-lg { background: var(--color-primary-light); border-radius: var(--radius-md); padding: 16px 18px; }
     .fp-summary-head { font-size: 0.85rem; font-weight: 700; color: var(--color-primary); margin-bottom: 12px; }
     .fp-summary-line { height: 8px; border-radius: 4px; background: rgba(57,148,239,0.25); margin-bottom: 9px; animation: fp-shimmer 1.8s ease-in-out infinite; }
     .fp-summary-line:nth-child(2) { animation-delay: 0.15s; }
@@ -914,6 +915,7 @@
     .fp-side-card .fp-summary-line { background: rgba(17,24,39,0.1); }
     .fp-chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
     .fp-chip { font-size: 0.68rem; font-weight: 600; background: var(--color-white); border: 1px solid var(--color-border); border-radius: 999px; padding: 3px 10px; }
+    .fp-scheme-mini { width: 100%; height: auto; display: block; margin-top: 2px; }
 
     /* Stage 4: kanban */
     .fp-kanban { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
@@ -2112,12 +2114,21 @@
 
             <div class="flow-panel" data-stage="2">
               <div class="fp-summary-grid">
-                <div class="fp-summary-card-lg">
-                  <div class="fp-summary-head" data-i18n="flowSummaryHead">✨ Quick Summary</div>
-                  <div class="fp-summary-line" style="width:96%"></div>
-                  <div class="fp-summary-line" style="width:88%"></div>
-                  <div class="fp-summary-line" style="width:92%"></div>
-                  <div class="fp-summary-line" style="width:70%"></div>
+                <div class="fp-main-col">
+                  <div class="fp-summary-card-lg">
+                    <div class="fp-summary-head" data-i18n="flowSummaryHead">✨ Quick Summary</div>
+                    <div class="fp-summary-line" style="width:96%"></div>
+                    <div class="fp-summary-line" style="width:88%"></div>
+                    <div class="fp-summary-line" style="width:92%"></div>
+                    <div class="fp-summary-line" style="width:70%"></div>
+                  </div>
+                  <div class="fp-side-card">
+                    <div class="fp-side-head" data-i18n="flowDetailedSummaryHead">Resumen Detallado</div>
+                    <div class="fp-summary-line" style="width:98%"></div>
+                    <div class="fp-summary-line" style="width:93%"></div>
+                    <div class="fp-summary-line" style="width:88%"></div>
+                    <div class="fp-summary-line" style="width:60%"></div>
+                  </div>
                 </div>
                 <div class="fp-side-col">
                   <div class="fp-side-card">
@@ -2128,6 +2139,27 @@
                   <div class="fp-side-card">
                     <div class="fp-side-head" data-i18n="flowParticipantsHead">Participants</div>
                     <div class="fp-chip-row"><span class="fp-chip">Ana</span><span class="fp-chip">Marcos</span></div>
+                  </div>
+                  <div class="fp-side-card">
+                    <div class="fp-side-head" data-i18n="flowSchemeHead">Esquema</div>
+                    <svg class="fp-scheme-mini" viewBox="0 0 220 66" fill="none">
+                      <g stroke-width="1.5">
+                        <path d="M8 33 H45" stroke="#F97316"/>
+                        <path d="M45 33 L85 14" stroke="#F97316"/>
+                        <path d="M45 33 L85 33" stroke="#14B8A6"/>
+                        <path d="M45 33 L85 52" stroke="#A855F7"/>
+                        <path d="M85 14 L135 14" stroke="#F97316"/>
+                        <path d="M85 33 L135 33" stroke="#14B8A6"/>
+                        <path d="M85 52 L135 52" stroke="#A855F7"/>
+                      </g>
+                      <circle cx="8" cy="33" r="4" fill="var(--color-text)"/>
+                      <circle cx="85" cy="14" r="3" fill="#F97316"/>
+                      <circle cx="85" cy="33" r="3" fill="#14B8A6"/>
+                      <circle cx="85" cy="52" r="3" fill="#A855F7"/>
+                      <rect x="135" y="8" width="60" height="11" rx="3" fill="rgba(17,24,39,0.1)"/>
+                      <rect x="135" y="27" width="50" height="11" rx="3" fill="rgba(17,24,39,0.1)"/>
+                      <rect x="135" y="46" width="55" height="11" rx="3" fill="rgba(17,24,39,0.1)"/>
+                    </svg>
                   </div>
                 </div>
               </div>
@@ -3174,6 +3206,7 @@
         flowChatGreeting: '¡Hola! Preguntame lo que quieras sobre esta reunión.', flowChatQuestion: '¿qué se decidió del roadmap?', flowChatAnswer: 'Se decidió priorizar el Q3 y posponer la migración.',
         flowChatQuestion2: '¿quién se encarga de la migración?', flowChatAnswer2: 'Marcos la lidera a partir de la próxima sprint.',
         flowSummaryHead: '✨ Quick Summary', flowHighlightsHead: 'Key Highlights', flowParticipantsHead: 'Participants',
+        flowDetailedSummaryHead: 'Resumen Detallado', flowSchemeHead: 'Esquema',
         flowTask1: 'Preparar demo para cliente', flowTask2: 'Revisar propuesta de Q3', flowColEmpty: 'Sin tareas',
         screenshotsLabel: 'Vista previa', screenshotsTitle: 'Mira cómo funciona',
         screenshotsSubtitle: 'Una interfaz limpia y enfocada en tu flujo de trabajo. Sin distracciones.',
@@ -3306,6 +3339,7 @@
         flowChatGreeting: "Hi! Ask me anything about this meeting.", flowChatQuestion: 'what did we decide on the roadmap?', flowChatAnswer: 'The team decided to prioritize Q3 and postpone the migration.',
         flowChatQuestion2: "who's handling the migration?", flowChatAnswer2: 'Marcos is leading it starting next sprint.',
         flowSummaryHead: '✨ Quick Summary', flowHighlightsHead: 'Key Highlights', flowParticipantsHead: 'Participants',
+        flowDetailedSummaryHead: 'Detailed Summary', flowSchemeHead: 'Outline',
         flowTask1: 'Prepare client demo', flowTask2: 'Review Q3 proposal', flowColEmpty: 'No tasks',
         screenshotsLabel: 'Preview', screenshotsTitle: 'See it in action',
         screenshotsSubtitle: 'A clean interface focused on your workflow. No distractions.',
