@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AIRecorder | IA local para reuniones, transcripción y conocimiento de proyectos</title>
   <meta name="description" content="Aplicación de escritorio para macOS y Windows que graba reuniones, las transcribe localmente con Whisper, genera resúmenes y salidas estructuradas, y te permite chatear con el conocimiento de tus reuniones y proyectos. IA local por defecto; proveedores externos opcionales.">
-  <meta name="keywords" content="grabadora de reuniones con IA local, grabador de reuniones offline, grabador de reuniones local, grabaciones de reuniones seguras, alternativa gratis a Plaud, transcripción privada de reuniones, chat con transcripciones, resúmenes de reuniones con IA, resúmenes de reuniones con IA local, resúmenes de reuniones locales, conocimiento entre reuniones, chat local sobre reuniones guardadas, ecosistema de grabación de reuniones e IA local, base de conocimiento de reuniones, alternativa local a Otter, alternativa local a Fireflies, alternativa local a Fathom, IA local vs IA en la nube, Whisper, Ollama, LM Studio, macOS, Windows">
+  <meta name="keywords" content="grabadora de reuniones con IA local, grabador de reuniones offline, grabador de reuniones local, grabaciones de reuniones seguras, alternativa gratis a Plaud, transcripción privada de reuniones, chat con transcripciones, resúmenes de reuniones con IA, resúmenes de reuniones con IA local, resúmenes de reuniones locales, conocimiento entre reuniones, chat local sobre reuniones guardadas, ecosistema de grabación de reuniones e IA local, base de conocimiento de reuniones, alternativa local a Otter, alternativa local a Fireflies, alternativa local a Fathom, IA local vs IA en la nube, Whisper, Ollama, LM Studio, OpenAI, ChatGPT, API compatible con OpenAI, macOS, Windows">
   <meta name="author" content="Raul Garcia">
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#3994EF">
@@ -40,7 +40,7 @@
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "AIRecorder",
-    "description": "Aplicación de escritorio para macOS y Windows que graba audio, transcribe localmente con Whisper, genera resúmenes estructurados de reuniones y permite chatear con el conocimiento de reuniones y proyectos. IA local por defecto (Ollama, LM Studio); proveedores externos opcionales (Gemini, DeepSeek, Kimi).",
+    "description": "Aplicación de escritorio para macOS y Windows que graba audio, transcribe localmente con Whisper, genera resúmenes estructurados de reuniones y permite chatear con el conocimiento de reuniones y proyectos. IA local por defecto (Ollama, LM Studio); proveedores externos opcionales (OpenAI, Gemini, DeepSeek, Kimi) y cualquier API compatible con OpenAI.",
     "applicationCategory": "ProductivityApplication",
     "operatingSystem": "macOS, Windows",
     "offers": {
@@ -65,10 +65,10 @@
       "Análisis de reuniones con IA",
       "Diarización de hablantes con pyannote",
       "Sistema RAG con LanceDB",
-      "IA local por defecto (Ollama, LM Studio); proveedores externos opcionales (Gemini, DeepSeek)"
+      "IA local por defecto (Ollama, LM Studio); proveedores externos opcionales (OpenAI, Gemini, DeepSeek) y cualquier API compatible con OpenAI"
     ],
     "screenshot": "https://rgarciade.github.io/airecorder/docs/screenshots/screen-home.png",
-    "keywords": "grabador de reuniones local, grabadora de reuniones con IA local, resúmenes de reuniones con IA local, resúmenes de reuniones locales, conocimiento entre reuniones, chat local sobre reuniones guardadas, ecosistema de grabación de reuniones e IA local, base de conocimiento de reuniones, alternativa local a Otter, alternativa local a Fireflies, alternativa local a Fathom, alternativa local a Plaud, transcripción privada de reuniones, Whisper, Ollama, LM Studio"
+    "keywords": "grabador de reuniones local, grabadora de reuniones con IA local, resúmenes de reuniones con IA local, resúmenes de reuniones locales, conocimiento entre reuniones, chat local sobre reuniones guardadas, ecosistema de grabación de reuniones e IA local, base de conocimiento de reuniones, alternativa local a Otter, alternativa local a Fireflies, alternativa local a Fathom, alternativa local a Plaud, transcripción privada de reuniones, Whisper, Ollama, LM Studio, OpenAI, ChatGPT, API compatible con OpenAI"
   }
   </script>
 
@@ -774,6 +774,171 @@
     @keyframes wave-anim {
       0%, 100% { transform: scaleY(0.3); }
       50% { transform: scaleY(1); }
+    }
+
+    /* =============================================
+       FLUJO EN VIVO (tabs + panel, estilo Orca)
+    ============================================= */
+    .flow-wrap { max-width: 920px; margin: 0 auto; }
+
+    .flow-tabs { display: flex; border-bottom: 1px solid var(--color-border); margin-bottom: 28px; }
+    .flow-tab { flex: 1; background: none; border: none; text-align: center; padding: 0 12px 14px; cursor: pointer; position: relative; font-family: var(--font-family); }
+    .flow-tab-title { display: block; font-size: 0.85rem; font-weight: 700; color: var(--color-text-muted); transition: color 0.3s ease; }
+    .flow-tab.active .flow-tab-title { color: var(--color-text); }
+    .flow-tab-track { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: transparent; overflow: hidden; }
+    .flow-tab-fill { display: block; height: 100%; width: 0%; background: var(--color-primary); }
+    .flow-tab-fill.filling { animation-name: flow-fill; animation-timing-function: linear; animation-fill-mode: forwards; }
+    .flow-tab-fill.full { width: 100%; }
+    @keyframes flow-fill { from { width: 0%; } to { width: 100%; } }
+
+    .flow-window { position: relative; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--color-card-border); box-shadow: var(--shadow-card-hover); background: var(--color-white); }
+    .flow-window-bar { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: #F3F4F6; border-bottom: 1px solid var(--color-card-border); }
+    .flow-window-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .flow-window-dot.red { background: #FF5F57; }
+    .flow-window-dot.yellow { background: #FEBC2E; }
+    .flow-window-dot.green { background: #28C840; }
+
+    .flow-window-body { position: relative; min-height: 430px; }
+    .flow-panel { position: absolute; inset: 0; padding: 22px 26px; opacity: 0; pointer-events: none; transition: opacity 0.45s ease; }
+    .flow-panel.active { opacity: 1; pointer-events: auto; }
+
+    /* ── Mini mockups (fp-*) matching the real app UI ── */
+    .fp-badge { display: inline-block; background: rgba(124,58,237,0.12); color: #7C3AED; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.05em; padding: 4px 10px; border-radius: 999px; margin-bottom: 10px; }
+    .fp-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .fp-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 0.7rem; font-weight: 600; color: var(--color-text-secondary); background: var(--color-bg); border: 1px solid var(--color-border); padding: 4px 10px; border-radius: 999px; }
+    .fp-pill-ico { width: 12px; height: 12px; flex-shrink: 0; }
+    .fp-pill-chevron { width: 11px; height: 11px; flex-shrink: 0; }
+    .fp-pill-accent { background: var(--color-primary-light); border-color: transparent; color: var(--color-primary); }
+
+    /* Stage 1: recording */
+    .fp-rec-top { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .fp-rec-info { flex: 1; min-width: 0; }
+    .fp-record-title { font-size: 1.15rem; font-weight: 800; color: var(--color-text); margin-bottom: 6px; }
+    .fp-rec-subtitle { font-size: 0.78rem; color: var(--color-text-secondary); line-height: 1.55; max-width: 380px; margin-bottom: 4px; }
+    .fp-rec-btn-wrap { flex-shrink: 0; }
+    .fp-rec-btn-lg { width: 72px; height: 72px; border-radius: 50%; background: #EF4444; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; animation: fp-record-ring 1.6s ease-out infinite; }
+    .fp-rec-btn-lg svg { width: 20px; height: 20px; }
+    .fp-rec-btn-lg span { font-size: 0.6rem; font-weight: 800; letter-spacing: 0.04em; color: #fff; }
+    @keyframes fp-record-ring { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.45); } 100% { box-shadow: 0 0 0 12px rgba(239,68,68,0); } }
+    .fp-stats-row { display: flex; gap: 14px; margin-top: 24px; }
+    .fp-stat { flex: 1; display: flex; align-items: center; gap: 10px; background: var(--color-white); border: 1px solid var(--color-card-border); box-shadow: var(--shadow-card); border-radius: var(--radius-md); padding: 10px 12px; }
+    .fp-stat-ico { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .fp-stat-ico svg { width: 14px; height: 14px; }
+    .fp-stat-ico.orange { background: #FFF7ED; color: #C2410C; }
+    .fp-stat-ico.purple { background: rgba(124,58,237,0.12); color: #7C3AED; }
+    .fp-stat-ico.green { background: rgba(16,185,129,0.12); color: #059669; }
+    .fp-stat-label { font-size: 0.65rem; color: var(--color-text-muted); }
+    .fp-stat-value { font-size: 0.8rem; font-weight: 700; color: var(--color-text); }
+
+    /* Stage 2: transcript + chat split */
+    .fp-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+    .fp-search { font-size: 0.72rem; color: var(--color-text-muted); background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 999px; padding: 5px 12px; flex: 1; }
+    .fp-split { display: flex; gap: 16px; align-items: flex-start; }
+    .fp-transcript, .fp-chat { flex: 1; min-width: 0; }
+
+    .fp-t-block { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
+    .fp-t-block.fp-t-active { background: var(--color-primary-light); border-color: var(--color-primary); }
+    .fp-t-meta { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+    .fp-t-time { font-size: 0.62rem; font-weight: 700; color: var(--color-primary); }
+    .fp-t-speaker { font-size: 0.68rem; font-weight: 700; color: var(--color-text); }
+    .fp-t-text { font-size: 0.66rem; color: var(--color-text-secondary); line-height: 1.55; }
+
+    .fp-tr-player { margin-top: 14px; }
+    .fp-tr-progress { height: 3px; border-radius: 2px; background: var(--color-border); position: relative; margin-bottom: 10px; }
+    .fp-tr-progress span { position: absolute; left: 0; top: 0; bottom: 0; width: 60%; background: var(--color-primary); border-radius: 2px; }
+    .fp-tr-controls { display: flex; align-items: center; justify-content: center; gap: 12px; }
+    .fp-tr-time { font-size: 0.62rem; font-weight: 600; color: var(--color-text-muted); }
+    .fp-tr-play { width: 28px; height: 28px; border-radius: 50%; background: var(--color-primary); display: flex; align-items: center; justify-content: center; }
+    .fp-tr-play svg { width: 11px; height: 11px; }
+
+    .fp-chat-head { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+    .fp-chat-bot-ico { width: 20px; height: 20px; border-radius: 50%; background: var(--color-primary-light); display: flex; align-items: center; justify-content: center; font-size: 0.62rem; flex-shrink: 0; }
+    .fp-chat-head-title { font-size: 0.74rem; font-weight: 700; color: var(--color-text); flex: 1; }
+    .fp-chat-model { font-size: 0.58rem; font-weight: 600; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 999px; padding: 2px 7px; color: var(--color-text-muted); }
+    .fp-chat-prompt-wrap { text-align: right; margin-bottom: 12px; }
+    .fp-chat-prompt-chip { display: inline-block; background: var(--color-primary); color: #fff; font-size: 0.66rem; font-weight: 600; padding: 6px 12px; border-radius: 8px; }
+    .fp-chat-answer { display: flex; gap: 8px; }
+    .fp-chat-answer-ico { width: 20px; height: 20px; border-radius: 50%; background: var(--color-primary-light); display: flex; align-items: center; justify-content: center; font-size: 0.62rem; flex-shrink: 0; }
+    .fp-chat-answer-body { font-size: 0.66rem; line-height: 1.6; color: var(--color-text-secondary); }
+    .fp-heading { display: block; font-size: 0.74rem; font-weight: 700; color: var(--color-text); margin-bottom: 6px; }
+    .fp-chat-answer-body ul { padding-left: 14px; margin: 0; }
+    .fp-chat-answer-body li { margin-bottom: 6px; }
+    .fp-chat-answer-body strong { color: var(--color-text); }
+    .fp-time-chip { display: inline-block; background: rgba(219,39,119,0.12); color: #DB2777; font-size: 0.58rem; font-weight: 700; padding: 1px 6px; border-radius: 999px; margin-left: 3px; }
+    .fp-chat-input-bar { margin-top: 12px; font-size: 0.68rem; color: var(--color-text-muted); background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 999px; padding: 7px 14px; min-height: 14px; }
+
+    /* Fill the panel vertically: toolbar stays fixed height, split fills the rest,
+       and the player / input bar dock to the bottom of their column. */
+    .flow-panel-fill { display: flex; flex-direction: column; }
+    .flow-panel-fill .fp-split { flex: 1; min-height: 0; }
+    .flow-panel-fill .fp-transcript,
+    .flow-panel-fill .fp-chat { display: flex; flex-direction: column; height: 100%; }
+    .flow-panel-fill .fp-tr-player,
+    .flow-panel-fill .fp-chat-input-bar { margin-top: auto; }
+
+    /* Chat sequence: user types a question, sends it, AI thinks, then answers. */
+    .fp-chat-typing-text {
+      display: inline-block;
+      overflow: hidden;
+      white-space: nowrap;
+      width: 0;
+      border-right: 1px solid var(--color-text-muted);
+      animation: fp-type-cycle 7s steps(40, end) infinite;
+    }
+    @keyframes fp-type-cycle {
+      0% { width: 0; opacity: 1; border-color: var(--color-text-muted); }
+      28% { width: 100%; opacity: 1; border-color: var(--color-text-muted); }
+      32% { width: 100%; opacity: 1; border-color: transparent; }
+      36%, 100% { width: 100%; opacity: 0; border-color: transparent; }
+    }
+    .fp-chat-prompt-wrap { opacity: 0; animation: fp-chip-reveal 7s ease-in-out infinite; }
+    @keyframes fp-chip-reveal { 0%, 37% { opacity: 0; } 40%, 100% { opacity: 1; } }
+    .fp-chat-thinking { display: inline-flex; gap: 3px; opacity: 0; animation: fp-thinking-cycle 7s ease-in-out infinite; }
+    .fp-chat-thinking span { width: 4px; height: 4px; border-radius: 50%; background: var(--color-text-muted); display: inline-block; }
+    @keyframes fp-thinking-cycle { 0%, 40% { opacity: 0; } 43%, 54% { opacity: 1; } 58%, 100% { opacity: 0; position: absolute; } }
+    .fp-chat-answer-content { opacity: 0; animation: fp-answer-reveal 7s ease-in-out infinite; }
+    @keyframes fp-answer-reveal { 0%, 55% { opacity: 0; } 59%, 100% { opacity: 1; } }
+
+    /* Stage 3: summary */
+    .fp-summary-grid { display: flex; gap: 14px; }
+    .fp-summary-card-lg { flex: 1.6; background: var(--color-primary-light); border-radius: var(--radius-md); padding: 16px 18px; }
+    .fp-summary-head { font-size: 0.85rem; font-weight: 700; color: var(--color-primary); margin-bottom: 12px; }
+    .fp-summary-line { height: 8px; border-radius: 4px; background: rgba(57,148,239,0.25); margin-bottom: 9px; animation: fp-shimmer 1.8s ease-in-out infinite; }
+    .fp-summary-line:nth-child(2) { animation-delay: 0.15s; }
+    .fp-summary-line:nth-child(3) { animation-delay: 0.3s; }
+    .fp-summary-line:nth-child(4) { animation-delay: 0.45s; }
+    @keyframes fp-shimmer { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+    .fp-side-col { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+    .fp-side-card { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px 14px; }
+    .fp-side-head { font-size: 0.75rem; font-weight: 700; color: var(--color-text); margin-bottom: 10px; }
+    .fp-side-card .fp-summary-line { background: rgba(17,24,39,0.1); }
+    .fp-chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .fp-chip { font-size: 0.68rem; font-weight: 600; background: var(--color-white); border: 1px solid var(--color-border); border-radius: 999px; padding: 3px 10px; }
+
+    /* Stage 4: kanban */
+    .fp-kanban { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .fp-col { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 8px; min-height: 130px; }
+    .fp-col-head { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.03em; padding-bottom: 7px; margin-bottom: 8px; border-bottom: 2px solid var(--color-border); display: flex; align-items: center; justify-content: space-between; color: var(--color-text-secondary); }
+    .fp-col-backlog { border-bottom-color: #9CA3AF; }
+    .fp-col-progress { border-bottom-color: #3994EF; color: #3994EF; }
+    .fp-col-blocked { border-bottom-color: #EF4444; color: #EF4444; }
+    .fp-col-done { border-bottom-color: #10B981; color: #10B981; }
+    .fp-col-count { background: var(--color-white); border-radius: 999px; padding: 0 5px; font-size: 0.6rem; }
+    .fp-col-empty { font-size: 0.62rem; color: var(--color-text-muted); text-align: center; padding-top: 14px; }
+    .fp-card-lg { background: var(--color-white); border: 1px solid var(--color-border); border-radius: 7px; padding: 7px 8px; margin-bottom: 6px; }
+    .fp-card-title { font-size: 0.64rem; font-weight: 600; color: var(--color-text); line-height: 1.35; margin-bottom: 5px; }
+    .fp-card-tags { display: flex; align-items: center; gap: 4px; }
+    .fp-tag { font-size: 0.56rem; font-weight: 700; padding: 1px 6px; border-radius: 999px; }
+    .fp-tag.back { background: #FEF3C7; color: #B45309; }
+    .fp-tag.front { background: #DBEAFE; color: #1D4ED8; }
+    .fp-tag-ai { width: 13px; height: 13px; border-radius: 50%; background: rgba(124,58,237,0.15); color: #7C3AED; font-size: 0.55rem; display: inline-flex; align-items: center; justify-content: center; }
+    .fp-card-new { animation: fp-card-pop 5s ease-out infinite; }
+    @keyframes fp-card-pop { 0% { transform: scale(0.7); opacity: 0; } 10%, 100% { transform: scale(1); opacity: 1; } }
+
+    @media (max-width: 640px) {
+      .flow-tab-title { font-size: 0.72rem; }
+      .fp-split, .fp-summary-grid { flex-direction: column; }
+      .fp-kanban { grid-template-columns: repeat(2, 1fr); }
     }
 
     /* =============================================
@@ -1826,6 +1991,183 @@
   </section>
 
   <!-- ==========================================
+       FLUJO EN VIVO
+  =========================================== -->
+  <section class="section flow-demo">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label animate-on-scroll">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span data-i18n="flowLabel">En vivo</span>
+        </div>
+        <h2 class="section-title animate-on-scroll delay-1" data-i18n="flowTitle">De la reunión a la tarea, en minutos</h2>
+        <p class="section-subtitle animate-on-scroll delay-2" data-i18n="flowSubtitle">Así se mueve tu reunión dentro de AIRecorder, sin que hagas nada más que grabar.</p>
+      </div>
+
+      <div class="flow-wrap animate-on-scroll delay-3" id="flowWrap">
+        <div class="flow-tabs" id="flowTabs" role="tablist">
+          <button class="flow-tab" data-stage="0" type="button" role="tab">
+            <span class="flow-tab-title" data-i18n="flowStage1Title">Grabando reunión</span>
+            <span class="flow-tab-track"><span class="flow-tab-fill"></span></span>
+          </button>
+          <button class="flow-tab" data-stage="1" type="button" role="tab">
+            <span class="flow-tab-title" data-i18n="flowStage2Title">Transcribiendo y chateando</span>
+            <span class="flow-tab-track"><span class="flow-tab-fill"></span></span>
+          </button>
+          <button class="flow-tab" data-stage="2" type="button" role="tab">
+            <span class="flow-tab-title" data-i18n="flowStage3Title">Generando resumen con IA</span>
+            <span class="flow-tab-track"><span class="flow-tab-fill"></span></span>
+          </button>
+          <button class="flow-tab" data-stage="3" type="button" role="tab">
+            <span class="flow-tab-title" data-i18n="flowStage4Title">Tareas creadas en tu Kanban</span>
+            <span class="flow-tab-track"><span class="flow-tab-fill"></span></span>
+          </button>
+        </div>
+
+        <div class="flow-window">
+          <div class="flow-window-bar">
+            <span class="flow-window-dot red"></span>
+            <span class="flow-window-dot yellow"></span>
+            <span class="flow-window-dot green"></span>
+          </div>
+          <div class="flow-window-body" id="flowPanels">
+
+            <div class="flow-panel" data-stage="0">
+              <div class="fp-rec-top">
+                <div class="fp-rec-info">
+                  <div class="fp-badge" data-i18n="flowBadge">POTENCIADO POR IA</div>
+                  <div class="fp-record-title" data-i18n="flowRecordTitle">Nueva Sesión</div>
+                  <p class="fp-rec-subtitle" data-i18n="flowRecordSubtitle">Empieza a grabar al instante. La IA se encargará de la transcripción, resumen y extracción de puntos clave automáticamente.</p>
+                  <div class="fp-pills">
+                    <span class="fp-pill"><svg class="fp-pill-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg><span data-i18n="flowPillMic">Micrófono del MacBook Pro (Built-in)</span></span>
+                    <span class="fp-pill"><svg class="fp-pill-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><span data-i18n="flowPillLang">Español</span></span>
+                  </div>
+                  <div class="fp-pills">
+                    <span class="fp-pill fp-pill-accent"><svg class="fp-pill-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg><span data-i18n="flowPillTeams">Teams</span></span>
+                    <span class="fp-pill fp-pill-accent"><svg class="fp-pill-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span data-i18n="flowPillAudio">Audio</span></span>
+                    <span class="fp-pill fp-pill-accent"><svg class="fp-pill-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span data-i18n="flowPillImport">Importar con IA</span><svg class="fp-pill-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+                  </div>
+                </div>
+                <div class="fp-rec-btn-wrap">
+                  <div class="fp-rec-btn-lg">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    <span data-i18n="flowRecordBtnLabel">INICIAR</span>
+                  </div>
+                </div>
+              </div>
+              <div class="fp-stats-row">
+                <div class="fp-stat"><span class="fp-stat-ico orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><div><div class="fp-stat-label" data-i18n="flowStatWeekLabel">Esta semana</div><div class="fp-stat-value">3h 20m</div></div></div>
+                <div class="fp-stat"><span class="fp-stat-ico purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span><div><div class="fp-stat-label" data-i18n="flowStatTranscriptsLabel">Transcripciones</div><div class="fp-stat-value" data-i18n="flowStatTranscriptsValue">19 archivos</div></div></div>
+                <div class="fp-stat"><span class="fp-stat-ico green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><div><div class="fp-stat-label" data-i18n="flowStatTotalLabel">Total grabado</div><div class="fp-stat-value">5h 35m</div></div></div>
+              </div>
+            </div>
+
+            <div class="flow-panel flow-panel-fill" data-stage="1">
+              <div class="fp-toolbar">
+                <span class="fp-search" data-i18n="flowSearchPlaceholder">🔍 Buscar en la transcripción...</span>
+                <span class="fp-pill" data-i18n="flowModelPill">Modelo: medium</span>
+              </div>
+              <div class="fp-split">
+                <div class="fp-transcript">
+                  <div class="fp-t-block fp-t-active">
+                    <div class="fp-t-meta"><span class="fp-t-time">28:17</span><span class="fp-t-speaker">Speaker_01</span></div>
+                    <p class="fp-t-text" data-i18n="flowT1">¿Alguna otra cosa? Creo que estamos en medio de la sprint. También hubo un problema con el export de CSV que fue promovido hoy.</p>
+                  </div>
+                  <div class="fp-t-block">
+                    <div class="fp-t-meta"><span class="fp-t-time">29:50</span><span class="fp-t-speaker">Speaker_02</span></div>
+                    <p class="fp-t-text" data-i18n="flowT2">Ok, hablando de la corrección de tarifa, creo que tenemos que arreglarlo directo en la app.</p>
+                  </div>
+                  <div class="fp-tr-player">
+                    <div class="fp-tr-progress"><span></span></div>
+                    <div class="fp-tr-controls">
+                      <span class="fp-tr-time">29:50 / 33:00</span>
+                      <span class="fp-tr-play"><svg viewBox="0 0 24 24" fill="#fff"><polygon points="6 4 20 12 6 20"/></svg></span>
+                    </div>
+                  </div>
+                </div>
+                <div class="fp-chat">
+                  <div class="fp-chat-head">
+                    <span class="fp-chat-bot-ico">🤖</span>
+                    <span class="fp-chat-head-title" data-i18n="flowChatHeadTitle">AI Assistant</span>
+                    <span class="fp-chat-model">gemma3:4b</span>
+                  </div>
+                  <div class="fp-chat-prompt-wrap"><span class="fp-chat-prompt-chip" data-i18n="flowChatPrompt">Summarize Action Items</span></div>
+                  <div class="fp-chat-answer">
+                    <span class="fp-chat-answer-ico">🤖</span>
+                    <div class="fp-chat-answer-body">
+                      <span class="fp-chat-thinking"><span></span><span></span><span></span></span>
+                      <div class="fp-chat-answer-content">
+                        <strong class="fp-heading" data-i18n="flowChatHeading">Action Items</strong>
+                        <ul>
+                          <li><strong data-i18n="flowChatBullet1Strong">Corrección de tarifa:</strong> <span data-i18n="flowChatBullet1Text">arreglar la lógica en la app, no solo vía CSV</span> <span class="fp-time-chip">29:50</span></li>
+                          <li><strong data-i18n="flowChatBullet2Strong">Arreglo de exportación:</strong> <span data-i18n="flowChatBullet2Text">corregir el export que falla con tarifas ajustadas</span> <span class="fp-time-chip">28:17</span></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="fp-chat-input-bar"><span class="fp-chat-typing-text" data-i18n="flowChatPrompt">Summarize Action Items</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flow-panel" data-stage="2">
+              <div class="fp-summary-grid">
+                <div class="fp-summary-card-lg">
+                  <div class="fp-summary-head" data-i18n="flowSummaryHead">✨ Quick Summary</div>
+                  <div class="fp-summary-line" style="width:96%"></div>
+                  <div class="fp-summary-line" style="width:88%"></div>
+                  <div class="fp-summary-line" style="width:92%"></div>
+                  <div class="fp-summary-line" style="width:70%"></div>
+                </div>
+                <div class="fp-side-col">
+                  <div class="fp-side-card">
+                    <div class="fp-side-head" data-i18n="flowHighlightsHead">Key Highlights</div>
+                    <div class="fp-summary-line" style="width:90%"></div>
+                    <div class="fp-summary-line" style="width:60%"></div>
+                  </div>
+                  <div class="fp-side-card">
+                    <div class="fp-side-head" data-i18n="flowParticipantsHead">Participants</div>
+                    <div class="fp-chip-row"><span class="fp-chip">Ana</span><span class="fp-chip">Marcos</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flow-panel" data-stage="3">
+              <div class="fp-kanban">
+                <div class="fp-col">
+                  <div class="fp-col-head fp-col-backlog">BACKLOG <span class="fp-col-count">4</span></div>
+                  <div class="fp-card-lg fp-card-new">
+                    <div class="fp-card-title" data-i18n="flowTask1">Preparar demo para cliente</div>
+                    <div class="fp-card-tags"><span class="fp-tag back">Back</span><span class="fp-tag-ai">🤖</span></div>
+                  </div>
+                  <div class="fp-card-lg">
+                    <div class="fp-card-title" data-i18n="flowTask2">Revisar propuesta de Q3</div>
+                    <div class="fp-card-tags"><span class="fp-tag front">Front</span></div>
+                  </div>
+                </div>
+                <div class="fp-col">
+                  <div class="fp-col-head fp-col-progress">EN PROGRESO <span class="fp-col-count">0</span></div>
+                  <div class="fp-col-empty" data-i18n="flowColEmpty">Sin tareas</div>
+                </div>
+                <div class="fp-col">
+                  <div class="fp-col-head fp-col-blocked">BLOQUEADO <span class="fp-col-count">0</span></div>
+                  <div class="fp-col-empty" data-i18n="flowColEmpty">Sin tareas</div>
+                </div>
+                <div class="fp-col">
+                  <div class="fp-col-head fp-col-done">HECHO <span class="fp-col-count">0</span></div>
+                  <div class="fp-col-empty" data-i18n="flowColEmpty">Sin tareas</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================
        SCREENSHOTS
   =========================================== -->
   <section class="section screenshots">
@@ -2286,6 +2628,16 @@
           <span class="provider-name">LM Studio</span>
           <span class="provider-type verified" data-i18n="provOllamaType">✓ Verificado</span>
         </div>
+        <!-- OpenAI -->
+        <div class="provider-badge">
+          <div class="provider-icon">
+            <svg role="img" viewBox="0 0 1024 1024" width="44" height="44" fill="#000000" xmlns="http://www.w3.org/2000/svg" aria-label="OpenAI">
+              <path d="M358.878 0c-84.345 0-156.575 52.808-185.68 126.983-60.887 8.128-115.29 43.622-146.595 97.837C-15.56 297.814-5.953 386.702 43.74 448.978 20.36 505.726 23.887 570.575 55.164 624.76c42.18 73.024 124.095 109.152 202.937 97.235C295.585 770.621 353.51 800 416.121 800c84.346 0 156.576-52.808 185.68-126.983 60.888-8.128 115.291-43.622 146.596-97.837 42.163-72.994 32.556-161.882-17.137-224.158 23.38-56.748 19.853-121.597-11.424-175.782-42.18-73.024-124.095-109.152-202.937-97.235C479.415 29.379 421.49 0 358.879 0m0 61.538c35.593 0 68.972 13.99 94.223 37.74-1.928 1.031-3.925 1.845-5.832 2.946L310.594 181.13c-14.223 8.184-23.028 23.353-23.09 39.783l-.841 183.594-65.722-38.341V199.399c0-76 61.895-137.86 137.937-137.86m197.706 75.902c44.186 3.142 86.154 27.435 109.917 68.57 17.794 30.797 22.38 66.692 14.43 100.42-1.879-1.169-3.6-2.491-5.531-3.605l-136.734-78.907a46.232 46.232 0 0 0-46-.06l-159.463 91.106.36-76.022 144.492-83.413c24.694-14.25 52.017-19.974 78.53-18.09M159.67 192.849c-.071 2.19-.3 4.343-.3 6.55v157.752a46.185 46.185 0 0 0 22.91 39.904l158.68 92.488-66.021 37.68-144.552-83.353c-65.852-38-88.47-122.526-50.448-188.341 17.783-30.78 46.556-52.689 79.731-62.68m340.393 79.927 144.552 83.354c65.852 38 88.47 122.526 50.448 188.341-17.783 30.78-46.556 52.689-79.731 62.68.071-2.19.3-4.343.3-6.55V442.849a46.185 46.185 0 0 0-22.91-39.904l-158.68-92.488zM387.801 336.84l54.537 31.79-.3 63.222-54.839 31.31-54.537-31.85.3-63.162zm100.536 58.654 65.722 38.341v166.767c0 76-61.895 137.86-137.937 137.86-35.593 0-68.972-13.988-94.223-37.74 1.928-1.03 3.925-1.844 5.832-2.945l136.675-78.906c14.223-8.184 23.028-23.353 23.09-39.783zm-46.54 89.543-.36 76.022-144.492 83.413c-65.852 38-150.425 15.335-188.446-50.48-17.794-30.798-22.38-66.693-14.43-100.421 1.879 1.169 3.6 2.491 5.531 3.605l136.735 78.907a46.232 46.232 0 0 0 45.999.06z" transform="translate(124 128)"/>
+            </svg>
+          </div>
+          <span class="provider-name">OpenAI</span>
+          <span class="provider-type testing" data-i18n="provTestingType">En testeo</span>
+        </div>
         <!-- Gemini -->
         <div class="provider-badge">
           <div class="provider-icon">
@@ -2332,10 +2684,21 @@
           <span class="provider-type testing" data-i18n="provTestingType">En testeo</span>
         </div>
 
+        <!-- Custom OpenAI-compatible providers -->
+        <div class="provider-badge">
+          <div class="provider-icon">
+            <svg role="img" viewBox="0 0 24 24" width="44" height="44" fill="#3994EF" xmlns="http://www.w3.org/2000/svg" aria-label="Compatible con API de OpenAI">
+              <path d="M8 11h8v2H8zm12.1 1H22c0-2.76-2.24-5-5-5h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1M19 12h-2v3h-3v2h3v3h2v-3h3v-2h-3z"/>
+            </svg>
+          </div>
+          <span class="provider-name" data-i18n="provCustomName">Compatible con API OpenAI</span>
+          <span class="provider-type verified" data-i18n="provOllamaType">✓ Verificado</span>
+        </div>
+
       </div>
 
       <p class="providers-note animate-on-scroll delay-4" data-i18n="provNote">
-        Ollama es el único proveedor 100% verificado. Los demás están en fase de testeo. La transcripción siempre corre localmente con Whisper.
+        Ollama, LM Studio y las conexiones compatibles con la API de OpenAI son 100% verificadas. Los demás proveedores están en fase de testeo. La transcripción siempre corre localmente con Whisper.
       </p>
     </div>
   </section>
@@ -2670,6 +3033,61 @@
       questionEl.setAttribute('aria-expanded', isOpen);
     }
 
+    // === Flujo en vivo: stack de cards que ciclan automáticamente ===
+    // === Flujo en vivo: tabs con barra de progreso (estilo Orca) ===
+    (function setupFlowTabs() {
+      const wrap = document.getElementById('flowWrap');
+      if (!wrap) return;
+      const tabs = Array.from(wrap.querySelectorAll('.flow-tab'));
+      const panels = Array.from(wrap.querySelectorAll('.flow-panel'));
+      const DURATION = 7000;
+      let active = 0;
+      let timer = null;
+      let visible = false;
+
+      function setActive(index) {
+        active = index;
+        tabs.forEach((tab, i) => {
+          const isActive = i === active;
+          tab.classList.toggle('active', isActive);
+          const fill = tab.querySelector('.flow-tab-fill');
+          fill.classList.remove('filling', 'full');
+          fill.style.width = '';
+          void fill.offsetWidth;
+          if (i < active) {
+            fill.classList.add('full');
+          } else if (isActive) {
+            fill.style.animationDuration = DURATION + 'ms';
+            fill.classList.add('filling');
+          } else {
+            fill.style.width = '0%';
+          }
+        });
+        panels.forEach((panel, i) => panel.classList.toggle('active', i === active));
+        restartTimer();
+      }
+
+      function restartTimer() {
+        clearTimeout(timer);
+        if (!visible) return;
+        timer = setTimeout(() => setActive((active + 1) % tabs.length), DURATION);
+      }
+
+      tabs.forEach((tab, i) => tab.addEventListener('click', () => setActive(i)));
+
+      tabs[0].classList.add('active');
+      panels[0].classList.add('active');
+
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          visible = e.isIntersecting;
+          if (visible) restartTimer();
+          else clearTimeout(timer);
+        });
+      }, { threshold: 0.3 });
+      observer.observe(wrap);
+    })();
+
     // === Floating CTA: ocultar cuando el footer es visible ===
     (function setupFloatingCta() {
       const floatBtn = document.getElementById('floatingCta');
@@ -2735,6 +3153,28 @@
         heroTagline: 'Graba, transcribe y chatea con el conocimiento de tus reuniones y proyectos.<br>IA local por defecto, 100% privada — proveedores externos solo si tú los activas.',
         heroBtnMac: 'Descargar para macOS', heroBtnWin: 'Descargar para PC', heroBtnGH: 'Ver en GitHub',
         heroNote: 'macOS y Windows · Código abierto en GitHub',
+        flowLabel: 'En vivo', flowTitle: 'De la reunión a la tarea, en minutos',
+        flowSubtitle: 'Así se mueve tu reunión dentro de AIRecorder, sin que hagas nada más que grabar.',
+        flowStage1Title: 'Grabando reunión', flowStage1Desc: 'Micrófono y audio del sistema, dos pistas independientes.',
+        flowStage2Title: 'Transcribiendo con Whisper', flowStage2Desc: '90+ idiomas, 100% local en tu equipo.',
+        flowStage3Title: 'Generando resumen con IA', flowStage3Desc: 'Decisiones, participantes y puntos clave.',
+        flowStage4Title: 'Tareas creadas en tu Kanban', flowStage4Desc: 'Backlog, En progreso, Bloqueado, Hecho.',
+        flowBadge: 'POTENCIADO POR IA', flowRecordTitle: 'Nueva Sesión',
+        flowRecordSubtitle: 'Empieza a grabar al instante. La IA se encargará de la transcripción, resumen y extracción de puntos clave automáticamente.',
+        flowPillTeams: 'Teams', flowPillAudio: 'Audio', flowPillImport: 'Importar con IA', flowRecordBtnLabel: 'INICIAR',
+        flowPillMic: 'Micrófono del MacBook Pro', flowPillSystem: 'Audio del sistema', flowPillLang: 'Español',
+        flowStatWeekLabel: 'Esta semana', flowStatTranscriptsLabel: 'Transcripciones', flowStatTranscriptsValue: '19 archivos', flowStatTotalLabel: 'Total grabado',
+        flowSearchPlaceholder: '🔍 Buscar en la transcripción...', flowModelPill: 'Modelo: medium',
+        flowT1: '¿Alguna otra cosa? Creo que estamos en medio de la sprint. También hubo un problema con el export de CSV que fue promovido hoy.',
+        flowT2: 'Ok, hablando de la corrección de tarifa, creo que tenemos que arreglarlo directo en la app.',
+        flowChatHeadTitle: 'AI Assistant', flowChatPrompt: 'Summarize Action Items', flowChatHeading: 'Action Items',
+        flowChatBullet1Strong: 'Corrección de tarifa:', flowChatBullet1Text: 'arreglar la lógica en la app, no solo vía CSV',
+        flowChatBullet2Strong: 'Arreglo de exportación:', flowChatBullet2Text: 'corregir el export que falla con tarifas ajustadas',
+        flowChatInputPlaceholder: 'Haz una pregunta...',
+        flowChatGreeting: '¡Hola! Preguntame lo que quieras sobre esta reunión.', flowChatQuestion: '¿qué se decidió del roadmap?', flowChatAnswer: 'Se decidió priorizar el Q3 y posponer la migración.',
+        flowChatQuestion2: '¿quién se encarga de la migración?', flowChatAnswer2: 'Marcos la lidera a partir de la próxima sprint.',
+        flowSummaryHead: '✨ Quick Summary', flowHighlightsHead: 'Key Highlights', flowParticipantsHead: 'Participants',
+        flowTask1: 'Preparar demo para cliente', flowTask2: 'Revisar propuesta de Q3', flowColEmpty: 'Sin tareas',
         screenshotsLabel: 'Vista previa', screenshotsTitle: 'Mira cómo funciona',
         screenshotsSubtitle: 'Una interfaz limpia y enfocada en tu flujo de trabajo. Sin distracciones.',
         screenshotResumen: 'Resumen · Análisis e insights generados con IA',
@@ -2821,7 +3261,8 @@
         provTitle: 'Compatible con los mejores<br>modelos de IA',
         provSubtitle: 'Elige entre proveedores en la nube para mayor potencia, o modelos locales para privacidad total. Cambia cuando quieras.',
         provOllamaType: '✓ Verificado', provTestingType: 'En testeo',
-        provNote: 'Ollama es el único proveedor 100% verificado. Los demás están en fase de testeo. La transcripción siempre corre localmente con Whisper.',
+        provNote: 'Ollama, LM Studio y las conexiones compatibles con la API de OpenAI son 100% verificadas. Los demás proveedores están en fase de testeo. La transcripción siempre corre localmente con Whisper.',
+        provCustomName: 'Compatible con API OpenAI',
         navDocs: 'Guía IA Local',
         dlTitle: 'Descarga AIRecorder',
         dlSubtitle: 'Empieza a grabar y analizar tus reuniones hoy mismo. Gratis, local y sin complicaciones.',
@@ -2844,6 +3285,28 @@
         heroTagline: 'Record, transcribe, and chat with the knowledge in your meetings and projects.<br>Local AI by default, 100% private — external providers only if you enable them.',
         heroBtnMac: 'Download for macOS', heroBtnWin: 'Download for PC', heroBtnGH: 'View on GitHub',
         heroNote: 'macOS & Windows · Open source on GitHub',
+        flowLabel: 'Live', flowTitle: 'From meeting to task, in minutes',
+        flowSubtitle: 'This is how your meeting moves through AIRecorder — all you do is hit record.',
+        flowStage1Title: 'Recording meeting', flowStage1Desc: 'Microphone and system audio, two independent tracks.',
+        flowStage2Title: 'Transcribing with Whisper', flowStage2Desc: '90+ languages, 100% local on your machine.',
+        flowStage3Title: 'Generating AI summary', flowStage3Desc: 'Decisions, participants, and key points.',
+        flowStage4Title: 'Tasks created on your Kanban', flowStage4Desc: 'Backlog, In Progress, Blocked, Done.',
+        flowBadge: 'AI-POWERED', flowRecordTitle: 'New Session',
+        flowRecordSubtitle: 'Start recording instantly. The AI takes care of transcription, summary, and extracting key points automatically.',
+        flowPillTeams: 'Teams', flowPillAudio: 'Audio', flowPillImport: 'Import with AI', flowRecordBtnLabel: 'START',
+        flowPillMic: 'MacBook Pro Microphone', flowPillSystem: 'System audio', flowPillLang: 'English',
+        flowStatWeekLabel: 'This week', flowStatTranscriptsLabel: 'Transcripts', flowStatTranscriptsValue: '19 files', flowStatTotalLabel: 'Total recorded',
+        flowSearchPlaceholder: '🔍 Search transcript...', flowModelPill: 'Model: medium',
+        flowT1: 'Anything else? I think we\'re mid-sprint right now. There was also an issue with the CSV export that was pushed today.',
+        flowT2: "Ok, speaking of the rate correction, I think we need to fix that directly in the app.",
+        flowChatHeadTitle: 'AI Assistant', flowChatPrompt: 'Summarize Action Items', flowChatHeading: 'Action Items',
+        flowChatBullet1Strong: 'Rate correction:', flowChatBullet1Text: 'fix the logic in the app, not just via CSV',
+        flowChatBullet2Strong: 'Export fix:', flowChatBullet2Text: 'fix the export that fails with adjusted rates',
+        flowChatInputPlaceholder: 'Ask a question...',
+        flowChatGreeting: "Hi! Ask me anything about this meeting.", flowChatQuestion: 'what did we decide on the roadmap?', flowChatAnswer: 'The team decided to prioritize Q3 and postpone the migration.',
+        flowChatQuestion2: "who's handling the migration?", flowChatAnswer2: 'Marcos is leading it starting next sprint.',
+        flowSummaryHead: '✨ Quick Summary', flowHighlightsHead: 'Key Highlights', flowParticipantsHead: 'Participants',
+        flowTask1: 'Prepare client demo', flowTask2: 'Review Q3 proposal', flowColEmpty: 'No tasks',
         screenshotsLabel: 'Preview', screenshotsTitle: 'See it in action',
         screenshotsSubtitle: 'A clean interface focused on your workflow. No distractions.',
         screenshotResumen: 'Summary · AI-generated analysis and insights',
@@ -2930,7 +3393,8 @@
         provTitle: 'Compatible with the best<br>AI models',
         provSubtitle: 'Choose cloud providers for more power, or local models for total privacy. Switch whenever you want.',
         provOllamaType: '✓ Verified', provTestingType: 'Testing',
-        provNote: 'Ollama is the only 100% verified provider. Others are in testing. Transcription always runs locally with Whisper.',
+        provNote: 'Ollama, LM Studio, and OpenAI-compatible connections are 100% verified. The other providers are in testing. Transcription always runs locally with Whisper.',
+        provCustomName: 'OpenAI-compatible API',
         navDocs: 'Local AI Guide',
         dlTitle: 'Download AIRecorder',
         dlSubtitle: 'Start recording and analyzing your meetings today. Free, local, and hassle-free.',
