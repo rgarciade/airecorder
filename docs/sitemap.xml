@@ -2,11 +2,25 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://rgarciade.github.io/airecorder/</loc>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://rgarciade.github.io/airecorder/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://rgarciade.github.io/airecorder/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://rgarciade.github.io/airecorder/"/>
+  </url>
+  <url>
+    <loc>https://rgarciade.github.io/airecorder/en/</loc>
+    <lastmod>2026-07-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://rgarciade.github.io/airecorder/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://rgarciade.github.io/airecorder/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://rgarciade.github.io/airecorder/"/>
   </url>
   <url>
     <loc>https://rgarciade.github.io/airecorder/changelog.html</loc>
+    <lastmod>2026-07-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

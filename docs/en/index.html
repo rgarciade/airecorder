@@ -1,38 +1,38 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AIRecorder | IA local para reuniones, transcripción y conocimiento de proyectos</title>
-  <meta name="description" content="Aplicación de escritorio para macOS y Windows que graba reuniones, las transcribe localmente con Whisper, genera resúmenes y salidas estructuradas, y te permite chatear con el conocimiento de tus reuniones y proyectos. IA local por defecto; proveedores externos opcionales.">
-  <meta name="keywords" content="grabadora de reuniones con IA local, grabador de reuniones offline, grabador de reuniones local, grabaciones de reuniones seguras, alternativa gratis a Plaud, transcripción privada de reuniones, chat con transcripciones, resúmenes de reuniones con IA, resúmenes de reuniones con IA local, resúmenes de reuniones locales, conocimiento entre reuniones, chat local sobre reuniones guardadas, ecosistema de grabación de reuniones e IA local, base de conocimiento de reuniones, alternativa local a Otter, alternativa local a Fireflies, alternativa local a Fathom, IA local vs IA en la nube, Whisper, Ollama, LM Studio, macOS, Windows">
+  <title>AIRecorder | Local AI for meetings, transcription, and project knowledge</title>
+  <meta name="description" content="Desktop application for macOS and Windows that records meetings, transcribes them locally with Whisper, generates structured summaries and outputs, and lets you chat with the knowledge from your meetings and projects. Local AI by default; external providers optional.">
+  <meta name="keywords" content="local AI meeting recorder, offline meeting recorder, local meeting recorder, secure meeting recordings, free Plaud alternative, private meeting transcription, chat with meeting transcripts, AI meeting summaries, local AI meeting summaries, local meeting summaries, knowledge across meetings, local chat over saved meetings, local meeting recording and AI ecosystem, meeting knowledge base, local alternative to Otter, local alternative to Fireflies, local alternative to Fathom, local AI vs cloud AI, Whisper, Ollama, LM Studio, macOS, Windows">
   <meta name="author" content="Raul Garcia">
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#3994EF">
-  <link rel="icon" type="image/png" href="icon.png">
-  <link rel="canonical" href="https://rgarciade.github.io/airecorder/">
+  <link rel="icon" type="image/png" href="/airecorder/icon.png">
+  <link rel="canonical" href="https://rgarciade.github.io/airecorder/en/">
   <link rel="alternate" hreflang="es" href="https://rgarciade.github.io/airecorder/">
   <link rel="alternate" hreflang="en" href="https://rgarciade.github.io/airecorder/en/">
   <link rel="alternate" hreflang="x-default" href="https://rgarciade.github.io/airecorder/">
 
   <!-- Open Graph -->
-  <meta property="og:title" content="AIRecorder | IA local para reuniones, transcripción y conocimiento de proyectos">
-  <meta property="og:description" content="Aplicación de escritorio para macOS y Windows que graba reuniones, las transcribe localmente con Whisper, genera resúmenes y salidas estructuradas, y te permite chatear con el conocimiento de tus reuniones y proyectos. IA local por defecto; proveedores externos opcionales.">
-  <meta property="og:image" content="https://rgarciade.github.io/airecorder/og-image.png">
+  <meta property="og:title" content="AIRecorder | Local AI for meetings, transcription, and project knowledge">
+  <meta property="og:description" content="Desktop application for macOS and Windows that records meetings, transcribes them locally with Whisper, generates structured summaries and outputs, and lets you chat with the knowledge from your meetings and projects. Local AI by default; external providers optional.">
+  <meta property="og:image" content="https://rgarciade.github.io/airecorder/og-image-en.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="AIRecorder — grabación, transcripción y conocimiento entre reuniones con IA local">
-  <meta property="og:url" content="https://rgarciade.github.io/airecorder/">
+  <meta property="og:image:alt" content="AIRecorder — recording, transcription, and knowledge across meetings with local AI">
+  <meta property="og:url" content="https://rgarciade.github.io/airecorder/en/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="AIRecorder">
-  <meta property="og:locale" content="es_ES">
+  <meta property="og:locale" content="en_US">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="AIRecorder | IA local para reuniones, transcripción y conocimiento de proyectos">
-  <meta name="twitter:description" content="Aplicación de escritorio para macOS y Windows que graba reuniones, las transcribe localmente con Whisper, genera resúmenes y salidas estructuradas, y te permite chatear con el conocimiento de tus reuniones y proyectos. IA local por defecto; proveedores externos opcionales.">
-  <meta name="twitter:image" content="https://rgarciade.github.io/airecorder/og-image.png">
-  <meta name="twitter:image:alt" content="AIRecorder — grabación, transcripción y conocimiento entre reuniones con IA local">
+  <meta name="twitter:title" content="AIRecorder | Local AI for meetings, transcription, and project knowledge">
+  <meta name="twitter:description" content="Desktop application for macOS and Windows that records meetings, transcribes them locally with Whisper, generates structured summaries and outputs, and lets you chat with the knowledge from your meetings and projects. Local AI by default; external providers optional.">
+  <meta name="twitter:image" content="https://rgarciade.github.io/airecorder/og-image-en.png">
+  <meta name="twitter:image:alt" content="AIRecorder — recording, transcription, and knowledge across meetings with local AI">
 
   <!-- Structured Data -->
   <script type="application/ld+json">
@@ -40,7 +40,7 @@
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "AIRecorder",
-    "description": "Aplicación de escritorio para macOS y Windows que graba audio, transcribe localmente con Whisper, genera resúmenes estructurados de reuniones y permite chatear con el conocimiento de reuniones y proyectos. IA local por defecto (Ollama, LM Studio); proveedores externos opcionales (Gemini, DeepSeek, Kimi).",
+    "description": "Desktop application for macOS and Windows that records audio, transcribes it locally with Whisper, generates structured meeting summaries, and lets you chat with the knowledge from your meetings and projects. Local AI by default (Ollama, LM Studio); external providers optional (Gemini, DeepSeek, Kimi).",
     "applicationCategory": "ProductivityApplication",
     "operatingSystem": "macOS, Windows",
     "offers": {
@@ -48,7 +48,7 @@
       "price": "0",
       "priceCurrency": "EUR"
     },
-    "url": "https://rgarciade.github.io/airecorder/",
+    "url": "https://rgarciade.github.io/airecorder/en/",
     "downloadUrl": "https://github.com/rgarciade/airecorder/releases",
     "softwareVersion": "latest",
     "license": "https://github.com/rgarciade/airecorder/blob/main/LICENSE",
@@ -58,17 +58,17 @@
       "url": "https://github.com/rgarciade"
     },
     "featureList": [
-      "Chat con el conocimiento de reuniones y proyectos",
-      "Resúmenes estructurados, decisiones y tareas",
-      "Grabación de audio local",
-      "Transcripción automática con Whisper",
-      "Análisis de reuniones con IA",
-      "Diarización de hablantes con pyannote",
-      "Sistema RAG con LanceDB",
-      "IA local por defecto (Ollama, LM Studio); proveedores externos opcionales (Gemini, DeepSeek)"
+      "Chat with the knowledge from your meetings and projects",
+      "Structured summaries, decisions, and tasks",
+      "Local audio recording",
+      "Automatic transcription with Whisper",
+      "AI-powered meeting analysis",
+      "Speaker diarization with pyannote",
+      "RAG system with LanceDB",
+      "Local AI by default (Ollama, LM Studio); external providers optional (Gemini, DeepSeek)"
     ],
     "screenshot": "https://rgarciade.github.io/airecorder/docs/screenshots/screen-home.png",
-    "keywords": "grabador de reuniones local, grabadora de reuniones con IA local, resúmenes de reuniones con IA local, resúmenes de reuniones locales, conocimiento entre reuniones, chat local sobre reuniones guardadas, ecosistema de grabación de reuniones e IA local, base de conocimiento de reuniones, alternativa local a Otter, alternativa local a Fireflies, alternativa local a Fathom, alternativa local a Plaud, transcripción privada de reuniones, Whisper, Ollama, LM Studio"
+    "keywords": "local meeting recorder, local AI meeting recorder, local AI meeting summaries, local meeting summaries, knowledge across meetings, local chat over saved meetings, local meeting recording and AI ecosystem, meeting knowledge base, local alternative to Otter, local alternative to Fireflies, local alternative to Fathom, local alternative to Plaud, private meeting transcription, Whisper, Ollama, LM Studio"
   }
   </script>
 
@@ -79,162 +79,162 @@
     "mainEntity": [
       {
         "@type": "Question",
-        "name": "¿Por qué AIRecorder frente a Otter o Fireflies?",
+        "name": "Why AIRecorder vs Otter or Fireflies?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "AIRecorder es la única opción 100% local. Otter y Fireflies suben tu audio a sus servidores para procesarlo. Con AIRecorder, tus datos nunca salen de tu equipo. Además, es gratuito y open source."
+          "text": "AIRecorder is the only 100% local option. Otter and Fireflies upload your audio to their servers for processing. With AIRecorder, your data never leaves your machine. Plus, it's free and open source."
         }
       },
       {
         "@type": "Question",
-        "name": "¿Necesito conexión a internet?",
+        "name": "Do I need an internet connection?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "No. Con Ollama o LM Studio puedes grabar, transcribir y analizar completamente offline. Si usas proveedores cloud como Gemini, solo necesitas internet para la parte de análisis; la transcripción con Whisper siempre es local."
+          "text": "No. With Ollama or LM Studio you can record, transcribe, and analyze completely offline. If you use cloud providers like Gemini, you only need internet for the analysis part; transcription with Whisper is always local."
         }
       },
       {
         "@type": "Question",
-        "name": "¿Qué necesito para usarlo?",
+        "name": "What do I need to run it?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Un Mac con Apple Silicon (M1/M2/M3/M4) y macOS 13+, o un PC con Windows 10/11 (x64). Para transcripción, Whisper se instala automáticamente. Para análisis con IA, puedes usar Ollama (gratuito, local) o conectarlo a Gemini/DeepSeek con tu propia API key."
+          "text": "A Mac with Apple Silicon (M1/M2/M3/M4) and macOS 13+, or a Windows 10/11 PC (x64). For transcription, Whisper installs automatically. For AI analysis, you can use Ollama (free, local) or connect to Gemini/DeepSeek with your own API key."
         }
       },
       {
         "@type": "Question",
-        "name": "¿Es realmente gratis?",
+        "name": "Is it really free?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Sí. AIRecorder es completamente gratuito y open source (MIT). No hay planes de pago, suscripciones ni funcionalidades premium. Si quieres apoyar el proyecto, puedes invitarme a un café en Ko-fi."
+          "text": "Yes. AIRecorder is completely free and open source (MIT). There are no paid plans, subscriptions, or premium features. If you want to support the project, you can buy me a coffee on Ko-fi."
         }
       },
       {
         "@type": "Question",
-        "name": "¿Qué idiomas soporta la transcripción?",
+        "name": "What languages does transcription support?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Whisper soporta más de 90 idiomas con alta precisión, incluyendo español, inglés, francés, alemán, portugués, italiano y muchos más. Puedes elegir el modelo y el idioma para cada grabación."
+          "text": "Whisper supports over 90 languages with high accuracy, including Spanish, English, French, German, Portuguese, Italian, and many more. You can choose the model and language for each recording."
         }
       },
       {
         "@type": "Question",
-        "name": "¿Puedo chatear con mis reuniones y proyectos?",
+        "name": "Can I chat with my meetings and projects?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Sí. Cada reunión y cada proyecto tienen su propio chat con IA: puedes preguntar por decisiones, fechas, compromisos o cualquier detalle. El sistema usa RAG (búsqueda semántica con LanceDB) para encontrar el fragmento exacto entre horas de grabaciones."
+          "text": "Yes. Every meeting and every project has its own AI chat: ask about decisions, dates, commitments, or any detail. The system uses RAG (semantic search with LanceDB) to find the exact fragment across hours of recordings."
         }
       },
       {
         "@type": "Question",
-        "name": "¿Por qué usar IA local en vez de un proveedor en la nube?",
+        "name": "Why use local AI instead of a cloud provider?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Porque tus reuniones suelen contener información sensible. Con Ollama o LM Studio, el análisis corre en tu equipo y nada sale de él. Los proveedores externos (Gemini, DeepSeek, Kimi) son opcionales: los activas solo si necesitas más potencia y aceptas enviar ese contenido a la nube."
+          "text": "Because your meetings often contain sensitive information. With Ollama or LM Studio, analysis runs on your machine and nothing leaves it. External providers (Gemini, DeepSeek, Kimi) are optional — enable them only if you need more power and accept sending that content to the cloud."
         }
       },
       {
         "@type": "Question",
-        "name": "¿Cómo graba AIRecorder el audio de una reunión?",
+        "name": "How does AIRecorder record a meeting?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "AIRecorder captura al mismo tiempo tu micrófono y el audio del sistema como dos pistas independientes, así no pierdes ni tu voz ni la de los demás participantes, sea en una llamada de Meet, Zoom, Teams o presencial con el micrófono del equipo."
+          "text": "AIRecorder captures your microphone and system audio at the same time as two independent tracks, so you never lose your voice or anyone else's — whether it's a Meet, Zoom, or Teams call, or an in-person meeting through your device's mic."
         }
       },
       {
         "@type": "Question",
-        "name": "¿Qué resúmenes genera AIRecorder de una reunión?",
+        "name": "What kind of meeting summaries does AIRecorder generate?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "La IA genera un resumen detallado, extrae decisiones, identifica participantes y convierte los compromisos en tareas accionables organizadas en un tablero Kanban (Backlog, En progreso, Bloqueado, Hecho). Todo a partir de la transcripción, sin trabajo manual."
+          "text": "The AI generates a detailed summary, extracts decisions, identifies participants, and turns commitments into actionable tasks organized on a Kanban board (Backlog, In Progress, Blocked, Done). All from the transcript, no manual work."
         }
       },
       {
         "@type": "Question",
-        "name": "¿AIRecorder identifica quién habla en cada momento?",
+        "name": "Does AIRecorder identify who's speaking?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Sí. Usa diarización de hablantes con pyannote para separar y etiquetar cada intervención por participante, incluso en reuniones con varias personas hablando en el mismo canal de audio."
+          "text": "Yes. It uses speaker diarization with pyannote to separate and label each participant's turns, even in meetings with several people speaking on the same audio channel."
         }
       },
       {
         "@type": "Question",
-        "name": "¿Puedo exportar las actas o resúmenes de mis reuniones?",
+        "name": "Can I export my meeting minutes or summaries?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Sí, con un clic exportas transcripción y resumen a DOCX, PDF o Markdown, listos para compartir como acta de reunión sin retocar nada."
+          "text": "Yes, export the transcript and summary to DOCX, PDF, or Markdown with one click — ready to share as meeting minutes with no extra editing."
         }
       },
       {
         "@type": "Question",
-        "name": "¿AIRecorder es un grabador de reuniones offline y local?",
+        "name": "Is AIRecorder an offline, local meeting recorder?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Sí. AIRecorder es un grabador de reuniones 100% local y offline: graba, transcribe con Whisper y analiza con Ollama o LM Studio sin salir de tu equipo. No necesitas internet ni subir audio a ningún servidor, a diferencia de las grabadoras de reuniones basadas en la nube."
+          "text": "Yes. AIRecorder is a 100% local, offline meeting recorder: it records, transcribes with Whisper, and analyzes with Ollama or LM Studio without ever leaving your machine. No internet required, no audio uploaded to any server — unlike cloud-based meeting recorders."
         }
       },
       {
         "@type": "Question",
-        "name": "¿Hay una alternativa gratis y local a Plaud?",
+        "name": "Is there a free, local alternative to Plaud?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Sí, AIRecorder. Plaud requiere comprar un dispositivo dedicado y su transcripción gratuita tiene un límite mensual de minutos; superarlo exige suscripción paga. AIRecorder es software gratuito y de código abierto, sin límite de minutos: usa el micrófono y el audio de tu equipo, y con Ollama o LM Studio la transcripción y el análisis corren 100% en tu equipo, no en un servidor externo."
+          "text": "Yes — AIRecorder. Plaud requires buying a dedicated hardware device, and its free transcription tier has a monthly minute cap; going beyond it requires a paid subscription. AIRecorder is free, open-source software with no minute limits: it uses your computer's microphone and system audio, and with Ollama or LM Studio, both transcription and analysis run fully on your machine, not on an external server."
         }
       },
       {
         "@type": "Question",
-        "name": "¿Son seguras las grabaciones si se guardan localmente?",
+        "name": "Are local recordings secure?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Sí. Tus grabaciones y transcripciones se guardan solo en el sistema de archivos y la base de datos SQLite de tu equipo: nunca se suben a un servidor ni se comparten con terceros. AIRecorder no tiene telemetría ni analytics. Si conectas integraciones opcionales (Google, Teams), esas credenciales se cifran en tu equipo con el almacenamiento seguro del sistema operativo (Keychain en macOS, DPAPI en Windows)."
+          "text": "Yes. Your recordings and transcripts are stored only in your machine's file system and local SQLite database — never uploaded to a server or shared with third parties. AIRecorder has no telemetry or analytics. If you connect optional integrations (Google, Teams), those credentials are encrypted on your device using the OS's secure storage (Keychain on macOS, DPAPI on Windows)."
         }
       },
       {
         "@type": "Question",
-        "name": "¿AIRecorder es un grabador de reuniones local?",
+        "name": "Is AIRecorder a local meeting recorder?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Sí. AIRecorder es un grabador de reuniones local: la grabación de audio, la transcripción con Whisper y el análisis con Ollama o LM Studio corren en tu equipo. No es una app en la nube ni requiere subir audio a ningún servidor."
+          "text": "Yes. AIRecorder is a local meeting recorder: audio recording, transcription with Whisper, and analysis with Ollama or LM Studio all run on your machine. It's not a cloud app and it never requires uploading audio to any server."
         }
       },
       {
         "@type": "Question",
-        "name": "¿Cómo genera AIRecorder resúmenes de reuniones con IA local?",
+        "name": "How does AIRecorder generate meeting summaries with local AI?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Al terminar la transcripción, la IA local (Ollama o LM Studio) genera resúmenes de reuniones locales: puntos clave, decisiones, participantes y tareas, todo procesado en tu equipo sin enviar el contenido a servidores externos. Si prefieres más potencia, puedes activar proveedores en la nube de forma opcional."
+          "text": "Once transcription finishes, local AI (Ollama or LM Studio) generates local meeting summaries: key points, decisions, participants, and tasks — all processed on your machine without sending content to external servers. If you want more power, you can optionally enable cloud providers."
         }
       },
       {
         "@type": "Question",
-        "name": "¿AIRecorder conecta el conocimiento entre distintas reuniones de un proyecto?",
+        "name": "Does AIRecorder connect knowledge across different meetings in a project?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Sí. Todas las transcripciones de un proyecto se indexan en una base vectorial (LanceDB) y el chat con IA usa RAG para buscar entre todas tus reuniones a la vez, no solo una por una. Así puedes preguntar algo que se dijo en una reunión de hace semanas y encontrarlo aunque no recuerdes en cuál fue."
+          "text": "Yes. Every transcript in a project is indexed in a vector database (LanceDB), and the AI chat uses RAG to search across all your meetings at once, not just one at a time. You can ask about something mentioned weeks ago and find it even if you don't remember which meeting it was."
         }
       },
       {
         "@type": "Question",
-        "name": "¿Puedo tener un chat local sobre mis reuniones guardadas?",
+        "name": "Can I have a local chat over my saved meetings?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Sí. Cada reunión y cada proyecto guardado tiene su propio chat con IA. Con Ollama o LM Studio, ese chat corre 100% local sobre tus reuniones guardadas: nada de tu historial de conversaciones o transcripciones sale de tu equipo."
+          "text": "Yes. Every saved meeting and project has its own AI chat. With Ollama or LM Studio, that chat runs 100% locally over your saved meetings — none of your conversation history or transcripts ever leaves your machine."
         }
       },
       {
         "@type": "Question",
-        "name": "¿Qué incluye el ecosistema de grabación de reuniones e IA local de AIRecorder?",
+        "name": "What does AIRecorder's local meeting recording and AI ecosystem include?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Grabación dual de audio, transcripción con Whisper, resúmenes y tareas generadas por IA, diarización de hablantes, chat con RAG, exportación a DOCX/PDF/Markdown y gestión de proyectos, todo integrado en un mismo ecosistema que funciona local con Ollama o LM Studio, con proveedores en la nube como opción adicional."
+          "text": "Dual audio recording, Whisper transcription, AI-generated summaries and tasks, speaker diarization, RAG-powered chat, DOCX/PDF/Markdown export, and project management — all integrated into one ecosystem that runs locally with Ollama or LM Studio, with cloud providers as an optional add-on."
         }
       },
       {
         "@type": "Question",
-        "name": "¿Cuál es la mejor alternativa local a Otter, Fireflies o Fathom?",
+        "name": "What's the best local alternative to Otter, Fireflies, or Fathom?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "AIRecorder. A diferencia de Otter, Fireflies o Fathom, que procesan tu audio en sus servidores, AIRecorder graba, transcribe y analiza de forma 100% local con Ollama o LM Studio. Es gratuito, de código abierto y sin límite de minutos."
+          "text": "AIRecorder. Unlike Otter, Fireflies, or Fathom — which process your audio on their servers — AIRecorder records, transcribes, and analyzes 100% locally with Ollama or LM Studio. It's free, open source, and has no minute limits."
         }
       }
     ]
@@ -457,7 +457,7 @@
       height: 32px;
       border-radius: 8px;
       flex-shrink: 0;
-      background: url('icon.png') 50% 49% / 164% no-repeat;
+      background: url('/airecorder/icon.png') 50% 49% / 164% no-repeat;
     }
 
     .nav-links {
@@ -658,7 +658,7 @@
       border-radius: var(--radius-xl);
       box-shadow: var(--shadow-icon);
       margin: 0 auto 32px;
-      background: url('icon.png') 50% 49% / 164% no-repeat;
+      background: url('/airecorder/icon.png') 50% 49% / 164% no-repeat;
       transition: transform 0.4s ease, box-shadow 0.4s ease;
     }
 
@@ -1193,7 +1193,7 @@
       height: 32px;
       border-radius: 8px;
       flex-shrink: 0;
-      background: url('icon.png') 50% 49% / 164% no-repeat;
+      background: url('/airecorder/icon.png') 50% 49% / 164% no-repeat;
     }
 
     .footer-tagline {
@@ -1758,39 +1758,31 @@
       <div class="hero-content">
         <div class="hero-badge animate-on-scroll">
           <span class="hero-badge-dot"></span>
-          <span data-i18n="heroBadge">Disponible para macOS y Windows</span>
+          <span data-i18n="heroBadge">Available for macOS and Windows</span>
         </div>
 
         <div class="hero-icon-wrap animate-on-scroll delay-1" role="img" aria-label="AIRecorder"></div>
 
-        <h1 class="hero-title animate-on-scroll delay-2" data-i18n-html="heroTitle">
-          Tus reuniones y proyectos,<br>
-          <span>entendidos por IA local</span>
-        </h1>
+        <h1 class="hero-title animate-on-scroll delay-2" data-i18n-html="heroTitle">Your meetings and projects,<br><span>understood by local AI</span></h1>
 
-        <p class="hero-tagline animate-on-scroll delay-3" data-i18n-html="heroTagline">
-          Graba, transcribe y chatea con el conocimiento de tus reuniones y proyectos.<br>
-          IA local por defecto, 100% privada — proveedores externos solo si tú los activas.
-        </p>
+        <p class="hero-tagline animate-on-scroll delay-3" data-i18n-html="heroTagline">Record, transcribe, and chat with the knowledge in your meetings and projects.<br>Local AI by default, 100% private — external providers only if you enable them.</p>
 
         <div class="hero-actions animate-on-scroll delay-4">
           <a href="#" class="btn btn-primary" onclick="openDownloadModal(event)" id="hero-btn">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
               <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
             </svg>
-            <span data-i18n="heroBtnMac" id="hero-btn-text">Descargar para macOS</span>
+            <span data-i18n="heroBtnMac" id="hero-btn-text">Download for macOS</span>
           </a>
           <a href="https://github.com/rgarciade/airecorder" class="btn btn-secondary" target="_blank" rel="noopener">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
               <path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/>
             </svg>
-            <span data-i18n="heroBtnGH">Ver en GitHub</span>
+            <span data-i18n="heroBtnGH">View on GitHub</span>
           </a>
         </div>
 
-        <p class="hero-note animate-on-scroll delay-5" data-i18n="heroNote">
-          macOS y Windows · Código abierto en GitHub
-        </p>
+        <p class="hero-note animate-on-scroll delay-5" data-i18n="heroNote">macOS & Windows · Open source on GitHub</p>
 
         <div class="animate-on-scroll delay-5" style="margin-top: 16px; display:flex; justify-content:center;">
           <a href="https://ko-fi.com/airecorderraulgarciadelafuente" target="_blank" rel="noopener">
@@ -1833,10 +1825,10 @@
       <div class="section-header">
         <div class="section-label animate-on-scroll">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-          <span data-i18n="screenshotsLabel">Vista previa</span>
+          <span data-i18n="screenshotsLabel">Preview</span>
         </div>
-        <h2 class="section-title animate-on-scroll delay-1" data-i18n="screenshotsTitle">Mira cómo funciona</h2>
-        <p class="section-subtitle animate-on-scroll delay-2" data-i18n="screenshotsSubtitle">Una interfaz limpia y enfocada en tu flujo de trabajo. Sin distracciones.</p>
+        <h2 class="section-title animate-on-scroll delay-1" data-i18n="screenshotsTitle">See it in action</h2>
+        <p class="section-subtitle animate-on-scroll delay-2" data-i18n="screenshotsSubtitle">A clean interface focused on your workflow. No distractions.</p>
       </div>
 
       <div class="swiper">
@@ -1844,54 +1836,54 @@
           <div class="swiper-slide">
             <figure class="screenshot-item">
               <div class="screenshot-frame">
-                <img src="screenshots/screen-resumen.png" alt="Resumen generado con IA" loading="lazy" width="1280" height="800">
+                <img src="/airecorder/screenshots/screen-resumen.png" alt="AI-generated summary" loading="lazy" width="1280" height="800">
               </div>
-              <figcaption class="screenshot-caption" data-i18n="screenshotResumen">Resumen · Análisis e insights generados con IA</figcaption>
+              <figcaption class="screenshot-caption" data-i18n="screenshotResumen">Summary · AI-generated analysis and insights</figcaption>
             </figure>
           </div>
 
           <div class="swiper-slide">
             <figure class="screenshot-item">
               <div class="screenshot-frame">
-                <img src="screenshots/screen-audio-chat.png" alt="Chat de audio con IA" loading="lazy" width="1280" height="800">
+                <img src="/airecorder/screenshots/screen-audio-chat.png" alt="AI audio chat" loading="lazy" width="1280" height="800">
               </div>
-              <figcaption class="screenshot-caption" data-i18n="screenshotAudioChat">Audio Chat · Conversación en tiempo real con IA</figcaption>
+              <figcaption class="screenshot-caption" data-i18n="screenshotAudioChat">Audio Chat · Real-time AI conversation</figcaption>
             </figure>
           </div>
 
           <div class="swiper-slide">
             <figure class="screenshot-item">
               <div class="screenshot-frame">
-                <img src="screenshots/screee-transcription.png" alt="Vista de transcripción" loading="lazy" width="1280" height="800">
+                <img src="/airecorder/screenshots/screee-transcription.png" alt="Transcription view" loading="lazy" width="1280" height="800">
               </div>
-              <figcaption class="screenshot-caption" data-i18n="screenshotTranscription">Transcripción · Texto generado automáticamente con Whisper</figcaption>
+              <figcaption class="screenshot-caption" data-i18n="screenshotTranscription">Transcription · Text automatically generated with Whisper</figcaption>
             </figure>
           </div>
 
           <div class="swiper-slide">
             <figure class="screenshot-item">
               <div class="screenshot-frame">
-                <img src="screenshots/screen-home.png" alt="Pantalla de inicio de AIRecorder" loading="lazy" width="1280" height="800">
+                <img src="/airecorder/screenshots/screen-home.png" alt="AIRecorder home screen" loading="lazy" width="1280" height="800">
               </div>
-              <figcaption class="screenshot-caption" data-i18n="screenshotHome">Inicio · Nueva sesión de grabación</figcaption>
+              <figcaption class="screenshot-caption" data-i18n="screenshotHome">Home · New recording session</figcaption>
             </figure>
           </div>
 
           <div class="swiper-slide">
             <figure class="screenshot-item">
               <div class="screenshot-frame">
-                <img src="screenshots/screen-projects.png" alt="Biblioteca de proyectos" loading="lazy" width="1280" height="800">
+                <img src="/airecorder/screenshots/screen-projects.png" alt="Projects library" loading="lazy" width="1280" height="800">
               </div>
-              <figcaption class="screenshot-caption" data-i18n="screenshotProjects">Proyectos · Biblioteca y grabaciones recientes</figcaption>
+              <figcaption class="screenshot-caption" data-i18n="screenshotProjects">Projects · Library and recent recordings</figcaption>
             </figure>
           </div>
 
           <div class="swiper-slide">
             <figure class="screenshot-item">
               <div class="screenshot-frame">
-                <img src="screenshots/screen-ai-chat.png" alt="Chat con IA sobre el proyecto" loading="lazy" width="1280" height="800">
+                <img src="/airecorder/screenshots/screen-ai-chat.png" alt="AI chat about the project" loading="lazy" width="1280" height="800">
               </div>
-              <figcaption class="screenshot-caption" data-i18n="screenshotAiChat">Chat con IA · Búsqueda semántica sobre el proyecto</figcaption>
+              <figcaption class="screenshot-caption" data-i18n="screenshotAiChat">AI Chat · Semantic search over the project</figcaption>
             </figure>
           </div>
 
@@ -1912,18 +1904,16 @@
       <div class="section-header">
         <div class="section-label animate-on-scroll">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          <span data-i18n="featLabel">Funciones</span>
+          <span data-i18n="featLabel">Features</span>
         </div>
-        <h2 class="section-title animate-on-scroll delay-1" data-i18n-html="featTitle">Todo lo que necesitas para<br>tus reuniones y proyectos</h2>
-        <p class="section-subtitle animate-on-scroll delay-2" data-i18n="featSubtitle">
-          Desde la grabación hasta el análisis con IA, AIRecorder cubre todo el flujo de trabajo sin depender de servicios externos.
-        </p>
+        <h2 class="section-title animate-on-scroll delay-1" data-i18n-html="featTitle">Everything you need for<br>your meetings and projects</h2>
+        <p class="section-subtitle animate-on-scroll delay-2" data-i18n="featSubtitle">From recording to AI analysis, AIRecorder covers the entire workflow without depending on external services.</p>
       </div>
 
       <!-- 8 funciones principales -->
       <div class="features-grid">
 
-        <!-- Grabación dual -->
+        <!-- Dual recording -->
         <div class="feature-card animate-on-scroll delay-1">
           <div class="feature-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1933,11 +1923,11 @@
               <line x1="8" y1="23" x2="16" y2="23"/>
             </svg>
           </div>
-          <h3 class="feature-title" data-i18n="feat1Title">Grabación dual de audio</h3>
-          <p class="feature-desc" data-i18n="feat1Desc">Captura simultáneamente el micrófono y el audio del sistema. Sin perder una sola palabra, tuya ni de los demás.</p>
+          <h3 class="feature-title" data-i18n="feat1Title">Dual audio recording</h3>
+          <p class="feature-desc" data-i18n="feat1Desc">Simultaneously capture your microphone and system audio. Never miss a word — yours or anyone else's.</p>
         </div>
 
-        <!-- Transcripción -->
+        <!-- Transcription -->
         <div class="feature-card animate-on-scroll delay-1">
           <div class="feature-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1948,8 +1938,8 @@
               <polyline points="10 9 9 9 8 9"/>
             </svg>
           </div>
-          <h3 class="feature-title" data-i18n="feat2Title">Transcripción automática</h3>
-          <p class="feature-desc" data-i18n="feat2Desc">Whisper de OpenAI funciona directamente en tu equipo. Alta precisión, múltiples modelos y sin enviar audio a ningún servidor.</p>
+          <h3 class="feature-title" data-i18n="feat2Title">Automatic transcription</h3>
+          <p class="feature-desc" data-i18n="feat2Desc">OpenAI's Whisper runs directly on your machine. High accuracy, multiple models, no audio sent to any server.</p>
         </div>
 
         <!-- Identificación de Hablantes -->
@@ -1962,11 +1952,11 @@
               <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
           </div>
-          <h3 class="feature-title" data-i18n="featSpeakersTitle">Identificación de Hablantes</h3>
-          <p class="feature-desc" data-i18n="featSpeakersDesc">Diarización automática que detecta quién habla en cada segmento. Gestiona, fusiona y nombra hablantes entre grabaciones. La IA reconoce a cada persona y enriquece el análisis con su voz.</p>
+          <h3 class="feature-title" data-i18n="featSpeakersTitle">Speaker Identification</h3>
+          <p class="feature-desc" data-i18n="featSpeakersDesc">Automatic diarization that detects who speaks in each segment. Manage, merge, and name speakers across recordings. The AI recognizes each person and enriches the analysis with their voice.</p>
         </div>
 
-        <!-- Análisis IA -->
+        <!-- AI analysis -->
         <div class="feature-card animate-on-scroll delay-2">
           <div class="feature-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1976,8 +1966,8 @@
               <line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
           </div>
-          <h3 class="feature-title" data-i18n="feat3Title">Análisis con IA</h3>
-          <p class="feature-desc" data-i18n="feat3Desc">Genera resúmenes detallados, extrae puntos clave e identifica participantes automáticamente a partir de la transcripción.</p>
+          <h3 class="feature-title" data-i18n="feat3Title">AI analysis</h3>
+          <p class="feature-desc" data-i18n="feat3Desc">Generate detailed summaries, extract key points, and automatically identify participants from the transcript.</p>
         </div>
 
         <!-- Chat interactivo -->
@@ -1987,8 +1977,8 @@
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
           </div>
-          <h3 class="feature-title" data-i18n="feat4Title">Chat interactivo</h3>
-          <p class="feature-desc" data-i18n="feat4Desc">Pregunta a la IA directamente sobre el contenido de cualquier reunión. Extrae información, fechas, compromisos o cualquier detalle.</p>
+          <h3 class="feature-title" data-i18n="feat4Title">Interactive chat</h3>
+          <p class="feature-desc" data-i18n="feat4Desc">Ask the AI directly about any meeting's content. Extract information, dates, commitments, or any detail.</p>
         </div>
 
         <!-- Tareas con IA y Kanban -->
@@ -2001,8 +1991,8 @@
               <path d="M14 17h7M17 14v7"/>
             </svg>
           </div>
-          <h3 class="feature-title" data-i18n="feat11Title">Tareas con IA y tablero Kanban</h3>
-          <p class="feature-desc" data-i18n="feat11Desc">La IA extrae tareas accionables de cada reunión y las organiza en un tablero Kanban con columnas Backlog, En progreso, Bloqueado y Hecho. Arrastra, edita y refina cada tarea con IA.</p>
+          <h3 class="feature-title" data-i18n="feat11Title">AI Tasks & Kanban Board</h3>
+          <p class="feature-desc" data-i18n="feat11Desc">AI extracts actionable tasks from each meeting and organizes them into a Kanban board with Backlog, In Progress, Blocked and Done columns. Drag, edit and refine each task with AI.</p>
         </div>
 
         <!-- Búsqueda semántica RAG -->
@@ -2014,8 +2004,8 @@
               <path d="M11 8v3l2 2"/>
             </svg>
           </div>
-          <h3 class="feature-title" data-i18n="feat12Title">Búsqueda semántica con RAG</h3>
-          <p class="feature-desc" data-i18n="feat12Desc">Las transcripciones se indexan con embeddings vectoriales en LanceDB. El chat usa RAG para encontrar exactamente el fragmento relevante, incluso en proyectos con horas de grabaciones.</p>
+          <h3 class="feature-title" data-i18n="feat12Title">Semantic search with RAG</h3>
+          <p class="feature-desc" data-i18n="feat12Desc">Transcripts are indexed with vector embeddings in LanceDB. The chat uses RAG to find exactly the relevant fragment, even in projects with hours of recordings.</p>
         </div>
 
         <!-- Offline -->
@@ -2031,8 +2021,8 @@
               <line x1="12" y1="20" x2="12.01" y2="20"/>
             </svg>
           </div>
-          <h3 class="feature-title" data-i18n="feat8Title">Funciona sin conexión</h3>
-          <p class="feature-desc" data-i18n="feat8Desc">Con Ollama o LM Studio, toda la cadena, grabación, transcripción y análisis, funciona sin internet ni suscripciones.</p>
+          <h3 class="feature-title" data-i18n="feat8Title">Works offline</h3>
+          <p class="feature-desc" data-i18n="feat8Desc">With Ollama or LM Studio, the entire chain — recording, transcription, and analysis — works without internet or subscriptions.</p>
         </div>
 
       </div>
@@ -2040,7 +2030,7 @@
       <!-- Expandible: +9 funciones -->
       <div class="features-more animate-on-scroll delay-5">
         <button class="features-toggle" id="featuresToggle" onclick="toggleFeatures()" aria-expanded="false">
-          <span data-i18n="featShowAll">Ver todas las funciones</span>
+          <span data-i18n="featShowAll">See all features</span>
           <span class="count">(+9)</span>
           <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
@@ -2055,8 +2045,8 @@
                 <line x1="12" y1="15" x2="12" y2="3"/>
               </svg>
             </div>
-            <h3 class="feature-title" data-i18n="feat5Title">Exportación de documentos</h3>
-            <p class="feature-desc" data-i18n="feat5Desc">Exporta transcripciones y resúmenes a DOCX, PDF o Markdown con un clic. Comparte actas de reunión sin esfuerzo.</p>
+            <h3 class="feature-title" data-i18n="feat5Title">Document export</h3>
+            <p class="feature-desc" data-i18n="feat5Desc">Export transcripts and summaries to DOCX, PDF or Markdown with one click. Share meeting minutes effortlessly.</p>
           </div>
 
           <!-- Proyectos -->
@@ -2066,11 +2056,11 @@
                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
               </svg>
             </div>
-            <h3 class="feature-title" data-i18n="feat6Title">Gestión de proyectos</h3>
-            <p class="feature-desc" data-i18n="feat6Desc">Organiza tus grabaciones en proyectos. Dashboard con estadísticas de horas, reuniones y estado de transcripciones.</p>
+            <h3 class="feature-title" data-i18n="feat6Title">Project management</h3>
+            <p class="feature-desc" data-i18n="feat6Desc">Organize your recordings into projects. Dashboard with statistics on hours, meetings, and transcription status.</p>
           </div>
 
-          <!-- Múltiples proveedores -->
+          <!-- Multiple providers -->
           <div class="feature-card">
             <div class="feature-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2079,8 +2069,8 @@
                 <path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/>
               </svg>
             </div>
-            <h3 class="feature-title" data-i18n="feat7Title">Múltiples modelos de IA</h3>
-            <p class="feature-desc" data-i18n="feat7Desc">Compatible con Gemini, DeepSeek, Kimi en la nube, y con Ollama y LM Studio para análisis completamente local.</p>
+            <h3 class="feature-title" data-i18n="feat7Title">Multiple AI models</h3>
+            <p class="feature-desc" data-i18n="feat7Desc">Compatible with Gemini, DeepSeek, Kimi in the cloud, and Ollama and LM Studio for fully local analysis.</p>
           </div>
 
           <!-- Importa transcripciones Teams -->
@@ -2093,8 +2083,8 @@
                 <line x1="9" y1="15" x2="15" y2="15"/>
               </svg>
             </div>
-            <h3 class="feature-title" data-i18n="feat9Title">Importa transcripciones de Teams</h3>
-            <p class="feature-desc" data-i18n="feat9Desc">¿Tu reunión fue grabada en Microsoft Teams? Importa el archivo de transcripción directamente y analízalo con IA como si lo hubieras grabado tú mismo.</p>
+            <h3 class="feature-title" data-i18n="feat9Title">Import Teams transcripts</h3>
+            <p class="feature-desc" data-i18n="feat9Desc">Was your meeting recorded in Microsoft Teams? Import the transcript file directly and analyze it with AI as if you had recorded it yourself.</p>
           </div>
 
           <!-- Reproductor sincronizado -->
@@ -2105,8 +2095,8 @@
                 <line x1="19" y1="3" x2="19" y2="21"/>
               </svg>
             </div>
-            <h3 class="feature-title" data-i18n="feat14Title">Reproductor sincronizado con la transcripción</h3>
-            <p class="feature-desc" data-i18n="feat14Desc">Haz clic en cualquier frase de la transcripción para saltar al instante exacto del audio. Reproduce micrófono y sistema como pistas independientes con control de velocidad.</p>
+            <h3 class="feature-title" data-i18n="feat14Title">Player synced with transcript</h3>
+            <p class="feature-desc" data-i18n="feat14Desc">Click any phrase in the transcript to jump to the exact moment in the audio. Play microphone and system as independent tracks with speed control.</p>
           </div>
 
           <!-- Sube audio externo -->
@@ -2118,8 +2108,8 @@
                 <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
               </svg>
             </div>
-            <h3 class="feature-title" data-i18n="feat10Title">Sube audio de dispositivos externos</h3>
-            <p class="feature-desc" data-i18n="feat10Desc">Grabaste con una grabadora, móvil o cualquier otro dispositivo. Sube el archivo de audio y AIRecorder lo transcribe y analiza automáticamente.</p>
+            <h3 class="feature-title" data-i18n="feat10Title">Upload audio from external devices</h3>
+            <p class="feature-desc" data-i18n="feat10Desc">Recorded with a recorder, phone, or any other device? Upload the audio file and AIRecorder will transcribe and analyze it automatically.</p>
           </div>
 
           <!-- Importar chat IA -->
@@ -2131,8 +2121,8 @@
                 <line x1="10" y1="11" x2="14" y2="11"/>
               </svg>
             </div>
-            <h3 class="feature-title" data-i18n="featChatImportTitle">Importa conversaciones de chat con IA</h3>
-            <p class="feature-desc" data-i18n="featChatImportDesc">Importa archivos de conversaciones o chats analizados por IA y tratalos como cualquier grabación: resumen, tareas, búsqueda semántica y chat interactivo sobre el contenido.</p>
+            <h3 class="feature-title" data-i18n="featChatImportTitle">Import AI-analyzed chat conversations</h3>
+            <p class="feature-desc" data-i18n="featChatImportDesc">Import conversation or AI-analyzed chat files and treat them like any recording: summary, tasks, semantic search, and interactive chat over the content.</p>
           </div>
 
           <!-- Adjuntos como contexto -->
@@ -2142,8 +2132,8 @@
                 <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
               </svg>
             </div>
-            <h3 class="feature-title" data-i18n="feat13Title">Adjuntos como contexto para la IA</h3>
-            <p class="feature-desc" data-i18n="feat13Desc">Adjunta imágenes, PDFs, documentos o Excel a cualquier grabación o proyecto. La IA los incorpora como contexto en el chat, con soporte de visión para modelos compatibles.</p>
+            <h3 class="feature-title" data-i18n="feat13Title">Attachments as AI context</h3>
+            <p class="feature-desc" data-i18n="feat13Desc">Attach images, PDFs, documents or Excel files to any recording or project. The AI incorporates them as context in the chat, with vision support for compatible models.</p>
           </div>
 
           <!-- Prompts de Experto -->
@@ -2156,8 +2146,8 @@
                 <line x1="10" y1="14" x2="14" y2="14"/>
               </svg>
             </div>
-            <h3 class="feature-title" data-i18n="featExpertsTitle">Prompts de Experto</h3>
-            <p class="feature-desc" data-i18n="featExpertsDesc">Activa perfiles especializados de Desarrollador de Software o Psicólogo para que la IA adapte su análisis al contexto exacto de tu reunión. Incluye un asistente general para cualquier tipo de conversación.</p>
+            <h3 class="feature-title" data-i18n="featExpertsTitle">Expert Prompts</h3>
+            <p class="feature-desc" data-i18n="featExpertsDesc">Activate specialized profiles — Software Developer or Psychologist — so the AI adapts its analysis to the exact context of your meeting. Includes a general assistant for any type of conversation.</p>
           </div>
 
         </div>
@@ -2171,9 +2161,9 @@
   <section class="cta-band">
     <div class="container">
       <div class="cta-band-inner animate-on-scroll">
-        <h2 class="cta-band-title" data-i18n="ctaMidTitle">¿Listo para tomar el control de tus reuniones?</h2>
-        <p class="cta-band-subtitle" data-i18n="ctaMidSubtitle">Descarga AIRecorder gratis. Sin registros, sin servidores, sin letra pequeña.</p>
-        <a href="#" class="btn" onclick="openDownloadModal(event)" data-i18n="ctaMidBtn">Descargar ahora</a>
+        <h2 class="cta-band-title" data-i18n="ctaMidTitle">Ready to take control of your meetings?</h2>
+        <p class="cta-band-subtitle" data-i18n="ctaMidSubtitle">Download AIRecorder for free. No sign-ups, no servers, no fine print.</p>
+        <a href="#" class="btn" onclick="openDownloadModal(event)" data-i18n="ctaMidBtn">Download now</a>
       </div>
     </div>
   </section>
@@ -2187,42 +2177,40 @@
         <div>
           <div class="section-label animate-on-scroll">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            <span data-i18n="privLabel">Privacidad</span>
+            <span data-i18n="privLabel">Privacy</span>
           </div>
-          <h2 class="section-title animate-on-scroll delay-1" data-i18n-html="privTitle">Tu privacidad,<br>nuestra prioridad</h2>
-          <p class="section-subtitle animate-on-scroll delay-2" data-i18n="privSubtitle">
-            Tus reuniones contienen información sensible. AIRecorder está diseñado para que tus datos nunca salgan de tu equipo.
-          </p>
+          <h2 class="section-title animate-on-scroll delay-1" data-i18n-html="privTitle">Your privacy,<br>our priority</h2>
+          <p class="section-subtitle animate-on-scroll delay-2" data-i18n="privSubtitle">Your meetings contain sensitive information. AIRecorder is designed so your data never leaves your machine.</p>
           <ul class="privacy-list" role="list">
             <li class="privacy-item animate-on-scroll delay-3">
               <div class="privacy-check">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
-              <p class="privacy-item-text" data-i18n-html="priv1"><strong>Transcripción 100% local</strong> con Whisper ejecutándose directamente en tu equipo.</p>
+              <p class="privacy-item-text" data-i18n-html="priv1"><strong>100% local transcription</strong> with Whisper running directly on your machine.</p>
             </li>
             <li class="privacy-item animate-on-scroll delay-4">
               <div class="privacy-check">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
-              <p class="privacy-item-text" data-i18n-html="priv2"><strong>Sin servidores externos</strong> para tus audios. Las grabaciones viven en tu sistema de archivos.</p>
+              <p class="privacy-item-text" data-i18n-html="priv2"><strong>No external servers</strong> for your audio. Recordings live on your file system.</p>
             </li>
             <li class="privacy-item animate-on-scroll delay-5">
               <div class="privacy-check">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
-              <p class="privacy-item-text" data-i18n-html="priv3"><strong>IA completamente local</strong> con Ollama y LM Studio: análisis sin ninguna petición a internet.</p>
+              <p class="privacy-item-text" data-i18n-html="priv3"><strong>Fully local AI</strong> with Ollama and LM Studio: analysis with zero internet requests.</p>
             </li>
             <li class="privacy-item animate-on-scroll delay-6">
               <div class="privacy-check">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
-              <p class="privacy-item-text" data-i18n-html="priv4"><strong>Base de datos local</strong> en SQLite. Sin telemetría, sin analytics, sin tracking.</p>
+              <p class="privacy-item-text" data-i18n-html="priv4"><strong>Local database</strong> in SQLite. No telemetry, no analytics, no tracking.</p>
             </li>
             <li class="privacy-item animate-on-scroll delay-7">
               <div class="privacy-check">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
-              <p class="privacy-item-text" data-i18n-html="priv5"><strong>Tú controlas todo.</strong> Las claves de API de proveedores cloud son opcionales y las gestionas tú.</p>
+              <p class="privacy-item-text" data-i18n-html="priv5"><strong>You control everything.</strong> Cloud provider API keys are optional and managed by you.</p>
             </li>
           </ul>
         </div>
@@ -2252,12 +2240,10 @@
       <div class="section-header">
         <div class="section-label animate-on-scroll">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-          <span data-i18n="provLabel">Proveedores IA</span>
+          <span data-i18n="provLabel">AI Providers</span>
         </div>
-        <h2 class="section-title animate-on-scroll delay-1" data-i18n-html="provTitle">Compatible con los mejores<br>modelos de IA</h2>
-        <p class="section-subtitle animate-on-scroll delay-2" data-i18n="provSubtitle">
-          Elige entre proveedores en la nube para mayor potencia, o modelos locales para privacidad total. Cambia cuando quieras.
-        </p>
+        <h2 class="section-title animate-on-scroll delay-1" data-i18n-html="provTitle">Compatible with the best<br>AI models</h2>
+        <p class="section-subtitle animate-on-scroll delay-2" data-i18n="provSubtitle">Choose cloud providers for more power, or local models for total privacy. Switch whenever you want.</p>
       </div>
 
       <div class="providers-grid animate-on-scroll delay-3">
@@ -2270,7 +2256,7 @@
             </svg>
           </div>
           <span class="provider-name">Ollama</span>
-          <span class="provider-type verified" data-i18n="provOllamaType">✓ Verificado</span>
+          <span class="provider-type verified" data-i18n="provOllamaType">✓ Verified</span>
         </div>
 
         <!-- LM Studio -->
@@ -2284,7 +2270,7 @@
             </svg>
           </div>
           <span class="provider-name">LM Studio</span>
-          <span class="provider-type verified" data-i18n="provOllamaType">✓ Verificado</span>
+          <span class="provider-type verified" data-i18n="provOllamaType">✓ Verified</span>
         </div>
         <!-- Gemini -->
         <div class="provider-badge">
@@ -2301,7 +2287,7 @@
             </svg>
           </div>
           <span class="provider-name">Gemini</span>
-          <span class="provider-type testing" data-i18n="provTestingType">En testeo</span>
+          <span class="provider-type testing" data-i18n="provTestingType">Testing</span>
         </div>
 
 
@@ -2314,7 +2300,7 @@
             </svg>
           </div>
           <span class="provider-name">DeepSeek</span>
-          <span class="provider-type testing" data-i18n="provTestingType">En testeo</span>
+          <span class="provider-type testing" data-i18n="provTestingType">Testing</span>
         </div>
 
         <!-- Kimi -->
@@ -2329,14 +2315,12 @@
             </svg>
           </div>
           <span class="provider-name">Kimi</span>
-          <span class="provider-type testing" data-i18n="provTestingType">En testeo</span>
+          <span class="provider-type testing" data-i18n="provTestingType">Testing</span>
         </div>
 
       </div>
 
-      <p class="providers-note animate-on-scroll delay-4" data-i18n="provNote">
-        Ollama es el único proveedor 100% verificado. Los demás están en fase de testeo. La transcripción siempre corre localmente con Whisper.
-      </p>
+      <p class="providers-note animate-on-scroll delay-4" data-i18n="provNote">Ollama is the only 100% verified provider. Others are in testing. Transcription always runs locally with Whisper.</p>
     </div>
   </section>
 
@@ -2350,168 +2334,168 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           <span data-i18n="faqLabel">FAQ</span>
         </div>
-        <h2 class="section-title animate-on-scroll delay-1" data-i18n="faqTitle">Preguntas frecuentes</h2>
+        <h2 class="section-title animate-on-scroll delay-1" data-i18n="faqTitle">Frequently Asked Questions</h2>
       </div>
 
       <div class="faq-list animate-on-scroll delay-2">
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq1Q">¿Por qué AIRecorder frente a Otter o Fireflies?</span>
+            <span data-i18n="faq1Q">Why AIRecorder vs Otter or Fireflies?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq1A">AIRecorder es la única opción 100% local. Otter y Fireflies suben tu audio a sus servidores para procesarlo. Con AIRecorder, tus datos nunca salen de tu equipo. Además, es gratuito y open source.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq1A">AIRecorder is the only 100% local option. Otter and Fireflies upload your audio to their servers for processing. With AIRecorder, your data never leaves your machine. Plus, it's free and open source.</div></div>
         </div>
 
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq2Q">¿Necesito conexión a internet?</span>
+            <span data-i18n="faq2Q">Do I need an internet connection?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq2A">No. Con Ollama o LM Studio puedes grabar, transcribir y analizar completamente offline. Si usas proveedores cloud como Gemini, solo necesitas internet para la parte de análisis; la transcripción con Whisper siempre es local.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq2A">No. With Ollama or LM Studio you can record, transcribe, and analyze completely offline. If you use cloud providers like Gemini, you only need internet for the analysis part; transcription with Whisper is always local.</div></div>
         </div>
 
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq3Q">¿Qué necesito para usarlo?</span>
+            <span data-i18n="faq3Q">What do I need to run it?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq3A">Un Mac con Apple Silicon (M1/M2/M3/M4) y macOS 13+, o un PC con Windows 10/11 (x64). Para transcripción, Whisper se instala automáticamente. Para análisis con IA, puedes usar Ollama (gratuito, local) o conectarlo a Gemini/DeepSeek con tu propia API key.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq3A">A Mac with Apple Silicon (M1/M2/M3/M4) and macOS 13+, or a Windows 10/11 PC (x64). For transcription, Whisper installs automatically. For AI analysis, you can use Ollama (free, local) or connect to Gemini/DeepSeek with your own API key.</div></div>
         </div>
 
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq4Q">¿Es realmente gratis?</span>
+            <span data-i18n="faq4Q">Is it really free?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq4A">Sí. AIRecorder es completamente gratuito y open source (MIT). No hay planes de pago, suscripciones ni funcionalidades premium. Si quieres apoyar el proyecto, puedes invitarme a un café en Ko-fi.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq4A">Yes. AIRecorder is completely free and open source (MIT). There are no paid plans, subscriptions, or premium features. If you want to support the project, you can buy me a coffee on Ko-fi.</div></div>
         </div>
 
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq5Q">¿Qué idiomas soporta la transcripción?</span>
+            <span data-i18n="faq5Q">What languages does transcription support?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq5A">Whisper soporta más de 90 idiomas con alta precisión, incluyendo español, inglés, francés, alemán, portugués, italiano y muchos más. Puedes elegir el modelo y el idioma para cada grabación.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq5A">Whisper supports over 90 languages with high accuracy, including Spanish, English, French, German, Portuguese, Italian, and many more. You can choose the model and language for each recording.</div></div>
         </div>
 
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq6Q">¿Puedo chatear con mis reuniones y proyectos?</span>
+            <span data-i18n="faq6Q">Can I chat with my meetings and projects?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq6A">Sí. Cada reunión y cada proyecto tienen su propio chat con IA: puedes preguntar por decisiones, fechas, compromisos o cualquier detalle. El sistema usa RAG (búsqueda semántica con LanceDB) para encontrar el fragmento exacto entre horas de grabaciones.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq6A">Yes. Every meeting and every project has its own AI chat: ask about decisions, dates, commitments, or any detail. The system uses RAG (semantic search with LanceDB) to find the exact fragment across hours of recordings.</div></div>
         </div>
 
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq7Q">¿Por qué usar IA local en vez de un proveedor en la nube?</span>
+            <span data-i18n="faq7Q">Why use local AI instead of a cloud provider?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq7A">Porque tus reuniones suelen contener información sensible. Con Ollama o LM Studio, el análisis corre en tu equipo y nada sale de él. Los proveedores externos (Gemini, DeepSeek, Kimi) son opcionales: los activas solo si necesitas más potencia y aceptas enviar ese contenido a la nube.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq7A">Because your meetings often contain sensitive information. With Ollama or LM Studio, analysis runs on your machine and nothing leaves it. External providers (Gemini, DeepSeek, Kimi) are optional — enable them only if you need more power and accept sending that content to the cloud.</div></div>
         </div>
 
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq8Q">¿Cómo graba AIRecorder el audio de una reunión?</span>
+            <span data-i18n="faq8Q">How does AIRecorder record a meeting?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq8A">AIRecorder captura al mismo tiempo tu micrófono y el audio del sistema como dos pistas independientes, así no perdés ni tu voz ni la de los demás participantes, sea en una llamada de Meet, Zoom, Teams o presencial con el micrófono del equipo.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq8A">AIRecorder captures your microphone and system audio at the same time as two independent tracks, so you never lose your voice or anyone else's — whether it's a Meet, Zoom, or Teams call, or an in-person meeting through your device's mic.</div></div>
         </div>
 
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq9Q">¿Qué resúmenes genera AIRecorder de una reunión?</span>
+            <span data-i18n="faq9Q">What kind of meeting summaries does AIRecorder generate?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq9A">La IA genera un resumen detallado, extrae decisiones, identifica participantes y convierte los compromisos en tareas accionables organizadas en un tablero Kanban (Backlog, En progreso, Bloqueado, Hecho). Todo a partir de la transcripción, sin trabajo manual.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq9A">The AI generates a detailed summary, extracts decisions, identifies participants, and turns commitments into actionable tasks organized on a Kanban board (Backlog, In Progress, Blocked, Done). All from the transcript, no manual work.</div></div>
         </div>
 
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq10Q">¿AIRecorder identifica quién habla en cada momento?</span>
+            <span data-i18n="faq10Q">Does AIRecorder identify who's speaking?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq10A">Sí. Usa diarización de hablantes con pyannote para separar y etiquetar cada intervención por participante, incluso en reuniones con varias personas hablando en el mismo canal de audio.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq10A">Yes. It uses speaker diarization with pyannote to separate and label each participant's turns, even in meetings with several people speaking on the same audio channel.</div></div>
         </div>
 
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq11Q">¿Puedo exportar las actas o resúmenes de mis reuniones?</span>
+            <span data-i18n="faq11Q">Can I export my meeting minutes or summaries?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq11A">Sí, con un clic exportás transcripción y resumen a DOCX, PDF o Markdown, listos para compartir como acta de reunión sin retocar nada.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq11A">Yes, export the transcript and summary to DOCX, PDF, or Markdown with one click — ready to share as meeting minutes with no extra editing.</div></div>
         </div>
 
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq12Q">¿AIRecorder es un grabador de reuniones offline y local?</span>
+            <span data-i18n="faq12Q">Is AIRecorder an offline, local meeting recorder?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq12A">Sí. AIRecorder es un grabador de reuniones 100% local y offline: graba, transcribe con Whisper y analiza con Ollama o LM Studio sin salir de tu equipo. No necesitás internet ni subir audio a ningún servidor, a diferencia de las grabadoras de reuniones basadas en la nube.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq12A">Yes. AIRecorder is a 100% local, offline meeting recorder: it records, transcribes with Whisper, and analyzes with Ollama or LM Studio without ever leaving your machine. No internet required, no audio uploaded to any server — unlike cloud-based meeting recorders.</div></div>
         </div>
 
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq13Q">¿Hay una alternativa gratis y local a Plaud?</span>
+            <span data-i18n="faq13Q">Is there a free, local alternative to Plaud?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq13A">Sí, AIRecorder. Plaud requiere comprar un dispositivo dedicado y su transcripción gratuita tiene un límite mensual de minutos; superarlo exige suscripción paga. AIRecorder es software gratuito y de código abierto, sin límite de minutos: usa el micrófono y el audio de tu equipo, y con Ollama o LM Studio la transcripción y el análisis corren 100% en tu equipo, no en un servidor externo.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq13A">Yes — AIRecorder. Plaud requires buying a dedicated hardware device, and its free transcription tier has a monthly minute cap; going beyond it requires a paid subscription. AIRecorder is free, open-source software with no minute limits: it uses your computer's microphone and system audio, and with Ollama or LM Studio, both transcription and analysis run fully on your machine, not on an external server.</div></div>
         </div>
 
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq14Q">¿Son seguras las grabaciones si se guardan localmente?</span>
+            <span data-i18n="faq14Q">Are local recordings secure?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq14A">Sí. Tus grabaciones y transcripciones se guardan solo en el sistema de archivos y la base de datos SQLite de tu equipo: nunca se suben a un servidor ni se comparten con terceros. AIRecorder no tiene telemetría ni analytics. Si conectás integraciones opcionales (Google, Teams), esas credenciales se cifran en tu equipo con el almacenamiento seguro del sistema operativo (Keychain en macOS, DPAPI en Windows).</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq14A">Yes. Your recordings and transcripts are stored only in your machine's file system and local SQLite database — never uploaded to a server or shared with third parties. AIRecorder has no telemetry or analytics. If you connect optional integrations (Google, Teams), those credentials are encrypted on your device using the OS's secure storage (Keychain on macOS, DPAPI on Windows).</div></div>
         </div>
 
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq15Q">¿AIRecorder es un grabador de reuniones local?</span>
+            <span data-i18n="faq15Q">Is AIRecorder a local meeting recorder?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq15A">Sí. AIRecorder es un grabador de reuniones local: la grabación de audio, la transcripción con Whisper y el análisis con Ollama o LM Studio corren en tu equipo. No es una app en la nube ni requiere subir audio a ningún servidor.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq15A">Yes. AIRecorder is a local meeting recorder: audio recording, transcription with Whisper, and analysis with Ollama or LM Studio all run on your machine. It's not a cloud app and it never requires uploading audio to any server.</div></div>
         </div>
 
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq16Q">¿Cómo genera AIRecorder resúmenes de reuniones con IA local?</span>
+            <span data-i18n="faq16Q">How does AIRecorder generate meeting summaries with local AI?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq16A">Al terminar la transcripción, la IA local (Ollama o LM Studio) genera resúmenes de reuniones locales: puntos clave, decisiones, participantes y tareas, todo procesado en tu equipo sin enviar el contenido a servidores externos. Si preferís más potencia, podés activar proveedores en la nube de forma opcional.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq16A">Once transcription finishes, local AI (Ollama or LM Studio) generates local meeting summaries: key points, decisions, participants, and tasks — all processed on your machine without sending content to external servers. If you want more power, you can optionally enable cloud providers.</div></div>
         </div>
 
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq17Q">¿AIRecorder conecta el conocimiento entre distintas reuniones de un proyecto?</span>
+            <span data-i18n="faq17Q">Does AIRecorder connect knowledge across different meetings in a project?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq17A">Sí. Todas las transcripciones de un proyecto se indexan en una base vectorial (LanceDB) y el chat con IA usa RAG para buscar entre todas tus reuniones a la vez, no solo una por una. Así podés preguntar algo que se dijo en una reunión de hace semanas y encontrarlo aunque no recuerdes en cuál fue.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq17A">Yes. Every transcript in a project is indexed in a vector database (LanceDB), and the AI chat uses RAG to search across all your meetings at once, not just one at a time. You can ask about something mentioned weeks ago and find it even if you don't remember which meeting it was.</div></div>
         </div>
 
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq18Q">¿Puedo tener un chat local sobre mis reuniones guardadas?</span>
+            <span data-i18n="faq18Q">Can I have a local chat over my saved meetings?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq18A">Sí. Cada reunión y cada proyecto guardado tiene su propio chat con IA. Con Ollama o LM Studio, ese chat corre 100% local sobre tus reuniones guardadas: nada de tu historial de conversaciones o transcripciones sale de tu equipo.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq18A">Yes. Every saved meeting and project has its own AI chat. With Ollama or LM Studio, that chat runs 100% locally over your saved meetings — none of your conversation history or transcripts ever leaves your machine.</div></div>
         </div>
 
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq19Q">¿Qué incluye el ecosistema de grabación de reuniones e IA local de AIRecorder?</span>
+            <span data-i18n="faq19Q">What does AIRecorder's local meeting recording and AI ecosystem include?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq19A">Grabación dual de audio, transcripción con Whisper, resúmenes y tareas generadas por IA, diarización de hablantes, chat con RAG, exportación a DOCX/PDF/Markdown y gestión de proyectos, todo integrado en un mismo ecosistema que funciona local con Ollama o LM Studio, con proveedores en la nube como opción adicional.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq19A">Dual audio recording, Whisper transcription, AI-generated summaries and tasks, speaker diarization, RAG-powered chat, DOCX/PDF/Markdown export, and project management — all integrated into one ecosystem that runs locally with Ollama or LM Studio, with cloud providers as an optional add-on.</div></div>
         </div>
 
         <div class="faq-item">
           <button class="faq-question" onclick="toggleFaq(this)" aria-expanded="false">
-            <span data-i18n="faq20Q">¿Cuál es la mejor alternativa local a Otter, Fireflies o Fathom?</span>
+            <span data-i18n="faq20Q">What's the best local alternative to Otter, Fireflies, or Fathom?</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq20A">AIRecorder. A diferencia de Otter, Fireflies o Fathom, que procesan tu audio en sus servidores, AIRecorder graba, transcribe y analiza de forma 100% local con Ollama o LM Studio. Es gratuito, de código abierto y sin límite de minutos.</div></div>
+          <div class="faq-answer"><div class="faq-answer-inner" data-i18n="faq20A">AIRecorder. Unlike Otter, Fireflies, or Fathom — which process your audio on their servers — AIRecorder records, transcribes, and analyzes 100% locally with Ollama or LM Studio. It's free, open source, and has no minute limits.</div></div>
         </div>
       </div>
     </div>
@@ -2523,10 +2507,8 @@
   <section class="section download" id="descarga">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title animate-on-scroll" data-i18n="dlTitle">Descarga AIRecorder</h2>
-        <p class="section-subtitle animate-on-scroll delay-1" data-i18n="dlSubtitle">
-          Empieza a grabar y analizar tus reuniones hoy mismo. Gratis, local y sin complicaciones.
-        </p>
+        <h2 class="section-title animate-on-scroll" data-i18n="dlTitle">Download AIRecorder</h2>
+        <p class="section-subtitle animate-on-scroll delay-1" data-i18n="dlSubtitle">Start recording and analyzing your meetings today. Free, local, and hassle-free.</p>
       </div>
 
       <div class="download-buttons">
@@ -2536,10 +2518,10 @@
             <svg viewBox="0 0 24 24" fill="currentColor">
               <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
             </svg>
-            <span data-i18n="dlMacMain">Descargar para macOS</span>
+            <span data-i18n="dlMacMain">Download for macOS</span>
           </div>
           <span class="download-btn-sub" data-i18n="dlMacSub">Apple Silicon · macOS 13+</span>
-          <span class="download-btn-tag" data-i18n="dlMacTag">Disponible ahora</span>
+          <span class="download-btn-tag" data-i18n="dlMacTag">Available now</span>
         </a>
 
         <!-- Windows -->
@@ -2548,20 +2530,20 @@
             <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
               <path d="M0 0h11.377v11.372H0zm12.623 0H24v11.372H12.623zM0 12.628h11.377V24H0zm12.623 0H24V24H12.623z"/>
             </svg>
-            <span data-i18n="dlWinMain">Descargar para Windows</span>
+            <span data-i18n="dlWinMain">Download for Windows</span>
           </div>
           <span class="download-btn-sub" data-i18n="dlWinSub">Windows 10/11 · x64</span>
-          <span class="download-btn-tag" data-i18n="dlWinTag">Disponible ahora</span>
+          <span class="download-btn-tag" data-i18n="dlWinTag">Available now</span>
         </a>
 
         <!-- Linux -->
         <a id="btn-linux" href="https://github.com/rgarciade/airecorder/releases/latest" target="_blank" rel="noopener" class="download-btn animate-on-scroll delay-4">
           <div class="download-btn-main">
             <span style="font-size:24px;line-height:1">🐧</span>
-            <span data-i18n="dlLinuxMain">Descargar para Linux</span>
+            <span data-i18n="dlLinuxMain">Download for Linux</span>
           </div>
           <span class="download-btn-sub" data-i18n="dlLinuxSub">.deb · AppImage · x64</span>
-          <span class="download-btn-tag beta" data-i18n="dlLinuxTag">En pruebas</span>
+          <span class="download-btn-tag beta" data-i18n="dlLinuxTag">Beta</span>
         </a>
       </div>
     </div>
@@ -2570,11 +2552,11 @@
   <!-- ==========================================
        FLOATING CTA (móvil / tablet)
   =========================================== -->
-  <button class="floating-cta" id="floatingCta" onclick="openDownloadModal(event)" aria-label="Descargar AIRecorder">
+  <button class="floating-cta" id="floatingCta" onclick="openDownloadModal(event)" aria-label="Download AIRecorder">
     <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
       <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
     </svg>
-    <span data-i18n="floatingCta">Descargar gratis</span>
+    <span data-i18n="floatingCta">Download free</span>
   </button>
 
   <!-- ==========================================
@@ -2594,26 +2576,13 @@
           <line x1="12" y1="9" x2="12" y2="13"/>
           <line x1="12" y1="17" x2="12.01" y2="17"/>
         </svg>
-        <span data-i18n="modalTitle">Instrucciones de Instalación</span>
+        <span data-i18n="modalTitle">Installation Instructions</span>
       </h3>
-      <div class="modal-text" data-i18n-html="modalText">
-        <p>⚠️ <strong>La app está en desarrollo preliminar y aún no está firmada.</strong></p>
-        <p>Para abrir la app por primera vez, es posible que tengas que lanzar este comando en la terminal después de instalarla (arrastrarla) en Aplicaciones:</p>
-        <code class="modal-code">xattr -cr /Applications/AIRecorder.app</code>
-
-        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
-          <p style="margin-bottom: 0.5rem; font-size: 0.95em;"><strong>🔄 ¿Estás actualizando desde una versión anterior?</strong></p>
-          <ol style="font-size: 0.9em; opacity: 0.9;">
-            <li>Borra la app actual de la carpeta Aplicaciones antes de instalar la nueva.</li>
-            <li>Cuando te pida permisos de captura de pantalla o accesibilidad, tienes que <strong>ELIMINAR</strong> el permiso antiguo en Ajustes del Sistema de macOS y volver a añadírselo a la nueva app.</li>
-          </ol>
-        </div>
+      <div class="modal-text" data-i18n-html="modalText"><p>⚠️ <strong>The app is in early development and is not yet signed.</strong></p><p>To open the app for the first time, you may need to run this command in the terminal after installing (dragging) it to Applications:</p><code class="modal-code">xattr -cr /Applications/AIRecorder.app</code><div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,0.1)"><p style="margin-bottom:.5rem;font-size:.95em"><strong>🔄 Updating from a previous version?</strong></p><ol style="font-size:.9em;opacity:.9"><li>Delete the current app from the Applications folder before installing the new one.</li><li>When asked for screen recording or accessibility permissions, you must <strong>REMOVE</strong> the old permission in macOS System Settings and re-add it to the new app.</li></ol></div></div>
       </div>
       <div class="modal-actions">
-        <a href="https://github.com/rgarciade/airecorder/releases/latest" target="_blank" rel="noopener" class="btn btn-primary" onclick="closeDownloadModal(event)" data-i18n="modalConfirm">
-          Entendido y Descargar
-        </a>
-        <button class="btn btn-secondary" onclick="closeDownloadModal(event)" data-i18n="modalCancel">Cancelar</button>
+        <a href="https://github.com/rgarciade/airecorder/releases/latest" target="_blank" rel="noopener" class="btn btn-primary" onclick="closeDownloadModal(event)" data-i18n="modalConfirm">Got it, Download</a>
+        <button class="btn btn-secondary" onclick="closeDownloadModal(event)" data-i18n="modalCancel">Cancel</button>
       </div>
     </div>
   </div>
@@ -2963,14 +2932,14 @@
       try { localStorage.setItem('airecorder-lang', lang); } catch(e) {}
     }
 
-    // This URL is the Spanish canonical home (see /en/ for the English one), so it
-    // always initializes in Spanish regardless of any saved language preference —
-    // otherwise a visitor landing here with a stale "en" preference from another
+    // This URL is the English canonical home (see / for the Spanish one), so it
+    // always initializes in English regardless of any saved language preference —
+    // otherwise a visitor landing here with a stale "es" preference from another
     // page would see mismatched content vs. this URL's meta tags and JSON-LD.
-    setLang('es');
+    setLang('en');
   </script>
 
-  <script src="components.js"></script>
+  <script src="/airecorder/components.js"></script>
 
   <!-- Swiper.js -->
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>

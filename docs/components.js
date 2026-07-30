@@ -1,9 +1,17 @@
 
 class AppHeader extends HTMLElement {
   connectedCallback() {
-    const currentLang = (function() { try { return localStorage.getItem('airecorder-lang'); } catch(e) { return null; } })() || (navigator.language.startsWith('en') ? 'en' : 'es');
     const currentPath = window.location.pathname.split('/').pop() || 'index.html';
-    
+    // The home page has two canonical URLs (/ for Spanish, /en/ for English) instead of
+    // a single URL with client-side auto-detected language, so search engines can index
+    // each language separately. The toggle below navigates between them on home pages;
+    // on every other page (changelog, wiki redirects) it keeps the old in-place swap.
+    const isEnHomePage = /\/en\/?$/.test(window.location.pathname);
+    const isEsHomePage = currentPath === 'index.html' && !isEnHomePage;
+    const currentLang = (function() { try { return localStorage.getItem('airecorder-lang'); } catch(e) { return null; } })() || (isEnHomePage ? 'en' : 'es');
+    const esOnclick = isEnHomePage ? "window.location.href='/airecorder/'+window.location.hash" : "window.setLang('es')";
+    const enOnclick = isEsHomePage ? "window.location.href='/airecorder/en/'+window.location.hash" : "window.setLang('en')";
+
     this.innerHTML = `
       <nav class="nav" id="nav">
         <div class="nav-inner">
@@ -20,8 +28,8 @@ class AppHeader extends HTMLElement {
             <li><a href="/airecorder/changelog.html" ${currentPath === 'changelog.html' ? 'class="active"' : ''} data-i18n="navChangelog">Novedades</a></li>
             <li>
               <div class="lang-toggle" role="group" aria-label="Idioma">
-                <button class="lang-btn ${currentLang === 'es' ? 'active' : ''}" data-lang="es" onclick="window.setLang('es')">ES</button>
-                <button class="lang-btn ${currentLang === 'en' ? 'active' : ''}" data-lang="en" onclick="window.setLang('en')">EN</button>
+                <button class="lang-btn ${currentLang === 'es' ? 'active' : ''}" data-lang="es" onclick="${esOnclick}">ES</button>
+                <button class="lang-btn ${currentLang === 'en' ? 'active' : ''}" data-lang="en" onclick="${enOnclick}">EN</button>
               </div>
             </li>
             <li><a href="index.html#descarga" class="nav-cta" data-i18n="navDownload">Descargar</a></li>
@@ -43,8 +51,8 @@ class AppHeader extends HTMLElement {
         <a href="changelog.html" data-i18n="navChangelog">Novedades</a>
         <a href="index.html#descarga" class="nav-cta" data-i18n="navDownload">Descargar</a>
         <div class="lang-toggle">
-          <button class="lang-btn ${currentLang === 'es' ? 'active' : ''}" data-lang="es" onclick="window.setLang('es')">ES</button>
-          <button class="lang-btn ${currentLang === 'en' ? 'active' : ''}" data-lang="en" onclick="window.setLang('en')">EN</button>
+          <button class="lang-btn ${currentLang === 'es' ? 'active' : ''}" data-lang="es" onclick="${esOnclick}">ES</button>
+          <button class="lang-btn ${currentLang === 'en' ? 'active' : ''}" data-lang="en" onclick="${enOnclick}">EN</button>
         </div>
       </div>
     `;
@@ -94,7 +102,7 @@ class AppHeader extends HTMLElement {
         const href = anchor.getAttribute('href');
         const hash = href.includes('#') ? '#' + href.split('#')[1] : null;
         
-        if (hash && (href.startsWith('#') || window.location.pathname.endsWith('index.html') || window.location.pathname === '/')) {
+        if (hash && (href.startsWith('#') || window.location.pathname.endsWith('index.html') || window.location.pathname.endsWith('/'))) {
           const target = document.querySelector(hash);
           if (target) {
             e.preventDefault();
