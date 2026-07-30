@@ -93,7 +93,7 @@
       const observer = new IntersectionObserver(entries => {
         entries.forEach(e => {
           visible = e.isIntersecting;
-          if (visible) restartTimer();
+          if (visible) setActive(active);
           else clearTimeout(timer);
         });
       }, { threshold: 0.3 });
