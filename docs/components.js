@@ -2,15 +2,27 @@
 class AppHeader extends HTMLElement {
   connectedCallback() {
     const currentPath = window.location.pathname.split('/').pop() || 'index.html';
-    // The home page has two canonical URLs (/ for Spanish, /en/ for English) instead of
-    // a single URL with client-side auto-detected language, so search engines can index
-    // each language separately. The toggle below navigates between them on home pages;
+    // Pages listed here have two canonical URLs (one per language) instead of a single
+    // URL with client-side auto-detected language, so search engines can index each
+    // language separately. The toggle below navigates between the pair for these pages;
     // on every other page (changelog, wiki redirects) it keeps the old in-place swap.
-    const isEnHomePage = /\/en\/?$/.test(window.location.pathname);
-    const isEsHomePage = currentPath === 'index.html' && !isEnHomePage;
-    const currentLang = (function() { try { return localStorage.getItem('airecorder-lang'); } catch(e) { return null; } })() || (isEnHomePage ? 'en' : 'es');
-    const esOnclick = isEnHomePage ? "window.location.href='/airecorder/'+window.location.hash" : "window.setLang('es')";
-    const enOnclick = isEsHomePage ? "window.location.href='/airecorder/en/'+window.location.hash" : "window.setLang('en')";
+    const bilingualPages = ['index.html', 'vs-plaud.html'];
+    const pathname = window.location.pathname;
+    const enHomeMatch = /\/en\/?$/.test(pathname); // directory-style /en/ (home)
+    const enFileMatch = pathname.match(/\/en\/([^/]+\.html)$/); // /en/<file>.html
+    const isEnPage = enHomeMatch || (!!enFileMatch && bilingualPages.includes(enFileMatch[1]));
+    const isEsBilingualPage = !isEnPage && bilingualPages.includes(currentPath);
+    const currentLang = (function() { try { return localStorage.getItem('airecorder-lang'); } catch(e) { return null; } })() || (isEnPage ? 'en' : 'es');
+
+    let esTarget = null, enTarget = null;
+    if (isEnPage) {
+      const file = enHomeMatch ? 'index.html' : enFileMatch[1];
+      esTarget = file === 'index.html' ? '/airecorder/' : '/airecorder/' + file;
+    } else if (isEsBilingualPage) {
+      enTarget = currentPath === 'index.html' ? '/airecorder/en/' : '/airecorder/en/' + currentPath;
+    }
+    const esOnclick = esTarget ? `window.location.href='${esTarget}'+window.location.hash` : "window.setLang('es')";
+    const enOnclick = enTarget ? `window.location.href='${enTarget}'+window.location.hash` : "window.setLang('en')";
 
     this.innerHTML = `
       <nav class="nav" id="nav">

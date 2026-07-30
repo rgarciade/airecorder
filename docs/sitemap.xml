@@ -19,6 +19,78 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://rgarciade.github.io/airecorder/"/>
   </url>
   <url>
+    <loc>https://rgarciade.github.io/airecorder/vs-plaud.html</loc>
+    <lastmod>2026-07-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://rgarciade.github.io/airecorder/vs-plaud.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://rgarciade.github.io/airecorder/en/vs-plaud.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://rgarciade.github.io/airecorder/vs-plaud.html"/>
+  </url>
+  <url>
+    <loc>https://rgarciade.github.io/airecorder/en/vs-plaud.html</loc>
+    <lastmod>2026-07-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://rgarciade.github.io/airecorder/vs-plaud.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://rgarciade.github.io/airecorder/en/vs-plaud.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://rgarciade.github.io/airecorder/vs-plaud.html"/>
+  </url>
+  <url>
+    <loc>https://rgarciade.github.io/airecorder/vs-otter.html</loc>
+    <lastmod>2026-07-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://rgarciade.github.io/airecorder/vs-otter.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://rgarciade.github.io/airecorder/en/vs-otter.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://rgarciade.github.io/airecorder/vs-otter.html"/>
+  </url>
+  <url>
+    <loc>https://rgarciade.github.io/airecorder/en/vs-otter.html</loc>
+    <lastmod>2026-07-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://rgarciade.github.io/airecorder/vs-otter.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://rgarciade.github.io/airecorder/en/vs-otter.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://rgarciade.github.io/airecorder/vs-otter.html"/>
+  </url>
+  <url>
+    <loc>https://rgarciade.github.io/airecorder/vs-fireflies.html</loc>
+    <lastmod>2026-07-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://rgarciade.github.io/airecorder/vs-fireflies.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://rgarciade.github.io/airecorder/en/vs-fireflies.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://rgarciade.github.io/airecorder/vs-fireflies.html"/>
+  </url>
+  <url>
+    <loc>https://rgarciade.github.io/airecorder/en/vs-fireflies.html</loc>
+    <lastmod>2026-07-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://rgarciade.github.io/airecorder/vs-fireflies.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://rgarciade.github.io/airecorder/en/vs-fireflies.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://rgarciade.github.io/airecorder/vs-fireflies.html"/>
+  </url>
+  <url>
+    <loc>https://rgarciade.github.io/airecorder/vs-fathom.html</loc>
+    <lastmod>2026-07-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://rgarciade.github.io/airecorder/vs-fathom.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://rgarciade.github.io/airecorder/en/vs-fathom.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://rgarciade.github.io/airecorder/vs-fathom.html"/>
+  </url>
+  <url>
+    <loc>https://rgarciade.github.io/airecorder/en/vs-fathom.html</loc>
+    <lastmod>2026-07-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://rgarciade.github.io/airecorder/vs-fathom.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://rgarciade.github.io/airecorder/en/vs-fathom.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://rgarciade.github.io/airecorder/vs-fathom.html"/>
+  </url>
+  <url>
     <loc>https://rgarciade.github.io/airecorder/changelog.html</loc>
     <lastmod>2026-07-22</lastmod>
     <changefreq>monthly</changefreq>
