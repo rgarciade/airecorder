@@ -21,6 +21,12 @@ import { normalizeChatHistory } from '../../services/chat/chatHistory';
 import { useChatCommands } from '../../hooks/useChatCommands';
 import { checkModelVisionSupport } from '../../services/ai/huggingFaceService';
 import { generateFromTemplate } from '../../services/noteTemplateService';
+import {
+  buildRegenerationProviderOverrides,
+  canUseRegenerationProvider,
+  getCodexRegenerationStatus,
+} from '../../services/ai/regenerationProvider';
+import RegenerationProviderSelect from './components/RegenerationProviderSelect';
 
 import styles from './RecordingDetail.module.css';
 import OverviewTab from './components/OverviewTab/OverviewTab';
@@ -126,8 +132,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [lmStudioModels, setLmStudioModels] = useState([]);
   const [selectedLmStudioModel, setSelectedLmStudioModel] = useState('');
   const [customConnections, setCustomConnections] = useState([]);
-  const [customConnectionModels, setCustomConnectionModels] = useState([]);
-  const [selectedCustomConnectionModel, setSelectedCustomConnectionModel] = useState('');
+  const [codexStatus, setCodexStatus] = useState(null);
   const [ollamaRagModel, setOllamaRagModel] = useState(''); // Modelo específico para RAG (Ollama)
   const [lmStudioRagModel, setLmStudioRagModel] = useState(''); // Modelo específico para RAG (LM Studio)
   const [supportsStreaming, setSupportsStreaming] = useState(true);
@@ -313,7 +318,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       const provider = settings.aiProvider || 'gemini';
       // Todos los proveedores cloud soportan streaming nativamente (y LM Studio)
       // Ollama depende de la configuración del modelo
-      const cloudProviders = ['gemini', 'openai', 'deepseek', 'kimi', 'lmstudio'];
+      const cloudProviders = ['gemini', 'openai', 'codex', 'deepseek', 'kimi', 'lmstudio'];
       const modelSupportsStreaming = cloudProviders.includes(provider) 
         ? true 
         : (settings.ollamaModelSupportsStreaming || false);
@@ -352,6 +357,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         kimi: settings.kimiModel,
         gemini: settings.geminiModel,
         openai: settings.openaiModel,
+        codex: settings.codexModel,
         lmstudio: settings.lmStudioRagModel || settings.lmStudioModel,
       };
       const newSettingsModel = modelByProvider[provider] || '';
@@ -417,18 +423,6 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           }
         })
         .catch(err => console.error("Error fetching LM Studio models:", err));
-    }
-    if (isCustom(aiProvider)) {
-      const connection = customConnections.find((c) => aiProvider === `custom:${c.id}`);
-      if (connection && window.electronAPI?.listCustomModels) {
-        window.electronAPI.listCustomModels(connection.id, connection)
-          .then(result => {
-            if (result?.success) {
-              setCustomConnectionModels((result.models || []).map(m => m.name || m));
-            }
-          })
-          .catch(err => console.error("Error fetching custom connection models:", err));
-      }
     }
   }, [aiProvider]);
 
@@ -666,7 +660,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       // Usar estado local actualizado por el listener (más fiable y rápido)
       const provider = aiProvider;
       // Todos los proveedores cloud usan streaming, Ollama depende de configuración
-      const cloudProviders = ['gemini', 'openai', 'deepseek', 'kimi', 'lmstudio'];
+      const cloudProviders = ['gemini', 'openai', 'codex', 'deepseek', 'kimi', 'lmstudio'];
       const shouldUseStreaming = cloudProviders.includes(provider) ? true : supportsStreaming;
 
       console.log('🤖 Preparando chat:', {
@@ -1102,27 +1096,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       setSelectedOllamaModel(settings.ollamaModel || '');
       setSelectedLmStudioModel(settings.lmStudioModel || '');
       setCustomConnections(settings.customConnections || []);
-      setSelectedCustomConnectionModel(settings.customGeneralModel || '');
 
-      if (provider === 'ollama') {
-        const models = await getAvailableModels();
-        setOllamaModels(models.map(m => m.name || m));
-      }
-      if (provider === 'lmstudio') {
-        const models = await getLMStudioModels();
-        setLmStudioModels(models.map(m => m.name || m));
-      }
-      if (isCustom(provider)) {
-        const connection = (settings.customConnections || []).find(
-          (c) => provider === `custom:${c.id}`
-        );
-        if (connection && window.electronAPI?.listCustomModels) {
-          const result = await window.electronAPI.listCustomModels(connection.id, connection);
-          if (result?.success) {
-            setCustomConnectionModels((result.models || []).map(m => m.name || m));
-          }
-        }
-      }
+      setCodexStatus(await getCodexRegenerationStatus());
     } catch (e) {
       console.error("Error loading settings for regenerate modal:", e);
     }
@@ -1147,15 +1122,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     setShowRegenerateConfirm(false);
     setIsGeneratingAi(true);
 
-    // Override temporal: se usa solo para esta regeneración sin modificar los ajustes globales
-    const providerOverrides = {
-      providerOverride: aiProvider,
-      ...(aiProvider === 'ollama' && selectedOllamaModel ? { model: selectedOllamaModel } : {}),
-      ...(aiProvider === 'lmstudio' && selectedLmStudioModel ? { model: selectedLmStudioModel } : {}),
-      ...(isCustom(aiProvider) && selectedCustomConnectionModel ? { model: selectedCustomConnectionModel } : {}),
-    };
-
     try {
+      // La regeneración cambia de proveedor, pero reutiliza su configuración persistida.
+      const savedSettings = await getSettings();
+      const providerOverrides = buildRegenerationProviderOverrides({
+        provider: aiProvider,
+        settings: savedSettings,
+      });
+
       // Leer contenido de adjuntos seleccionados para la regeneración
       let regenerateDocContext = '';
       if (regenerateOptions.attachments && regenerateOptions.attachments.length > 0) {
@@ -1948,72 +1922,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
               {/* AI Model Section */}
               <div className={styles.modalSection}>
                 <label className={styles.modalLabel}>AI Provider</label>
-                <select 
+                <RegenerationProviderSelect
                   className={styles.select}
                   value={aiProvider}
                   onChange={(e) => setAiProvider(e.target.value)}
-                >
-                  <option value="gemini">Gemini (Google)</option>
-                  <option value="openai">OpenAI</option>
-                  <option value="deepseek">DeepSeek</option>
-                  <option value="kimi">Kimi (Moonshot)</option>
-                  <option value="ollama">Ollama (Local)</option>
-                  <option value="lmstudio">LM Studio (Local)</option>
-                  {customConnections.map(connection => (
-                    <option key={connection.id} value={`custom:${connection.id}`}>{connection.name}</option>
-                  ))}
-                </select>
+                  codexStatus={codexStatus}
+                  customConnections={customConnections}
+                />
 
-                {aiProvider === 'ollama' && (
-                  <>
-                    <label className={styles.modalLabel}>Local Model</label>
-                    <select
-                      className={styles.select}
-                      value={selectedOllamaModel}
-                      onChange={(e) => setSelectedOllamaModel(e.target.value)}
-                    >
-                      <option value="" disabled>Select a model...</option>
-                      {ollamaModels.map(model => (
-                        <option key={model} value={model}>{model}</option>
-                      ))}
-                    </select>
-                  </>
-                )}
-
-                {aiProvider === 'lmstudio' && (
-                  <>
-                    <label className={styles.modalLabel}>LM Studio Model</label>
-                    <select
-                      className={styles.select}
-                      value={selectedLmStudioModel}
-                      onChange={(e) => setSelectedLmStudioModel(e.target.value)}
-                    >
-                      <option value="" disabled>Select a model...</option>
-                      {lmStudioModels.length > 0
-                        ? lmStudioModels.map(model => (
-                            <option key={model} value={model}>{model}</option>
-                          ))
-                        : <option value="" disabled>LM Studio no disponible o sin modelos</option>
-                      }
-                    </select>
-                  </>
-                )}
-
-                {isCustom(aiProvider) && (
-                  <>
-                    <label className={styles.modalLabel}>Model</label>
-                    <select
-                      className={styles.select}
-                      value={selectedCustomConnectionModel}
-                      onChange={(e) => setSelectedCustomConnectionModel(e.target.value)}
-                    >
-                      <option value="" disabled>Select a model...</option>
-                      {customConnectionModels.map(model => (
-                        <option key={model} value={model}>{model}</option>
-                      ))}
-                    </select>
-                  </>
-                )}
               </div>
 
               {/* Options Section */}
@@ -2096,6 +2012,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
               <button 
                 className={styles.confirmModalBtn} 
                 onClick={handleConfirmRegenerate}
+                disabled={aiProvider === 'codex' && !canUseRegenerationProvider('codex', { codexStatus })}
               >
                 Regenerate Selected
               </button>

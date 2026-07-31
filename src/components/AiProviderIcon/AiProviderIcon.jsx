@@ -34,6 +34,7 @@ export const AI_PROVIDERS = {
   ollama: { label: 'Ollama', Icon: SiOllama },
   lmstudio: { label: 'LM Studio', Icon: LmStudioMark },
   openai: { label: 'OpenAI', Icon: AiOutlineOpenAI },
+  codex: { label: 'Codex', Icon: AiOutlineOpenAI },
   gemini: { label: 'Gemini', Icon: SiGooglegemini },
   kimi: { label: 'Kimi', Icon: KimiMark },
   deepseek: { label: 'DeepSeek', Icon: SiDeepseek },

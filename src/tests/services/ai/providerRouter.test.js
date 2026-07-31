@@ -86,6 +86,8 @@ describe('providerRouter custom dispatch', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     getSettings.mockReset();
+    globalThis.window ||= {};
+    delete globalThis.window.electronAPI;
 
     const router = await import('../../../services/ai/providerRouter.js');
     callProvider = router.callProvider;
@@ -184,5 +186,28 @@ describe('providerRouter custom dispatch', () => {
     const result = await getActiveProviderContextWindow(settings);
 
     expect(result).toBe(250000);
+  });
+
+  it('propagates the saved Codex reasoning effort through all three generative routes', async () => {
+    getSettings.mockResolvedValue({ aiProvider: 'codex', codexModel: 'gpt-a', codexReasoningEffort: 'high' });
+    const runCodex = vi.fn().mockResolvedValue({ success: true, text: 'answer' });
+    window.electronAPI = { runCodex, cancelCodex: vi.fn().mockResolvedValue({ success: true }), onCodexChunk: vi.fn(() => vi.fn()) };
+
+    await callProvider('analysis');
+    await callProviderStreaming('stream', vi.fn());
+    await callChatProviderStreaming([{ role: 'user', content: 'chat' }], vi.fn());
+
+    expect(runCodex).toHaveBeenCalledTimes(3);
+    for (const [request] of runCodex.mock.calls) {
+      expect(request).toMatchObject({ model: 'gpt-a', reasoningEffort: 'high' });
+    }
+  });
+
+  it.each(['none', 'max'])('rejects unsupported Codex reasoning effort %s before IPC', async (reasoningEffort) => {
+    getSettings.mockResolvedValue({ aiProvider: 'codex', codexModel: 'gpt-a', codexReasoningEffort: reasoningEffort });
+    const runCodex = vi.fn();
+    window.electronAPI = { runCodex, cancelCodex: vi.fn().mockResolvedValue({ success: true }), onCodexChunk: vi.fn(() => vi.fn()) };
+    await expect(callProvider('analysis')).rejects.toThrow(/razonamiento.*no es válido/i);
+    expect(runCodex).not.toHaveBeenCalled();
   });
 });

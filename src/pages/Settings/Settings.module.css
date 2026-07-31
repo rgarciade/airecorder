@@ -332,6 +332,10 @@
   background-color: var(--color-bg-secondary);
 }
 
+.codexLogin {
+  margin-top: 12px;
+}
+
 .inputIcon {
   position: absolute;
   right: 12px;

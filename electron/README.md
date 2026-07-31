@@ -801,3 +801,15 @@ Cada plantilla tiene un array de secciones con estos tipos:
 
 ## 9. `projectsDatabase.README.md`
 Existe un archivo adicional en esta carpeta (`projectsDatabase.README.md`) que detalla un motor de base de datos específico en JSON que sirve de legado o apoyo para ciertos datos de proyecto. Revísalo si vas a tocar `projectsDatabase.js`.
+
+### Codex / suscripción ChatGPT
+
+Los canales `ai:codex-status`, `ai:codex-models`, `ai:codex-login`, `ai:codex-run` y `ai:codex-cancel` pertenecen a `ipc-handlers/ai.js`. El preload expone estado, catálogo, arranque de login, ejecución/cancelación por `requestId` y suscripciones eliminables a progreso/chunks; el servicio `services/codexService.js` es el único que importa el SDK y ejecuta el binario nativo empaquetado. Nunca relanza Electron ni lee la sesión local. `package.json` desempaqueta `@openai/codex*` desde ASAR para preservar sus binarios por plataforma.
+
+`listCodexModels()` invoca el binario ya resuelto con los argumentos fijos `debug models`, `shell: false`, timeout y límites independientes de stdout/stderr/salida total. Main valida el JSON RAW de Codex (`slug`, `supported_reasoning_levels[].effort`, `default_reasoning_level`, `visibility`), descarta modelos con visibilidad `hide`/`none` y devuelve `{ success, models, error }`; cada modelo se normaliza a `{ id, model, displayName, description, supportedReasoningEfforts, defaultReasoningEffort, isDefault }`. Los efforts anunciados que el runtime actual no soporta se omiten y los soportados se deduplican; si el default queda fuera del conjunto filtrado, se devuelve `null` sin inventar un reemplazo. También acepta las variantes camelCase del protocolo `model/list`. No existe catálogo hardcodeado ni fallback de backend: si falla, la UI conserva el modelo guardado y habilita entrada manual.
+
+Device-auth transmite por `ai:codex-login-progress`, asociado al `requestId`, únicamente datos públicos estructurados: fase, código de un solo uso y URL. Main elimina secuencias ANSI reales o degradadas, no reenvía el banner/transcript del terminal y sólo acepta URLs HTTPS cuyo host exacto sea `auth.openai.com`; credenciales y archivos privados de Codex nunca cruzan IPC.
+
+Mientras `ai:codex-login` está activo, Main consulta `codex login status` cada 1,5 segundos hasta detectar la sesión, recibir cancelación/error o alcanzar el timeout. Las consultas son secuenciales (nunca se solapan); al detectar `connected: true`, el servicio resuelve inmediatamente el IPC, termina el proceso `--device-auth` que pueda seguir abierto y elimina timers/listeners antes de ignorar eventos tardíos. Fuera de ese flujo no existe polling permanente: Settings y Onboarding realizan una sola consulta al montarse.
+
+El renderer carga el catálogo una vez al detectar una sesión conectada y sólo lo repite por acción explícita de refresco. `codexReasoningEffort` se persiste junto a `codexModel`; al ejecutar, Main sólo pasa `modelReasoningEffort` al SDK cuando pertenece a `minimal|low|medium|high|xhigh`, el conjunto tipado por la versión instalada del SDK.

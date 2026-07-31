@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSystemMicrophones } from '../../services/audioService';
 import { getSettings, updateSettings } from '../../services/settingsService';
@@ -9,6 +9,7 @@ import { checkLMStudioAvailability, getLMStudioModelInfo } from '../../services/
 import { applyTheme } from '../../services/themeService';
 import { useCustomConnections } from '../../hooks/useCustomConnections';
 import { CustomOpenAIProvider, OPENAI_BASE_URL } from '../../services/ai/customOpenAIProvider';
+import { reconcileCodexSelection } from '../../services/ai/codexModelSelection';
 
 export const mockLanguages = [
   { value: 'es', label: 'Español' },
@@ -96,7 +97,14 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
   const [openaiModelsLoading, setOpenaiModelsLoading] = useState(false);
   const [openaiModelsError, setOpenaiModelsError] = useState('');
 
-  const [aiProvider, setAiProvider] = useState('gemini'); // 'gemini' | 'deepseek' | 'kimi' | 'openai' | 'ollama'
+  const [aiProvider, setAiProvider] = useState('gemini');
+  const [codexModel, setCodexModel] = useState('');
+  const [codexReasoningEffort, setCodexReasoningEffort] = useState('');
+  const [codexModels, setCodexModels] = useState([]);
+  const [codexModelsLoading, setCodexModelsLoading] = useState(false);
+  const [codexModelsError, setCodexModelsError] = useState('');
+  const [codexStatus, setCodexStatus] = useState(null);
+  const codexModelsLoadedRef = useRef(false);
 
   // Ollama
   const [ollamaModel, setOllamaModel] = useState('');
@@ -163,6 +171,31 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
   const [updateInfo, setUpdateInfo] = useState(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateMessage, setUpdateMessage] = useState('');
+
+  const loadCodexModels = useCallback(async ({ force = false } = {}) => {
+    if (!window.electronAPI?.listCodexModels || (codexModelsLoadedRef.current && !force)) return;
+    codexModelsLoadedRef.current = true;
+    setCodexModelsLoading(true);
+    setCodexModelsError('');
+    try {
+      const result = await window.electronAPI.listCodexModels();
+      if (!result?.success || !Array.isArray(result.models)) throw new Error(result?.error || 'Invalid Codex model response');
+      setCodexModels(result.models);
+      const selection = reconcileCodexSelection(result.models, codexModel, codexReasoningEffort);
+      setCodexModel(selection.model);
+      setCodexReasoningEffort(selection.reasoningEffort);
+    } catch (error) {
+      setCodexModels([]);
+      setCodexModelsError(error.message || String(error));
+    } finally {
+      setCodexModelsLoading(false);
+    }
+  }, [codexModel, codexReasoningEffort]);
+
+  useEffect(() => {
+    if (codexStatus?.connected) loadCodexModels();
+    else codexModelsLoadedRef.current = false;
+  }, [codexStatus?.connected, loadCodexModels]);
 
   useEffect(() => {
     loadSettings();
@@ -250,6 +283,8 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
         setOllamaContextLengthSaved(savedSettings.ollamaContextLength ? String(savedSettings.ollamaContextLength) : '');
 
         setAiProvider(savedSettings.aiProvider || 'ollama');
+        setCodexModel(savedSettings.codexModel || '');
+        setCodexReasoningEffort(savedSettings.codexReasoningEffort || '');
         setOllamaModel(savedSettings.ollamaModel || '');
         setOllamaRagModel(savedSettings.ollamaRagModel || '');
         setOllamaEmbeddingModel(savedSettings.ollamaEmbeddingModel || 'nomic-embed-text');
@@ -264,6 +299,10 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
           }
         }
         if (savedSettings.databasePath) setDatabasePath(savedSettings.databasePath);
+      }
+
+      if (window.electronAPI?.getCodexStatus) {
+        window.electronAPI.getCodexStatus().then(setCodexStatus).catch(() => setCodexStatus({ available: false, connected: false }));
       }
 
       // Check Ollama with loaded/default host
@@ -474,6 +513,12 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
     }
   };
 
+  const handleCodexModelChange = (newModel) => {
+    const selection = reconcileCodexSelection(codexModels, newModel, codexReasoningEffort);
+    setCodexModel(selection.model);
+    setCodexReasoningEffort(selection.reasoningEffort);
+  };
+
   /** Detecta el context length de Ollama explícitamente (con feedback de estado) */
   const handleDetectOllamaContextLength = async () => {
     if (!ollamaModel || !ollamaAvailable) return;
@@ -600,6 +645,9 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
         // OpenAI
         openaiApiKey: openaiApiKey,
         openaiModel: openaiModel,
+        // Codex (session is owned by the CLI; no credential is stored)
+        codexModel: codexModel,
+        codexReasoningEffort: codexReasoningEffort,
         // LM Studio
         lmStudioHost: lmStudioHost,
         lmStudioModel: lmStudioModel,
@@ -823,6 +871,14 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
 
     // Provider selection
     aiProvider,
+    codexModel, setCodexModel,
+    codexReasoningEffort, setCodexReasoningEffort,
+    codexModels,
+    codexModelsLoading,
+    codexModelsError,
+    loadCodexModels,
+    handleCodexModelChange,
+    codexStatus, setCodexStatus,
     setAiProvider,
     toggleProvider,
     toggleEmbeddingProvider,
