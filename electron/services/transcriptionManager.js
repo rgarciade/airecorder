@@ -326,6 +326,9 @@ runTranscriptionProcess(task, diarizationFile, onProgress) {
 
         this.process = spawn(executablePath, args, { env: spawnEnv });
 
+        let diskSpaceInfo = null;
+        let lastErrorLine = null;
+
         this.process.stdout.on('data', (data) => {
             const message = data.toString().trim();
             const progressMatch = message.match(/PROGRESS:\s*(\d+)/);
@@ -336,8 +339,16 @@ runTranscriptionProcess(task, diarizationFile, onProgress) {
 
         this.process.stderr.on('data', (data) => {
             const msg = data.toString().trim();
-            if (msg.toLowerCase().includes('warning')) console.warn(`[Transcription ${task.id} WARN]: ${msg}`);
-            else console.error(`[Transcription ${task.id} ERR]: ${msg}`);
+            const diskSpaceMatch = msg.match(/expected file size is:\s*([\d.]+)\s*MB.*?only has\s*([\d.]+)\s*MB free/is);
+            if (diskSpaceMatch) {
+                diskSpaceInfo = { expectedMb: parseFloat(diskSpaceMatch[1]), freeMb: parseFloat(diskSpaceMatch[2]) };
+            }
+            if (msg.toLowerCase().includes('warning')) {
+                console.warn(`[Transcription ${task.id} WARN]: ${msg}`);
+            } else {
+                console.error(`[Transcription ${task.id} ERR]: ${msg}`);
+                lastErrorLine = msg;
+            }
         });
 
         this.process.on('close', (code) => {
@@ -352,8 +363,10 @@ runTranscriptionProcess(task, diarizationFile, onProgress) {
                     this.onAutoAnalyzeCallback(task.recording_id);
                 }
                 resolve();
+            } else if (diskSpaceInfo) {
+                reject(new Error(`DISK_SPACE::${diskSpaceInfo.expectedMb}::${diskSpaceInfo.freeMb}`));
             } else {
-                reject(new Error(`Process exited with code ${code}`));
+                reject(new Error(lastErrorLine || `Process exited with code ${code}`));
             }
         });
 
