@@ -139,7 +139,9 @@ This project follows [Conventional Commits](https://www.conventionalcommits.org/
 
 ### Running the Python script manually
 
-The transcription pipeline is resilient to partial recordings: if one track is empty, undecodable, has zero duration, or is effectively silent, the analyzer skips that track and still transcribes the valid one. It also discards implausible synchronization lags instead of trimming almost the entire clip. The process only fails when both tracks are unusable.
+The transcription pipeline is resilient to partial recordings: if one track is empty, undecodable, has zero duration, or is effectively silent, the analyzer skips that track and still transcribes the valid one. It also discards implausible synchronization lags instead of trimming almost the entire clip. The process fails (non-zero exit code) when both tracks are unusable, **or when the Whisper model cannot be loaded** (e.g. `WhisperModel(...)` failing to download the model on first run due to insufficient disk space) — the manager (`electron/services/transcriptionManager.js`) relies on the exit code to distinguish a real success from a silent failure, so `main()` must call `sys.exit(1)` whenever `run_full_analysis()` returns `False`.
+
+**Reporting the "not enough disk space" case to the UI:** `huggingface_hub` emits its low-disk-space warning as a `UserWarning` on stderr (`"expected file size is: X MB ... only has Y MB free disk space"`) before the model load fails. `transcriptionManager.js` pattern-matches that line while the process runs and, on a non-zero exit, stores a structured `DISK_SPACE::<expectedMb>::<freeMb>` string as the task's error instead of the generic `Process exited with code N`. `TranscriptionQueue.jsx` detects that prefix and renders a translated, human-readable message (`transcriptionQueue.errors.diskSpace` in `src/i18n/locales/*.json`) under the failed task in the activity log; any other failure falls back to the last non-warning stderr line via `transcriptionQueue.errors.generic`.
 
 ```bash
 python python/audio_sync_analyzer.py \
