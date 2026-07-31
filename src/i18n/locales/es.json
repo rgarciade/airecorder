@@ -269,7 +269,33 @@
       "deepseekName": "DeepSeek",
       "kimiName": "Kimi",
       "openaiName": "OpenAI",
-      "openaiDesc": "OpenAI (GPT)"
+      "openaiDesc": "OpenAI (GPT)",
+      "codexName": "Codex (suscripción ChatGPT)",
+      "codexDesc": "Usa tu sesión de ChatGPT; no requiere API Key y no incluye embeddings",
+      "codexConnect": "Conectar con ChatGPT",
+      "codexConnected": "Sesión de ChatGPT conectada",
+      "codexEmbeddingNotice": "Codex no ofrece embeddings. Elegí otro proveedor de embeddings.",
+      "codexLoginInstructions": "Conectá tu cuenta de ChatGPT en el flujo oficial de Codex; la app no ve ni guarda tus credenciales.",
+      "codexLoginFailed": "No se pudo iniciar la sesión de Codex. Revisá el mensaje e intentá nuevamente.",
+      "codexConnecting": "Conectando…",
+      "codexUnavailable": "Codex CLI no está disponible en esta instalación.",
+      "codexCancel": "Cancelar",
+      "codexDeviceAuthInstructions": "Abrí el enlace oficial e ingresá el código de un solo uso.",
+      "codexCodeLabel": "Código de un solo uso",
+      "codexOfficialLink": "Abrir autenticación oficial de OpenAI",
+      "codexModelsLoading": "Cargando los modelos disponibles para tu suscripción…",
+      "codexModelsError": "No se pudo cargar el catálogo de modelos de Codex: {{error}}",
+      "codexManualModelPlaceholder": "Ingresá un ID de modelo",
+      "codexManualModelHelp": "El catálogo no está disponible. Podés conservar el modelo guardado o ingresar su ID manualmente.",
+      "codexReasoningEffort": "Esfuerzo de razonamiento",
+      "codexEfforts": {
+        "none": "Ninguno",
+        "minimal": "Mínimo",
+        "low": "Bajo",
+        "medium": "Medio",
+        "high": "Alto",
+        "xhigh": "Extra alto"
+      }
     },
     "buttons": {
       "save": "Guardar Ajustes",
@@ -671,9 +697,7 @@
     "uploadFile": "Subir archivo",
     "pasteConversation": "Pegar conversación",
     "importTeamsDescription": "Importa transcripciones de Microsoft Teams (.docx).",
-    "importAudioDescription": "Sube archivos de audio (mp3, wav, ogg...) para transcribir.",
-    "uploadFile": "Subir archivo",
-    "pasteConversation": "Pegar conversación"
+    "importAudioDescription": "Sube archivos de audio (mp3, wav, ogg...) para transcribir."
   },
   "statsRow": {
     "thisWeek": "Esta Semana",

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import CodexLoginControls from '../../../../components/CodexLoginControls/CodexLoginControls';
+import CodexModelControls from '../../../../components/CodexModelControls/CodexModelControls';
 import {
   MdCloud, MdVisibility, MdVisibilityOff, MdRefresh, MdOpenInNew, MdExpandMore, MdExpandLess
 } from 'react-icons/md';
@@ -21,6 +23,12 @@ export default function CloudProvidersSection({ role, defaultOpen = false }) {
     embeddingProvider,
     toggleEmbeddingProvider,
     showApiKey, setShowApiKey,
+    // Codex subscription
+    codexModel,
+    codexReasoningEffort, setCodexReasoningEffort,
+    codexModels, codexModelsLoading, codexModelsError,
+    loadCodexModels, handleCodexModelChange,
+    codexStatus, setCodexStatus,
     // OpenAI
     openaiApiKey, setOpenaiApiKey,
     openaiModel, setOpenaiModel,
@@ -55,6 +63,7 @@ export default function CloudProvidersSection({ role, defaultOpen = false }) {
 
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
+
   return (
     <section className={styles.section}>
       <div className={styles.sectionHeader}>
@@ -82,11 +91,12 @@ export default function CloudProvidersSection({ role, defaultOpen = false }) {
             <MdOpenInNew size={14} />
             {t('settings.wikiLink')}
           </a>
-          <span className={`${styles.badge} ${['gemini', 'deepseek', 'kimi', 'openai'].includes(activeProvider) ? styles.badgeActive : styles.badgeInactive}`}>
+          <span className={`${styles.badge} ${['gemini', 'deepseek', 'kimi', 'openai', 'codex'].includes(activeProvider) ? styles.badgeActive : styles.badgeInactive}`}>
            {activeProvider === 'gemini' ? t('settings.providers.geminiName') :
             activeProvider === 'deepseek' ? t('settings.providers.deepseekName') :
             activeProvider === 'kimi' ? t('settings.providers.kimiName') :
-            activeProvider === 'openai' ? t('settings.providers.openaiName') : t('settings.providers.inactive')}
+            activeProvider === 'openai' ? t('settings.providers.openaiName') :
+            activeProvider === 'codex' ? t('settings.providers.codexName') : t('settings.providers.inactive')}
           </span>
           <button
             type="button"
@@ -101,8 +111,45 @@ export default function CloudProvidersSection({ role, defaultOpen = false }) {
 
       {isOpen && (
       <>
+      {/* Codex / ChatGPT subscription — general generation only */}
+      <div className={`${styles.card} ${!isProviderActive('codex') ? styles.cardDisabled : ''}`}>
+        <div className={styles.cardHeader}>
+          <div className={styles.providerInfo}>
+            <div className={styles.providerIcon} style={{ backgroundColor: '#eef2ff', color: '#4f46e5' }}><AiProviderIcon provider="codex" size={24} /></div>
+            <div><h4 className={styles.providerName}>Codex</h4><RoleBadge aiProvider={aiProvider} embeddingProvider={embeddingProvider} providerKey="codex" styles={styles} /><p className={styles.providerDesc}>{t('settings.providers.codexDesc')}</p></div>
+          </div>
+          <label className={styles.toggleWrapper}><input type="checkbox" className={styles.toggleInput} checked={isProviderActive('codex')} disabled={role === 'embeddings'} onChange={() => handleToggle('codex')} /><div className={styles.toggleSlider} /></label>
+        </div>
+        {role === 'embeddings' ? <p className={styles.helpText}>{t('settings.providers.codexEmbeddingNotice')}</p> : <div className={styles.formGroup}>
+          <p className={styles.helpText}>{codexStatus?.available === false ? (codexStatus.error || t('settings.providers.codexUnavailable')) : (codexStatus?.connected ? t('settings.providers.codexConnected') : t('settings.providers.codexLoginInstructions'))}</p>
+          <CodexModelControls
+            t={t}
+            models={codexModels}
+            loading={codexModelsLoading}
+            error={codexModelsError}
+            model={codexModel}
+            reasoningEffort={codexReasoningEffort}
+            onModelChange={handleCodexModelChange}
+            onReasoningEffortChange={setCodexReasoningEffort}
+            onRefresh={() => loadCodexModels({ force: true })}
+            disabled={!isProviderActive('codex') || !codexStatus?.connected}
+            classNames={{
+              labelRow: styles.inputRow,
+              label: styles.label,
+              input: styles.input,
+              refresh: styles.checkBtn,
+              spinner: styles.spinner,
+              help: styles.helpText,
+              error: styles.helpText,
+              effortGroup: styles.formGroup,
+            }}
+          />
+          <CodexLoginControls t={t} onStatus={setCodexStatus} connected={codexStatus?.connected === true} disabled={!isProviderActive('codex') || codexStatus?.available === false} className={styles.codexLogin} />
+        </div>}
+      </div>
+
       {/* OpenAI */}
-      <div className={`${styles.card} ${!isProviderActive('openai') ? styles.cardDisabled : ''}`}>
+      <div className={`${styles.card} ${!isProviderActive('openai') ? styles.cardDisabled : ''}`} style={{marginTop: '16px'}}>
         <div className={styles.cardHeader}>
           <div className={styles.providerInfo}>
             <div className={`${styles.providerIcon}`} style={{backgroundColor: '#e2e8f0', color: '#10a37f'}}>

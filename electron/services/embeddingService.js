@@ -68,7 +68,7 @@ function resolveCustomConnection(settings, provider) {
 
 function getEmbeddingModel() {
   const settings = loadSettings();
-  const provider = settings.embeddingProvider || settings.aiProvider;
+  const provider = settings.embeddingProvider || (settings.aiProvider === 'codex' ? '' : settings.aiProvider);
 
   if (provider === 'gemini') return GEMINI_EMBEDDING_MODEL;
   if (provider === 'kimi') return KIMI_EMBEDDING_MODEL;
@@ -89,7 +89,7 @@ function getEmbeddingModel() {
  */
 async function detectEmbeddingProvider() {
   const settings = loadSettings();
-  const activeProvider = settings.embeddingProvider || settings.aiProvider;
+  const activeProvider = settings.embeddingProvider || (settings.aiProvider === 'codex' ? '' : settings.aiProvider);
 
   // ── DeepSeek guard: no soporta embeddings ───────────────────────────────────
   if (activeProvider === 'deepseek') {

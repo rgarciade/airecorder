@@ -50,7 +50,8 @@
     },
     "asarUnpack": [
       "node_modules/ffmpeg-static/**/*",
-      "node_modules/@ffprobe-installer/**/*"
+      "node_modules/@ffprobe-installer/**/*",
+      "node_modules/@openai/codex*/**/*"
     ],
     "mac": {
       "target": [
@@ -135,6 +136,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@ffprobe-installer/ffprobe": "^2.1.2",
     "@lancedb/lancedb": "^0.26.2",
+    "@openai/codex-sdk": "^0.146.0",
     "@reduxjs/toolkit": "^2.8.2",
     "@sentry/electron": "^7.9.0",
     "@sentry/vite-plugin": "^5.1.1",

@@ -13,6 +13,17 @@ const mockSettings = {
   toggleEmbeddingProvider: mockToggleEmbeddingProvider,
   showApiKey: false,
   setShowApiKey: vi.fn(),
+  // Codex
+  codexModel: '',
+  codexReasoningEffort: '',
+  setCodexReasoningEffort: vi.fn(),
+  codexModels: [],
+  codexModelsLoading: false,
+  codexModelsError: '',
+  loadCodexModels: vi.fn(),
+  handleCodexModelChange: vi.fn(),
+  codexStatus: { available: true, connected: false },
+  setCodexStatus: vi.fn(),
   // OpenAI
   openaiApiKey: '',
   setOpenaiApiKey: vi.fn(),
@@ -72,10 +83,25 @@ describe('CloudProvidersSection — role prop', () => {
     expect(html).toContain('Kimi');
   });
 
-  it('renders OpenAI before Gemini in the DOM order', () => {
+  it('renders Codex immediately before OpenAI with consistent spacing and its OpenAI icon', () => {
     mockSettings.aiProvider = 'gemini'; // group active → section open by default
     const html = renderToStaticMarkup(<CloudProvidersSection role="general" defaultOpen />);
-    expect(html.indexOf('>OpenAI<')).toBeLessThan(html.indexOf('>Gemini<'));
+
+    const codexPos = html.indexOf('>Codex<');
+    const openaiPos = html.indexOf('>OpenAI<');
+    const geminiPos = html.indexOf('>Gemini<');
+    const providerNames = [...html.matchAll(/<h4[^>]*>([^<]+)<\/h4>/g)].map((match) => match[1]);
+    const codexIconPos = html.lastIndexOf('<svg', codexPos);
+    const openaiSpacingPos = html.lastIndexOf('margin-top:16px', openaiPos);
+
+    expect(codexPos).toBeGreaterThan(-1);
+    expect(codexPos).toBeLessThan(openaiPos);
+    expect(openaiPos).toBeLessThan(geminiPos);
+    expect(providerNames.slice(0, 2)).toEqual(['Codex', 'OpenAI']);
+    expect(codexIconPos).toBeGreaterThan(-1);
+    expect(html.slice(codexIconPos, codexPos)).toContain('viewBox="0 0 1024 1024"');
+    expect(html.slice(codexPos, openaiPos)).toContain('settings.providers.codexLoginInstructions');
+    expect(openaiSpacingPos).toBeGreaterThan(codexPos);
   });
 
   it('when role=chat, all providers are shown (including DeepSeek)', () => {

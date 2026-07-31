@@ -424,3 +424,15 @@ Las traducciones de la UI de plantillas están en `src/i18n/locales/{es,en}.json
 - `templates.settings.*` — Página de gestión de plantillas
 - `templates.editor.*` — Editor de plantilla (crear/editar)
 - `templates.builtin.*` — Metadatos de plantillas predefinidas
+
+## Codex mediante suscripción de ChatGPT
+
+`codex` es un proveedor generativo separado de OpenAI API. Usa `@openai/codex-sdk` exclusivamente desde Electron Main, donde el SDK oficial ejecuta el binario nativo empaquetado y procesa sus eventos JSONL. El streaming emite sólo el delta nuevo de los eventos `item.updated`/`item.completed`, sin duplicar el texto final. El renderer sólo usa la fachada limitada de `preload.js`: solicita estado/login, inicia una petición con `requestId`, recibe chunks y puede cancelarla; nunca recibe ni persiste credenciales de `~/.codex`.
+
+- **Generación:** `providerRouter.js` enruta análisis, streaming simple y chat con historial a `ai:codex-run` cuando `aiProvider === 'codex'`. Las tres rutas propagan `codexReasoningEffort`; tanto el router como Main validan la allowlist `minimal|low|medium|high|xhigh`, y el SDK recibe `modelReasoningEffort` sólo cuando hay un valor válido.
+- **Seguridad:** cada turno usa un directorio temporal neutro, `skipGitRepoCheck`, sandbox `read-only`, aprobaciones `never`, búsqueda web deshabilitada y sin acceso de red de herramientas.
+- **Sesión:** el estado y el inicio oficial se realizan con `codex login status` y `codex login --device-auth` desde Main, con `spawn(..., { shell: false })` y argumentos fijos.
+- **Catálogo dinámico:** `ai:codex-models` ejecuta `codex debug models` con el binario nativo ya resuelto, sin shell, y aplica timeout/límites de salida antes de validar estrictamente el JSON. Settings y Onboarding cargan una vez al conectar, permiten refresco manual, filtran modelos ocultos y muestran únicamente los reasoning efforts anunciados. Si el catálogo falla, no se inventan modelos: se conserva el valor guardado y aparece el input manual como fallback de UI. El modal de regeneración sólo permite elegir proveedor y opciones: no carga ni muestra catálogos o controles de modelo, y reutiliza la configuración guardada en Ajustes (`codexModel`/`codexReasoningEffort` para Codex).
+- **Embeddings:** Codex no ofrece embeddings. `embeddingProvider` es independiente; si el proveedor generativo es Codex y no se eligió uno, el servicio conserva el fallback local compatible existente.
+
+Device-auth progress is streamed from Main with a request ID. Only public CLI instructions/URL are forwarded; login can be cancelled and cleans its child process/listeners on close, error, or timeout.

@@ -13,7 +13,53 @@ import { generateContent as ollamaGenerate, generateContentStreaming as ollamaGe
 import { CustomOpenAIProvider, OPENAI_BASE_URL } from './customOpenAIProvider';
 import { aiQueueService, AI_TASK_TYPES } from './aiQueueService';
 
+
 const CUSTOM_PROVIDER_PREFIX = 'custom:';
+const CODEX_REASONING_EFFORTS = new Set(['minimal', 'low', 'medium', 'high', 'xhigh']);
+
+function createCodexRequestId() {
+  return `codex-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function resolveCodexReasoningEffort(value) {
+  if (value == null || value === '') return undefined;
+  if (typeof value !== 'string' || !CODEX_REASONING_EFFORTS.has(value)) {
+    throw new Error('El nivel de razonamiento de Codex no es válido.');
+  }
+  return value;
+}
+
+async function runCodexInMain(prompt, model, reasoningEffort, onChunk, signal) {
+  const api = window.electronAPI;
+  if (!api?.runCodex || !api?.onCodexChunk || !api?.cancelCodex) {
+    throw new Error('Codex requiere ejecutar AIRecorder desde Electron.');
+  }
+  const requestId = createCodexRequestId();
+  const unsubscribe = api.onCodexChunk(({ requestId: receivedId, text }) => {
+    if (receivedId === requestId && text) onChunk?.(text);
+  });
+  const abort = () => { api.cancelCodex(requestId).catch(() => {}); };
+  signal?.addEventListener('abort', abort, { once: true });
+  try {
+    const request = { requestId, prompt, model: model || undefined };
+    const validatedReasoningEffort = resolveCodexReasoningEffort(reasoningEffort);
+    if (validatedReasoningEffort) request.reasoningEffort = validatedReasoningEffort;
+    const result = await api.runCodex(request);
+    if (!result?.success) {
+      const error = new Error(result?.error || 'Codex no pudo completar la solicitud.');
+      if (result?.code === 'CODEX_CANCELLED') error.name = 'AbortError';
+      throw error;
+    }
+    return result;
+  } finally {
+    signal?.removeEventListener('abort', abort);
+    unsubscribe();
+  }
+}
+
+function formatCodexChat(messages) {
+  return messages.map(({ role, content }) => `[${role.toUpperCase()}]\n${content}`).join('\n\n');
+}
 
 /**
  * Determina si un proveedor es una conexión OpenAI personalizada.
@@ -55,6 +101,10 @@ function _resolveEngineName(settings, provider, options = {}) {
   if (provider === 'deepseek') return 'DeepSeek';
   if (provider === 'kimi') return 'Kimi';
   if (provider === 'gemini') return 'Gemini';
+  if (provider === 'codex') {
+    const model = options?.model || settings.codexModel || '';
+    return model ? `Codex: ${model}` : 'Codex (ChatGPT)';
+  }
   if (provider === 'openai') {
     const model = options?.model || settings.openaiModel || '';
     return model ? `OpenAI: ${model}` : 'OpenAI';
@@ -102,6 +152,13 @@ async function _runCallProvider(prompt, options, signal) {
       if (!settings.kimiApiKey) throw new Error('No se ha configurado la Kimi API Key en los ajustes.');
       const response = await sendToKimi(prompt, options.model || null, systemPrompt, signal);
       return { text: response || 'Sin respuesta', provider: 'kimi' };
+    }
+
+    case 'codex': {
+      const model = options.model || settings.codexModel || '';
+      const reasoningEffort = options.codexReasoningEffort ?? settings.codexReasoningEffort;
+      const result = await runCodexInMain([systemPrompt, prompt].filter(Boolean).join('\n\n'), model, reasoningEffort, null, signal);
+      return { text: result.text || 'Sin respuesta', provider: 'codex', model };
     }
 
     case 'openai': {
@@ -153,6 +210,13 @@ async function _runCallProviderStreaming(prompt, onChunk, options, signal) {
       console.log('[callProviderStreaming] Iniciando streaming con Gemini');
       const fullResponse = await sendToGeminiStreaming(prompt, onChunk, options.images || [], signal);
       return { text: fullResponse || 'Sin respuesta', provider: 'gemini', streaming: true };
+    }
+
+    case 'codex': {
+      const model = options.model || settings.codexModel || '';
+      const reasoningEffort = options.codexReasoningEffort ?? settings.codexReasoningEffort;
+      const result = await runCodexInMain([systemPrompt, prompt].filter(Boolean).join('\n\n'), model, reasoningEffort, onChunk, signal);
+      return { text: result.text || 'Sin respuesta', provider: 'codex', model, streaming: true };
     }
 
     case 'openai': {
@@ -319,6 +383,12 @@ export async function validateProviderConfig() {
         if (!settings.kimiApiKey)
           return { valid: false, error: 'Falta configurar la Kimi API Key' };
         break;
+      case 'codex': {
+        const status = await window.electronAPI?.getCodexStatus?.();
+        if (!status?.available) return { valid: false, error: status?.error || 'Codex CLI no está disponible' };
+        if (!status.connected) return { valid: false, error: 'Iniciá sesión con ChatGPT/Codex en Ajustes' };
+        break;
+      }
       case 'openai':
         if (!settings.openaiApiKey)
           return { valid: false, error: 'Falta configurar la OpenAI API Key' };
@@ -361,7 +431,7 @@ export async function getActiveProviderContextWindow(settings) {
   const provider = settings.aiProvider || 'gemini';
 
   // Proveedores cloud: contexto ≥128k → sin chunking
-  if (['gemini', 'deepseek', 'kimi', 'openai'].includes(provider)) {
+  if (['gemini', 'deepseek', 'kimi', 'openai', 'codex'].includes(provider)) {
     return null;
   }
 
@@ -415,6 +485,13 @@ async function _runCallChatProviderStreaming(messages, onChunk, options, signal)
     case 'gemini': {
       const fullResponse = await sendToGeminiChatStreaming(messages, onChunk, images, signal);
       return { text: fullResponse || 'Sin respuesta', provider: 'gemini', streaming: true };
+    }
+
+    case 'codex': {
+      const model = options.model || options.ragModel || settings.codexModel || '';
+      const reasoningEffort = options.codexReasoningEffort ?? settings.codexReasoningEffort;
+      const result = await runCodexInMain(formatCodexChat(messages), model, reasoningEffort, onChunk, signal);
+      return { text: result.text || 'Sin respuesta', provider: 'codex', model, streaming: true };
     }
 
     case 'openai': {

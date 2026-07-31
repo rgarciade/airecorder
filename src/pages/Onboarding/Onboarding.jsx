@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n/index.js';
 import styles from './Onboarding.module.css';
@@ -10,6 +10,7 @@ import { getKimiAvailableModels, getDeepseekAvailableModels } from '../../servic
 import { CustomOpenAIProvider, OPENAI_BASE_URL } from '../../services/ai/customOpenAIProvider';
 import { updateSettings } from '../../services/settingsService';
 import { applyTheme } from '../../services/themeService';
+import { reconcileCodexSelection } from '../../services/ai/codexModelSelection';
 import PermissionsStep from './PermissionsStep';
 import ReadyStep from './ReadyStep';
 import AiConfigStep from './AiConfigStep';
@@ -70,6 +71,13 @@ export default function Onboarding({ onComplete }) {
   const [openaiModels, setOpenaiModels] = useState([]);
   const [openaiModelsLoading, setOpenaiModelsLoading] = useState(false);
   const [selectedOpenaiModel, setSelectedOpenaiModel] = useState('');
+  const [codexModel, setCodexModel] = useState('');
+  const [codexReasoningEffort, setCodexReasoningEffort] = useState('');
+  const [codexModels, setCodexModels] = useState([]);
+  const [codexModelsLoading, setCodexModelsLoading] = useState(false);
+  const [codexModelsError, setCodexModelsError] = useState('');
+  const [codexStatus, setCodexStatus] = useState(null);
+  const codexModelsLoaded = useRef(false);
 
   // Gemini
   const [geminiKey, setGeminiKey] = useState('');
@@ -100,10 +108,16 @@ export default function Onboarding({ onComplete }) {
 
   useEffect(() => {
     checkPermissions();
+    window.electronAPI?.getCodexStatus?.().then(setCodexStatus).catch(() => setCodexStatus({ available: false, connected: false }));
     window.electronAPI?.getAppVersion?.().then(r => {
       if (r?.success) setAppVersion(r.version);
     });
   }, []);
+
+  useEffect(() => {
+    if (codexStatus?.connected && !codexModelsLoaded.current) loadCodexModelsOnboarding();
+    if (!codexStatus?.connected) codexModelsLoaded.current = false;
+  }, [codexStatus?.connected]);
 
   const checkPermissions = async () => {
     if (window.electronAPI?.getMicrophonePermission) {
@@ -250,6 +264,32 @@ export default function Onboarding({ onComplete }) {
     }
   };
 
+  const loadCodexModelsOnboarding = async ({ force = false } = {}) => {
+    if (!window.electronAPI?.listCodexModels || (codexModelsLoaded.current && !force)) return;
+    codexModelsLoaded.current = true;
+    setCodexModelsLoading(true);
+    setCodexModelsError('');
+    try {
+      const result = await window.electronAPI.listCodexModels();
+      if (!result?.success || !Array.isArray(result.models)) throw new Error(result?.error || 'Invalid Codex model response');
+      setCodexModels(result.models);
+      const selection = reconcileCodexSelection(result.models, codexModel, codexReasoningEffort);
+      setCodexModel(selection.model);
+      setCodexReasoningEffort(selection.reasoningEffort);
+    } catch (error) {
+      setCodexModels([]);
+      setCodexModelsError(error.message || String(error));
+    } finally {
+      setCodexModelsLoading(false);
+    }
+  };
+
+  const handleCodexModelChange = (model) => {
+    const selection = reconcileCodexSelection(codexModels, model, codexReasoningEffort);
+    setCodexModel(selection.model);
+    setCodexReasoningEffort(selection.reasoningEffort);
+  };
+
   const testCustomConnection = async () => {
     if (!customConnBaseUrl.trim()) return;
     setCustomConnTestStatus('testing');
@@ -310,6 +350,8 @@ export default function Onboarding({ onComplete }) {
         lmStudioModel: usesLmStudio ? selectedLmStudioModel : undefined,
         lmStudioRagModel: chatProviderKey === 'lmstudio' ? (selectedLmStudioChatModel || undefined) : undefined,
         lmStudioEmbeddingModel: (embedValid && embedProviderKey === 'lmstudio') ? lmStudioEmbeddingModel : undefined,
+        codexModel: chatProviderKey === 'codex' ? codexModel : undefined,
+        codexReasoningEffort: chatProviderKey === 'codex' ? codexReasoningEffort : undefined,
         openaiApiKey: (chatProviderKey === 'openai' || (embedValid && embedProviderKey === 'openai')) ? openaiApiKey : undefined,
         openaiModel: chatProviderKey === 'openai' ? selectedOpenaiModel : undefined,
         geminiApiKey: (chatProviderKey === 'gemini' || (embedValid && embedProviderKey === 'gemini')) ? geminiKey : undefined,
@@ -494,6 +536,7 @@ export default function Onboarding({ onComplete }) {
     if (chatProviderKey === 'gemini') return 'Gemini';
     if (chatProviderKey === 'kimi') return 'Kimi';
     if (chatProviderKey === 'deepseek') return 'DeepSeek';
+    if (chatProviderKey === 'codex') return codexModel || 'Codex';
     if (chatProviderKey === 'custom') return customConnName || 'Custom';
     return selectedOllamaModel;
   };
@@ -513,6 +556,7 @@ export default function Onboarding({ onComplete }) {
       if (key === 'lmstudio') return lmStudioStatus === 'success';
     }
     if (type === 'cloud') {
+      if (key === 'codex') return !!codexStatus?.connected;
       if (key === 'openai') return !!openaiApiKey.trim();
       if (key === 'gemini') return !!geminiKey.trim();
       if (key === 'kimi') return !!kimiApiKey.trim();
@@ -541,6 +585,18 @@ export default function Onboarding({ onComplete }) {
       selectedModel: selectedLmStudioModel, setSelectedModel: setSelectedLmStudioModel,
       selectedChatModel: selectedLmStudioChatModel, setSelectedChatModel: setSelectedLmStudioChatModel,
       embeddingModel: lmStudioEmbeddingModel, setEmbeddingModel: setLmStudioEmbeddingModel,
+    },
+    codex: {
+      model: codexModel,
+      reasoningEffort: codexReasoningEffort,
+      models: codexModels,
+      modelsLoading: codexModelsLoading,
+      modelsError: codexModelsError,
+      setModel: handleCodexModelChange,
+      setReasoningEffort: setCodexReasoningEffort,
+      loadModels: loadCodexModelsOnboarding,
+      status: codexStatus,
+      setStatus: setCodexStatus,
     },
     openai: {
       apiKey: openaiApiKey, setApiKey: setOpenaiApiKey,

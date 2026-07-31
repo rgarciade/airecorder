@@ -269,7 +269,33 @@
       "deepseekName": "DeepSeek",
       "kimiName": "Kimi",
       "openaiName": "OpenAI",
-      "openaiDesc": "OpenAI (GPT)"
+      "openaiDesc": "OpenAI (GPT)",
+      "codexName": "Codex (ChatGPT subscription)",
+      "codexDesc": "Uses your ChatGPT session; no API key and no embeddings",
+      "codexConnect": "Connect with ChatGPT",
+      "codexConnected": "ChatGPT session connected",
+      "codexEmbeddingNotice": "Codex does not provide embeddings. Choose another embedding provider.",
+      "codexLoginInstructions": "Connect your ChatGPT account in Codex’s official flow; the app never sees or stores your credentials.",
+      "codexLoginFailed": "Codex sign-in could not be completed. Review the message and try again.",
+      "codexConnecting": "Connecting…",
+      "codexUnavailable": "Codex CLI is unavailable in this installation.",
+      "codexCancel": "Cancel",
+      "codexDeviceAuthInstructions": "Open the official link and enter the one-time code.",
+      "codexCodeLabel": "One-time code",
+      "codexOfficialLink": "Open official OpenAI authentication",
+      "codexModelsLoading": "Loading the models available to your subscription…",
+      "codexModelsError": "The Codex model catalog could not be loaded: {{error}}",
+      "codexManualModelPlaceholder": "Enter a model ID",
+      "codexManualModelHelp": "The catalog is unavailable. You can keep the saved model or enter its ID manually.",
+      "codexReasoningEffort": "Reasoning effort",
+      "codexEfforts": {
+        "none": "None",
+        "minimal": "Minimal",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "xhigh": "Extra high"
+      }
     },
     "buttons": {
       "save": "Save Settings",
@@ -671,9 +697,7 @@
     "uploadFile": "Upload file",
     "pasteConversation": "Paste conversation",
     "importTeamsDescription": "Import Microsoft Teams transcriptions (.docx).",
-    "importAudioDescription": "Upload audio files (mp3, wav, ogg...) to transcribe.",
-    "uploadFile": "Upload file",
-    "pasteConversation": "Paste conversation"
+    "importAudioDescription": "Upload audio files (mp3, wav, ogg...) to transcribe."
   },
   "statsRow": {
     "thisWeek": "This Week",
