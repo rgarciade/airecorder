@@ -734,6 +734,10 @@
       "cancelled": "Cancelled",
       "failed": "Failed"
     },
+    "errors": {
+      "diskSpace": "Not enough disk space to download the Whisper model (needs {{expectedMb}} MB, only {{freeMb}} MB available). Free up space and try again.",
+      "generic": "{{message}}"
+    },
     "transcriptionStatus": "Transcription {{status}} for",
     "steps": {
       "queued": "Queued...",
