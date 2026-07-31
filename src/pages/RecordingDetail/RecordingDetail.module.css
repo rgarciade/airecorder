@@ -330,6 +330,10 @@
   min-height: 0;
   overflow: hidden;
   position: relative;
+  /* Establece su propio stacking context: cualquier z-index alto dentro
+     de un tab (ej. blurOverlay) queda contenido aquí y nunca puede
+     pintar por encima de .header, sin importar su valor interno. */
+  z-index: 1;
 }
 
 /* Modals (Reused styles for consistency) */
