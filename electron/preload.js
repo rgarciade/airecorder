@@ -59,6 +59,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Lanzar transcripción de una grabación
   transcribeRecording: (recordingId, model, options) => ipcRenderer.invoke('transcribe-recording', recordingId, model, options),
 
+  // Codex is executed exclusively by the Electron main process; no credentials cross this bridge.
+  getCodexStatus: () => ipcRenderer.invoke('ai:codex-status'),
+  listCodexModels: () => ipcRenderer.invoke('ai:codex-models'),
+  startCodexLogin: (requestId) => ipcRenderer.invoke('ai:codex-login', requestId),
+  cancelCodexLogin: (requestId) => ipcRenderer.invoke('ai:codex-login-cancel', requestId),
+  onCodexLoginProgress: (listener) => { const wrapped = (_event, payload) => listener(payload); ipcRenderer.on('ai:codex-login-progress', wrapped); return () => ipcRenderer.removeListener('ai:codex-login-progress', wrapped); },
+  runCodex: (request) => ipcRenderer.invoke('ai:codex-run', request),
+  cancelCodex: (requestId) => ipcRenderer.invoke('ai:codex-cancel', requestId),
+  onCodexChunk: (listener) => {
+    const wrapped = (_event, payload) => listener(payload);
+    ipcRenderer.on('ai:codex-chunk', wrapped);
+    return () => ipcRenderer.removeListener('ai:codex-chunk', wrapped);
+  },
+
   // Listar modelos de una conexión OpenAI personalizada
   listCustomModels: (connectionId, connectionData) => ipcRenderer.invoke('ai:custom-list-models', connectionId, connectionData),
 

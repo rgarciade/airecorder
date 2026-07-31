@@ -2,6 +2,8 @@ import React from 'react';
 import { FaExclamationTriangle } from 'react-icons/fa';
 import { MdRefresh } from 'react-icons/md';
 import AiProviderIcon from '../../../components/AiProviderIcon/AiProviderIcon';
+import CodexLoginControls from '../../../components/CodexLoginControls/CodexLoginControls';
+import CodexModelControls from '../../../components/CodexModelControls/CodexModelControls';
 
 const GEMINI_EMBEDDING_MODEL = 'text-embedding-004';
 const KIMI_EMBEDDING_MODEL = 'moonshot-embedding-v1';
@@ -50,7 +52,7 @@ function ModelPicker({ t, activeAiRole, ring, models, modelsLoading, apiKey, sel
   );
 }
 
-export default function CloudProviderCards({ t, activeAiRole, aiProvider, setAiProvider, openai, gemini, kimi, deepseek }) {
+export default function CloudProviderCards({ t, activeAiRole, aiProvider, setAiProvider, codex, openai, gemini, kimi, deepseek }) {
   return (
     <div className="flex flex-col gap-5 mb-4">
 
@@ -61,6 +63,37 @@ export default function CloudProviderCards({ t, activeAiRole, aiProvider, setAiP
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+
+        {activeAiRole === 'general' && <div className={`relative bg-white dark:bg-surface-secondary border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col ${aiProvider === 'codex' ? 'border-indigo-500 ring-1 ring-indigo-500/20' : 'border-slate-200 dark:border-edge-primary'}`} onClick={() => setAiProvider('codex')}>
+          <div className="flex justify-between items-start mb-4"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl"><AiProviderIcon provider="codex" /></div><div><h3 className="font-bold text-slate-900 dark:text-content-primary">Codex</h3><p className="text-slate-400 dark:text-content-secondary text-xs">ChatGPT</p></div></div></div>
+          <p className="text-slate-500 dark:text-content-secondary text-sm leading-relaxed mb-4">{t('settings.providers.codexDesc')}</p>
+          {aiProvider === 'codex' && <div className="mt-auto pt-4 border-t border-slate-100 dark:border-edge-primary" onClick={e => e.stopPropagation()}>
+            <p className="text-xs text-slate-500 mb-2">{codex.status?.connected ? t('settings.providers.codexConnected') : t('settings.providers.codexLoginInstructions')}</p>
+            <CodexModelControls
+              t={t}
+              models={codex.models}
+              loading={codex.modelsLoading}
+              error={codex.modelsError}
+              model={codex.model}
+              reasoningEffort={codex.reasoningEffort}
+              onModelChange={codex.setModel}
+              onReasoningEffortChange={codex.setReasoningEffort}
+              onRefresh={() => codex.loadModels({ force: true })}
+              disabled={!codex.status?.connected}
+              classNames={{
+                labelRow: 'flex items-center justify-between mb-2',
+                label: 'block text-xs font-bold text-slate-600 dark:text-content-secondary uppercase tracking-wide',
+                input: 'w-full p-2.5 border border-slate-300 dark:border-edge-primary rounded-lg text-sm bg-slate-50 dark:bg-surface-tertiary text-slate-700 dark:text-content-primary',
+                refresh: 'text-xs font-semibold flex items-center gap-1 text-indigo-600 disabled:opacity-40',
+                spinner: 'animate-spin',
+                help: 'text-xs text-slate-500 mt-2',
+                error: 'text-xs text-red-600 mt-2',
+                effortGroup: 'mt-3',
+              }}
+            />
+            <CodexLoginControls t={t} onStatus={codex.setStatus} connected={codex.status?.connected === true} disabled={codex.status?.available === false} className="mt-2 text-sm text-indigo-600" />
+          </div>}
+        </div>}
 
         {/* OpenAI */}
         <div

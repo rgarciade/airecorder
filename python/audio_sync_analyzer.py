@@ -1213,6 +1213,7 @@ def main():
         print("📝 Archivo principal: transcripcion_combinada.txt")
     else:
         print("\n❌ Error durante el análisis")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

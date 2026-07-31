@@ -6,6 +6,7 @@ const PROVIDER_LABEL = {
   ollama: 'Ollama (Local)',
   lmstudio: 'LM Studio (Local)',
   openai: 'OpenAI',
+  codex: 'Codex (ChatGPT)',
   gemini: 'Gemini',
   kimi: 'Kimi (Moonshot)',
   deepseek: 'DeepSeek',
@@ -26,7 +27,7 @@ const ReadyStep = ({
   const isEmbedLocal = isLocalProvider(embedProvider);
 
   // Solo Ollama tiene un modelo seleccionado con nombre significativo
-  const showModelName = aiProvider === 'ollama' && modelName;
+  const showModelName = (aiProvider === 'ollama' || aiProvider === 'codex') && modelName;
   const showEmbedModelName = embedProvider === 'ollama' && embedModelName;
 
   return (
