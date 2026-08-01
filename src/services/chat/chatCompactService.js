@@ -65,6 +65,89 @@ function _chunkByMessageBoundary(blocks, maxChunkChars) {
 }
 
 /**
+ * Resume un array de mensajes ya mapeados/serializados, con troceado map-reduce
+ * automático cuando el texto supera `maxChunkChars` (nunca corta un mensaje a mitad).
+ *
+ * Extraído de `compactChatHistory` para que `/resumen` (comando no destructivo,
+ * `summaryCommand.js`) pueda reutilizar EXACTAMENTE el mismo mecanismo de chunking
+ * sin duplicar ~40 líneas de lógica map-reduce. `compactChatHistory` sigue siendo la
+ * única fuente de verdad para SU comportamiento (guardas de `keepRecent`,
+ * `HISTORY_TOO_SHORT`, forma del resultado) — esta función solo encapsula la parte
+ * "convertir texto serializado en un resumen de IA".
+ *
+ * @param {Object} params
+ * @param {Array<{role:string, content:string}>} params.messages - Ya mapeados (mapHistoryToMessages)
+ * @param {string} params.fullSerialized - Texto ya serializado (serializeHistoryForPrompt)
+ * @param {string} params.systemPrompt - System prompt específico del comando que llama
+ * @param {string} [params.lang]
+ * @param {string} [params.model] - Override de modelo (sessionModel)
+ * @param {number} [params.maxChunkChars]
+ * @param {string} [params.taskName] - Nombre base para el meta de la cola de IA (display en la UI)
+ * @returns {Promise<string>} Texto del resumen, ya recortado (`trim()`), nunca vacío
+ * @throws {Error} con `.code === 'EMPTY_SUMMARY'` si la IA devuelve un resumen vacío (por trozo o al final)
+ * @throws {Error} con `.cancelled === true` si la tarea fue cancelada desde el Monitor de Procesos
+ */
+export async function summarizeMessages({
+  messages,
+  fullSerialized,
+  systemPrompt,
+  lang = 'es',
+  model,
+  maxChunkChars = DEFAULT_MAX_CHUNK_CHARS,
+  taskName = 'Resumir chat',
+} = {}) {
+  const queueMeta = { name: taskName, type: AI_TASK_TYPES.GENERAL };
+
+  let summaryText;
+
+  if (fullSerialized.length > maxChunkChars) {
+    // Map: trocear por frontera de mensaje y resumir cada trozo por separado.
+    const blocks = messages.map((m) => `[${m.role === 'user' ? 'USUARIO' : 'ASISTENTE'}]: ${m.content}`);
+    const chunks = _chunkByMessageBoundary(blocks, maxChunkChars);
+    const partials = [];
+
+    for (let i = 0; i < chunks.length; i++) {
+      const chunkPrompt = `${systemPrompt}\n\nNote: this is part ${i + 1} of ${chunks.length} of a longer chat history. Summarize only this specific part.`;
+      const result = await _callAi(chunkPrompt, chunks[i], {
+        model,
+        queueMeta: { ...queueMeta, name: `${taskName} (parte ${i + 1}/${chunks.length})` },
+      });
+      const partialText = result.text || '';
+      // Misma guardia no negociable que el resumen final: un trozo vacío no debe
+      // colarse en la consolidación (contaminaría o vaciaría el resumen final).
+      if (!partialText.trim()) {
+        throw _makeError(
+          `La IA devolvió un resumen vacío en la parte ${i + 1}/${chunks.length}.`,
+          'EMPTY_SUMMARY'
+        );
+      }
+      partials.push(partialText);
+    }
+
+    // Reduce: consolidar los resúmenes parciales en uno solo (mismo prompt que
+    // se usa para consolidar resúmenes de grabaciones largas).
+    const combined = partials
+      .map((p, i) => `Resumen Parte ${i + 1}\n${p}`)
+      .join('\n\n');
+    const finalResult = await _callAi(consolidateSummaryPrompt(lang), combined, {
+      model,
+      queueMeta: { ...queueMeta, name: `${taskName} (consolidación)` },
+    });
+    summaryText = finalResult.text;
+  } else {
+    const result = await _callAi(systemPrompt, fullSerialized, { model, queueMeta });
+    summaryText = result.text;
+  }
+
+  // Guardia no negociable: nunca devolver un resumen vacío.
+  if (!summaryText?.trim()) {
+    throw _makeError('La IA devolvió un resumen vacío.', 'EMPTY_SUMMARY');
+  }
+
+  return summaryText.trim();
+}
+
+/**
  * Compacta el historial de un chat: resume todo salvo los últimos `keepRecent`
  * mensajes y devuelve el resumen + el historial reciente intacto.
  *
@@ -104,56 +187,19 @@ export async function compactChatHistory({
 
   const fullSerialized = serializeHistoryForPrompt(messages);
   const systemPrompt = compactChatPrompt(lang, { scope, instructions });
-  const queueMeta = { name: 'Compactar chat', type: AI_TASK_TYPES.GENERAL };
 
-  let summaryText;
-
-  if (fullSerialized.length > maxChunkChars) {
-    // Map: trocear por frontera de mensaje y resumir cada trozo por separado.
-    const blocks = messages.map((m) => `[${m.role === 'user' ? 'USUARIO' : 'ASISTENTE'}]: ${m.content}`);
-    const chunks = _chunkByMessageBoundary(blocks, maxChunkChars);
-    const partials = [];
-
-    for (let i = 0; i < chunks.length; i++) {
-      const chunkPrompt = `${systemPrompt}\n\nNote: this is part ${i + 1} of ${chunks.length} of a longer chat history. Summarize only this specific part.`;
-      const result = await _callAi(chunkPrompt, chunks[i], {
-        model,
-        queueMeta: { ...queueMeta, name: `Compactar chat (parte ${i + 1}/${chunks.length})` },
-      });
-      const partialText = result.text || '';
-      // Misma guardia no negociable que el resumen final: un trozo vacío no debe
-      // colarse en la consolidación (contaminaría o vaciaría el resumen final).
-      if (!partialText.trim()) {
-        throw _makeError(
-          `La IA devolvió un resumen vacío en la parte ${i + 1}/${chunks.length}.`,
-          'EMPTY_SUMMARY'
-        );
-      }
-      partials.push(partialText);
-    }
-
-    // Reduce: consolidar los resúmenes parciales en uno solo (mismo prompt que
-    // se usa para consolidar resúmenes de grabaciones largas).
-    const combined = partials
-      .map((p, i) => `Resumen Parte ${i + 1}\n${p}`)
-      .join('\n\n');
-    const finalResult = await _callAi(consolidateSummaryPrompt(lang), combined, {
-      model,
-      queueMeta: { ...queueMeta, name: 'Compactar chat (consolidación)' },
-    });
-    summaryText = finalResult.text;
-  } else {
-    const result = await _callAi(systemPrompt, fullSerialized, { model, queueMeta });
-    summaryText = result.text;
-  }
-
-  // Guardia no negociable: nunca reemplazar el historial por un resumen vacío.
-  if (!summaryText?.trim()) {
-    throw _makeError('La IA devolvió un resumen vacío.', 'EMPTY_SUMMARY');
-  }
+  const summaryText = await summarizeMessages({
+    messages,
+    fullSerialized,
+    systemPrompt,
+    lang,
+    model,
+    maxChunkChars,
+    taskName: 'Compactar chat',
+  });
 
   return {
-    summary: summaryText.trim(),
+    summary: summaryText,
     compactedCount: toCompact.length,
     keptHistory,
     originalTokens,

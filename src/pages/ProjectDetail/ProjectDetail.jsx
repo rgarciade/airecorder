@@ -320,6 +320,14 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     }
   };
 
+  // Refresca tareas al entrar a la pestaña: pueden haberse creado vía `/tareas` en el
+  // chat de proyecto (persiste directo a SQLite, sin pasar por setProjectTasks).
+  useEffect(() => {
+    if (activeTab === 'tasks' && project?.id) {
+      loadProjectTasks();
+    }
+  }, [activeTab, project?.id]);
+
   const handleUpdateProjectTask = async (updatedTask) => {
     const saved = await recordingsService.updateTaskSuggestion(
       updatedTask.id, updatedTask.title, updatedTask.content,
@@ -606,6 +614,11 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     setBusy: setIsSendingMessage,
     onCompacted: handleChatCompacted,
     t,
+    // /tareas persiste en task_suggestions vía createProjectTask.
+    projectId: project.id,
+    // /buscar delega en projectChatService.generateAiResponse, que necesita el chat
+    // activo para resolver sus recordingIds/recordingTitles internamente.
+    chatId: activeChatId,
   });
 
   const handleCompactChat = async () => {

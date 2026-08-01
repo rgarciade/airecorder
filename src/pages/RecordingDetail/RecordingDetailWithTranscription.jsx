@@ -119,6 +119,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   // Tasks State
   const [tasks, setTasks] = useState([]);
   const [isGeneratingTasks, setIsGeneratingTasks] = useState(false);
+  const [notesCount, setNotesCount] = useState(0);
   const [improvingTaskId, setImprovingTaskId] = useState(null);
   const [newTaskIds, setNewTaskIds] = useState(new Set());
 
@@ -560,6 +561,25 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     loadOrGenerate();
   }, [recording]);
 
+  // Refresca tareas al entrar a la pestaña: `tasks` puede quedar desactualizado si se
+  // crearon vía `/tareas` en el chat (persiste directo a SQLite, sin pasar por setTasks).
+  useEffect(() => {
+    if (activeTab !== 'tasks' || !currentRecordingDbId) return;
+    recordingsService.getTaskSuggestions(currentRecordingDbId)
+      .then((savedTasks) => setTasks(savedTasks || []))
+      .catch((err) => console.error('Error refrescando tareas:', err));
+  }, [activeTab, currentRecordingDbId]);
+
+  // Conteo de notas para el badge de la pestaña "Notas" (independiente del estado interno
+  // de NotesTab, que gestiona su propia lista). Se refresca al montar, al entrar a la
+  // pestaña (cubre notas creadas vía `/nota` en el chat) y cuando `notesTabRefresh` avisa
+  // que se generó una nota desde plantilla.
+  useEffect(() => {
+    if (!currentRecordingDbId || !window.electronAPI?.templates?.getNotesForRecording) return;
+    window.electronAPI.templates.getNotesForRecording(currentRecordingDbId)
+      .then((notesList) => setNotesCount((notesList || []).length))
+      .catch((err) => console.error('Error refrescando conteo de notas:', err));
+  }, [currentRecordingDbId, activeTab, notesTabRefresh]);
 
   // --- HANDLERS ---
 
@@ -1001,6 +1021,13 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     setBusy: setQuestionLoading,
     onCompacted: handleChatCompacted,
     t,
+    // /tareas y /nota persisten en SQLite (task_suggestions, recording_notes) — necesitan
+    // el ID numérico de la base de datos, no el ID de carpeta.
+    recordingId: currentRecordingDbId,
+    // /buscar usa ragService, que opera sobre el archivo de transcripción (identificado por
+    // el ID de carpeta, recording.id) — NO el ID numérico de la base de datos. Son dos
+    // espacios de identificadores distintos en esta app (ver recordingsService.getRecordings).
+    ragRecordingId: recording.id,
   });
 
   const handleCompactChat = async () => {
@@ -1789,7 +1816,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           className={`${styles.tabButton} ${activeTab === 'notes' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('notes')}
         >
-          Notas
+          Notas{notesCount > 0 ? ` (${notesCount})` : ''}
         </button>
       </nav>
 

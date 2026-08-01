@@ -66,6 +66,12 @@ export default function ChatInterface({
   // mostrar un texto específico ("Compactando…") en vez de uno genérico.
   const [commandRunning, setCommandRunning] = useState(null);
 
+  // Historial de mensajes propios (↑/↓ estilo terminal). -1 = no navegando (editando
+  // mensaje nuevo). historyDraft guarda lo que había escrito antes de empezar a
+  // navegar, para poder restaurarlo al bajar más allá del mensaje más reciente.
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [historyDraft, setHistoryDraft] = useState('');
+
   // Estado del modal de pegar conversación
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [pastedFilename, setPastedFilename] = useState('');
@@ -120,20 +126,23 @@ export default function ChatInterface({
     // adjuntos ni pasan por onSendMessage — se resuelven enteramente aquí.
     if (parsed.isCommand) {
       setNewMessage('');
+      setHistoryIndex(-1);
       setShowCommandMenu(false);
 
       const validation = validateChatCommand(parsed.command, {
         isBusy: isLoading || commandRunning,
         historyLength: chatHistory.length,
+        args: parsed.args,
       });
 
       if (!validation.valid) {
-        // Genérico por diseño: cualquier comando futuro con minHistoryMessages usa su
-        // propio i18nKey (registrado en chatCommands.js), no el de /compact hardcodeado.
-        // validateChatCommand garantiza parsed.command != null cuando reason === 'tooShort'.
+        // Genérico por diseño: cualquier comando futuro con minHistoryMessages/requiresArgs
+        // usa su propio i18nKey (registrado en chatCommands.js), no el de /compact hardcodeado.
+        // validateChatCommand garantiza parsed.command != null cuando reason !== 'unknown'/'busy'.
         setCommandError(
           validation.reason === 'busy' ? t('chatCommands.busy') :
           validation.reason === 'tooShort' ? t(`${parsed.command.i18nKey}.tooShort`) :
+          validation.reason === 'emptyArgs' ? t(`${parsed.command.i18nKey}.emptyQuery`) :
           t('chatCommands.unknown')
         );
         return;
@@ -154,6 +163,7 @@ export default function ChatInterface({
 
     const message = raw;
     setNewMessage('');
+    setHistoryIndex(-1);
 
     // Guardamos los adjuntos actuales para esta petición
     const currentAttachments = [...activeAttachments];
@@ -171,6 +181,10 @@ export default function ChatInterface({
     const value = e.target.value;
     setNewMessage(value);
     setCommandError(null);
+    // Solo dispara en eventos reales del DOM (tecleo/pegado), nunca cuando `setNewMessage`
+    // lo llama la navegación por historial (↑/↓) — sirve para detectar que el usuario
+    // se puso a editar a mano y "sale" del modo navegación.
+    setHistoryIndex(-1);
 
     if (!onCommand) return;
 
@@ -187,23 +201,54 @@ export default function ChatInterface({
   // Navegación por teclado del menú de comandos: ↓/↑ navegan, Enter/Tab autocompletan
   // (con preventDefault — imprescindible, el input vive dentro de un <form onSubmit>), Esc cierra.
   const handleInputKeyDown = (e) => {
-    if (!showCommandMenu) return;
-    const commands = filterChatCommands(commandQuery);
-    if (commands.length === 0) return;
+    if (showCommandMenu) {
+      const commands = filterChatCommands(commandQuery);
+      if (commands.length === 0) return;
 
-    if (e.key === 'ArrowDown') {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setCommandIndex((i) => (i + 1) % commands.length);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setCommandIndex((i) => (i - 1 + commands.length) % commands.length);
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        const cmd = commands[Math.min(commandIndex, commands.length - 1)];
+        setNewMessage(`/${cmd.name} `);
+        setShowCommandMenu(false);
+      } else if (e.key === 'Escape') {
+        setShowCommandMenu(false);
+      }
+      return;
+    }
+
+    // Historial de mensajes propios (↑/↓, estilo terminal) — solo cuando el menú de
+    // comandos no está abierto, para no pisar su propia navegación por teclado.
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+
+    const userMessages = chatHistory
+      .filter((m) => m.tipo === 'usuario')
+      .map((m) => m.contenido);
+    if (userMessages.length === 0) return;
+
+    if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setCommandIndex((i) => (i + 1) % commands.length);
-    } else if (e.key === 'ArrowUp') {
+      if (historyIndex === -1) setHistoryDraft(newMessage);
+      const nextIndex = historyIndex === -1 ? userMessages.length - 1 : Math.max(0, historyIndex - 1);
+      setHistoryIndex(nextIndex);
+      setNewMessage(userMessages[nextIndex]);
+    } else if (historyIndex !== -1) {
+      // ArrowDown solo hace algo si ya estábamos navegando — si no, no hay "más reciente"
+      // hacia donde bajar y se deja el comportamiento nativo del input (no-op en un solo renglón).
       e.preventDefault();
-      setCommandIndex((i) => (i - 1 + commands.length) % commands.length);
-    } else if (e.key === 'Enter' || e.key === 'Tab') {
-      e.preventDefault();
-      const cmd = commands[Math.min(commandIndex, commands.length - 1)];
-      setNewMessage(`/${cmd.name} `);
-      setShowCommandMenu(false);
-    } else if (e.key === 'Escape') {
-      setShowCommandMenu(false);
+      const nextIndex = historyIndex + 1;
+      if (nextIndex >= userMessages.length) {
+        setHistoryIndex(-1);
+        setNewMessage(historyDraft);
+      } else {
+        setHistoryIndex(nextIndex);
+        setNewMessage(userMessages[nextIndex]);
+      }
     }
   };
 
