@@ -89,6 +89,9 @@
       "running": "Extracting tasks…",
       "tooShort": "The conversation is too short to extract tasks.",
       "summaryHeader": "{{count}} task(s) added",
+      "updatedHeader": "{{count}} task(s) updated",
+      "deletedHeader": "{{count}} task(s) deleted",
+      "discardedNotice": "{{count}} AI-proposed change(s) to existing tasks were ignored: updating or deleting existing tasks requires explicit instructions in /tareas.",
       "none": "No clear tasks were found in this conversation.",
       "noTarget": "Could not determine where to save the tasks.",
       "error": "Could not extract the tasks. Try again."
@@ -116,6 +119,14 @@
       "noResults": "No relevant fragments were found for that question.",
       "error": "Could not complete the search. Try again."
     }
+  },
+  "chatPendingAction": {
+    "cancelled": "Cancelled, no changes were made.",
+    "created": "✅ Task created: {{title}}",
+    "updated": "🔄 Task updated: {{title}}",
+    "deleted": "🗑️ Task deleted: {{title}}",
+    "error": "Could not complete the action.",
+    "chosen": "You chose: {{option}}"
   },
   "modelInfo": {
     "title": "Recommended models",
@@ -296,7 +307,8 @@
       "databasePath": "Change where the database is stored. Default location is recommended.",
       "contextLengthInput": "Leave empty to detect automatically on each generation, or enter the value manually.",
       "contextLengthOllama": "Find it by running: ollama show <model> --verbose (num_ctx field)",
-      "contextLengthLmStudio": "Find it in LM Studio, under \"My Models\" → advanced options of the loaded model."
+      "contextLengthLmStudio": "Find it in LM Studio, under \"My Models\" → advanced options of the loaded model.",
+      "contextLengthCodex": "Codex doesn't expose this value through any API — leave empty to use a default estimate, or enter your model's real limit if you know it."
     },
     "themes": {
       "system": "System (default)",

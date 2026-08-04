@@ -89,6 +89,9 @@
       "running": "Extrayendo tareas…",
       "tooShort": "La conversación es demasiado corta para extraer tareas.",
       "summaryHeader": "{{count}} tarea(s) añadida(s)",
+      "updatedHeader": "{{count}} tarea(s) actualizada(s)",
+      "deletedHeader": "{{count}} tarea(s) eliminada(s)",
+      "discardedNotice": "Se ignoraron {{count}} cambio(s) propuesto(s) por la IA sobre tareas existentes: para actualizar o borrar tareas ya creadas hace falta indicar instrucciones explícitas en /tareas.",
       "none": "No se encontraron tareas claras en esta conversación.",
       "noTarget": "No se pudo determinar dónde guardar las tareas.",
       "error": "No se pudieron extraer las tareas. Inténtalo de nuevo."
@@ -116,6 +119,14 @@
       "noResults": "No se encontraron fragmentos relevantes para esa pregunta.",
       "error": "No se pudo completar la búsqueda. Inténtalo de nuevo."
     }
+  },
+  "chatPendingAction": {
+    "cancelled": "Cancelado, no se realizó ningún cambio.",
+    "created": "✅ Tarea creada: {{title}}",
+    "updated": "🔄 Tarea actualizada: {{title}}",
+    "deleted": "🗑️ Tarea eliminada: {{title}}",
+    "error": "No se pudo completar la acción.",
+    "chosen": "Elegiste: {{option}}"
   },
   "modelInfo": {
     "title": "Modelos recomendados",
@@ -296,7 +307,8 @@
       "databasePath": "Cambia dónde se guarda la base de datos. Se recomienda usar la ruta por defecto.",
       "contextLengthInput": "Deja vacío para detectarlo automáticamente en cada generación, o introduce el valor manualmente.",
       "contextLengthOllama": "Encuéntralo ejecutando: ollama show <modelo> --verbose (campo num_ctx)",
-      "contextLengthLmStudio": "Encuéntralo en LM Studio, en la sección \"My Models\" → opciones avanzadas del modelo cargado."
+      "contextLengthLmStudio": "Encuéntralo en LM Studio, en la sección \"My Models\" → opciones avanzadas del modelo cargado.",
+      "contextLengthCodex": "Codex no expone este dato por ninguna API — deja vacío para usar un valor estimado por defecto, o indica el límite real de tu modelo si lo conoces."
     },
     "themes": {
       "system": "Sistema (por defecto)",

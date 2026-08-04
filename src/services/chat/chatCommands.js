@@ -46,14 +46,23 @@ export const CHAT_COMMANDS = [
     name: 'tareas',
     i18nKey: 'chatCommands.tareas',
     acceptsArgs: true,
-    minHistoryMessages: MIN_SUMMARY_HISTORY_MESSAGES,
+    // Sin minHistoryMessages a propósito: bloquear aquí, ANTES de intentar el fallback
+    // RAG, reproducía el bug reportado ("conversación demasiado corta" en un chat nuevo
+    // aunque la grabación tuviera transcripción indexada de sobra). La decisión de "no
+    // hay contexto" ahora es responsabilidad del propio comando vía
+    // `gatherTaskContext` (commands/_shared.js), que solo cae a `tooShort` cuando NI el
+    // chat NI el fallback RAG (scope 'recording') tienen nada que ofrecer.
+    // runsInBackground: no bloquea el chat mientras corre — ver useChatCommands.js.
+    runsInBackground: true,
     blockedWhileLoading: true,
   },
   {
     name: 'nota',
     i18nKey: 'chatCommands.nota',
     acceptsArgs: true,
-    minHistoryMessages: MIN_SUMMARY_HISTORY_MESSAGES,
+    // Mismo razonamiento que /tareas: sin minHistoryMessages (fallback RAG vía
+    // gatherTaskContext) y runsInBackground para no bloquear el chat.
+    runsInBackground: true,
     blockedWhileLoading: true,
   },
   {

@@ -38,10 +38,30 @@ describe('chatCommands registry', () => {
     expect(new Set(names).size).toBe(names.length);
   });
 
-  it('registers /resumen, /tareas and /nota with minHistoryMessages derived from MIN_SUMMARY_HISTORY_MESSAGES', () => {
-    for (const name of ['resumen', 'tareas', 'nota']) {
+  it('registers /resumen with minHistoryMessages derived from MIN_SUMMARY_HISTORY_MESSAGES', () => {
+    // /resumen sigue dependiendo 100% del chat (sin fallback RAG) — a diferencia de
+    // /tareas y /nota, que ya no bloquean en el registro (ver el test siguiente).
+    const cmd = findChatCommand('resumen');
+    expect(cmd.minHistoryMessages).toBe(MIN_SUMMARY_HISTORY_MESSAGES);
+  });
+
+  it('registers /tareas and /nota WITHOUT minHistoryMessages (fallback RAG vía gatherTaskContext, no bloqueo preventivo en el registro)', () => {
+    // Regresión del bug reportado: bloquear aquí ANTES de intentar el fallback RAG
+    // hacía que un chat nuevo/corto diera "conversación demasiado corta" aunque la
+    // grabación tuviera transcripción indexada de sobra. Ahora la decisión de "no hay
+    // contexto" es responsabilidad del propio comando (gatherTaskContext).
+    for (const name of ['tareas', 'nota']) {
       const cmd = findChatCommand(name);
-      expect(cmd.minHistoryMessages).toBe(MIN_SUMMARY_HISTORY_MESSAGES);
+      expect(cmd.minHistoryMessages).toBeUndefined();
+    }
+  });
+
+  it('registers /tareas and /nota with runsInBackground:true, and every other command WITHOUT it', () => {
+    for (const name of ['tareas', 'nota']) {
+      expect(findChatCommand(name).runsInBackground).toBe(true);
+    }
+    for (const name of ['compact', 'clear', 'help', 'resumen', 'buscar']) {
+      expect(findChatCommand(name).runsInBackground).toBeUndefined();
     }
   });
 

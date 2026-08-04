@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { CHAT_COMMAND_HANDLERS } from '../services/chat/commands';
+import { findChatCommand } from '../services/chat/chatCommands';
 
 /**
  * Router de comandos de chat + persistencia inyectada por el padre.
@@ -15,6 +16,13 @@ import { CHAT_COMMAND_HANDLERS } from '../services/chat/commands';
  * puntos de entrada directos como el botón "Compactar" de `ContextBar`
  * (que llama a `runCommand('compact')` sin pasar por la validación de
  * `ChatInterface`).
+ *
+ * EXCEPCIÓN — comandos `runsInBackground` (`/tareas`, `/nota`, ver
+ * `chatCommands.js`): el guard de re-entrancy inicial (`isBusy`) sigue
+ * aplicando, pero su propia ejecución NO pasa por `setBusy(true)` ni se
+ * espera — `runCommand` devuelve `{success:true, background:true}` de
+ * inmediato mientras el comando sigue corriendo en la cola de IA
+ * (`aiQueueService`). Ver `BackgroundTaskIndicator` para el indicador visual.
  *
  * @param {Object} params
  * @param {'recording'|'project'} params.scope
@@ -64,21 +72,38 @@ export function useChatCommands({
       return { success: false, error: t('chatCommands.unknown') };
     }
 
+    const ctx = {
+      scope,
+      lang,
+      model,
+      getHistory,
+      replaceHistory,
+      t,
+      onCompacted,
+      recordingId,
+      ragRecordingId,
+      projectId,
+      chatId,
+    };
+
+    // Comandos marcados `runsInBackground` (/tareas, /nota — ver chatCommands.js) NO
+    // bloquean el chat: no seteamos `setBusy(true)` ni esperamos su promesa. Ya aparecen
+    // en el Monitor de Procesos vía `aiQueueService` (queueMeta en tasksCommand.js /
+    // noteCommand.js) y persisten su propio resultado (éxito o error real) directamente
+    // en el historial del chat — nadie más espera este valor de retorno para mostrarlo.
+    const command = findChatCommand(name);
+    if (command?.runsInBackground) {
+      handler(ctx, args).catch((err) => {
+        // Red de seguridad: el contrato de runFn es "nunca rechaza", pero como aquí nadie
+        // hace await de esta promesa, un rechazo no capturado quedaría como unhandled
+        // rejection silencioso en vez de loggearse.
+        console.error(`[useChatCommands] Error inesperado ejecutando /${name} en background:`, err);
+      });
+      return { success: true, background: true };
+    }
+
     setBusy(true);
     try {
-      const ctx = {
-        scope,
-        lang,
-        model,
-        getHistory,
-        replaceHistory,
-        t,
-        onCompacted,
-        recordingId,
-        ragRecordingId,
-        projectId,
-        chatId,
-      };
       return await handler(ctx, args);
     } catch (err) {
       // Red de seguridad: el contrato de runFn es "nunca rechaza", pero si algún

@@ -1,8 +1,17 @@
 /**
- * Comando `/nota`: genera una nota Markdown a partir de la conversación del
- * chat y la persiste como `recording_notes` (mismo storage que "Generar desde
- * plantilla" en NotesTab). No destructivo — añade un mensaje asistente de
- * confirmación al final del historial.
+ * Comando `/nota`: genera una nota Markdown a partir del contexto disponible y la
+ * persiste como `recording_notes` (mismo storage que "Generar desde plantilla" en
+ * NotesTab). No destructivo — añade un mensaje asistente de confirmación al final del
+ * historial.
+ *
+ * Fuente del contexto (ver `gatherTaskContext` en `commands/_shared.js`): prioriza LA
+ * CONVERSACIÓN del chat cuando ya tiene contenido suficiente (comportamiento original).
+ * Si el chat es nuevo/corto, cae a un fallback RAG sobre la transcripción de la
+ * grabación — mismo mecanismo que `/buscar`. Marcado `runsInBackground: true` en el
+ * registro (`chatCommands.js`): no bloquea el chat mientras corre. Cualquier error real
+ * (no cancelación) se postea como mensaje visible en el historial vía
+ * `postCommandError` — el caller (`useChatCommands`) ya no espera esta promesa ni mira
+ * su retorno para mostrar un banner.
  *
  * VERIFICADO (hallazgo, ver README): `recording_notes.template_slug` es una
  * columna TEXT sin FOREIGN KEY hacia `note_templates.slug` (a diferencia de
@@ -24,7 +33,7 @@
 
 import { chatNotePrompt } from '../../../prompts/common/chatCommandPrompts';
 import { AI_TASK_TYPES } from '../../ai/aiQueueService';
-import { callAiAnalysis, serializeChatForPrompt, makeAssistantEntry } from './_shared';
+import { callAiAnalysis, makeAssistantEntry, gatherTaskContext, postCommandError } from './_shared';
 
 // Slug sintético dedicado a notas generadas por comandos de chat — no corresponde
 // a ninguna fila real de `note_templates` (no hace falta: no hay FK que lo exija).
@@ -41,30 +50,49 @@ export async function runNote(ctx, args) {
 
   try {
     if (scope === 'project') {
-      return { success: false, error: t('chatCommands.nota.projectUnsupported') };
+      const message = t('chatCommands.nota.projectUnsupported');
+      await postCommandError(ctx, message, 'nota_error');
+      return { success: false, error: message };
     }
     if (!recordingId) {
-      return { success: false, error: t('chatCommands.nota.noTarget') };
+      const message = t('chatCommands.nota.noTarget');
+      await postCommandError(ctx, message, 'nota_error');
+      return { success: false, error: message };
     }
     if (!window.electronAPI?.templates?.saveNote) {
-      return { success: false, error: t('chatCommands.nota.error') };
+      const message = t('chatCommands.nota.error');
+      await postCommandError(ctx, message, 'nota_error');
+      return { success: false, error: message };
     }
 
-    const history = getHistory();
-    const serialized = serializeChatForPrompt(history);
-    if (!serialized.trim()) {
-      return { success: false, error: t('chatCommands.nota.tooShort') };
+    // gatherTaskContext usa la conversación del chat si YA tiene contenido suficiente
+    // (comportamiento histórico sin cambios) o cae a un fallback RAG sobre la
+    // transcripción cuando el chat es nuevo/corto — ver commands/_shared.js.
+    const context = await gatherTaskContext(ctx, args);
+    if (context.source === 'none') {
+      const message = t('chatCommands.nota.tooShort');
+      await postCommandError(ctx, message, 'nota_error');
+      return { success: false, error: message };
     }
 
-    const systemPrompt = chatNotePrompt(lang, { instructions: args || '' });
-    const response = await callAiAnalysis(systemPrompt, serialized, {
+    // Si el fallback RAG ya consumió `args` como query de búsqueda, no lo repetimos como
+    // "instructions" — evitaría instruir dos veces lo mismo en el prompt final. Cuando la
+    // fuente es 'chat' (chat rico), `args` sigue viajando como foco, igual que siempre,
+    // con la misma mitigación de prompt-injection ya presente en `chatNotePrompt`.
+    const argsUsedAsRagQuery = context.source !== 'chat' && Boolean(args && args.trim());
+    const instructions = argsUsedAsRagQuery ? '' : (args || '');
+
+    const systemPrompt = chatNotePrompt(lang, { instructions });
+    const response = await callAiAnalysis(systemPrompt, context.text, {
       model,
       queueMeta: { name: 'Nota desde el chat', type: AI_TASK_TYPES.GENERAL },
     });
 
     const contentMd = response.text?.trim();
     if (!contentMd) {
-      return { success: false, error: t('chatCommands.nota.empty') };
+      const message = t('chatCommands.nota.empty');
+      await postCommandError(ctx, message, 'nota_error');
+      return { success: false, error: message };
     }
 
     const saveResult = await window.electronAPI.templates.saveNote({
@@ -75,19 +103,23 @@ export async function runNote(ctx, args) {
 
     if (!saveResult || !saveResult.success) {
       console.error('[noteCommand] saveNote falló:', saveResult?.error);
-      return { success: false, error: t('chatCommands.nota.error') };
+      const message = t('chatCommands.nota.error');
+      await postCommandError(ctx, message, 'nota_error');
+      return { success: false, error: message };
     }
 
     const header = `📝 **${t('chatCommands.nota.summaryHeader')}**\n\n${contentMd}`;
     const entry = makeAssistantEntry(header, 'nota');
 
-    await replaceHistory([...history, entry]);
+    await replaceHistory([...getHistory(), entry]);
     return { success: true };
   } catch (err) {
     if (err.cancelled) {
       return { success: true, cancelled: true };
     }
     console.error('[noteCommand] Error en /nota:', err);
-    return { success: false, error: t('chatCommands.nota.error') };
+    const message = t('chatCommands.nota.error');
+    await postCommandError(ctx, message, 'nota_error');
+    return { success: false, error: message };
   }
 }
