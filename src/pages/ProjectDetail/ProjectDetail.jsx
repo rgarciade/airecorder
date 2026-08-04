@@ -28,6 +28,7 @@ import ChannelPickerModal from '../../components/ChannelPickerModal/ChannelPicke
 import WikiTab from './components/WikiTab/WikiTab';
 import { useChatCommands } from '../../hooks/useChatCommands';
 import { estimateHistoryTokens } from '../../services/chat/chatTokens';
+import { ALL_TOOLS, executeConfirmedAction } from '../../services/ai/tools';
 
 const DEEPSEEK_CHAT_MODELS = [
   { value: 'deepseek-chat', label: 'DeepSeek Chat' },
@@ -150,6 +151,13 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
           ctxLen = 32000;
         } else if (provider === 'deepseek') {
           ctxLen = 64000;
+        } else if (provider === 'codex') {
+          // Codex no expone la ventana de contexto por ninguna API (SDK ni CLI) —
+          // usa el valor configurado manualmente en Ajustes si existe, o un
+          // estimado por defecto (mismo criterio que RecordingDetailWithTranscription.jsx).
+          ctxLen = s.codexContextLength || 400000;
+        } else if (provider === 'openai') {
+          ctxLen = 128000;
         }
         setMaxContextLength(ctxLen);
 
@@ -319,6 +327,14 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       console.error('Error cargando tareas del proyecto:', error);
     }
   };
+
+  // Refresca tareas al entrar a la pestaña: pueden haberse creado vía `/tareas` en el
+  // chat de proyecto (persiste directo a SQLite, sin pasar por setProjectTasks).
+  useEffect(() => {
+    if (activeTab === 'tasks' && project?.id) {
+      loadProjectTasks();
+    }
+  }, [activeTab, project?.id]);
 
   const handleUpdateProjectTask = async (updatedTask) => {
     const saved = await recordingsService.updateTaskSuggestion(
@@ -606,6 +622,11 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     setBusy: setIsSendingMessage,
     onCompacted: handleChatCompacted,
     t,
+    // /tareas persiste en task_suggestions vía createProjectTask.
+    projectId: project.id,
+    // /buscar delega en projectChatService.generateAiResponse, que necesita el chat
+    // activo para resolver sus recordingIds/recordingTitles internamente.
+    chatId: activeChatId,
   });
 
   const handleCompactChat = async () => {
@@ -708,15 +729,21 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
         }
       }
 
-      const sessionOptions = { 
+      const sessionOptions = {
         model: sessionModel || undefined,
         images: attachmentImages.length > 0 ? attachmentImages : undefined,
-        extraContext: extraContext || undefined
+        extraContext: extraContext || undefined,
+        // Function-calling nativo sobre tareas — SOLO en la conversación normal del
+        // chat de proyecto (handleSendMessage). `/buscar` (searchCommand.js) arma su
+        // propio `{model}` para `generateAiResponse`, así que nunca pasa por acá — ver
+        // src/services/ai/tools/index.js y README.md.
+        tools: ALL_TOOLS,
+        toolContext: { scope: 'project', projectId: project.id },
       };
       
       let streamingAnswer = '';
 
-      const { text: aiResponse, contextInfo } = await projectChatService.generateAiResponse(
+      const { text: aiResponse, contextInfo, pendingAction } = await projectChatService.generateAiResponse(
         project.id, trimmedMessage, activeChatId, chatHistory, ragMode, sessionOptions,
         (chunk) => {
           streamingAnswer += chunk;
@@ -735,15 +762,44 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       );
       setLastContextInfo(contextInfo || null);
 
+      // Si el modelo disparó una acción pendiente sin escribir texto propio (ej. llamó
+      // directo a create_task, que SIEMPRE propone — ver taskTools.js), `aiResponse`
+      // viene vacío — usamos la `question` de la acción pendiente para que la burbuja
+      // nunca quede vacía (mismo bug real ya corregido en
+      // RecordingDetailWithTranscription.jsx).
+      const contenido = aiResponse || pendingAction?.question || 'No answer generated.';
+
       // 4. Guardar respuesta de la IA en DB
+      // LIMITACIÓN CONOCIDA: la tabla `messages` de proyecto (SQLite) tiene columnas
+      // fijas (id/type/content/created_at) — no hay dónde persistir `pendingAction`,
+      // a diferencia del historial de grabación (JSON plano en disco, admite campos
+      // arbitrarios). `saveProjectChatMessage` solo persiste `tipo`/`contenido`.
       await projectChatService.saveProjectChatMessage(project.id, activeChatId, {
         tipo: 'asistente',
-        contenido: aiResponse,
+        contenido,
         chatVersion: 2,
       });
 
       // 5. Recargar historial real para sincronizar IDs y fechas (reemplaza el mensaje de streaming)
       await loadChatHistory(activeChatId);
+
+      // 6. Si la IA disparó una acción pendiente de confirmación (create/update/delete_task,
+      // que SIEMPRE proponen, o ask_user — ver providerRouter.js#_runToolCallingLoop), la
+      // adjuntamos EN MEMORIA al último mensaje recién recargado, para que ChatInterface
+      // renderice los botones. No sobrevive a un reload real del historial (limitación de
+      // arriba) — mientras el chat sigue montado en esta sesión, funciona igual que en
+      // RecordingDetail.
+      if (pendingAction) {
+        setChatHistory(prev => {
+          if (prev.length === 0) return prev;
+          const lastIdx = prev.length - 1;
+          const last = prev[lastIdx];
+          if (last.tipo !== 'asistente') return prev;
+          const updated = [...prev];
+          updated[lastIdx] = { ...last, pendingAction: { ...pendingAction, resolved: false } };
+          return updated;
+        });
+      }
 
       chatPendingService.clearPending(pendingKey);
     } catch (error) {
@@ -758,6 +814,66 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     } finally {
       setIsSendingMessage(false);
     }
+  };
+
+  // Resuelve un click sobre los botones de una `pendingAction` (ver nota de
+  // limitación en handleSendMessage: el `pendingAction`/`resolved` de este chat
+  // vive SOLO en memoria, nunca en SQLite). Ejecución ESTRUCTURALMENTE
+  // separada de la IA vía executeConfirmedAction — la IA nunca puede alcanzar
+  // este dispatcher (ver docstring de taskTools.js), solo el click handler de
+  // la UI, salvo el caso `ask_user` (que no muta nada).
+  //
+  // Busca por `pendingAction.id` (id de tool_call, ver providerRouter.js), no por
+  // el `id` del mensaje — mismo contrato que RecordingDetailWithTranscription.jsx
+  // (ChatInterface.jsx ahora pasa siempre `message.pendingAction.id`, nunca
+  // `message.id`, para que ambas páginas funcionen igual sin importar la forma
+  // de almacenamiento de cada una).
+  const handleResolvePendingAction = async (pendingActionId, optionIndex) => {
+    const target = chatHistory.find(m => m.pendingAction?.id === pendingActionId);
+    if (!target?.pendingAction) return;
+
+    const { toolName, toolArgs, options } = target.pendingAction;
+    const isAffirmative = optionIndex === 0; // primera opción = afirmativa/proceder, cualquier otra = cancelar
+
+    setChatHistory(prev => prev.map(m => m.pendingAction?.id === pendingActionId
+      ? { ...m, pendingAction: { ...m.pendingAction, resolved: true, resolution: options[optionIndex] } }
+      : m
+    ));
+
+    if (toolName === 'ask_user') {
+      // No hay mutación que ejecutar — la elección del usuario se re-inyecta como
+      // su propio mensaje para que la conversación siga con naturalidad.
+      await handleSendMessage(options[optionIndex]);
+      return;
+    }
+
+    if (!isAffirmative) {
+      const saved = await projectChatService.saveProjectChatMessage(project.id, activeChatId, {
+        tipo: 'asistente',
+        contenido: t('chatPendingAction.cancelled'),
+        chatVersion: 2,
+      });
+      if (saved) setChatHistory(prev => [...prev, { ...saved, chatVersion: 2 }]);
+      return;
+    }
+
+    const toolContext = { scope: 'project', projectId: project.id };
+    // `toolArgs` acá ya es el `proposed`/`task` YA RESUELTO (ver
+    // providerRouter.js#_runToolCallingLoop) — no hace falta agregar
+    // `confirm:true`, ese campo ya no existe en el schema ni en el contrato.
+    const result = await executeConfirmedAction(toolName, toolArgs, toolContext);
+    const outcomeText =
+      result?.status === 'created' ? t('chatPendingAction.created', { title: result.task?.title }) :
+      result?.status === 'updated' ? t('chatPendingAction.updated', { title: result.task?.title }) :
+      result?.status === 'deleted' ? t('chatPendingAction.deleted', { title: result.task?.title }) :
+      t('chatPendingAction.error');
+
+    const saved = await projectChatService.saveProjectChatMessage(project.id, activeChatId, {
+      tipo: 'asistente',
+      contenido: outcomeText,
+      chatVersion: 2,
+    });
+    if (saved) setChatHistory(prev => [...prev, { ...saved, chatVersion: 2 }]);
   };
 
   const formatDuration = (seconds) => {
@@ -1130,6 +1246,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                   chatHistory={chatHistory}
                   onSendMessage={handleSendMessage}
                   onCommand={runCommand}
+                  onResolvePendingAction={handleResolvePendingAction}
                   isLoading={isSendingMessage || isAnyIndexing}
                   placeholder={isAnyIndexing ? 'Indexando grabaciones...' : 'Haz una pregunta sobre el proyecto...'}
                   title={activeChat ? `Chat: ${activeChat.nombre}` : "Chat del Proyecto"}

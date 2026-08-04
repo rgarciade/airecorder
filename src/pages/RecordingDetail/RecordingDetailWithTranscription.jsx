@@ -10,6 +10,7 @@ import { getLMStudioModels } from '../../services/ai/lmStudioProvider';
 // generateWithContext y generateWithContextStreaming se mantienen para el análisis (resúmenes, etc.)
 // El chat de grabaciones usa callChatProviderStreaming directamente.
 import { callProvider, callProviderStreaming, callChatProviderStreaming, isCustom } from '../../services/ai/providerRouter';
+import { ALL_TOOLS, executeConfirmedAction } from '../../services/ai/tools';
 import { chatSystemPrompt } from '../../prompts/aiPrompts';
 import { ragSystemPrompt, mapHistoryToMessages } from '../../prompts/ragPrompts';
 import { buildSystemPrompt, FEATURE_TYPES } from '../../services/ai/promptBuilder';
@@ -119,6 +120,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   // Tasks State
   const [tasks, setTasks] = useState([]);
   const [isGeneratingTasks, setIsGeneratingTasks] = useState(false);
+  const [notesCount, setNotesCount] = useState(0);
   const [improvingTaskId, setImprovingTaskId] = useState(null);
   const [newTaskIds, setNewTaskIds] = useState(new Set());
 
@@ -385,6 +387,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         ctxLen = 32000;
       } else if (provider === 'deepseek') {
         ctxLen = 64000;
+      } else if (provider === 'codex') {
+        // Codex no expone la ventana de contexto por ninguna API (SDK ni CLI) —
+        // usa el valor configurado manualmente en Ajustes si existe, o un
+        // estimado por defecto (familia GPT-5/Codex, documentado públicamente,
+        // no verificable en vivo — mismo criterio que gemini/kimi/deepseek arriba).
+        ctxLen = settings.codexContextLength || 400000;
+      } else if (provider === 'openai') {
+        ctxLen = 128000;
       }
       setMaxContextLength(ctxLen);
     };
@@ -560,6 +570,25 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     loadOrGenerate();
   }, [recording]);
 
+  // Refresca tareas al entrar a la pestaña: `tasks` puede quedar desactualizado si se
+  // crearon vía `/tareas` en el chat (persiste directo a SQLite, sin pasar por setTasks).
+  useEffect(() => {
+    if (activeTab !== 'tasks' || !currentRecordingDbId) return;
+    recordingsService.getTaskSuggestions(currentRecordingDbId)
+      .then((savedTasks) => setTasks(savedTasks || []))
+      .catch((err) => console.error('Error refrescando tareas:', err));
+  }, [activeTab, currentRecordingDbId]);
+
+  // Conteo de notas para el badge de la pestaña "Notas" (independiente del estado interno
+  // de NotesTab, que gestiona su propia lista). Se refresca al montar, al entrar a la
+  // pestaña (cubre notas creadas vía `/nota` en el chat) y cuando `notesTabRefresh` avisa
+  // que se generó una nota desde plantilla.
+  useEffect(() => {
+    if (!currentRecordingDbId || !window.electronAPI?.templates?.getNotesForRecording) return;
+    window.electronAPI.templates.getNotesForRecording(currentRecordingDbId)
+      .then((notesList) => setNotesCount((notesList || []).length))
+      .catch((err) => console.error('Error refrescando conteo de notas:', err));
+  }, [currentRecordingDbId, activeTab, notesTabRefresh]);
 
   // --- HANDLERS ---
 
@@ -692,6 +721,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       }
 
       let answer = '';
+      // Acción pendiente de confirmación por botones (create/update/delete_task,
+      // que SIEMPRE proponen y nunca ejecutan solas, o ask_user) — ver
+      // providerRouter.js#_runToolCallingLoop. Se
+      // captura fuera de las ramas RAG/clásica (mismo criterio que `answer`) porque
+      // `response` es local a cada bloque `if`/`else`.
+      let toolPendingAction = null;
 
       if (useRag) {
         // --- MODO RAG V2: array de mensajes nativo con system prompt ---
@@ -724,7 +759,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         const ragOptions = {
           ...(activeRagModel ? { ragModel: activeRagModel } : { model: sessionModel || undefined }),
           ...(attachmentImages.length > 0 ? { images: attachmentImages } : {}),
-          queueMeta: { name: 'Chat RAG' }
+          queueMeta: { name: 'Chat RAG' },
+          // Function-calling nativo sobre tareas — SOLO en la conversación normal del
+          // chat (nunca en comandos internos como /tareas, /buscar, /compact). Ver
+          // src/services/ai/tools/index.js y README.md.
+          tools: ALL_TOOLS,
+          toolContext: { scope: 'recording', recordingId: currentRecordingDbId },
         };
 
         console.log('🤖 [RAG V2] Enviando array de mensajes:', {
@@ -739,7 +779,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           setStreamingMessage(answer);
         }, ragOptions);
         console.log('✅ [RAG V2] Respuesta recibida:', { provider: response.provider, model: response.model });
-        answer = response.text || answer || 'No answer generated.';
+        // OJO: NO coercionar acá al fallback 'No answer generated.' — cuando el modelo
+        // dispara una acción pendiente (ej. create_task, que SIEMPRE propone) sin escribir
+        // texto propio, `response.text` viene vacío ('') y hay que dejar que la burbuja
+        // use `toolPendingAction.question` más abajo. Coercionar acá lo pisaría antes de
+        // llegar a esa lógica (bug real: siempre mostraba "No answer generated." aunque
+        // hubiera una pregunta de confirmación real esperando).
+        answer = response.text || answer || '';
+        toolPendingAction = response.pendingAction || null;
 
       } else {
         // --- MODO CLÁSICO V2: system prompt con transcripción + historial nativo ---
@@ -771,7 +818,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         const classicOptions = {
           model: sessionModel || undefined,
           ...(attachmentImages.length > 0 ? { images: attachmentImages } : {}),
-          queueMeta: { name: 'Chat Grabación' }
+          queueMeta: { name: 'Chat Grabación' },
+          // Function-calling nativo sobre tareas — ver nota equivalente en ragOptions.
+          tools: ALL_TOOLS,
+          toolContext: { scope: 'recording', recordingId: currentRecordingDbId },
         };
 
         console.log('🚀 Iniciando chat clásico en modo STREAMING (V2)', {
@@ -782,25 +832,53 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           answer += chunk;
           setStreamingMessage(answer);
         }, classicOptions);
-        answer = response.text || answer || 'No answer generated.';
+        // OJO: NO coercionar acá al fallback 'No answer generated.' — cuando el modelo
+        // dispara una acción pendiente (ej. create_task, que SIEMPRE propone) sin escribir
+        // texto propio, `response.text` viene vacío ('') y hay que dejar que la burbuja
+        // use `toolPendingAction.question` más abajo. Coercionar acá lo pisaría antes de
+        // llegar a esa lógica (bug real: siempre mostraba "No answer generated." aunque
+        // hubiera una pregunta de confirmación real esperando).
+        answer = response.text || answer || '';
+        toolPendingAction = response.pendingAction || null;
       }
 
       setStreamingMessage('');
+
+      // Único punto que decide el texto final visible: si el modelo escribió algo,
+      // eso. Si no, pero hay una acción pendiente (ej. llamó a create_task, que SIEMPRE
+      // propone), usamos su `question` para que la burbuja nunca quede vacía. Recién si
+      // NINGUNA de las dos existe, es un caso genuino de "no answer".
+      const contenido = answer || toolPendingAction?.question || 'No answer generated.';
 
       // Crear el mensaje de la IA con la respuesta completa (V2)
       const aiMessage = {
         id: `ai_${tempId}`,
         tipo: 'asistente',
-        contenido: answer,
+        contenido,
         fecha: new Date().toISOString(),
         chatVersion: 2,
+        ...(toolPendingAction ? { pendingAction: { ...toolPendingAction, resolved: false } } : {}),
       };
 
       // Añadir mensaje de la IA al historial
       setQaHistory(prev => [...prev, aiMessage]);
 
-      // Actualizar la entrada en disco (reemplazar respuesta null por la real)
-      const qa = { tipo: 'usuario', pregunta: questionText, adjuntos: attachmentsToUse, respuesta: answer, fecha: new Date().toISOString(), chatVersion: 2 };
+      // Actualizar la entrada en disco (reemplazar respuesta null por la real).
+      // BUG REAL: `chatPendingService.clearPending` (más abajo) dispara una suscripción
+      // (~línea 296) que recarga TODO el historial desde disco vía `getQuestionHistory`
+      // y reemplaza `qaHistory` en memoria — si `pendingAction` no viajara también acá,
+      // esa recarga (que puede llegar antes o después de este `setQaHistory`) pisaría el
+      // mensaje recién creado con la versión persistida SIN `pendingAction`, y los
+      // botones de confirmación nunca llegarían a verse.
+      const qa = {
+        tipo: 'usuario',
+        pregunta: questionText,
+        adjuntos: attachmentsToUse,
+        respuesta: contenido,
+        fecha: new Date().toISOString(),
+        chatVersion: 2,
+        ...(toolPendingAction ? { pendingAction: { ...toolPendingAction, resolved: false } } : {}),
+      };
       await recordingsService.updateLastQuestionHistory(recording.id, qa);
 
       // Limpiar petición pendiente
@@ -980,6 +1058,78 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     setQaHistory(entries);
   };
 
+  // Resuelve un click sobre los botones de una `pendingAction` (ver
+  // providerRouter.js#_runToolCallingLoop + ChatInterface.jsx). Ejecución
+  // ESTRUCTURALMENTE separada de la IA vía executeConfirmedAction — la IA
+  // nunca puede alcanzar este dispatcher (ver docstring de taskTools.js), solo
+  // el click handler de la UI, y solo para el caso `ask_user` no hay mutación
+  // que ejecutar (no muta nada, ver abajo).
+  //
+  // Opera sobre `qaHistory` (no la versión normalizada) buscando por
+  // `pendingAction.id` (el id de tool_call, asignado en providerRouter.js — ver
+  // comentario ahí) — NUNCA por el id del mensaje/entrada. BUG REAL corregido:
+  // antes buscaba `m.id === messageId`, pero `pendingAction` ahora sobrevive
+  // tanto en un mensaje individual (con `id` propio) COMO en un par
+  // pregunta/respuesta recargado desde disco (que no tiene `id` propio — a
+  // `normalizeChatHistory` le toca inventarle uno sintético `a_N`/`u_N` SOLO
+  // para el render, que nunca existe en el dato crudo de `qaHistory`). Buscar
+  // por `m.id` nunca encontraba nada para una entrada tipo par ya recargada
+  // (la recarga la dispara la suscripción a `chatPendingService`, que corre casi
+  // enseguida) — el click no hacía nada. `pendingAction.id` en cambio viaja
+  // idéntico en ambos formatos (ver `qa.pendingAction` en `handleAskQuestion` y
+  // el passthrough en `chatHistory.js`), así que este lookup funciona sin
+  // importar qué forma tenga la entrada en este momento.
+  const handleResolvePendingAction = async (pendingActionId, optionIndex) => {
+    const entries = qaHistory.map(m => m.pendingAction?.id === pendingActionId
+      ? { ...m, pendingAction: { ...m.pendingAction, resolved: true, resolution: m.pendingAction.options[optionIndex] } }
+      : m
+    );
+    await handleReplaceChatHistory(entries);
+
+    const target = entries.find(m => m.pendingAction?.id === pendingActionId);
+    if (!target?.pendingAction) return;
+    const { toolName, toolArgs, options } = target.pendingAction;
+    const isAffirmative = optionIndex === 0; // primera opción = afirmativa/proceder, cualquier otra = cancelar
+
+    if (toolName === 'ask_user') {
+      // No hay mutación que ejecutar — la elección del usuario se re-inyecta como
+      // su propio mensaje para que la conversación siga con naturalidad.
+      await handleAskQuestion(options[optionIndex]);
+      return;
+    }
+
+    if (!isAffirmative) {
+      const cancelEntry = {
+        id: `cancel_${Date.now()}`,
+        tipo: 'asistente',
+        contenido: t('chatPendingAction.cancelled'),
+        fecha: new Date().toISOString(),
+        chatVersion: 2,
+      };
+      await handleReplaceChatHistory([...entries, cancelEntry]);
+      return;
+    }
+
+    const toolContext = { scope: 'recording', recordingId: currentRecordingDbId };
+    // `toolArgs` acá ya es el `proposed`/`task` YA RESUELTO (ver
+    // providerRouter.js#_runToolCallingLoop) — no hace falta agregar
+    // `confirm:true`, ese campo ya no existe en el schema ni en el contrato.
+    const result = await executeConfirmedAction(toolName, toolArgs, toolContext);
+    const outcomeText =
+      result?.status === 'created' ? t('chatPendingAction.created', { title: result.task?.title }) :
+      result?.status === 'updated' ? t('chatPendingAction.updated', { title: result.task?.title }) :
+      result?.status === 'deleted' ? t('chatPendingAction.deleted', { title: result.task?.title }) :
+      t('chatPendingAction.error');
+    const outcomeEntry = {
+      id: `outcome_${Date.now()}`,
+      tipo: 'asistente',
+      contenido: outcomeText,
+      fecha: new Date().toISOString(),
+      chatVersion: 2,
+    };
+    await handleReplaceChatHistory([...entries, outcomeEntry]);
+  };
+
   const handleChatCompacted = (result, entries) => {
     // Solo el historial cambió — recalculamos historyTokens sobre el contextInfo
     // existente para que la barra baje al instante, sin esperar al siguiente mensaje.
@@ -1001,6 +1151,13 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     setBusy: setQuestionLoading,
     onCompacted: handleChatCompacted,
     t,
+    // /tareas y /nota persisten en SQLite (task_suggestions, recording_notes) — necesitan
+    // el ID numérico de la base de datos, no el ID de carpeta.
+    recordingId: currentRecordingDbId,
+    // /buscar usa ragService, que opera sobre el archivo de transcripción (identificado por
+    // el ID de carpeta, recording.id) — NO el ID numérico de la base de datos. Son dos
+    // espacios de identificadores distintos en esta app (ver recordingsService.getRecordings).
+    ragRecordingId: recording.id,
   });
 
   const handleCompactChat = async () => {
@@ -1789,7 +1946,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           className={`${styles.tabButton} ${activeTab === 'notes' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('notes')}
         >
-          Notas
+          Notas{notesCount > 0 ? ` (${notesCount})` : ''}
         </button>
       </nav>
 
@@ -1838,6 +1995,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
               chatHistory: convertChatHistory(),
               onSendMessage: handleAskQuestion,
               onCommand: runCommand,
+              onResolvePendingAction: handleResolvePendingAction,
               isLoading: questionLoading || ragIndexed === false,
               placeholder: ragIndexed === false ? 'Indexando transcripción...' : undefined,
               title: "AI Assistant",

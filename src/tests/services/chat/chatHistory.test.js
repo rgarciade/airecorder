@@ -82,6 +82,32 @@ describe('normalizeChatHistory', () => {
     expect(normalized[0].tipo).toBe('usuario');
     expect(mapped[0].role).toBe('user');
   });
+
+  it('regression: passes through pendingAction on a pregunta/respuesta pair (bug real: se perdía tras recargar desde disco vía chatPendingService, ocultando los botones de confirmación)', () => {
+    const pendingAction = {
+      toolName: 'create_task',
+      toolArgs: { title: 'prueba', content: 'prueba', layer: 'fullstack' },
+      question: '¿Creo la tarea "prueba" (fullstack)?',
+      options: ['Sí', 'No'],
+      resolved: false,
+    };
+    const history = [
+      { tipo: 'usuario', pregunta: 'creá una tarea', respuesta: '¿Creo la tarea "prueba" (fullstack)?', fecha: '2024-01-08T00:00:00Z', pendingAction },
+    ];
+    const result = normalizeChatHistory(history);
+
+    expect(result).toHaveLength(2);
+    expect(result[1]).toMatchObject({ tipo: 'asistente', contenido: '¿Creo la tarea "prueba" (fullstack)?', pendingAction });
+  });
+
+  it('does not add a pendingAction field to the assistant message when the pair has none', () => {
+    const history = [
+      { tipo: 'usuario', pregunta: 'hola', respuesta: 'hola, ¿en qué te ayudo?', fecha: '2024-01-09T00:00:00Z' },
+    ];
+    const result = normalizeChatHistory(history);
+
+    expect(result[1]).not.toHaveProperty('pendingAction');
+  });
 });
 
 describe('serializeHistoryForPrompt', () => {

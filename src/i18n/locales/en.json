@@ -56,7 +56,77 @@
       "tooShort": "The history is too short to compact.",
       "empty": "The AI did not return a valid summary. Try again.",
       "error": "Could not compact the chat. Try again."
+    },
+    "clear": {
+      "label": "Clear",
+      "description": "Erases the entire history of this chat",
+      "argsPlaceholder": "Press Enter to clear the chat",
+      "running": "Clearing…",
+      "error": "Could not clear the chat. Try again."
+    },
+    "help": {
+      "label": "Help",
+      "description": "Shows the list of available commands",
+      "argsPlaceholder": "Press Enter to see the help",
+      "running": "Loading help…",
+      "header": "🛟 **Available commands**",
+      "error": "Could not show the help. Try again."
+    },
+    "resumen": {
+      "label": "Summary",
+      "description": "Generates a summary of the whole conversation without deleting anything",
+      "argsPlaceholder": "Optional instructions, e.g: focus on the decisions",
+      "running": "Summarizing…",
+      "summaryHeader": "Conversation summary",
+      "tooShort": "The history is too short to generate a summary.",
+      "empty": "The AI did not return a valid summary. Try again.",
+      "error": "Could not generate the summary. Try again."
+    },
+    "tareas": {
+      "label": "Tasks",
+      "description": "Extracts tasks from the conversation and saves them",
+      "argsPlaceholder": "Optional instructions, e.g: focus on the backend",
+      "running": "Extracting tasks…",
+      "tooShort": "The conversation is too short to extract tasks.",
+      "summaryHeader": "{{count}} task(s) added",
+      "updatedHeader": "{{count}} task(s) updated",
+      "deletedHeader": "{{count}} task(s) deleted",
+      "discardedNotice": "{{count}} AI-proposed change(s) to existing tasks were ignored: updating or deleting existing tasks requires explicit instructions in /tareas.",
+      "none": "No clear tasks were found in this conversation.",
+      "noTarget": "Could not determine where to save the tasks.",
+      "error": "Could not extract the tasks. Try again."
+    },
+    "nota": {
+      "label": "Note",
+      "description": "Generates a Markdown note from the conversation",
+      "argsPlaceholder": "Optional instructions, e.g: focus on the conclusions",
+      "running": "Generating note…",
+      "tooShort": "The conversation is too short to generate a note.",
+      "summaryHeader": "Note generated and saved",
+      "empty": "The AI did not return valid content for the note. Try again.",
+      "noTarget": "Could not determine which recording to save the note to.",
+      "projectUnsupported": "/nota is not available in the project chat (notes are only saved per recording).",
+      "error": "Could not generate the note. Try again."
+    },
+    "buscar": {
+      "label": "Search",
+      "description": "Looks up a specific answer by forcing detailed RAG mode",
+      "argsPlaceholder": "Type your question, e.g: /buscar what was decided about the budget?",
+      "running": "Searching…",
+      "emptyQuery": "Type a question after /buscar.",
+      "noTarget": "Could not determine where to search.",
+      "notIndexed": "This recording isn't indexed for search yet. Wait for indexing to finish and try again.",
+      "noResults": "No relevant fragments were found for that question.",
+      "error": "Could not complete the search. Try again."
     }
+  },
+  "chatPendingAction": {
+    "cancelled": "Cancelled, no changes were made.",
+    "created": "✅ Task created: {{title}}",
+    "updated": "🔄 Task updated: {{title}}",
+    "deleted": "🗑️ Task deleted: {{title}}",
+    "error": "Could not complete the action.",
+    "chosen": "You chose: {{option}}"
   },
   "modelInfo": {
     "title": "Recommended models",
@@ -237,7 +307,8 @@
       "databasePath": "Change where the database is stored. Default location is recommended.",
       "contextLengthInput": "Leave empty to detect automatically on each generation, or enter the value manually.",
       "contextLengthOllama": "Find it by running: ollama show <model> --verbose (num_ctx field)",
-      "contextLengthLmStudio": "Find it in LM Studio, under \"My Models\" → advanced options of the loaded model."
+      "contextLengthLmStudio": "Find it in LM Studio, under \"My Models\" → advanced options of the loaded model.",
+      "contextLengthCodex": "Codex doesn't expose this value through any API — leave empty to use a default estimate, or enter your model's real limit if you know it."
     },
     "themes": {
       "system": "System (default)",

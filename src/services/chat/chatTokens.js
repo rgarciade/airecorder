@@ -23,6 +23,14 @@ export const DEFAULT_KEEP_RECENT = 4;
 // 1 mensaje que resumir además de los `DEFAULT_KEEP_RECENT` que se conservan intactos).
 export const MIN_COMPACT_HISTORY_MESSAGES = DEFAULT_KEEP_RECENT + 2;
 
+// Mínimo de mensajes para /resumen (no destructivo). A diferencia de /compact, no está
+// atado a `keepRecent` (no descarta nada del historial), así que el umbral es independiente
+// y deliberadamente más bajo: solo evita resumir una conversación vacía o de un único mensaje.
+// Punto único: chatCommands.js (registro) y summaryCommand.js (ejecución real) importan
+// esta misma constante para que la UI nunca deje intentar /resumen con menos mensajes de
+// los que la ejecución real acabará rechazando (mismo patrón que MIN_COMPACT_HISTORY_MESSAGES).
+export const MIN_SUMMARY_HISTORY_MESSAGES = 2;
+
 // Overhead aproximado por mensaje (delimitadores de rol que cada proveedor añade
 // al armar el payload nativo de chat: { role, content }).
 const ROLE_OVERHEAD_TOKENS = 4;

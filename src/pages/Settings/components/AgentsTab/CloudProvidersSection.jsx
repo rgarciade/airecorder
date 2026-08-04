@@ -8,6 +8,7 @@ import styles from '../../Settings.module.css';
 import AiProviderIcon from '../../../../components/AiProviderIcon/AiProviderIcon';
 import RoleBadge from './RoleBadge';
 import { useSettings } from '../../SettingsContext';
+import { CLOUD_PROVIDERS } from '../../../../services/ai/providerRouter';
 
 const WIKI_URL = import.meta.env.VITE_WIKI_URL || 'https://rgarciade.github.io/airecorder/vp/';
 
@@ -26,6 +27,7 @@ export default function CloudProvidersSection({ role, defaultOpen = false }) {
     // Codex subscription
     codexModel,
     codexReasoningEffort, setCodexReasoningEffort,
+    codexContextLengthSaved, setCodexContextLengthSaved,
     codexModels, codexModelsLoading, codexModelsError,
     loadCodexModels, handleCodexModelChange,
     codexStatus, setCodexStatus,
@@ -91,7 +93,7 @@ export default function CloudProvidersSection({ role, defaultOpen = false }) {
             <MdOpenInNew size={14} />
             {t('settings.wikiLink')}
           </a>
-          <span className={`${styles.badge} ${['gemini', 'deepseek', 'kimi', 'openai', 'codex'].includes(activeProvider) ? styles.badgeActive : styles.badgeInactive}`}>
+          <span className={`${styles.badge} ${CLOUD_PROVIDERS.includes(activeProvider) ? styles.badgeActive : styles.badgeInactive}`}>
            {activeProvider === 'gemini' ? t('settings.providers.geminiName') :
             activeProvider === 'deepseek' ? t('settings.providers.deepseekName') :
             activeProvider === 'kimi' ? t('settings.providers.kimiName') :
@@ -145,6 +147,23 @@ export default function CloudProvidersSection({ role, defaultOpen = false }) {
             }}
           />
           <CodexLoginControls t={t} onStatus={setCodexStatus} connected={codexStatus?.connected === true} disabled={!isProviderActive('codex') || codexStatus?.available === false} className={styles.codexLogin} />
+
+          {/* Ventana de Contexto — Codex: sin auto-detección (el SDK/CLI no expone
+              este dato por ninguna API, a diferencia de Ollama/LM Studio) — solo
+              un input manual, sin botón "detectar" ni estado de éxito/error. */}
+          <div className={styles.formGroup}>
+            <label className={styles.label}>{t('settings.fields.contextLength')}</label>
+            <input
+              type="number"
+              className={styles.input}
+              value={codexContextLengthSaved}
+              onChange={(e) => setCodexContextLengthSaved(e.target.value)}
+              placeholder="400000"
+              disabled={!isProviderActive('codex')}
+              min="512"
+            />
+            <p className={styles.helpText}>{t('settings.helpText.contextLengthCodex')}</p>
+          </div>
         </div>}
       </div>
 
