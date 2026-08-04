@@ -87,7 +87,7 @@ function normalizeReasoningEffort(value) {
   return value;
 }
 
-async function run({ requestId, prompt, model, reasoningEffort, onChunk, signal }) {
+async function run({ requestId, prompt, model, reasoningEffort, onChunk, signal, outputSchema }) {
   if (!requestId || typeof prompt !== 'string') throw createError('Solicitud Codex inválida.', 'CODEX_REQUEST_INVALID');
   if (activeRequests.has(requestId)) throw createError('El identificador de solicitud ya está en uso.', 'CODEX_REQUEST_DUPLICATE');
   const modelReasoningEffort = normalizeReasoningEffort(reasoningEffort);
@@ -100,11 +100,15 @@ async function run({ requestId, prompt, model, reasoningEffort, onChunk, signal 
     const threadOptions = { model: model || undefined, workingDirectory: neutralWorkingDirectory(), skipGitRepoCheck: true, sandboxMode: 'read-only', approvalPolicy: 'never', webSearchMode: 'disabled', networkAccessEnabled: false };
     if (modelReasoningEffort) threadOptions.modelReasoningEffort = modelReasoningEffort;
     const thread = new Codex().startThread(threadOptions);
-    const { events } = await thread.runStreamed(prompt, { signal: controller.signal });
+    const { events } = await thread.runStreamed(prompt, { signal: controller.signal, ...(outputSchema ? { outputSchema } : {}) });
     const textByItem = new Map(); let finalResponse = '';
     for await (const event of events) {
       if ((event.type === 'item.updated' || event.type === 'item.completed') && event.item?.type === 'agent_message') {
-        emitDelta(event.item, textByItem, onChunk);
+        // Con `outputSchema` la respuesta final es JSON estructurado — emitir los
+        // deltas incrementales mostraría fragmentos de JSON a medio construir, así
+        // que se saltea `emitDelta` (sin streaming en vivo para este modo, ver
+        // codexTaskBridge.js). `finalResponse` se sigue actualizando igual.
+        if (!outputSchema) emitDelta(event.item, textByItem, onChunk);
         finalResponse = event.item.text || finalResponse;
       }
       if (event.type === 'turn.failed' || event.type === 'error') throw createError(event.error?.message || event.message || 'Error de Codex.', 'CODEX_REQUEST_FAILED');
@@ -113,6 +117,12 @@ async function run({ requestId, prompt, model, reasoningEffort, onChunk, signal 
     return { text: finalResponse, requestId, threadId: thread.id };
   } catch (error) {
     if (controller.signal.aborted) { const cancelled = createError('Solicitud Codex cancelada.', 'CODEX_CANCELLED'); cancelled.name = 'AbortError'; throw cancelled; }
+    // `normalizeError` mapea a un mensaje genérico para el usuario — sin este log el
+    // mensaje ORIGINAL del SDK/CLI se perdía por completo, haciendo imposible
+    // diagnosticar el motivo real (ej. un `outputSchema` rechazado por validación
+    // estricta) a partir de lo único que veía el usuario ("Codex devolvió eventos
+    // JSONL inválidos").
+    console.error('[codexService] Error crudo en run():', error);
     throw normalizeError(error);
   } finally { signal?.removeEventListener('abort', abort); activeRequests.delete(requestId); }
 }
