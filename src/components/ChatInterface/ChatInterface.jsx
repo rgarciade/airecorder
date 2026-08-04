@@ -9,6 +9,7 @@ import {
   MdVisibility, MdVisibilityOff, MdLink, MdContentPaste
 } from 'react-icons/md';
 import { parseChatCommand, getCommandMenuQuery, validateChatCommand, filterChatCommands } from '../../services/chat/chatCommands';
+import BackgroundTaskIndicator from './BackgroundTaskIndicator';
 
 function AttachmentTypeIcon({ type, size = 14 }) {
   if (type === 'image') return <MdImage size={size} />;
@@ -47,8 +48,14 @@ export default function ChatInterface({
   allowNewAttachments = true,
   onAddChannel = null,
   onCommand = null,
+  onResolvePendingAction = null,
 }) {
   const { t } = useTranslation();
+  // Evita doble-click accidental mientras se resuelve una `pendingAction` (ver
+  // providerRouter.js#_runToolCallingLoop) — deshabilita el grupo de botones del
+  // mensaje en curso hasta que la promesa de onResolvePendingAction termine (o el
+  // mensaje se re-renderice como resuelto, lo que ocurra primero).
+  const [resolvingId, setResolvingId] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   const [showOptions, setShowOptions] = useState(false);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
@@ -335,6 +342,27 @@ export default function ChatInterface({
       return a.filename !== attachmentToRemove.filename;
     });
     onActiveAttachmentsChange?.(updated);
+  };
+
+  // Click en uno de los botones de una `pendingAction` — delega la ejecución real
+  // (determinística, vía executeTool) al padre (RecordingDetailWithTranscription.jsx
+  // / ProjectDetail.jsx), este componente solo evita el doble-click mientras resuelve.
+  //
+  // BUG REAL corregido: se pasaba `message.id`, pero ese id puede ser SINTÉTICO
+  // (asignado por `normalizeChatHistory` al expandir un par pregunta/respuesta
+  // recargado desde disco — ver chatHistory.js) y no existir en el dato crudo que
+  // el padre busca en su historial — el click no encontraba nada y no hacía nada.
+  // Se pasa `pendingAction.id` (el id de tool_call, estable en ambos formatos de
+  // almacenamiento) en su lugar. `resolvingId` sigue keyed por `message.id` — es
+  // solo estado visual del render actual, no necesita ser estable entre formatos.
+  const handleResolvePendingActionClick = async (messageId, pendingActionId, optionIndex) => {
+    if (!onResolvePendingAction || resolvingId === messageId) return;
+    setResolvingId(messageId);
+    try {
+      await onResolvePendingAction(pendingActionId, optionIndex);
+    } finally {
+      setResolvingId(null);
+    }
   };
 
   const formatMessageTime = (dateString) => {
@@ -672,6 +700,28 @@ export default function ChatInterface({
                       {processMessageContent(message.contenido || '')}
                     </ReactMarkdown>
                   </div>
+                  {message.pendingAction && (
+                    message.pendingAction.resolved ? (
+                      <div className={styles.pendingActionResolved}>
+                        {t('chatPendingAction.chosen', { option: message.pendingAction.resolution })}
+                      </div>
+                    ) : (
+                      <div className={styles.pendingActionOptions}>
+                        {message.pendingAction.options.map((option, idx) => (
+                          <button
+                            key={`${message.id}-opt-${idx}`}
+                            type="button"
+                            className={`${styles.pendingActionButton} ${idx === 0 ? styles.pendingActionButtonPrimary : ''}`}
+                            disabled={resolvingId === message.id}
+                            onClick={() => handleResolvePendingActionClick(message.id, message.pendingAction.id, idx)}
+                            title={option}
+                          >
+                            <span className={styles.pendingActionButtonText}>{option}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )
+                  )}
                   <div className={styles.messageTime}>
                     {formatMessageTime(message.fecha)}
                   </div>
@@ -744,6 +794,10 @@ export default function ChatInterface({
               ))}
             </div>
           )}
+
+          {/* Indicador no bloqueante de /tareas o /nota corriendo en background (aiQueueService) —
+              independiente de commandError/commandRunning, nunca deshabilita el input. */}
+          {onCommand && <BackgroundTaskIndicator />}
 
           {/* Error inline de comandos (comando desconocido, historial corto, fallo de IA...) */}
           {commandError && (
