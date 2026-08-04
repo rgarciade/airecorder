@@ -1,6 +1,9 @@
 // Servicio para interactuar con conexiones OpenAI personalizadas
 // (API compatible con OpenAI, parametrizada por baseUrl, apiKey y model)
 
+import { toOpenAIToolsFormat } from './tools';
+import { buildOpenAIToolMessages, parseOpenAIToolMessage } from './openAIToolChat';
+
 export const OPENAI_BASE_URL = 'https://api.openai.com';
 
 const CUSTOM_ENDPOINTS = {
@@ -165,6 +168,43 @@ export class CustomOpenAIProvider {
   async chatCompletionStreaming(messages, onChunk, signal = null) {
     this._requireModel();
     return this._streamChatCompletions(messages, onChunk, signal);
+  }
+
+  /**
+   * Chat de una sola pasada (sin streaming) con soporte de `tools`. Usado
+   * EXCLUSIVAMENTE por el loop de tool-calling de `providerRouter.js` — nunca
+   * directamente por la UI. Cubre TANTO el proveedor fijo 'openai' como
+   * conexiones OpenAI-compatibles personalizadas (misma clase para ambos).
+   *
+   * @param {Array} messages - Mensajes en formato genérico (ver `openAIToolChat.js`)
+   * @param {{tools?: Array}} [options] - `tools` es el catálogo agnóstico de `taskFunctions.js`
+   * @param {AbortSignal} [signal]
+   * @returns {Promise<{text: string, toolCalls: Array|null}>}
+   */
+  async chatCompletionOnce(messages, options = {}, signal = null) {
+    this._requireModel();
+
+    const response = await fetch(`${this.baseUrl}${CUSTOM_ENDPOINTS.chatCompletions}`, {
+      method: 'POST',
+      headers: this._headers(),
+      body: JSON.stringify({
+        model: this.model,
+        messages: buildOpenAIToolMessages(messages),
+        stream: false,
+        ...(options.tools?.length ? { tools: toOpenAIToolsFormat(options.tools) } : {}),
+      }),
+      signal,
+    });
+
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(buildErrorMessage(response, errBody));
+    }
+
+    const data = await response.json();
+    const message = data.choices?.[0]?.message || {};
+    const parsed = parseOpenAIToolMessage(message);
+    return { text: stripThinkBlocks(parsed.text), toolCalls: parsed.toolCalls };
   }
 
   async _streamChatCompletions(messages, onChunk, signal) {

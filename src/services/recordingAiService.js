@@ -6,7 +6,7 @@
 import appSessionService from './appSessionService';
 import recordingsService from './recordingsService';
 import { getSettings } from './settingsService';
-import { callProvider, getActiveProviderContextWindow } from './ai/providerRouter';
+import { callProvider, getActiveProviderContextWindow, CLOUD_PROVIDERS } from './ai/providerRouter';
 import { AI_TASK_TYPES } from './ai/aiQueueService';
 import { cleanAiResponse, normalizeAiSummaryText, parseJsonArray, parseJsonObject } from '../utils/aiResponseParser';
 import { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt, participantsPrompt, participantsPromptSuffix, taskSuggestionsPrompt, taskSuggestionsPromptSuffix, taskImprovementSystemPrompt, taskImprovementUserContent, consolidateSummaryPrompt } from '../prompts/aiPrompts';
@@ -239,7 +239,11 @@ class RecordingAiService {
       ? { ...settings, aiProvider: providerOverrides.providerOverride }
       : settings;
 
-    const isCloudProvider = ['gemini', 'deepseek', 'kimi'].includes(effectiveSettings.aiProvider);
+    // Única fuente de verdad — ver CLOUD_PROVIDERS en providerRouter.js. Antes esta
+    // lista estaba duplicada acá y se desincronizó (bug real: Codex/OpenAI quedaron
+    // afuera cuando se agregaron como providers, tratando a Codex como un modelo
+    // local de 4096 tokens y partiendo transcripciones normales en ~10 fragmentos).
+    const isCloudProvider = CLOUD_PROVIDERS.includes(effectiveSettings.aiProvider);
     if (isCloudProvider) {
       return Number.MAX_SAFE_INTEGER; // Los proveedores cloud no necesitan chunking/truncado
     }

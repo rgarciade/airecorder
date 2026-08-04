@@ -1,5 +1,7 @@
 // Servicio para interactuar con Ollama local
 import { getSettings } from '../settingsService';
+import { toOpenAIToolsFormat } from './tools';
+import { buildOpenAIToolMessages, parseOpenAIToolMessage } from './openAIToolChat';
 
 const DEFAULT_OLLAMA_URL = 'http://localhost:11434';
 
@@ -351,6 +353,62 @@ export async function chatCompletionStreaming(model, messages, onChunk, images =
   } catch (error) {
     if (!(error?.cancelled || error?.name === 'AbortError')) {
       console.error('Error en chatCompletionStreaming de Ollama:', error);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Chat de una sola pasada (sin streaming) con soporte de `tools`. Usado
+ * EXCLUSIVAMENTE por el loop de tool-calling de `providerRouter.js`. Ollama
+ * soporta un campo `tools` en `/api/chat` desde v0.3, pero SOLO para modelos
+ * "tool-capable" (ej. llama3.1, qwen2.5) — no verificado en vivo durante esta
+ * implementación. Si el modelo cargado no lo soporta, Ollama simplemente no
+ * incluye `tool_calls` en la respuesta (comportamiento esperado, no un error):
+ * el loop lo trata como "sin tool call, seguir con texto normal".
+ *
+ * @param {string} model - Nombre del modelo
+ * @param {Array} messages - Mensajes en formato genérico (ver `openAIToolChat.js`)
+ * @param {{tools?: Array}} [options]
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<{text: string, toolCalls: Array|null}>}
+ */
+export async function chatCompletionOnce(model, messages, options = {}, signal = null) {
+  const url = await getBaseUrl();
+
+  try {
+    const response = await fetch(`${url}${OLLAMA_ENDPOINTS.chat}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        // stringifyArguments:false — ver docstring de buildOpenAIToolMessages: Ollama
+        // devuelve function.arguments como objeto nativo (no string, a diferencia del
+        // spec real de OpenAI) y rechaza con 400 si se lo reenviamos re-serializado.
+        messages: buildOpenAIToolMessages(messages, { stringifyArguments: false }),
+        stream: false,
+        ...(options.tools?.length ? { tools: toOpenAIToolsFormat(options.tools) } : {}),
+      }),
+      signal,
+    });
+
+    if (!response.ok) {
+      // BUG REAL (confirmado en producción): antes solo se incluía `response.status`,
+      // descartando el body — el usuario solo veía "Error 400" sin ninguna pista de la
+      // causa real (ej. "Value looks like object, but can't find closing '}' symbol").
+      // Mismo patrón que ya usan deepseekProvider.js/kimiProvider.js/lmStudioProvider.js.
+      const errBody = await response.json().catch(() => ({}));
+      const errMsg = typeof errBody.error === 'string'
+        ? errBody.error
+        : (errBody.error?.message || errBody.message || '');
+      throw new Error(`Error en la API de Ollama (/api/chat): ${response.status}${errMsg ? ' — ' + errMsg : ''}`);
+    }
+
+    const data = await response.json();
+    return parseOpenAIToolMessage(data.message || {});
+  } catch (error) {
+    if (!(error?.cancelled || error?.name === 'AbortError')) {
+      console.error('Error en chatCompletionOnce de Ollama:', error);
     }
     throw error;
   }

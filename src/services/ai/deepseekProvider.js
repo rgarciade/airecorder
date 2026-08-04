@@ -1,6 +1,8 @@
 // Servicio para interactuar con la API de DeepSeek
 
 import { getSettings } from '../settingsService';
+import { toOpenAIToolsFormat } from './tools';
+import { buildOpenAIToolMessages, parseOpenAIToolMessage } from './openAIToolChat';
 
 const DEEPSEEK_API_BASE = 'https://api.deepseek.com/v1';
 
@@ -294,5 +296,54 @@ export async function chatCompletionStreaming(messages, onChunk, modelOverride =
       }
       throw error;
     }
+  }
+}
+
+/**
+ * Chat de una sola pasada (sin streaming) con soporte de `tools`. Usado
+ * EXCLUSIVAMENTE por el loop de tool-calling de `providerRouter.js`.
+ * DeepSeek documenta un endpoint `/chat/completions` compatible con OpenAI
+ * incluido `tools`/`tool_calls` — no verificado en vivo durante esta
+ * implementación (ver README, sección de function-calling).
+ *
+ * @param {Array} messages - Mensajes en formato genérico (ver `openAIToolChat.js`)
+ * @param {{tools?: Array, model?: string}} [options]
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<{text: string, toolCalls: Array|null}>}
+ */
+export async function chatCompletionOnce(messages, options = {}, signal = null) {
+  const settings = await getSettings();
+  const apiKey = settings.deepseekApiKey;
+  const model = options.model || settings.deepseekModel || 'deepseek-chat';
+
+  if (!apiKey) throw new Error('No se ha configurado la DeepSeek API Key en los ajustes.');
+
+  const body = {
+    model,
+    messages: buildOpenAIToolMessages(messages),
+    stream: false,
+    ...(options.tools?.length ? { tools: toOpenAIToolsFormat(options.tools) } : {}),
+  };
+
+  try {
+    const response = await fetch(`${DEEPSEEK_API_BASE}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify(body),
+      signal,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Error en la API de DeepSeek: ${response.status} ${errorData.error?.message || ''}`);
+    }
+
+    const data = await response.json();
+    return parseOpenAIToolMessage(data.choices?.[0]?.message || {});
+  } catch (error) {
+    if (!(error?.cancelled || error?.name === 'AbortError')) {
+      console.error('Error en chatCompletionOnce de DeepSeek:', error);
+    }
+    throw error;
   }
 }
