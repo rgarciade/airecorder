@@ -130,6 +130,10 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
   // Context length guardado en settings (persiste, se usa para evitar llamadas a API)
   const [ollamaContextLengthSaved, setOllamaContextLengthSaved] = useState('');
   const [lmStudioContextLengthSaved, setLmStudioContextLengthSaved] = useState('');
+  // Codex: sin auto-detección posible (el SDK/CLI no expone este dato por ninguna
+  // API) — a diferencia de ollama/lmStudio, este campo es SOLO manual, sin botón
+  // "detectar" ni estado de éxito/error asociado.
+  const [codexContextLengthSaved, setCodexContextLengthSaved] = useState('');
   // Estado de detección automática del context length
   const [ollamaCtxStatus, setOllamaCtxStatus] = useState(null); // null | 'success' | 'error'
   const [lmStudioCtxStatus, setLmStudioCtxStatus] = useState(null); // null | 'success' | 'error'
@@ -281,6 +285,9 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
 
         // Ollama context length guardado
         setOllamaContextLengthSaved(savedSettings.ollamaContextLength ? String(savedSettings.ollamaContextLength) : '');
+
+        // Codex context length guardado (manual únicamente, sin auto-detección)
+        setCodexContextLengthSaved(savedSettings.codexContextLength ? String(savedSettings.codexContextLength) : '');
 
         setAiProvider(savedSettings.aiProvider || 'ollama');
         setCodexModel(savedSettings.codexModel || '');
@@ -648,6 +655,7 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
         // Codex (session is owned by the CLI; no credential is stored)
         codexModel: codexModel,
         codexReasoningEffort: codexReasoningEffort,
+        codexContextLength: codexContextLengthSaved ? parseInt(codexContextLengthSaved) : null,
         // LM Studio
         lmStudioHost: lmStudioHost,
         lmStudioModel: lmStudioModel,
@@ -873,6 +881,7 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
     aiProvider,
     codexModel, setCodexModel,
     codexReasoningEffort, setCodexReasoningEffort,
+    codexContextLengthSaved, setCodexContextLengthSaved,
     codexModels,
     codexModelsLoading,
     codexModelsError,

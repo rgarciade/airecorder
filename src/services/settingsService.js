@@ -52,6 +52,11 @@ export const getSettings = async () => {
       // OpenAI
       openaiApiKey: '',
       openaiModel: '',
+      // Codex (suscripción ChatGPT) — sin auto-detección posible (el SDK/CLI de
+      // Codex no expone la ventana de contexto por ninguna API), a diferencia de
+      // ollamaContextLength/lmStudioContextLength. null = usar el valor estimado
+      // hardcodeado por defecto (ver RecordingDetailWithTranscription.jsx/ProjectDetail.jsx).
+      codexContextLength: null,
       // Ollama
       ollamaModel: '',
       ollamaRagModel: '', // Modelo de CHAT específico para RAG (ej: deepseek-r1)
