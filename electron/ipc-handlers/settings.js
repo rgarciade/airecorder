@@ -5,7 +5,7 @@ const os = require('os');
 const notificationService = require('../services/notificationService');
 const { settingsPath, DEFAULT_BASE_RECORDER_PATH } = require('../utils/paths');
 const dbService = require('../database/dbService');
-const { migrateGeminiFreeTier, migrateCustomChatModelField } = require('../utils/settingsMigrations');
+const { migrateGeminiFreeTier, migrateCustomChatModelField, migrateWhisperModelAlias } = require('../utils/settingsMigrations');
 
 module.exports.registerSettingsHandlers = () => {
 
@@ -58,6 +58,7 @@ module.exports.registerSettingsHandlers = () => {
         const needsPersist = [
           migrateGeminiFreeTier(settings),
           migrateCustomChatModelField(settings),
+          migrateWhisperModelAlias(settings),
         ].some(Boolean);
 
         if (needsPersist) {
@@ -170,3 +171,4 @@ module.exports.registerSettingsHandlers = () => {
 // Exportadas para tests unitarios de las migraciones de settings.json
 module.exports.migrateGeminiFreeTier = migrateGeminiFreeTier;
 module.exports.migrateCustomChatModelField = migrateCustomChatModelField;
+module.exports.migrateWhisperModelAlias = migrateWhisperModelAlias;

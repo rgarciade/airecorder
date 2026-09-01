@@ -155,6 +155,37 @@ window.electronAPI.wiki = {
 }
 ```
 
+### IPC: Inventario y descargas de modelos Whisper (`resources:*`)
+
+`electron/services/resourceManager.js` es la única fuente de verdad en runtime del inventario de modelos Whisper, la cola de descargas y el chequeo de espacio en disco. No persiste nada en BD/JSON (se deriva del filesystem en cada escaneo, ver `electron/services/resources/hfCacheScanner.js` y el catálogo estático `electron/services/resources/modelCatalog.js`); lo único persistente sigue siendo `settings.whisperModel`. Los handlers viven en `electron/ipc-handlers/resources.js` (`registerResourcesHandlers(ipcMain)`) y todos devuelven `{ ok, ... }` sin lanzar.
+
+| Canal IPC | Payload | Respuesta |
+|-----------|---------|-----------|
+| `resources:list` | — | `Snapshot` (estado cacheado, sin forzar rescan) |
+| `resources:refresh` | — | `Snapshot` (fuerza un rescan de disco + espacio) |
+| `resources:check-space` | `id` | `{ ok, sufficient, freeBytes, totalBytes, requiredBytes, estimatedBytes, remainingAfterBytes }` |
+| `resources:download` | `id` | `{ ok }` \| `{ ok: false, error }` — encola; no espera a que termine |
+| `resources:cancel` | `id` | `{ ok }` \| `{ ok: false, error: 'not-found' }` |
+| `resources:delete` | `id` | `{ ok, freedBytes }` \| `{ ok: false, reason: 'default-model'\|'in-queue' }` \| `{ ok: false, error }` |
+| `resources:get-queue` | — | `Snapshot` (pull inicial, patrón `useQueueManager`) |
+
+`Snapshot = { ok, cacheDir, freeBytes, totalBytes, items: ResourceItem[], queue: DownloadEntry[], active: DownloadEntry|null }`. `items[].state` es uno de `'not-installed'|'queued'|'downloading'|'installed'|'error'`.
+
+Métodos expuestos en `preload.js` bajo `window.electronAPI.resources`:
+
+```js
+window.electronAPI.resources = {
+  list(), refresh(), checkSpace(id), download(id), cancel(id), remove(id), getQueue(),
+  onProgress(listener) // suscribe a 'resources:progress'; devuelve función de unsubscribe
+}
+```
+
+**Broadcast de progreso:** `resourceManager.setUpdateCallback(...)` (registrado en `main.js` junto a `queue-update`) envía el `Snapshot` completo (no un delta) por el evento `resources:progress` a todas las ventanas, con throttle de 250ms para no saturar el IPC durante descargas de varios GB.
+
+**Descarga (Node orquesta, Python ejecuta):** `resourceManager` spawnea `audio_sync_analyzer resources download --model <id> --cache-dir <cacheDir>` (mismo binario que la transcripción — el dispatch de `resources` vive dentro de `python/model_resources.py` e intercepta la ejecución antes de los imports pesados, ver `README.md` raíz) y parsea su stdout línea a línea (`PROGRESS:{json}` / `DONE:{json}` / `ERROR:{json}`, extiende el patrón `PROGRESS:\d+` ya usado en `transcriptionManager.js`). Cancelar una descarga activa manda `SIGTERM` y, si sigue viva a los 3s, `SIGKILL`; al cerrar el proceso se barren los `blobs/*.incomplete` del repo y se re-escanea. El borrado (`resources:delete`) se bloquea si el modelo es el `whisperModel` default de Ajustes o si tiene una tarea `pending`/`processing` en `transcription_queue`.
+
+**Bloqueo pre-spawn en transcripción:** `transcriptionManager.addTask()` resuelve el modelo efectivo (`options.model` o `settings.whisperModel` por defecto) y llama `resourceManager.isInstalled(model)` ANTES de encolar. Si no está instalado, la tarea se rechaza con `{ success: false, error: 'MODEL_NOT_INSTALLED', model }` sin tocar la BD — nunca se encola para fallar después dentro del proceso Python.
+
 ### Bundle budget (NFR-WIKI-004)
 
 Medición realizada con `npm run build` (2026-06-14):
@@ -357,6 +388,8 @@ Este handler se utiliza en `App.jsx` → `loadAppSettings()` cuando es la primer
 ### Migración de settings.json: `load-settings` (`ipc-handlers/settings.js`)
 
 `aiProvider`/`embeddingProvider` ya no distinguen `'geminifree'` de `'gemini'` (una sola configuración de Gemini, sin tier free/pro separado). El handler `load-settings` es el **único punto de normalización**: al leer `settings.json`, `migrateGeminiFreeTier(settings)` reescribe `'geminifree'` → `'gemini'` y rescata `geminiApiKey`/`geminiModel` desde los campos legacy `geminiFreeApiKey`/`geminiFreeModel` si el campo nuevo está vacío. Si hubo cambios, persiste el archivo migrado antes de devolver `{ success, settings }`. Como todo el resto de la app (renderer vía `getSettings()`, y el propio proceso principal en `embeddingService.js`) lee `settings.json` después de este primer `load-settings`, no hace falta duplicar la migración en ningún otro sitio.
+
+En el mismo `load-settings` también corre `migrateWhisperModelAlias(settings)`: remapea silenciosamente `whisperModel: 'large'` → `'large-v3'` (issue #149). Es un renombrado puro sin re-descarga — `faster_whisper` ya mapea `"large"` al mismo repo de Hugging Face que `"large-v3"`, así que el modelo ya descargado sigue en la misma carpeta de caché. Ambas migraciones (`migrateGeminiFreeTier`, `migrateWhisperModelAlias`) y `migrateCustomChatModelField` viven en `electron/utils/settingsMigrations.js`, sin dependencias de Electron, para poder testearlas de forma aislada (`test/unit/electron/utils/settingsMigrations.test.js`).
 
 ## Almacenamiento Configurable
 
