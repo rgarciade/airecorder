@@ -148,12 +148,43 @@ python python/audio_sync_analyzer.py \
   --basename <recording-folder-name> \
   --base_dir <path-to-recordings> \
   --model small \
+  --model_cache_dir <hf-hub-cache-dir> \
   --threads 4
 ```
 
 **ffmpeg/ffprobe bundled (`--ffmpeg` / `--ffprobe`):** in the packaged app, the manager passes explicit paths to the bundled `ffmpeg-static` and `@ffprobe-installer/ffprobe` binaries. These live in **different** directories, and pydub probes audio via a bare `ffprobe` resolved from `PATH` (it ignores `AudioSegment.ffprobe`). The analyzer therefore prepends **both** binaries' directories to `PATH`. This is required because a GUI launch (Finder/Dock/Spotlight) does not inherit a shell `PATH`, so without it audio decoding fails with `[Errno 2] No such file or directory: 'ffprobe'` and no transcript is produced.
 
 > Nota: se reemplazó `ffprobe-static` (sin mantenimiento desde 2020) por `@ffprobe-installer/ffprobe` porque el primero empaquetaba el mismo binario x86_64 tanto en `bin/darwin/x64` como en `bin/darwin/arm64`, generando el aviso "Fin de compatibilidad con apps para Intel" en macOS Apple Silicon (issue #125). `@ffprobe-installer/ffprobe` resuelve el binario nativo correcto según `os.arch()` en tiempo de instalación.
+
+### Descarga explícita de modelos Whisper (`model_resources.py`, issue #149)
+
+Desde el issue #149, la app **nunca descarga un modelo Whisper de forma implícita**. `--model` es un argumento **obligatorio** de `audio_sync_analyzer.py` (sin default a nivel de módulo) y `WHISPER_MODEL` lo fija siempre Node (`electron/services/resourceManager.js`) — nunca un fallback silencioso de Python. `load_whisper_model()` carga el modelo con `WhisperModel(WHISPER_MODEL, download_root=args.model_cache_dir, local_files_only=True)`: si el modelo no está ya en `args.model_cache_dir`, falla fuerte con `ERROR:MODEL_NOT_INSTALLED::<model>` y código de salida distinto de cero, en vez de descargarlo en caliente durante una transcripción. Esta es la capa 3 (autoritativa real) del escaneo en tres capas documentado en `design.md` del change `onboarding-whisper-downloads`.
+
+La descarga en sí vive en un módulo **separado y aislado**, `python/model_resources.py` — nunca se acopla a la lógica de transcripción. `audio_sync_analyzer.py` hace un *dispatch* temprano para el subcomando `resources`, insertado justo después de `multiprocessing.freeze_support()` y **antes** de los imports pesados (`matplotlib`, `librosa`, `faster_whisper`, ~1.5–3s):
+
+```python
+if len(sys.argv) > 1 and sys.argv[1] == "resources":
+    from model_resources import main as resources_main
+    sys.exit(resources_main(sys.argv[2:]))
+```
+
+Esto evita crear un segundo binario PyInstaller (el pipeline de build solo empaqueta un `.spec`/`python-bin`) sin pagar el costo de los imports pesados cuando solo se necesita escanear/descargar/borrar un modelo.
+
+```bash
+python python/model_resources.py scan     --cache-dir <hf-hub-cache-dir>
+python python/model_resources.py download --model small --cache-dir <hf-hub-cache-dir>
+python python/model_resources.py delete   --model small --cache-dir <hf-hub-cache-dir>
+```
+
+`model_resources.py` solo importa `huggingface_hub`, `json`, `os`, `sys`, `argparse` y, defensivamente, `faster_whisper.utils` (para reutilizar su mapa oficial `_MODELS` id→repoId, con un diccionario de respaldo local si esa API interna cambia). `download` usa `huggingface_hub.snapshot_download` con un `tqdm_class` propio que emite progreso real por stdout; `delete` usa `scan_cache_dir().delete_revisions().execute()` (maneja `blobs`/`refs`/`snapshots` correctamente — un `rm -rf` dejaría blobs huérfanos compartidos entre revisiones). Protocolo de salida, una línea = un JSON con prefijo (extiende el patrón `PROGRESS:\d+` que ya usa `transcriptionManager.js` para la transcripción):
+
+```
+PROGRESS:{"id":"small","received":123456,"total":486000000}
+DONE:{"id":"small","path":"/…/snapshots/<sha>","bytes":486000000}
+ERROR:{"id":"small","code":"network","detail":"…"}
+```
+
+**Caché fijada, no reubicada:** `resourceManager.resolveCacheDir()` (Node) resuelve `HF_HUB_CACHE` → `HF_HOME/hub` → default de `huggingface_hub` (`~/.cache/huggingface/hub` en macOS/Linux) y pasa esa ruta explícita a **todos** los procesos hijo vía `--cache-dir`/`--model_cache_dir`. Los modelos ya descargados por un usuario existente siguen exactamente donde estaban — no hay migración ni copia de caché. `python/audio_sync_analyzer.spec` declara `model_resources`, `requests`, `tqdm`, `filelock`, `fsspec` y `huggingface_hub.utils` en `hiddenimports` para que PyInstaller los incluya en el binario empaquetado.
 
 ### Diarización y Extracción de Embeddings
 

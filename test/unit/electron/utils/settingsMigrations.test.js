@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { migrateGeminiFreeTier, migrateCustomChatModelField } from '../../../../electron/utils/settingsMigrations.js';
+import { migrateGeminiFreeTier, migrateCustomChatModelField, migrateWhisperModelAlias } from '../../../../electron/utils/settingsMigrations.js';
 
 describe('migrateCustomChatModelField — rol de IA "chat" renombrado a "general"', () => {
   it('copia customChatModel a customGeneralModel cuando el nuevo campo está vacío', () => {
@@ -68,5 +68,45 @@ describe('migrateGeminiFreeTier', () => {
     const changed = migrateGeminiFreeTier(settings);
 
     expect(changed).toBe(false);
+  });
+});
+
+// Migración D7 (design.md): 'large' -> 'large-v3' es un renombrado puro, sin
+// re-descarga (mismo repo de HF, misma carpeta de caché) — INV2
+describe('migrateWhisperModelAlias — large -> large-v3 (design.md D7, INV2)', () => {
+  it('remapea whisperModel de "large" a "large-v3"', () => {
+    const settings = { whisperModel: 'large' };
+
+    const changed = migrateWhisperModelAlias(settings);
+
+    expect(changed).toBe(true);
+    expect(settings.whisperModel).toBe('large-v3');
+  });
+
+  it('es idempotente si whisperModel ya es "large-v3"', () => {
+    const settings = { whisperModel: 'large-v3' };
+
+    const changed = migrateWhisperModelAlias(settings);
+
+    expect(changed).toBe(false);
+    expect(settings.whisperModel).toBe('large-v3');
+  });
+
+  it('no hace nada si whisperModel es otro modelo (small, medium, etc.)', () => {
+    const settings = { whisperModel: 'small' };
+
+    const changed = migrateWhisperModelAlias(settings);
+
+    expect(changed).toBe(false);
+    expect(settings.whisperModel).toBe('small');
+  });
+
+  it('no hace nada si whisperModel no está seteado', () => {
+    const settings = { aiProvider: 'ollama' };
+
+    const changed = migrateWhisperModelAlias(settings);
+
+    expect(changed).toBe(false);
+    expect(settings.whisperModel).toBeUndefined();
   });
 });

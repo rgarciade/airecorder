@@ -19,6 +19,7 @@ sentryService.init();
 const dbService = require('./database/dbService');
 const migrationService = require('./database/migrationService');
 const transcriptionManager = require('./services/transcriptionManager');
+const resourceManager = require('./services/resourceManager');
 const notificationService = require('./services/notificationService');
 const microphoneMonitor = require('./services/microphoneMonitor');
 const updateChecker = require('./services/updateChecker');
@@ -47,6 +48,7 @@ const { registerTemplatesHandlers } = require('./ipc-handlers/templates');
 const { registerWikiHandlers } = require('./ipc-handlers/wiki');
 const { registerFloatingHandlers } = require('./ipc-handlers/floating');
 const { registerAiHandlers } = require('./ipc-handlers/ai');
+const { registerResourcesHandlers } = require('./ipc-handlers/resources');
 
 // ========================================
 // 1.5 REDIRIGIR LOGS DEL MAIN AL RENDERER (DevTools)
@@ -124,6 +126,7 @@ function registerIpcHandlers() {
   registerTemplatesHandlers();
   registerWikiHandlers(ipcMain);
   registerAiHandlers();
+  registerResourcesHandlers(ipcMain);
 }
 
 async function checkMicrophonePermission() {
@@ -260,6 +263,28 @@ async function initApp() {
     });
   });
 
+  // Inventario/descargas de modelos Whisper (resources:*): snapshot inicial
+  // desde la caché existente (INV3) + broadcast de progreso con throttle de
+  // 250ms para no saturar el IPC en descargas de varios GB (design.md).
+  resourceManager.init();
+
+  let resourcesProgressTimer = null;
+  let resourcesProgressLatest = null;
+  const RESOURCES_PROGRESS_THROTTLE_MS = 250;
+
+  resourceManager.setUpdateCallback((snapshot) => {
+    resourcesProgressLatest = snapshot;
+    if (resourcesProgressTimer) return;
+    resourcesProgressTimer = setTimeout(() => {
+      resourcesProgressTimer = null;
+      const payload = resourcesProgressLatest;
+      resourcesProgressLatest = null;
+      BrowserWindow.getAllWindows().forEach(win => {
+        win.webContents.send('resources:progress', payload);
+      });
+    }, RESOURCES_PROGRESS_THROTTLE_MS);
+  });
+
   // 4. Cargar configuraciones guardadas
   if (fs.existsSync(settingsPath)) {
     try {
@@ -376,7 +401,17 @@ app.setAppUserModelId('com.airecorder.app');
 initMain();
 
 // Arranque de la aplicación
-app.whenReady().then(initApp);
+app.whenReady().then(initApp).catch((error) => {
+  // Un rechazo no manejado acá tumba el proceso Electron completo. Degradá
+  // con gracia (mismo criterio que los demás fallbacks de arranque de esta
+  // función: loguear + avisar al usuario en vez de dejar que reviente).
+  console.error('[Main] Error fatal durante el arranque (initApp):', error);
+  dialog.showMessageBox({
+    type: 'error',
+    title: 'Error al iniciar AIRecorder',
+    message: `La aplicación no pudo completar su secuencia de arranque.\n\n${error?.message || error}\n\nRevisá los logs para más detalle.`
+  });
+});
 
 // Manejo de eventos de ventanas (Específico de macOS)
 app.on('activate', function () {
