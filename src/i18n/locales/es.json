@@ -30,12 +30,103 @@
     "ready": "Contexto listo",
     "auto": "Auto",
     "detailed": "Detallado",
+    "limitExceeded": "⚠ Límite superado",
+    "limitExceededTooltip": "El contexto supera el límite configurado del modelo",
+    "nearLimit": "⚠ Cerca del límite ({{pct}}%)",
+    "nearLimitTooltip": "El contexto se acerca al límite configurado del modelo",
+    "compactAction": "Compactar",
+    "compacting": "Compactando...",
     "tooltips": {
       "projectAuto": "Reparte el contexto entre todas las grabaciones. Más rápido.",
       "projectDetailed": "Busca más fragmentos por grabación. Respuestas más completas.",
       "recordingAuto": "Extrae el contexto esencial. Respuesta más rápida.",
       "recordingDetailed": "Analiza mucha más información para dar respuestas exhaustivas."
     }
+  },
+  "chatCommands": {
+    "menuTitle": "Comandos disponibles",
+    "unknown": "Comando no reconocido.",
+    "busy": "Espera a que termine la tarea actual antes de ejecutar otro comando.",
+    "compact": {
+      "label": "Compactar",
+      "description": "Resume el historial y libera contexto",
+      "argsPlaceholder": "Instrucciones opcionales, ej: céntrate en las decisiones",
+      "running": "Compactando…",
+      "summaryHeader": "Resumen del chat anterior ({{count}} mensajes compactados)",
+      "tooShort": "El historial es demasiado corto para compactar.",
+      "empty": "La IA no devolvió un resumen válido. Inténtalo de nuevo.",
+      "error": "No se pudo compactar el chat. Inténtalo de nuevo."
+    },
+    "clear": {
+      "label": "Vaciar",
+      "description": "Borra todo el historial de este chat",
+      "argsPlaceholder": "Pulsa Enter para vaciar el chat",
+      "running": "Vaciando…",
+      "error": "No se pudo vaciar el chat. Inténtalo de nuevo."
+    },
+    "help": {
+      "label": "Ayuda",
+      "description": "Muestra la lista de comandos disponibles",
+      "argsPlaceholder": "Pulsa Enter para ver la ayuda",
+      "running": "Cargando ayuda…",
+      "header": "🛟 **Comandos disponibles**",
+      "error": "No se pudo mostrar la ayuda. Inténtalo de nuevo."
+    },
+    "resumen": {
+      "label": "Resumen",
+      "description": "Genera un resumen de toda la conversación sin borrar nada",
+      "argsPlaceholder": "Instrucciones opcionales, ej: céntrate en las decisiones",
+      "running": "Resumiendo…",
+      "summaryHeader": "Resumen de la conversación",
+      "tooShort": "El historial es demasiado corto para generar un resumen.",
+      "empty": "La IA no devolvió un resumen válido. Inténtalo de nuevo.",
+      "error": "No se pudo generar el resumen. Inténtalo de nuevo."
+    },
+    "tareas": {
+      "label": "Tareas",
+      "description": "Extrae tareas de la conversación y las guarda",
+      "argsPlaceholder": "Instrucciones opcionales, ej: céntrate en el backend",
+      "running": "Extrayendo tareas…",
+      "tooShort": "La conversación es demasiado corta para extraer tareas.",
+      "summaryHeader": "{{count}} tarea(s) añadida(s)",
+      "updatedHeader": "{{count}} tarea(s) actualizada(s)",
+      "deletedHeader": "{{count}} tarea(s) eliminada(s)",
+      "discardedNotice": "Se ignoraron {{count}} cambio(s) propuesto(s) por la IA sobre tareas existentes: para actualizar o borrar tareas ya creadas hace falta indicar instrucciones explícitas en /tareas.",
+      "none": "No se encontraron tareas claras en esta conversación.",
+      "noTarget": "No se pudo determinar dónde guardar las tareas.",
+      "error": "No se pudieron extraer las tareas. Inténtalo de nuevo."
+    },
+    "nota": {
+      "label": "Nota",
+      "description": "Genera una nota en Markdown a partir de la conversación",
+      "argsPlaceholder": "Instrucciones opcionales, ej: céntrate en las conclusiones",
+      "running": "Generando nota…",
+      "tooShort": "La conversación es demasiado corta para generar una nota.",
+      "summaryHeader": "Nota generada y guardada",
+      "empty": "La IA no devolvió contenido válido para la nota. Inténtalo de nuevo.",
+      "noTarget": "No se pudo determinar en qué grabación guardar la nota.",
+      "projectUnsupported": "/nota no está disponible en el chat de proyecto (las notas solo se guardan por grabación).",
+      "error": "No se pudo generar la nota. Inténtalo de nuevo."
+    },
+    "buscar": {
+      "label": "Buscar",
+      "description": "Busca una respuesta puntual forzando modo RAG detallado",
+      "argsPlaceholder": "Escribe tu pregunta, ej: /buscar ¿qué se decidió sobre el presupuesto?",
+      "running": "Buscando…",
+      "emptyQuery": "Escribe una pregunta después de /buscar.",
+      "noTarget": "No se pudo determinar dónde buscar.",
+      "notIndexed": "Esta grabación aún no está indexada para búsqueda. Espera a que termine de indexarse e inténtalo de nuevo.",
+      "noResults": "No se encontraron fragmentos relevantes para esa pregunta.",
+      "error": "No se pudo completar la búsqueda. Inténtalo de nuevo."
+    }
+  },
+  "chatPendingAction": {
+    "cancelled": "Cancelado, no se realizó ningún cambio.",
+    "created": "✅ Tarea creada: {{title}}",
+    "updated": "🔄 Tarea actualizada: {{title}}",
+    "deleted": "🗑️ Tarea eliminada: {{title}}",
+    "error": "No se pudo completar la acción.",
+    "chosen": "Elegiste: {{option}}"
   },
   "modelInfo": {
     "title": "Modelos recomendados",
@@ -216,7 +307,8 @@
       "databasePath": "Cambia dónde se guarda la base de datos. Se recomienda usar la ruta por defecto.",
       "contextLengthInput": "Deja vacío para detectarlo automáticamente en cada generación, o introduce el valor manualmente.",
       "contextLengthOllama": "Encuéntralo ejecutando: ollama show <modelo> --verbose (campo num_ctx)",
-      "contextLengthLmStudio": "Encuéntralo en LM Studio, en la sección \"My Models\" → opciones avanzadas del modelo cargado."
+      "contextLengthLmStudio": "Encuéntralo en LM Studio, en la sección \"My Models\" → opciones avanzadas del modelo cargado.",
+      "contextLengthCodex": "Codex no expone este dato por ninguna API — deja vacío para usar un valor estimado por defecto, o indica el límite real de tu modelo si lo conoces."
     },
     "themes": {
       "system": "Sistema (por defecto)",
@@ -248,7 +340,33 @@
       "deepseekName": "DeepSeek",
       "kimiName": "Kimi",
       "openaiName": "OpenAI",
-      "openaiDesc": "OpenAI (GPT)"
+      "openaiDesc": "OpenAI (GPT)",
+      "codexName": "Codex (suscripción ChatGPT)",
+      "codexDesc": "Usa tu sesión de ChatGPT; no requiere API Key y no incluye embeddings",
+      "codexConnect": "Conectar con ChatGPT",
+      "codexConnected": "Sesión de ChatGPT conectada",
+      "codexEmbeddingNotice": "Codex no ofrece embeddings. Elegí otro proveedor de embeddings.",
+      "codexLoginInstructions": "Conectá tu cuenta de ChatGPT en el flujo oficial de Codex; la app no ve ni guarda tus credenciales.",
+      "codexLoginFailed": "No se pudo iniciar la sesión de Codex. Revisá el mensaje e intentá nuevamente.",
+      "codexConnecting": "Conectando…",
+      "codexUnavailable": "Codex CLI no está disponible en esta instalación.",
+      "codexCancel": "Cancelar",
+      "codexDeviceAuthInstructions": "Abrí el enlace oficial e ingresá el código de un solo uso.",
+      "codexCodeLabel": "Código de un solo uso",
+      "codexOfficialLink": "Abrir autenticación oficial de OpenAI",
+      "codexModelsLoading": "Cargando los modelos disponibles para tu suscripción…",
+      "codexModelsError": "No se pudo cargar el catálogo de modelos de Codex: {{error}}",
+      "codexManualModelPlaceholder": "Ingresá un ID de modelo",
+      "codexManualModelHelp": "El catálogo no está disponible. Podés conservar el modelo guardado o ingresar su ID manualmente.",
+      "codexReasoningEffort": "Esfuerzo de razonamiento",
+      "codexEfforts": {
+        "none": "Ninguno",
+        "minimal": "Mínimo",
+        "low": "Bajo",
+        "medium": "Medio",
+        "high": "Alto",
+        "xhigh": "Extra alto"
+      }
     },
     "buttons": {
       "save": "Guardar Ajustes",
@@ -650,9 +768,7 @@
     "uploadFile": "Subir archivo",
     "pasteConversation": "Pegar conversación",
     "importTeamsDescription": "Importa transcripciones de Microsoft Teams (.docx).",
-    "importAudioDescription": "Sube archivos de audio (mp3, wav, ogg...) para transcribir.",
-    "uploadFile": "Subir archivo",
-    "pasteConversation": "Pegar conversación"
+    "importAudioDescription": "Sube archivos de audio (mp3, wav, ogg...) para transcribir."
   },
   "statsRow": {
     "thisWeek": "Esta Semana",
@@ -688,6 +804,10 @@
       "success": "Éxito",
       "cancelled": "Cancelado",
       "failed": "Fallido"
+    },
+    "errors": {
+      "diskSpace": "Espacio en disco insuficiente para descargar el modelo Whisper (se necesitan {{expectedMb}} MB, solo hay {{freeMb}} MB libres). Libera espacio y vuelve a intentarlo.",
+      "generic": "{{message}}"
     },
     "transcriptionStatus": "Transcripción {{status}} para",
     "steps": {

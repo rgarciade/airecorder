@@ -77,6 +77,7 @@ ipcMain.handle('mi-evento', async (event, params) => {
 
 *   `RecordingOverlay.jsx` muestra un checkbox "Descartar diarización" en el diálogo de detalles al terminar la grabación (solo si `settings.enableDiarization` está activo globalmente) y lo pasa como `{ skipDiarization }` a `recordingsService.transcribeRecording()`.
 *   `transcriptionManager.processQueue()` combina `settings.enableDiarization && !recording.skip_diarization` para decidir si ejecuta `diarization_analyzer.py`. El flag persiste en la fila del recording, así que también aplica si la tarea se reintenta o se re-encola manualmente.
+*   La resolución de los binarios empaquetados (el binario Python de `resources/python-bin` y `ffmpeg-static`) vive en `electron/utils/packagedBinaries.js`, que agrega el sufijo `.exe` en Windows — `child_process.spawn()` no resuelve extensiones y sin el sufijo el spawn falla con `ENOENT` (issue #154).
 *   Los demás puntos de entrada (`RecordingList`, `RecordingDetail`, `Home`) no pasan `options`, por lo que no tocan el flag y respetan el valor ya guardado en el recording.
 
 ### IPC: IA / Conexiones OpenAI personalizadas
@@ -110,6 +111,26 @@ window.electronAPI.ragReindexAll() // → Promise<{ success, reindexed?, total?,
 ```
 
 El handler delega en `ragService.reindexAllRecordings()`; por cada grabación con `vectordb/` existente llama a `indexRecording` y finalmente escribe `{ lastEmbeddingModelId, reindexedAt }` en `rag_metadata.json` dentro del directorio de grabaciones. El frontend compara el nuevo id con `settings.lastEmbeddingModelId` y muestra un banner de aviso cuando cambia, permitiendo al usuario ejecutar el reindexado manualmente.
+
+### IPC: Reemplazo atómico del historial de chat (comando `/compact`, issue #18)
+
+El comando `/compact` del chat (`src/hooks/useChatCommands.js`) reemplaza todo el historial por `[resumen, ...últimos N mensajes]` de una sola vez, en vez de `clear` + N×`save` (que dejaría una ventana en la que un fallo a mitad de camino borra el historial sin dejar el resumen persistido).
+
+| Canal IPC | Handler | Payload | Respuesta |
+|-----------|---------|---------|-----------|
+| `replace-question-history` | `ipc-handlers/analysis.js` | `recordingId, history[]` | `{ success: true }` \| `{ success: false, error }` |
+| `replace-project-chat-messages` | `ipc-handlers/projects.js` | `chatId, messages[]` | `{ success: true }` \| `{ success: false, error }` |
+
+- **Grabación:** `replace-question-history` hace un único `fs.promises.writeFile` sobre `questions_history.json` (mismo patrón que `clear-question-history`, pero con el array completo en vez de `[]`).
+- **Proyecto:** `replace-project-chat-messages` delega en `dbService.replaceChatMessages(chatId, messages)` — ver sección 3 (Bases de Datos) para el detalle de la transacción SQLite.
+
+Métodos expuestos en preload:
+```js
+window.electronAPI.replaceQuestionHistory(recordingId, history)      // → Promise<{ success, error? }>
+window.electronAPI.replaceProjectChatMessages(chatId, messages)      // → Promise<{ success, error? }>
+```
+
+Frontend: `recordingsService.replaceQuestionHistory(recordingId, history)` y `projectChatService.replaceChatHistory(chatId, messages)`.
 
 ### IPC: Wiki de Proyecto
 
@@ -232,6 +253,20 @@ window.electronAPI.getRecordingSchema(recordingId)           // → Promise<{ su
 
 Frontend: `src/services/recordingsService.js` expone `saveRecordingSchema(id, schema)` y `getRecordingSchema(id)`.
 
+### `ChatsDbService.replaceChatMessages(chatId, messages)` (issue #18 — `/compact`)
+
+`electron/database/chats/dbService.js` expone `replaceChatMessages(chatId, messages)`, usado por el IPC `replace-project-chat-messages`. Reemplaza atómicamente todos los mensajes de un chat de proyecto (`project_messages`) dentro de una única `this.db.transaction(...)` de better-sqlite3:
+
+```js
+const runReplace = this.db.transaction((id, msgs) => {
+  deleteStmt.run(id);                          // DELETE_CHAT_MESSAGES
+  for (const m of msgs) insertStmt.run(id, m.tipo, m.contenido); // INSERT_MESSAGE
+  updateTimeStmt.run(id);                       // UPDATE_CHAT_TIME
+});
+```
+
+Al ser una transacción, o se aplican los tres pasos o ninguno — nunca queda el chat a medio borrar si algo falla entre el `DELETE` y los `INSERT`. Mismo patrón que `updateTasksSortOrder` en `database/tasks/dbService.js`.
+
 ### Almacenamiento Dual (Dual Storage)
 El sistema guarda metadatos en la base de datos (ID, duración, estados), pero el contenido pesado (archivos WAV, archivos JSON de los resúmenes de IA, transcripciones txt) reside en el sistema de archivos (Filesystem).
 *   *Importante:* El ID de la grabación (`recordingId`) en la base de datos es numérico. En el disco, las carpetas de las grabaciones usan strings (`relative_path`). La función `getFolderPathFromId()` se utiliza para traducir el ID numérico a la ruta correcta en disco.
@@ -282,6 +317,10 @@ Sistema de notificación de actualizaciones manuales usando GitHub Releases API 
 3. Cada 4 horas se verifica silenciosamente (solo envía evento `update-available` al renderer).
 4. El usuario puede verificar manualmente desde Settings → General → "Buscar actualizaciones".
 5. Si acepta, se abre el navegador con `shell.openExternal(release.html_url)` para descarga manual.
+
+### Notas de versión en el diálogo nativo
+
+GitHub entrega `release.body` en Markdown, pero `dialog.showMessageBox` solo renderiza texto plano. Antes de mostrar las novedades, `electron/utils/releaseNotes.js` elimina la sintaxis Markdown y conserva títulos, listas y enlaces en un formato legible. También normaliza espacios y saltos de línea, usa un texto de respaldo si las notas están vacías y limita el resultado a 600 caracteres buscando un límite natural para evitar palabras cortadas.
 
 ### Métodos expuestos en `preload.js`
 | Método | Descripción |
@@ -763,3 +802,15 @@ Cada plantilla tiene un array de secciones con estos tipos:
 
 ## 9. `projectsDatabase.README.md`
 Existe un archivo adicional en esta carpeta (`projectsDatabase.README.md`) que detalla un motor de base de datos específico en JSON que sirve de legado o apoyo para ciertos datos de proyecto. Revísalo si vas a tocar `projectsDatabase.js`.
+
+### Codex / suscripción ChatGPT
+
+Los canales `ai:codex-status`, `ai:codex-models`, `ai:codex-login`, `ai:codex-run` y `ai:codex-cancel` pertenecen a `ipc-handlers/ai.js`. El preload expone estado, catálogo, arranque de login, ejecución/cancelación por `requestId` y suscripciones eliminables a progreso/chunks; el servicio `services/codexService.js` es el único que importa el SDK y ejecuta el binario nativo empaquetado. Nunca relanza Electron ni lee la sesión local. `package.json` desempaqueta `@openai/codex*` desde ASAR para preservar sus binarios por plataforma.
+
+`listCodexModels()` invoca el binario ya resuelto con los argumentos fijos `debug models`, `shell: false`, timeout y límites independientes de stdout/stderr/salida total. Main valida el JSON RAW de Codex (`slug`, `supported_reasoning_levels[].effort`, `default_reasoning_level`, `visibility`), descarta modelos con visibilidad `hide`/`none` y devuelve `{ success, models, error }`; cada modelo se normaliza a `{ id, model, displayName, description, supportedReasoningEfforts, defaultReasoningEffort, isDefault }`. Los efforts anunciados que el runtime actual no soporta se omiten y los soportados se deduplican; si el default queda fuera del conjunto filtrado, se devuelve `null` sin inventar un reemplazo. También acepta las variantes camelCase del protocolo `model/list`. No existe catálogo hardcodeado ni fallback de backend: si falla, la UI conserva el modelo guardado y habilita entrada manual.
+
+Device-auth transmite por `ai:codex-login-progress`, asociado al `requestId`, únicamente datos públicos estructurados: fase, código de un solo uso y URL. Main elimina secuencias ANSI reales o degradadas, no reenvía el banner/transcript del terminal y sólo acepta URLs HTTPS cuyo host exacto sea `auth.openai.com`; credenciales y archivos privados de Codex nunca cruzan IPC.
+
+Mientras `ai:codex-login` está activo, Main consulta `codex login status` cada 1,5 segundos hasta detectar la sesión, recibir cancelación/error o alcanzar el timeout. Las consultas son secuenciales (nunca se solapan); al detectar `connected: true`, el servicio resuelve inmediatamente el IPC, termina el proceso `--device-auth` que pueda seguir abierto y elimina timers/listeners antes de ignorar eventos tardíos. Fuera de ese flujo no existe polling permanente: Settings y Onboarding realizan una sola consulta al montarse.
+
+El renderer carga el catálogo una vez al detectar una sesión conectada y sólo lo repite por acción explícita de refresco. `codexReasoningEffort` se persiste junto a `codexModel`; al ejecutar, Main sólo pasa `modelReasoningEffort` al SDK cuando pertenece a `minimal|low|medium|high|xhigh`, el conjunto tipado por la versión instalada del SDK.

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import CodexLoginControls from '../../../../components/CodexLoginControls/CodexLoginControls';
+import CodexModelControls from '../../../../components/CodexModelControls/CodexModelControls';
 import {
   MdCloud, MdVisibility, MdVisibilityOff, MdRefresh, MdOpenInNew, MdExpandMore, MdExpandLess
 } from 'react-icons/md';
@@ -6,6 +8,7 @@ import styles from '../../Settings.module.css';
 import AiProviderIcon from '../../../../components/AiProviderIcon/AiProviderIcon';
 import RoleBadge from './RoleBadge';
 import { useSettings } from '../../SettingsContext';
+import { CLOUD_PROVIDERS } from '../../../../services/ai/providerRouter';
 
 const WIKI_URL = import.meta.env.VITE_WIKI_URL || 'https://rgarciade.github.io/airecorder/vp/';
 
@@ -21,6 +24,13 @@ export default function CloudProvidersSection({ role, defaultOpen = false }) {
     embeddingProvider,
     toggleEmbeddingProvider,
     showApiKey, setShowApiKey,
+    // Codex subscription
+    codexModel,
+    codexReasoningEffort, setCodexReasoningEffort,
+    codexContextLengthSaved, setCodexContextLengthSaved,
+    codexModels, codexModelsLoading, codexModelsError,
+    loadCodexModels, handleCodexModelChange,
+    codexStatus, setCodexStatus,
     // OpenAI
     openaiApiKey, setOpenaiApiKey,
     openaiModel, setOpenaiModel,
@@ -55,6 +65,7 @@ export default function CloudProvidersSection({ role, defaultOpen = false }) {
 
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
+
   return (
     <section className={styles.section}>
       <div className={styles.sectionHeader}>
@@ -82,11 +93,12 @@ export default function CloudProvidersSection({ role, defaultOpen = false }) {
             <MdOpenInNew size={14} />
             {t('settings.wikiLink')}
           </a>
-          <span className={`${styles.badge} ${['gemini', 'deepseek', 'kimi', 'openai'].includes(activeProvider) ? styles.badgeActive : styles.badgeInactive}`}>
+          <span className={`${styles.badge} ${CLOUD_PROVIDERS.includes(activeProvider) ? styles.badgeActive : styles.badgeInactive}`}>
            {activeProvider === 'gemini' ? t('settings.providers.geminiName') :
             activeProvider === 'deepseek' ? t('settings.providers.deepseekName') :
             activeProvider === 'kimi' ? t('settings.providers.kimiName') :
-            activeProvider === 'openai' ? t('settings.providers.openaiName') : t('settings.providers.inactive')}
+            activeProvider === 'openai' ? t('settings.providers.openaiName') :
+            activeProvider === 'codex' ? t('settings.providers.codexName') : t('settings.providers.inactive')}
           </span>
           <button
             type="button"
@@ -101,8 +113,62 @@ export default function CloudProvidersSection({ role, defaultOpen = false }) {
 
       {isOpen && (
       <>
+      {/* Codex / ChatGPT subscription — general generation only */}
+      <div className={`${styles.card} ${!isProviderActive('codex') ? styles.cardDisabled : ''}`}>
+        <div className={styles.cardHeader}>
+          <div className={styles.providerInfo}>
+            <div className={styles.providerIcon} style={{ backgroundColor: '#eef2ff', color: '#4f46e5' }}><AiProviderIcon provider="codex" size={24} /></div>
+            <div><h4 className={styles.providerName}>Codex</h4><RoleBadge aiProvider={aiProvider} embeddingProvider={embeddingProvider} providerKey="codex" styles={styles} /><p className={styles.providerDesc}>{t('settings.providers.codexDesc')}</p></div>
+          </div>
+          <label className={styles.toggleWrapper}><input type="checkbox" className={styles.toggleInput} checked={isProviderActive('codex')} disabled={role === 'embeddings'} onChange={() => handleToggle('codex')} /><div className={styles.toggleSlider} /></label>
+        </div>
+        {role === 'embeddings' ? <p className={styles.helpText}>{t('settings.providers.codexEmbeddingNotice')}</p> : <div className={styles.formGroup}>
+          <p className={styles.helpText}>{codexStatus?.available === false ? (codexStatus.error || t('settings.providers.codexUnavailable')) : (codexStatus?.connected ? t('settings.providers.codexConnected') : t('settings.providers.codexLoginInstructions'))}</p>
+          <CodexModelControls
+            t={t}
+            models={codexModels}
+            loading={codexModelsLoading}
+            error={codexModelsError}
+            model={codexModel}
+            reasoningEffort={codexReasoningEffort}
+            onModelChange={handleCodexModelChange}
+            onReasoningEffortChange={setCodexReasoningEffort}
+            onRefresh={() => loadCodexModels({ force: true })}
+            disabled={!isProviderActive('codex') || !codexStatus?.connected}
+            classNames={{
+              labelRow: styles.inputRow,
+              label: styles.label,
+              input: styles.input,
+              refresh: styles.checkBtn,
+              spinner: styles.spinner,
+              help: styles.helpText,
+              error: styles.helpText,
+              effortGroup: styles.formGroup,
+            }}
+          />
+          <CodexLoginControls t={t} onStatus={setCodexStatus} connected={codexStatus?.connected === true} disabled={!isProviderActive('codex') || codexStatus?.available === false} className={styles.codexLogin} />
+
+          {/* Ventana de Contexto — Codex: sin auto-detección (el SDK/CLI no expone
+              este dato por ninguna API, a diferencia de Ollama/LM Studio) — solo
+              un input manual, sin botón "detectar" ni estado de éxito/error. */}
+          <div className={styles.formGroup}>
+            <label className={styles.label}>{t('settings.fields.contextLength')}</label>
+            <input
+              type="number"
+              className={styles.input}
+              value={codexContextLengthSaved}
+              onChange={(e) => setCodexContextLengthSaved(e.target.value)}
+              placeholder="400000"
+              disabled={!isProviderActive('codex')}
+              min="512"
+            />
+            <p className={styles.helpText}>{t('settings.helpText.contextLengthCodex')}</p>
+          </div>
+        </div>}
+      </div>
+
       {/* OpenAI */}
-      <div className={`${styles.card} ${!isProviderActive('openai') ? styles.cardDisabled : ''}`}>
+      <div className={`${styles.card} ${!isProviderActive('openai') ? styles.cardDisabled : ''}`} style={{marginTop: '16px'}}>
         <div className={styles.cardHeader}>
           <div className={styles.providerInfo}>
             <div className={`${styles.providerIcon}`} style={{backgroundColor: '#e2e8f0', color: '#10a37f'}}>

@@ -9,15 +9,25 @@ import { getAvailableModels, checkModelSupportsStreaming, getOllamaModelInfo } f
 import { getLMStudioModels } from '../../services/ai/lmStudioProvider';
 // generateWithContext y generateWithContextStreaming se mantienen para el análisis (resúmenes, etc.)
 // El chat de grabaciones usa callChatProviderStreaming directamente.
-import { callProvider, callProviderStreaming, callChatProviderStreaming } from '../../services/ai/providerRouter';
+import { callProvider, callProviderStreaming, callChatProviderStreaming, isCustom } from '../../services/ai/providerRouter';
+import { ALL_TOOLS, executeConfirmedAction } from '../../services/ai/tools';
 import { chatSystemPrompt } from '../../prompts/aiPrompts';
 import { ragSystemPrompt, mapHistoryToMessages } from '../../prompts/ragPrompts';
 import { buildSystemPrompt, FEATURE_TYPES } from '../../services/ai/promptBuilder';
 import ragService from '../../services/ragService';
 import recordingAiService from '../../services/recordingAiService';
 import chatPendingService from '../../services/chatPendingService';
+import { buildContextInfo, estimateHistoryTokens, CHARS_PER_TOKEN } from '../../services/chat/chatTokens';
+import { normalizeChatHistory } from '../../services/chat/chatHistory';
+import { useChatCommands } from '../../hooks/useChatCommands';
 import { checkModelVisionSupport } from '../../services/ai/huggingFaceService';
 import { generateFromTemplate } from '../../services/noteTemplateService';
+import {
+  buildRegenerationProviderOverrides,
+  canUseRegenerationProvider,
+  getCodexRegenerationStatus,
+} from '../../services/ai/regenerationProvider';
+import RegenerationProviderSelect from './components/RegenerationProviderSelect';
 
 import styles from './RecordingDetail.module.css';
 import OverviewTab from './components/OverviewTab/OverviewTab';
@@ -110,6 +120,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   // Tasks State
   const [tasks, setTasks] = useState([]);
   const [isGeneratingTasks, setIsGeneratingTasks] = useState(false);
+  const [notesCount, setNotesCount] = useState(0);
   const [improvingTaskId, setImprovingTaskId] = useState(null);
   const [newTaskIds, setNewTaskIds] = useState(new Set());
 
@@ -122,6 +133,8 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   const [selectedOllamaModel, setSelectedOllamaModel] = useState('');
   const [lmStudioModels, setLmStudioModels] = useState([]);
   const [selectedLmStudioModel, setSelectedLmStudioModel] = useState('');
+  const [customConnections, setCustomConnections] = useState([]);
+  const [codexStatus, setCodexStatus] = useState(null);
   const [ollamaRagModel, setOllamaRagModel] = useState(''); // Modelo específico para RAG (Ollama)
   const [lmStudioRagModel, setLmStudioRagModel] = useState(''); // Modelo específico para RAG (LM Studio)
   const [supportsStreaming, setSupportsStreaming] = useState(true);
@@ -250,8 +263,15 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       .catch(() => setTranscriptionError('Transcription not available'))
       .finally(() => setTranscriptionLoading(false));
 
-    // Load Chat History
-    recordingsService.getQuestionHistory(currentRecordingDbId).then(setQaHistory);
+    // Load Chat History — en modo RAG precalculamos contextInfo con el historial ya
+    // conocido (los chunks reales solo se saben tras la primera consulta), para que la
+    // barra de tokens no quede oculta hasta enviar el primer mensaje del chat.
+    recordingsService.getQuestionHistory(currentRecordingDbId).then((history) => {
+      setQaHistory(history);
+      if (chatContextMode === 'rag' && history.length > 0) {
+        setContextInfo(buildContextInfo({ mode: 'rag', history, chunksUsed: 0 }));
+      }
+    });
 
     // Load Attachments
     getAttachments(currentRecordingDbId).then(setRecordAttachments);
@@ -300,7 +320,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       const provider = settings.aiProvider || 'gemini';
       // Todos los proveedores cloud soportan streaming nativamente (y LM Studio)
       // Ollama depende de la configuración del modelo
-      const cloudProviders = ['gemini', 'openai', 'deepseek', 'kimi', 'lmstudio'];
+      const cloudProviders = ['gemini', 'openai', 'codex', 'deepseek', 'kimi', 'lmstudio'];
       const modelSupportsStreaming = cloudProviders.includes(provider) 
         ? true 
         : (settings.ollamaModelSupportsStreaming || false);
@@ -339,6 +359,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         kimi: settings.kimiModel,
         gemini: settings.geminiModel,
         openai: settings.openaiModel,
+        codex: settings.codexModel,
         lmstudio: settings.lmStudioRagModel || settings.lmStudioModel,
       };
       const newSettingsModel = modelByProvider[provider] || '';
@@ -366,6 +387,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         ctxLen = 32000;
       } else if (provider === 'deepseek') {
         ctxLen = 64000;
+      } else if (provider === 'codex') {
+        // Codex no expone la ventana de contexto por ninguna API (SDK ni CLI) —
+        // usa el valor configurado manualmente en Ajustes si existe, o un
+        // estimado por defecto (familia GPT-5/Codex, documentado públicamente,
+        // no verificable en vivo — mismo criterio que gemini/kimi/deepseek arriba).
+        ctxLen = settings.codexContextLength || 400000;
+      } else if (provider === 'openai') {
+        ctxLen = 128000;
       }
       setMaxContextLength(ctxLen);
     };
@@ -541,6 +570,25 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     loadOrGenerate();
   }, [recording]);
 
+  // Refresca tareas al entrar a la pestaña: `tasks` puede quedar desactualizado si se
+  // crearon vía `/tareas` en el chat (persiste directo a SQLite, sin pasar por setTasks).
+  useEffect(() => {
+    if (activeTab !== 'tasks' || !currentRecordingDbId) return;
+    recordingsService.getTaskSuggestions(currentRecordingDbId)
+      .then((savedTasks) => setTasks(savedTasks || []))
+      .catch((err) => console.error('Error refrescando tareas:', err));
+  }, [activeTab, currentRecordingDbId]);
+
+  // Conteo de notas para el badge de la pestaña "Notas" (independiente del estado interno
+  // de NotesTab, que gestiona su propia lista). Se refresca al montar, al entrar a la
+  // pestaña (cubre notas creadas vía `/nota` en el chat) y cuando `notesTabRefresh` avisa
+  // que se generó una nota desde plantilla.
+  useEffect(() => {
+    if (!currentRecordingDbId || !window.electronAPI?.templates?.getNotesForRecording) return;
+    window.electronAPI.templates.getNotesForRecording(currentRecordingDbId)
+      .then((notesList) => setNotesCount((notesList || []).length))
+      .catch((err) => console.error('Error refrescando conteo de notas:', err));
+  }, [currentRecordingDbId, activeTab, notesTabRefresh]);
 
   // --- HANDLERS ---
 
@@ -641,7 +689,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       // Usar estado local actualizado por el listener (más fiable y rápido)
       const provider = aiProvider;
       // Todos los proveedores cloud usan streaming, Ollama depende de configuración
-      const cloudProviders = ['gemini', 'openai', 'deepseek', 'kimi', 'lmstudio'];
+      const cloudProviders = ['gemini', 'openai', 'codex', 'deepseek', 'kimi', 'lmstudio'];
       const shouldUseStreaming = cloudProviders.includes(provider) ? true : supportsStreaming;
 
       console.log('🤖 Preparando chat:', {
@@ -673,6 +721,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       }
 
       let answer = '';
+      // Acción pendiente de confirmación por botones (create/update/delete_task,
+      // que SIEMPRE proponen y nunca ejecutan solas, o ask_user) — ver
+      // providerRouter.js#_runToolCallingLoop. Se
+      // captura fuera de las ramas RAG/clásica (mismo criterio que `answer`) porque
+      // `response` es local a cada bloque `if`/`else`.
+      let toolPendingAction = null;
 
       if (useRag) {
         // --- MODO RAG V2: array de mensajes nativo con system prompt ---
@@ -680,14 +734,18 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
         let systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, ragSystemPrompt(ragChunks, docContext));
         if (schemaContext) systemContent += `\n\n${schemaContext}`;
-        sentCharsEstimate = systemContent.length + docContext.length;
 
+        // Nota: no sumamos docContext.length aparte — ragSystemPrompt() ya lo embebe en systemContent.
         const attachmentTokens = attachmentImages.length * 256;
-        setContextInfo({
+        const ragContextInfo = buildContextInfo({
           mode: 'rag',
+          systemContent,
+          history: qaHistory,
+          attachmentTokens,
           chunksUsed: ragChunks.length,
-          estimatedTokens: Math.ceil(sentCharsEstimate / 4) + attachmentTokens
         });
+        sentCharsEstimate = (ragContextInfo.systemTokens + ragContextInfo.historyTokens) * CHARS_PER_TOKEN;
+        setContextInfo(ragContextInfo);
 
         // Construir array de mensajes: system + historial completo + pregunta actual
         const historyMessages = mapHistoryToMessages(qaHistory);
@@ -701,7 +759,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         const ragOptions = {
           ...(activeRagModel ? { ragModel: activeRagModel } : { model: sessionModel || undefined }),
           ...(attachmentImages.length > 0 ? { images: attachmentImages } : {}),
-          queueMeta: { name: 'Chat RAG' }
+          queueMeta: { name: 'Chat RAG' },
+          // Function-calling nativo sobre tareas — SOLO en la conversación normal del
+          // chat (nunca en comandos internos como /tareas, /buscar, /compact). Ver
+          // src/services/ai/tools/index.js y README.md.
+          tools: ALL_TOOLS,
+          toolContext: { scope: 'recording', recordingId: currentRecordingDbId },
         };
 
         console.log('🤖 [RAG V2] Enviando array de mensajes:', {
@@ -716,7 +779,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           setStreamingMessage(answer);
         }, ragOptions);
         console.log('✅ [RAG V2] Respuesta recibida:', { provider: response.provider, model: response.model });
-        answer = response.text || answer || 'No answer generated.';
+        // OJO: NO coercionar acá al fallback 'No answer generated.' — cuando el modelo
+        // dispara una acción pendiente (ej. create_task, que SIEMPRE propone) sin escribir
+        // texto propio, `response.text` viene vacío ('') y hay que dejar que la burbuja
+        // use `toolPendingAction.question` más abajo. Coercionar acá lo pisaría antes de
+        // llegar a esa lógica (bug real: siempre mostraba "No answer generated." aunque
+        // hubiera una pregunta de confirmación real esperando).
+        answer = response.text || answer || '';
+        toolPendingAction = response.pendingAction || null;
 
       } else {
         // --- MODO CLÁSICO V2: system prompt con transcripción + historial nativo ---
@@ -726,13 +796,16 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         }
 
         let systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, chatSystemPrompt(context || 'No context available.', uiLanguage, docContext));
-        sentCharsEstimate = systemContent.length;
 
         const attachmentTokens = attachmentImages.length * 256;
-        setContextInfo({
+        const fullContextInfo = buildContextInfo({
           mode: 'full',
-          estimatedTokens: Math.ceil(sentCharsEstimate / 4) + attachmentTokens
+          systemContent,
+          history: qaHistory,
+          attachmentTokens,
         });
+        sentCharsEstimate = (fullContextInfo.systemTokens + fullContextInfo.historyTokens) * CHARS_PER_TOKEN;
+        setContextInfo(fullContextInfo);
 
         // Construir array de mensajes: system + historial completo + pregunta actual
         const historyMessages = mapHistoryToMessages(qaHistory);
@@ -745,7 +818,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         const classicOptions = {
           model: sessionModel || undefined,
           ...(attachmentImages.length > 0 ? { images: attachmentImages } : {}),
-          queueMeta: { name: 'Chat Grabación' }
+          queueMeta: { name: 'Chat Grabación' },
+          // Function-calling nativo sobre tareas — ver nota equivalente en ragOptions.
+          tools: ALL_TOOLS,
+          toolContext: { scope: 'recording', recordingId: currentRecordingDbId },
         };
 
         console.log('🚀 Iniciando chat clásico en modo STREAMING (V2)', {
@@ -756,37 +832,71 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           answer += chunk;
           setStreamingMessage(answer);
         }, classicOptions);
-        answer = response.text || answer || 'No answer generated.';
+        // OJO: NO coercionar acá al fallback 'No answer generated.' — cuando el modelo
+        // dispara una acción pendiente (ej. create_task, que SIEMPRE propone) sin escribir
+        // texto propio, `response.text` viene vacío ('') y hay que dejar que la burbuja
+        // use `toolPendingAction.question` más abajo. Coercionar acá lo pisaría antes de
+        // llegar a esa lógica (bug real: siempre mostraba "No answer generated." aunque
+        // hubiera una pregunta de confirmación real esperando).
+        answer = response.text || answer || '';
+        toolPendingAction = response.pendingAction || null;
       }
 
       setStreamingMessage('');
+
+      // Único punto que decide el texto final visible: si el modelo escribió algo,
+      // eso. Si no, pero hay una acción pendiente (ej. llamó a create_task, que SIEMPRE
+      // propone), usamos su `question` para que la burbuja nunca quede vacía. Recién si
+      // NINGUNA de las dos existe, es un caso genuino de "no answer".
+      const contenido = answer || toolPendingAction?.question || 'No answer generated.';
 
       // Crear el mensaje de la IA con la respuesta completa (V2)
       const aiMessage = {
         id: `ai_${tempId}`,
         tipo: 'asistente',
-        contenido: answer,
+        contenido,
         fecha: new Date().toISOString(),
         chatVersion: 2,
+        ...(toolPendingAction ? { pendingAction: { ...toolPendingAction, resolved: false } } : {}),
       };
 
       // Añadir mensaje de la IA al historial
       setQaHistory(prev => [...prev, aiMessage]);
 
-      // Actualizar la entrada en disco (reemplazar respuesta null por la real)
-      const qa = { tipo: 'usuario', pregunta: questionText, adjuntos: attachmentsToUse, respuesta: answer, fecha: new Date().toISOString(), chatVersion: 2 };
+      // Actualizar la entrada en disco (reemplazar respuesta null por la real).
+      // BUG REAL: `chatPendingService.clearPending` (más abajo) dispara una suscripción
+      // (~línea 296) que recarga TODO el historial desde disco vía `getQuestionHistory`
+      // y reemplaza `qaHistory` en memoria — si `pendingAction` no viajara también acá,
+      // esa recarga (que puede llegar antes o después de este `setQaHistory`) pisaría el
+      // mensaje recién creado con la versión persistida SIN `pendingAction`, y los
+      // botones de confirmación nunca llegarían a verse.
+      const qa = {
+        tipo: 'usuario',
+        pregunta: questionText,
+        adjuntos: attachmentsToUse,
+        respuesta: contenido,
+        fecha: new Date().toISOString(),
+        chatVersion: 2,
+        ...(toolPendingAction ? { pendingAction: { ...toolPendingAction, resolved: false } } : {}),
+      };
       await recordingsService.updateLastQuestionHistory(recording.id, qa);
 
       // Limpiar petición pendiente
       chatPendingService.clearPending(pendingKey);
 
     } catch (err) {
+      if (err.cancelled) {
+        console.log('Pregunta de chat cancelada por el usuario');
+        chatPendingService.clearPending(pendingKey);
+        return;
+      }
+
       console.error('Error en handleAskQuestion:', err);
 
       // Calcular hint de context length (solo Ollama, ya que LM Studio no expone el valor por API)
       let tokenHint = null;
       try {
-        const sentTokensEstimate = sentCharsEstimate ? Math.ceil(sentCharsEstimate / 4) : null;
+        const sentTokensEstimate = sentCharsEstimate ? Math.ceil(sentCharsEstimate / CHARS_PER_TOKEN) : null;
 
         if (aiProvider === 'ollama' && selectedOllamaModel && sentTokensEstimate) {
           const currentSettings = await getSettings();
@@ -942,6 +1052,121 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
   };
 
+  // --- Comandos de chat (/compact, ...) ---
+  const handleReplaceChatHistory = async (entries) => {
+    await recordingsService.replaceQuestionHistory(recording.id, entries);
+    setQaHistory(entries);
+  };
+
+  // Resuelve un click sobre los botones de una `pendingAction` (ver
+  // providerRouter.js#_runToolCallingLoop + ChatInterface.jsx). Ejecución
+  // ESTRUCTURALMENTE separada de la IA vía executeConfirmedAction — la IA
+  // nunca puede alcanzar este dispatcher (ver docstring de taskTools.js), solo
+  // el click handler de la UI, y solo para el caso `ask_user` no hay mutación
+  // que ejecutar (no muta nada, ver abajo).
+  //
+  // Opera sobre `qaHistory` (no la versión normalizada) buscando por
+  // `pendingAction.id` (el id de tool_call, asignado en providerRouter.js — ver
+  // comentario ahí) — NUNCA por el id del mensaje/entrada. BUG REAL corregido:
+  // antes buscaba `m.id === messageId`, pero `pendingAction` ahora sobrevive
+  // tanto en un mensaje individual (con `id` propio) COMO en un par
+  // pregunta/respuesta recargado desde disco (que no tiene `id` propio — a
+  // `normalizeChatHistory` le toca inventarle uno sintético `a_N`/`u_N` SOLO
+  // para el render, que nunca existe en el dato crudo de `qaHistory`). Buscar
+  // por `m.id` nunca encontraba nada para una entrada tipo par ya recargada
+  // (la recarga la dispara la suscripción a `chatPendingService`, que corre casi
+  // enseguida) — el click no hacía nada. `pendingAction.id` en cambio viaja
+  // idéntico en ambos formatos (ver `qa.pendingAction` en `handleAskQuestion` y
+  // el passthrough en `chatHistory.js`), así que este lookup funciona sin
+  // importar qué forma tenga la entrada en este momento.
+  const handleResolvePendingAction = async (pendingActionId, optionIndex) => {
+    const entries = qaHistory.map(m => m.pendingAction?.id === pendingActionId
+      ? { ...m, pendingAction: { ...m.pendingAction, resolved: true, resolution: m.pendingAction.options[optionIndex] } }
+      : m
+    );
+    await handleReplaceChatHistory(entries);
+
+    const target = entries.find(m => m.pendingAction?.id === pendingActionId);
+    if (!target?.pendingAction) return;
+    const { toolName, toolArgs, options } = target.pendingAction;
+    const isAffirmative = optionIndex === 0; // primera opción = afirmativa/proceder, cualquier otra = cancelar
+
+    if (toolName === 'ask_user') {
+      // No hay mutación que ejecutar — la elección del usuario se re-inyecta como
+      // su propio mensaje para que la conversación siga con naturalidad.
+      await handleAskQuestion(options[optionIndex]);
+      return;
+    }
+
+    if (!isAffirmative) {
+      const cancelEntry = {
+        id: `cancel_${Date.now()}`,
+        tipo: 'asistente',
+        contenido: t('chatPendingAction.cancelled'),
+        fecha: new Date().toISOString(),
+        chatVersion: 2,
+      };
+      await handleReplaceChatHistory([...entries, cancelEntry]);
+      return;
+    }
+
+    const toolContext = { scope: 'recording', recordingId: currentRecordingDbId };
+    // `toolArgs` acá ya es el `proposed`/`task` YA RESUELTO (ver
+    // providerRouter.js#_runToolCallingLoop) — no hace falta agregar
+    // `confirm:true`, ese campo ya no existe en el schema ni en el contrato.
+    const result = await executeConfirmedAction(toolName, toolArgs, toolContext);
+    const outcomeText =
+      result?.status === 'created' ? t('chatPendingAction.created', { title: result.task?.title }) :
+      result?.status === 'updated' ? t('chatPendingAction.updated', { title: result.task?.title }) :
+      result?.status === 'deleted' ? t('chatPendingAction.deleted', { title: result.task?.title }) :
+      t('chatPendingAction.error');
+    const outcomeEntry = {
+      id: `outcome_${Date.now()}`,
+      tipo: 'asistente',
+      contenido: outcomeText,
+      fecha: new Date().toISOString(),
+      chatVersion: 2,
+    };
+    await handleReplaceChatHistory([...entries, outcomeEntry]);
+  };
+
+  const handleChatCompacted = (result, entries) => {
+    // Solo el historial cambió — recalculamos historyTokens sobre el contextInfo
+    // existente para que la barra baje al instante, sin esperar al siguiente mensaje.
+    setContextInfo(prev => {
+      if (!prev) return prev;
+      const historyTokens = estimateHistoryTokens(entries);
+      const baseTokens = prev.systemTokens + historyTokens;
+      return { ...prev, historyTokens, baseTokens, estimatedTokens: baseTokens + (prev.attachmentTokens || 0) };
+    });
+  };
+
+  const { runCommand } = useChatCommands({
+    scope: 'recording',
+    lang: uiLanguage,
+    model: sessionModel || undefined,
+    getHistory: () => qaHistory,
+    replaceHistory: handleReplaceChatHistory,
+    isBusy: questionLoading,
+    setBusy: setQuestionLoading,
+    onCompacted: handleChatCompacted,
+    t,
+    // /tareas y /nota persisten en SQLite (task_suggestions, recording_notes) — necesitan
+    // el ID numérico de la base de datos, no el ID de carpeta.
+    recordingId: currentRecordingDbId,
+    // /buscar usa ragService, que opera sobre el archivo de transcripción (identificado por
+    // el ID de carpeta, recording.id) — NO el ID numérico de la base de datos. Son dos
+    // espacios de identificadores distintos en esta app (ver recordingsService.getRecordings).
+    ragRecordingId: recording.id,
+  });
+
+  const handleCompactChat = async () => {
+    const result = await runCommand('compact');
+    if (result && result.success === false && result.error) {
+      setAiError({ message: result.error });
+    }
+  };
+
   const applyContextModeChange = async (mode) => {
     setChatContextMode(mode);
     setQaHistory([]);
@@ -957,7 +1182,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     if (mode === 'full') {
       try {
         const text = detailedSummary || await recordingsService.getTranscriptionTxt(recording.id);
-        if (text) setContextInfo({ mode: 'full', estimatedTokens: Math.ceil(text.length / 4) });
+        // Historial vacío recién reseteado — usamos buildContextInfo también aquí para que
+        // baseTokens quede fijado desde el primer momento (evita el bug de doble conteo
+        // de tokens al activar adjuntos descrito en handleActiveAttachmentsChange).
+        if (text) setContextInfo(buildContextInfo({ mode: 'full', systemContent: text, history: [] }));
       } catch (err) {
         console.warn('Error precalculando tokens modo completo:', err);
       }
@@ -988,24 +1216,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   };
 
   const convertChatHistory = () => {
-    // Manejar tres formatos posibles del historial:
-    // 1. Mensaje individual en memoria: tiene `tipo` y `contenido` — devolver tal cual
-    // 2. Par pregunta/respuesta V2 en JSON: tiene `tipo` y `pregunta` (pero no `contenido`) — expandir en dos
-    // 3. Par pregunta/respuesta V1 en JSON (legacy): solo tiene `pregunta`, sin `tipo` — expandir en dos
-    const history = qaHistory.flatMap((item, i) => {
-      // Caso 1: mensaje individual en memoria (tiene contenido explícito)
-      if (item.tipo && item.contenido !== undefined) {
-        return [item];
-      }
-      // Casos 2 y 3: par pregunta/respuesta guardado en JSON — expandir en mensajes separados
-      const msgs = [
-        { id: `u_${i}`, tipo: 'usuario', contenido: item.pregunta, fecha: item.fecha, adjuntos: item.adjuntos || [] }
-      ];
-      if (item.respuesta) {
-        msgs.push({ id: `a_${i}`, tipo: 'asistente', contenido: item.respuesta, fecha: item.fecha });
-      }
-      return msgs;
-    });
+    // La normalización de los 3 formatos posibles del historial vive en
+    // normalizeChatHistory (src/services/chat/chatHistory.js) — reutilizada también
+    // por chatCompactService para el comando /compact. Aquí solo añadimos el
+    // mensaje de streaming en curso, que depende de estado local de React.
+    const history = normalizeChatHistory(qaHistory);
 
     // Agregar mensaje en streaming si existe
     if (streamingMessage) {
@@ -1037,15 +1252,9 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       setAiProvider(provider);
       setSelectedOllamaModel(settings.ollamaModel || '');
       setSelectedLmStudioModel(settings.lmStudioModel || '');
+      setCustomConnections(settings.customConnections || []);
 
-      if (provider === 'ollama') {
-        const models = await getAvailableModels();
-        setOllamaModels(models.map(m => m.name || m));
-      }
-      if (provider === 'lmstudio') {
-        const models = await getLMStudioModels();
-        setLmStudioModels(models.map(m => m.name || m));
-      }
+      setCodexStatus(await getCodexRegenerationStatus());
     } catch (e) {
       console.error("Error loading settings for regenerate modal:", e);
     }
@@ -1070,14 +1279,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     setShowRegenerateConfirm(false);
     setIsGeneratingAi(true);
 
-    // Override temporal: se usa solo para esta regeneración sin modificar los ajustes globales
-    const providerOverrides = {
-      providerOverride: aiProvider,
-      ...(aiProvider === 'ollama' && selectedOllamaModel ? { model: selectedOllamaModel } : {}),
-      ...(aiProvider === 'lmstudio' && selectedLmStudioModel ? { model: selectedLmStudioModel } : {}),
-    };
-
     try {
+      // La regeneración cambia de proveedor, pero reutiliza su configuración persistida.
+      const savedSettings = await getSettings();
+      const providerOverrides = buildRegenerationProviderOverrides({
+        provider: aiProvider,
+        settings: savedSettings,
+      });
+
       // Leer contenido de adjuntos seleccionados para la regeneración
       let regenerateDocContext = '';
       if (regenerateOptions.attachments && regenerateOptions.attachments.length > 0) {
@@ -1143,8 +1352,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       }
 
     } catch (error) {
-      console.error("Error regenerando AI:", error);
-      alert("Error al regenerar datos de IA: " + error.message);
+      if (error.cancelled) {
+        console.log('Regeneración de IA cancelada por el usuario');
+      } else {
+        console.error("Error regenerando AI:", error);
+        alert("Error al regenerar datos de IA: " + error.message);
+      }
     } finally {
       setIsGeneratingAi(false);
     }
@@ -1239,8 +1452,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       setTasks(prev => [...prev, ...addedTasks]);
       setNewTaskIds(prev => new Set([...prev, ...addedTasks.map(t => t.id)]));
     } catch (error) {
-      console.error('Error generando tareas:', error);
-      alert('Error al generar tareas: ' + error.message);
+      if (error.cancelled) {
+        console.log('Generación de tareas cancelada por el usuario');
+      } else {
+        console.error('Error generando tareas:', error);
+        alert('Error al generar tareas: ' + error.message);
+      }
     } finally {
       setIsGeneratingTasks(false);
     }
@@ -1275,8 +1492,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       );
       if (saved) setTasks(prev => prev.map(t => t.id === taskId ? saved : t));
     } catch (error) {
-      console.error('Error mejorando tarea:', error);
-      alert('Error al mejorar tarea: ' + error.message);
+      if (error.cancelled) {
+        console.log('Mejora de tarea cancelada por el usuario');
+      } else {
+        console.error('Error mejorando tarea:', error);
+        alert('Error al mejorar tarea: ' + error.message);
+      }
     } finally {
       setImprovingTaskId(null);
     }
@@ -1424,8 +1645,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       // Show success feedback
       console.log('Note generated:', result.noteId);
     } catch (error) {
-      console.error('Error generating from template:', error);
-      alert('Error generating note: ' + error.message);
+      if (error.cancelled) {
+        console.log('Generación de nota cancelada por el usuario');
+      } else {
+        console.error('Error generating from template:', error);
+        alert('Error generating note: ' + error.message);
+      }
     } finally {
       setIsGeneratingNote(false);
     }
@@ -1721,7 +1946,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           className={`${styles.tabButton} ${activeTab === 'notes' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('notes')}
         >
-          Notas
+          Notas{notesCount > 0 ? ` (${notesCount})` : ''}
         </button>
       </nav>
 
@@ -1761,12 +1986,16 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             onRagModeChange={setRagMode}
             chatContextMode={chatContextMode}
             onChatContextModeChange={handleChatModeChangeRequest}
+            onCompact={handleCompactChat}
+            compacting={questionLoading}
             initialSeekSeconds={initialSeekSeconds}
             onInitialSeekDone={() => setInitialSeekSeconds(null)}
             recordingId={currentRecordingDbId}
             chatProps={{
               chatHistory: convertChatHistory(),
               onSendMessage: handleAskQuestion,
+              onCommand: runCommand,
+              onResolvePendingAction: handleResolvePendingAction,
               isLoading: questionLoading || ragIndexed === false,
               placeholder: ragIndexed === false ? 'Indexando transcripción...' : undefined,
               title: "AI Assistant",
@@ -1851,53 +2080,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
               {/* AI Model Section */}
               <div className={styles.modalSection}>
                 <label className={styles.modalLabel}>AI Provider</label>
-                <select 
+                <RegenerationProviderSelect
                   className={styles.select}
                   value={aiProvider}
                   onChange={(e) => setAiProvider(e.target.value)}
-                >
-                  <option value="gemini">Gemini (Google)</option>
-                  <option value="openai">OpenAI</option>
-                  <option value="deepseek">DeepSeek</option>
-                  <option value="kimi">Kimi (Moonshot)</option>
-                  <option value="ollama">Ollama (Local)</option>
-                  <option value="lmstudio">LM Studio (Local)</option>
-                </select>
+                  codexStatus={codexStatus}
+                  customConnections={customConnections}
+                />
 
-                {aiProvider === 'ollama' && (
-                  <>
-                    <label className={styles.modalLabel}>Local Model</label>
-                    <select
-                      className={styles.select}
-                      value={selectedOllamaModel}
-                      onChange={(e) => setSelectedOllamaModel(e.target.value)}
-                    >
-                      <option value="" disabled>Select a model...</option>
-                      {ollamaModels.map(model => (
-                        <option key={model} value={model}>{model}</option>
-                      ))}
-                    </select>
-                  </>
-                )}
-
-                {aiProvider === 'lmstudio' && (
-                  <>
-                    <label className={styles.modalLabel}>LM Studio Model</label>
-                    <select
-                      className={styles.select}
-                      value={selectedLmStudioModel}
-                      onChange={(e) => setSelectedLmStudioModel(e.target.value)}
-                    >
-                      <option value="" disabled>Select a model...</option>
-                      {lmStudioModels.length > 0
-                        ? lmStudioModels.map(model => (
-                            <option key={model} value={model}>{model}</option>
-                          ))
-                        : <option value="" disabled>LM Studio no disponible o sin modelos</option>
-                      }
-                    </select>
-                  </>
-                )}
               </div>
 
               {/* Options Section */}
@@ -1980,6 +2170,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
               <button 
                 className={styles.confirmModalBtn} 
                 onClick={handleConfirmRegenerate}
+                disabled={aiProvider === 'codex' && !canUseRegenerationProvider('codex', { codexStatus })}
               >
                 Regenerate Selected
               </button>

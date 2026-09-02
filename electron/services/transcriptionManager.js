@@ -5,8 +5,18 @@ const { app } = require('electron');
 const dbService = require('../database/dbService');
 const notificationService = require('./notificationService');
 const { getSetting } = require('../utils/paths');
+const { getPackagedPythonBinaryPath, getFfmpegStaticPath } = require('../utils/packagedBinaries');
+const ffprobeInstaller = require('@ffprobe-installer/ffprobe');
 
 const SUPPORTED_AUDIO_EXTENSIONS = ['webm', 'wav', 'mp3', 'm4a', 'ogg', 'aac', 'flac'];
+
+// @ffprobe-installer resolves the correct native binary per-arch (os.arch()),
+// unlike ffprobe-static which only ships an x86_64 binary under its arm64 path.
+// require() returns a path pointing inside app.asar; the real file lives in the
+// unpacked sibling dir (asarUnpack), so child_process needs the swapped path.
+function getFfprobePath() {
+  return ffprobeInstaller.path.replace('app.asar', 'app.asar.unpacked');
+}
 
 class TranscriptionManager {
   constructor() {
@@ -151,18 +161,8 @@ class TranscriptionManager {
                         this.updateProgress(0, 'diarizing');
                         
                         // Obtener rutas de ffmpeg/ffprobe para pasarlas al script
-                        let ffmpegPath = null;
-                        let ffprobePath = null;
-                        
-                        if (!app.isPackaged) {
-                            // En dev, intentar usar los de node_modules
-                            ffmpegPath = path.join(__dirname, '../../node_modules/ffmpeg-static/ffmpeg');
-                            ffprobePath = path.join(__dirname, '../../node_modules/ffprobe-static/bin/darwin/arm64/ffprobe'); // Nota: ruta específica mac arm64
-                        } else {
-                            const resourcesPath = process.resourcesPath;
-                            ffmpegPath = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'ffmpeg-static', 'ffmpeg');
-                            ffprobePath = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'ffprobe-static', 'bin', 'darwin', 'arm64', 'ffprobe');
-                        }
+                        const ffmpegPath = getFfmpegStaticPath(!app.isPackaged);
+                        const ffprobePath = getFfprobePath();
 
                         const diarizationArgs = [
                             '--audio_file', sysAudioPath,
@@ -230,7 +230,7 @@ class TranscriptionManager {
             // En producción, asumimos que diarization_analyzer también está compilado o empaquetado
             // Pero como es nuevo y experimental, quizás lo ejecutamos vía python si está disponible, 
             // o lo agregamos al build. Por ahora, asumimos la misma lógica que el principal.
-            executablePath = path.join(resourcesPath, 'python-bin', scriptName.replace('.py', ''));
+            executablePath = getPackagedPythonBinaryPath(scriptName.replace('.py', ''));
             execArgs = [];
             if (!fs.existsSync(executablePath)) {
                 // Fallback a script si no está el binario (ej. en desarrollo o si no se compiló)
@@ -284,11 +284,10 @@ runTranscriptionProcess(task, diarizationFile, onProgress) {
             const scriptPath = path.join(__dirname, '../../python/audio_sync_analyzer.py');
             execArgs = [scriptPath];
         } else {
-            const resourcesPath = process.resourcesPath;
-            executablePath = path.join(resourcesPath, 'python-bin', 'audio_sync_analyzer');
+            executablePath = getPackagedPythonBinaryPath('audio_sync_analyzer');
             execArgs = [];
-            ffmpegPath = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'ffmpeg-static', 'ffmpeg');
-            ffprobePath = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'ffprobe-static', 'bin', 'darwin', 'arm64', 'ffprobe');
+            ffmpegPath = getFfmpegStaticPath(false);
+            ffprobePath = getFfprobePath();
         }
 
         let folderName = task.recording_id;
@@ -313,10 +312,13 @@ runTranscriptionProcess(task, diarizationFile, onProgress) {
         const spawnEnv = { ...process.env, PYTHONUNBUFFERED: '1', PYTHONIOENCODING: 'utf-8' };
         if (ffmpegPath && fs.existsSync(ffmpegPath)) {
             spawnEnv.FFMPEG_PATH = ffmpegPath;
-            spawnEnv.PATH = path.dirname(ffmpegPath) + ':' + (spawnEnv.PATH || '');
+            spawnEnv.PATH = path.dirname(ffmpegPath) + path.delimiter + (spawnEnv.PATH || '');
         }
 
         this.process = spawn(executablePath, args, { env: spawnEnv });
+
+        let diskSpaceInfo = null;
+        let lastErrorLine = null;
 
         this.process.stdout.on('data', (data) => {
             const message = data.toString().trim();
@@ -328,8 +330,16 @@ runTranscriptionProcess(task, diarizationFile, onProgress) {
 
         this.process.stderr.on('data', (data) => {
             const msg = data.toString().trim();
-            if (msg.toLowerCase().includes('warning')) console.warn(`[Transcription ${task.id} WARN]: ${msg}`);
-            else console.error(`[Transcription ${task.id} ERR]: ${msg}`);
+            const diskSpaceMatch = msg.match(/expected file size is:\s*([\d.]+)\s*MB.*?only has\s*([\d.]+)\s*MB free/is);
+            if (diskSpaceMatch) {
+                diskSpaceInfo = { expectedMb: parseFloat(diskSpaceMatch[1]), freeMb: parseFloat(diskSpaceMatch[2]) };
+            }
+            if (msg.toLowerCase().includes('warning')) {
+                console.warn(`[Transcription ${task.id} WARN]: ${msg}`);
+            } else {
+                console.error(`[Transcription ${task.id} ERR]: ${msg}`);
+                lastErrorLine = msg;
+            }
         });
 
         this.process.on('close', (code) => {
@@ -344,8 +354,10 @@ runTranscriptionProcess(task, diarizationFile, onProgress) {
                     this.onAutoAnalyzeCallback(task.recording_id);
                 }
                 resolve();
+            } else if (diskSpaceInfo) {
+                reject(new Error(`DISK_SPACE::${diskSpaceInfo.expectedMb}::${diskSpaceInfo.freeMb}`));
             } else {
-                reject(new Error(`Process exited with code ${code}`));
+                reject(new Error(lastErrorLine || `Process exited with code ${code}`));
             }
         });
 

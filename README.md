@@ -139,7 +139,9 @@ This project follows [Conventional Commits](https://www.conventionalcommits.org/
 
 ### Running the Python script manually
 
-The transcription pipeline is resilient to partial recordings: if one track is empty, undecodable, has zero duration, or is effectively silent, the analyzer skips that track and still transcribes the valid one. It also discards implausible synchronization lags instead of trimming almost the entire clip. The process only fails when both tracks are unusable.
+The transcription pipeline is resilient to partial recordings: if one track is empty, undecodable, has zero duration, or is effectively silent, the analyzer skips that track and still transcribes the valid one. It also discards implausible synchronization lags instead of trimming almost the entire clip. The process fails (non-zero exit code) when both tracks are unusable, **or when the Whisper model cannot be loaded** (e.g. `WhisperModel(...)` failing to download the model on first run due to insufficient disk space) — the manager (`electron/services/transcriptionManager.js`) relies on the exit code to distinguish a real success from a silent failure, so `main()` must call `sys.exit(1)` whenever `run_full_analysis()` returns `False`.
+
+**Reporting the "not enough disk space" case to the UI:** `huggingface_hub` emits its low-disk-space warning as a `UserWarning` on stderr (`"expected file size is: X MB ... only has Y MB free disk space"`) before the model load fails. `transcriptionManager.js` pattern-matches that line while the process runs and, on a non-zero exit, stores a structured `DISK_SPACE::<expectedMb>::<freeMb>` string as the task's error instead of the generic `Process exited with code N`. `TranscriptionQueue.jsx` detects that prefix and renders a translated, human-readable message (`transcriptionQueue.errors.diskSpace` in `src/i18n/locales/*.json`) under the failed task in the activity log; any other failure falls back to the last non-warning stderr line via `transcriptionQueue.errors.generic`.
 
 ```bash
 python python/audio_sync_analyzer.py \
@@ -149,7 +151,11 @@ python python/audio_sync_analyzer.py \
   --threads 4
 ```
 
-**ffmpeg/ffprobe bundled (`--ffmpeg` / `--ffprobe`):** in the packaged app, the manager passes explicit paths to the bundled `ffmpeg-static` and `ffprobe-static` binaries. These live in **different** directories, and pydub probes audio via a bare `ffprobe` resolved from `PATH` (it ignores `AudioSegment.ffprobe`). The analyzer therefore prepends **both** binaries' directories to `PATH`. This is required because a GUI launch (Finder/Dock/Spotlight) does not inherit a shell `PATH`, so without it audio decoding fails with `[Errno 2] No such file or directory: 'ffprobe'` and no transcript is produced.
+**ffmpeg/ffprobe bundled (`--ffmpeg` / `--ffprobe`):** in the packaged app, the manager passes explicit paths to the bundled `ffmpeg-static` and `@ffprobe-installer/ffprobe` binaries. These live in **different** directories, and pydub probes audio via a bare `ffprobe` resolved from `PATH` (it ignores `AudioSegment.ffprobe`). The analyzer therefore prepends **both** binaries' directories to `PATH`. This is required because a GUI launch (Finder/Dock/Spotlight) does not inherit a shell `PATH`, so without it audio decoding fails with `[Errno 2] No such file or directory: 'ffprobe'` and no transcript is produced.
+
+**Packaged binary resolution:** resolving the bundled Python binary (`resources/python-bin`) and `ffmpeg-static` paths is centralized in `electron/utils/packagedBinaries.js`, which appends the `.exe` suffix on Windows. This is required because `child_process.spawn()` does not resolve extensions, so without the explicit suffix the packaged `audio_sync_analyzer.exe` and `ffmpeg.exe` fail to spawn with `ENOENT` (issue #154).
+
+> Nota: se reemplazó `ffprobe-static` (sin mantenimiento desde 2020) por `@ffprobe-installer/ffprobe` porque el primero empaquetaba el mismo binario x86_64 tanto en `bin/darwin/x64` como en `bin/darwin/arm64`, generando el aviso "Fin de compatibilidad con apps para Intel" en macOS Apple Silicon (issue #125). `@ffprobe-installer/ffprobe` resuelve el binario nativo correcto según `os.arch()` en tiempo de instalación.
 
 ### Diarización y Extracción de Embeddings
 

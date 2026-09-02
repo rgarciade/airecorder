@@ -59,8 +59,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Lanzar transcripción de una grabación
   transcribeRecording: (recordingId, model, options) => ipcRenderer.invoke('transcribe-recording', recordingId, model, options),
 
+  // Codex is executed exclusively by the Electron main process; no credentials cross this bridge.
+  getCodexStatus: () => ipcRenderer.invoke('ai:codex-status'),
+  listCodexModels: () => ipcRenderer.invoke('ai:codex-models'),
+  startCodexLogin: (requestId) => ipcRenderer.invoke('ai:codex-login', requestId),
+  cancelCodexLogin: (requestId) => ipcRenderer.invoke('ai:codex-login-cancel', requestId),
+  onCodexLoginProgress: (listener) => { const wrapped = (_event, payload) => listener(payload); ipcRenderer.on('ai:codex-login-progress', wrapped); return () => ipcRenderer.removeListener('ai:codex-login-progress', wrapped); },
+  runCodex: (request) => ipcRenderer.invoke('ai:codex-run', request),
+  cancelCodex: (requestId) => ipcRenderer.invoke('ai:codex-cancel', requestId),
+  onCodexChunk: (listener) => {
+    const wrapped = (_event, payload) => listener(payload);
+    ipcRenderer.on('ai:codex-chunk', wrapped);
+    return () => ipcRenderer.removeListener('ai:codex-chunk', wrapped);
+  },
+
   // Listar modelos de una conexión OpenAI personalizada
-  listCustomModels: (connectionId) => ipcRenderer.invoke('ai:custom-list-models', connectionId),
+  listCustomModels: (connectionId, connectionData) => ipcRenderer.invoke('ai:custom-list-models', connectionId, connectionData),
 
   // Cola de transcripción
   getTranscriptionQueue: () => ipcRenderer.invoke('get-transcription-queue'),
@@ -85,6 +99,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   updateLastQuestionHistory: (recordingId, qa) => ipcRenderer.invoke('update-last-question-history', recordingId, qa),
   getQuestionHistory: (recordingId) => ipcRenderer.invoke('get-question-history', recordingId),
   clearQuestionHistory: (recordingId) => ipcRenderer.invoke('clear-question-history', recordingId),
+  replaceQuestionHistory: (recordingId, history) => ipcRenderer.invoke('replace-question-history', recordingId, history),
   // Guardar y leer participantes
   saveParticipants: (recordingId, participants) => ipcRenderer.invoke('save-participants', recordingId, participants),
   getParticipants: (recordingId) => ipcRenderer.invoke('get-participants', recordingId),
@@ -136,6 +151,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getProjectChatHistory: (chatId) => ipcRenderer.invoke('get-project-chat-history', chatId),
   saveProjectChatMessage: (chatId, message) => ipcRenderer.invoke('save-project-chat-message', chatId, message),
   clearProjectChatMessages: (chatId) => ipcRenderer.invoke('clear-project-chat-messages', chatId),
+  replaceProjectChatMessages: (chatId, messages) => ipcRenderer.invoke('replace-project-chat-messages', chatId, messages),
 
   // Obtener duración total del proyecto
   getProjectTotalDuration: (projectId) => ipcRenderer.invoke('get-project-total-duration', projectId),

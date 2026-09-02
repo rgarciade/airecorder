@@ -60,6 +60,7 @@ class AiQueueService {
     this._history = _loadPersistedHistory();
     this._listeners = new Set();
     this._processing = false;
+    this._currentAbortController = null;
     // Inicializar desde el máximo ID persistido para evitar colisiones tras recarga
     const maxId = this._history.reduce((max, t) => (t.id > max ? t.id : max), 0);
     this._nextId = maxId + 1;
@@ -114,6 +115,7 @@ class AiQueueService {
   /**
    * Encola una llamada a la IA.
    * @param {Function} taskFn - Función async que realiza la llamada real al proveedor.
+   *   Recibe un AbortSignal como único argumento para poder cancelar la tarea en curso.
    * @param {Object} meta - Metadatos: { name, type, engine, prompt? }
    *   - prompt: texto del prompt enviado (se guarda en el historial para inspección)
    * @returns {Promise} Se resuelve/rechaza con el resultado cuando la tarea se ejecuta.
@@ -157,8 +159,11 @@ class AiQueueService {
     this._current = { ...pubTask, status: 'processing', startedAt };
     this._notify();
 
+    const abortController = new AbortController();
+    this._currentAbortController = abortController;
+
     try {
-      const result = await _fn();
+      const result = await _fn(abortController.signal);
 
       // Capturar respuesta para el historial
       const responseText = typeof result?.text === 'string' ? result.text : null;
@@ -175,7 +180,7 @@ class AiQueueService {
       this._notify();
       _resolve(result);
     } catch (error) {
-      const isCancelled = error?.cancelled === true;
+      const isCancelled = error?.cancelled === true || error?.name === 'AbortError';
       this._addToHistory({
         ...pubTask,
         status: isCancelled ? 'cancelled' : 'failed',
@@ -186,38 +191,49 @@ class AiQueueService {
       });
       this._current = null;
       this._notify();
+      if (isCancelled) error.cancelled = true;
       _reject(error);
     } finally {
+      this._currentAbortController = null;
       this._processing = false;
       setTimeout(() => this._processNext(), 0);
     }
   }
 
   /**
-   * Cancela una tarea pendiente en la cola por su ID.
-   * No se puede cancelar la tarea que ya está en proceso.
+   * Cancela una tarea por su ID: si está pendiente en la cola, la quita sin ejecutarla;
+   * si es la tarea en proceso, aborta su llamada HTTP en curso (AbortController).
    * @param {number} taskId
    * @returns {boolean} true si se encontró y canceló la tarea
    */
   cancel(taskId) {
     const idx = this._queue.findIndex(t => t.id === taskId);
-    if (idx === -1) return false;
+    if (idx !== -1) {
+      const [task] = this._queue.splice(idx, 1);
+      const { _resolve, _reject, _fn, ...pubTask } = task;
 
-    const [task] = this._queue.splice(idx, 1);
-    const { _resolve, _reject, _fn, ...pubTask } = task;
+      this._addToHistory({
+        ...pubTask,
+        status: 'cancelled',
+        completedAt: new Date(),
+        response: null,
+      });
 
-    this._addToHistory({
-      ...pubTask,
-      status: 'cancelled',
-      completedAt: new Date(),
-      response: null,
-    });
+      const err = new Error('Cancelado por el usuario');
+      err.cancelled = true;
+      _reject(err);
+      this._notify();
+      return true;
+    }
 
-    const err = new Error('Cancelado por el usuario');
-    err.cancelled = true;
-    _reject(err);
-    this._notify();
-    return true;
+    if (this._current?.id === taskId && this._currentAbortController) {
+      const err = new Error('Cancelado por el usuario');
+      err.cancelled = true;
+      this._currentAbortController.abort(err);
+      return true;
+    }
+
+    return false;
   }
 
   /** Borra el historial de tareas completadas/fallidas/canceladas */

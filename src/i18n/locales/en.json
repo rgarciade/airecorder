@@ -20,6 +20,114 @@
     "reportBug": "Report a bug",
     "quickSummary": "Quick Summary"
   },
+  "contextBar": {
+    "context": "Context",
+    "chunks": "chunks",
+    "tokens": "tokens",
+    "fullMode": "Full summary",
+    "indexing": "Preparing context...",
+    "skipped": "Context unavailable · transcript too short",
+    "ready": "Context ready",
+    "auto": "Auto",
+    "detailed": "Detailed",
+    "limitExceeded": "⚠ Limit exceeded",
+    "limitExceededTooltip": "The context exceeds the model's configured limit",
+    "nearLimit": "⚠ Near the limit ({{pct}}%)",
+    "nearLimitTooltip": "The context is approaching the model's configured limit",
+    "compactAction": "Compact",
+    "compacting": "Compacting...",
+    "tooltips": {
+      "projectAuto": "Splits the context across all recordings. Faster.",
+      "projectDetailed": "Searches more chunks per recording. More complete answers.",
+      "recordingAuto": "Extracts the essential context. Faster response.",
+      "recordingDetailed": "Analyzes much more information for exhaustive answers."
+    }
+  },
+  "chatCommands": {
+    "menuTitle": "Available commands",
+    "unknown": "Unrecognized command.",
+    "busy": "Wait for the current task to finish before running another command.",
+    "compact": {
+      "label": "Compact",
+      "description": "Summarizes the history and frees up context",
+      "argsPlaceholder": "Optional instructions, e.g: focus on the decisions",
+      "running": "Compacting…",
+      "summaryHeader": "Previous chat summary ({{count}} messages compacted)",
+      "tooShort": "The history is too short to compact.",
+      "empty": "The AI did not return a valid summary. Try again.",
+      "error": "Could not compact the chat. Try again."
+    },
+    "clear": {
+      "label": "Clear",
+      "description": "Erases the entire history of this chat",
+      "argsPlaceholder": "Press Enter to clear the chat",
+      "running": "Clearing…",
+      "error": "Could not clear the chat. Try again."
+    },
+    "help": {
+      "label": "Help",
+      "description": "Shows the list of available commands",
+      "argsPlaceholder": "Press Enter to see the help",
+      "running": "Loading help…",
+      "header": "🛟 **Available commands**",
+      "error": "Could not show the help. Try again."
+    },
+    "resumen": {
+      "label": "Summary",
+      "description": "Generates a summary of the whole conversation without deleting anything",
+      "argsPlaceholder": "Optional instructions, e.g: focus on the decisions",
+      "running": "Summarizing…",
+      "summaryHeader": "Conversation summary",
+      "tooShort": "The history is too short to generate a summary.",
+      "empty": "The AI did not return a valid summary. Try again.",
+      "error": "Could not generate the summary. Try again."
+    },
+    "tareas": {
+      "label": "Tasks",
+      "description": "Extracts tasks from the conversation and saves them",
+      "argsPlaceholder": "Optional instructions, e.g: focus on the backend",
+      "running": "Extracting tasks…",
+      "tooShort": "The conversation is too short to extract tasks.",
+      "summaryHeader": "{{count}} task(s) added",
+      "updatedHeader": "{{count}} task(s) updated",
+      "deletedHeader": "{{count}} task(s) deleted",
+      "discardedNotice": "{{count}} AI-proposed change(s) to existing tasks were ignored: updating or deleting existing tasks requires explicit instructions in /tareas.",
+      "none": "No clear tasks were found in this conversation.",
+      "noTarget": "Could not determine where to save the tasks.",
+      "error": "Could not extract the tasks. Try again."
+    },
+    "nota": {
+      "label": "Note",
+      "description": "Generates a Markdown note from the conversation",
+      "argsPlaceholder": "Optional instructions, e.g: focus on the conclusions",
+      "running": "Generating note…",
+      "tooShort": "The conversation is too short to generate a note.",
+      "summaryHeader": "Note generated and saved",
+      "empty": "The AI did not return valid content for the note. Try again.",
+      "noTarget": "Could not determine which recording to save the note to.",
+      "projectUnsupported": "/nota is not available in the project chat (notes are only saved per recording).",
+      "error": "Could not generate the note. Try again."
+    },
+    "buscar": {
+      "label": "Search",
+      "description": "Looks up a specific answer by forcing detailed RAG mode",
+      "argsPlaceholder": "Type your question, e.g: /buscar what was decided about the budget?",
+      "running": "Searching…",
+      "emptyQuery": "Type a question after /buscar.",
+      "noTarget": "Could not determine where to search.",
+      "notIndexed": "This recording isn't indexed for search yet. Wait for indexing to finish and try again.",
+      "noResults": "No relevant fragments were found for that question.",
+      "error": "Could not complete the search. Try again."
+    }
+  },
+  "chatPendingAction": {
+    "cancelled": "Cancelled, no changes were made.",
+    "created": "✅ Task created: {{title}}",
+    "updated": "🔄 Task updated: {{title}}",
+    "deleted": "🗑️ Task deleted: {{title}}",
+    "error": "Could not complete the action.",
+    "chosen": "You chose: {{option}}"
+  },
   "modelInfo": {
     "title": "Recommended models",
     "generalModel": "General Model",
@@ -199,7 +307,8 @@
       "databasePath": "Change where the database is stored. Default location is recommended.",
       "contextLengthInput": "Leave empty to detect automatically on each generation, or enter the value manually.",
       "contextLengthOllama": "Find it by running: ollama show <model> --verbose (num_ctx field)",
-      "contextLengthLmStudio": "Find it in LM Studio, under \"My Models\" → advanced options of the loaded model."
+      "contextLengthLmStudio": "Find it in LM Studio, under \"My Models\" → advanced options of the loaded model.",
+      "contextLengthCodex": "Codex doesn't expose this value through any API — leave empty to use a default estimate, or enter your model's real limit if you know it."
     },
     "themes": {
       "system": "System (default)",
@@ -231,7 +340,33 @@
       "deepseekName": "DeepSeek",
       "kimiName": "Kimi",
       "openaiName": "OpenAI",
-      "openaiDesc": "OpenAI (GPT)"
+      "openaiDesc": "OpenAI (GPT)",
+      "codexName": "Codex (ChatGPT subscription)",
+      "codexDesc": "Uses your ChatGPT session; no API key and no embeddings",
+      "codexConnect": "Connect with ChatGPT",
+      "codexConnected": "ChatGPT session connected",
+      "codexEmbeddingNotice": "Codex does not provide embeddings. Choose another embedding provider.",
+      "codexLoginInstructions": "Connect your ChatGPT account in Codex’s official flow; the app never sees or stores your credentials.",
+      "codexLoginFailed": "Codex sign-in could not be completed. Review the message and try again.",
+      "codexConnecting": "Connecting…",
+      "codexUnavailable": "Codex CLI is unavailable in this installation.",
+      "codexCancel": "Cancel",
+      "codexDeviceAuthInstructions": "Open the official link and enter the one-time code.",
+      "codexCodeLabel": "One-time code",
+      "codexOfficialLink": "Open official OpenAI authentication",
+      "codexModelsLoading": "Loading the models available to your subscription…",
+      "codexModelsError": "The Codex model catalog could not be loaded: {{error}}",
+      "codexManualModelPlaceholder": "Enter a model ID",
+      "codexManualModelHelp": "The catalog is unavailable. You can keep the saved model or enter its ID manually.",
+      "codexReasoningEffort": "Reasoning effort",
+      "codexEfforts": {
+        "none": "None",
+        "minimal": "Minimal",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "xhigh": "Extra high"
+      }
     },
     "buttons": {
       "save": "Save Settings",
@@ -633,9 +768,7 @@
     "uploadFile": "Upload file",
     "pasteConversation": "Paste conversation",
     "importTeamsDescription": "Import Microsoft Teams transcriptions (.docx).",
-    "importAudioDescription": "Upload audio files (mp3, wav, ogg...) to transcribe.",
-    "uploadFile": "Upload file",
-    "pasteConversation": "Paste conversation"
+    "importAudioDescription": "Upload audio files (mp3, wav, ogg...) to transcribe."
   },
   "statsRow": {
     "thisWeek": "This Week",
@@ -671,6 +804,10 @@
       "success": "Success",
       "cancelled": "Cancelled",
       "failed": "Failed"
+    },
+    "errors": {
+      "diskSpace": "Not enough disk space to download the Whisper model (needs {{expectedMb}} MB, only {{freeMb}} MB available). Free up space and try again.",
+      "generic": "{{message}}"
     },
     "transcriptionStatus": "Transcription {{status}} for",
     "steps": {

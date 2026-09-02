@@ -1,9 +1,29 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
+import { createRequire } from 'node:module';
 import fs from 'fs';
 
 const fetchSpy = vi.fn();
+const shellOpenExternal = vi.fn(() => Promise.resolve());
+const nodeRequire = createRequire(import.meta.url);
+const electronPath = nodeRequire.resolve('electron');
+let originalElectronEntry;
 
 vi.stubGlobal('fetch', fetchSpy);
+
+beforeAll(() => {
+  originalElectronEntry = nodeRequire.cache[electronPath];
+  nodeRequire.cache[electronPath] = {
+    id: electronPath,
+    filename: electronPath,
+    loaded: true,
+    exports: { ipcMain: {}, shell: { openExternal: shellOpenExternal } },
+  };
+});
+
+afterAll(() => {
+  if (originalElectronEntry) nodeRequire.cache[electronPath] = originalElectronEntry;
+  else delete nodeRequire.cache[electronPath];
+});
 
 describe('ai handlers', () => {
   let handlers;
@@ -103,5 +123,39 @@ describe('ai handlers', () => {
     await handlers.get('ai:custom-list-models')(null, 'conn-1');
 
     expect(fetchSpy).toHaveBeenCalledWith('http://gpt.local/v1/models', expect.any(Object));
+  });
+});
+
+describe('Codex login IPC contract', () => {
+  let handlers; let aiHandlers; let codex;
+  beforeEach(async () => {
+    handlers = new Map(); const ipc = { handle: vi.fn((channel, handler) => handlers.set(channel, handler)) };
+    aiHandlers = await import('../../../../electron/ipc-handlers/ai.js');
+    codex = { startLogin: vi.fn(), cancelLogin: vi.fn(), cancel: vi.fn(), getStatus: vi.fn(), listModels: vi.fn() };
+    aiHandlers.__setCodexService(codex); aiHandlers.registerAiHandlers(ipc);
+  });
+  it('forwards URL and code when structured progress arrives separately', async () => {
+    codex.startLogin.mockImplementation(async ({ onProgress }) => {
+      onProgress({ requestId: 'r1', phase: 'device-auth', url: 'https://auth.openai.com/device' });
+      onProgress({ requestId: 'r1', phase: 'device-auth', code: 'I7GK-YAWPT' });
+      return { success: true };
+    });
+    const sender = { send: vi.fn(), isDestroyed: () => false };
+    await handlers.get('ai:codex-login')({ sender }, 'r1');
+    expect(codex.startLogin).toHaveBeenCalled();
+    expect(sender.send).toHaveBeenNthCalledWith(1, 'ai:codex-login-progress', expect.objectContaining({ requestId: 'r1', url: 'https://auth.openai.com/device' }));
+    expect(sender.send).toHaveBeenNthCalledWith(2, 'ai:codex-login-progress', expect.objectContaining({ requestId: 'r1', code: 'I7GK-YAWPT' }));
+  });
+  it('does not send to destroyed sender and forwards cancellation by requestId', async () => {
+    codex.startLogin.mockImplementation(async ({ onProgress }) => { onProgress({ requestId: 'dead', text: 'x' }); return { success: false, error: 'failed' }; }); codex.cancelLogin.mockReturnValue(true);
+    const sender = { send: vi.fn(), isDestroyed: () => true }; const result = await handlers.get('ai:codex-login')({ sender }, 'dead');
+    expect(result).toMatchObject({ success: false, error: 'failed' }); expect(sender.send).not.toHaveBeenCalled();
+    expect(handlers.get('ai:codex-login-cancel')(null, 'dead')).toEqual({ success: true }); expect(codex.cancelLogin).toHaveBeenCalledWith('dead');
+  });
+  it('returns the normalized model-list contract for success and failure', async () => {
+    const models = [{ id: 'gpt-test' }];
+    codex.listModels.mockResolvedValueOnce(models).mockRejectedValueOnce(new Error('catalog unavailable'));
+    await expect(handlers.get('ai:codex-models')()).resolves.toEqual({ success: true, models, error: null });
+    await expect(handlers.get('ai:codex-models')()).resolves.toEqual({ success: false, models: [], error: 'catalog unavailable' });
   });
 });

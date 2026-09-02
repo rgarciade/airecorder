@@ -312,6 +312,67 @@
   color: var(--color-text-secondary);
 }
 
+/* Botones de una `pendingAction` (confirmación de create/update/delete_task o
+   ask_user — ver providerRouter.js#_runToolCallingLoop). Mismo tono visual que
+   .suggestionChip, pero con la primera opción (afirmativa/proceder) destacada. */
+.pendingActionOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.pendingActionButton {
+  padding: 6px 14px;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+  /* Opciones largas (ej. propuestas de ask_user con frases completas en vez de
+     "frontend"/"backend") se truncan con "…" en vez de romper el layout — el
+     texto completo queda disponible vía `title` (tooltip nativo del botón). */
+  max-width: 260px;
+}
+
+.pendingActionButtonText {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pendingActionButton:hover:not(:disabled) {
+  background-color: var(--color-primary-bg);
+  border-color: var(--color-primary);
+}
+
+.pendingActionButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pendingActionButtonPrimary {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.pendingActionButtonPrimary:hover:not(:disabled) {
+  background-color: var(--color-primary);
+  opacity: 0.9;
+}
+
+.pendingActionResolved {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
 /* Sugerencias (Píldoras) */
 .suggestions {
   display: flex;
@@ -346,6 +407,7 @@
 }
 
 .messageInputContainer {
+  position: relative; /* ancla del menú de comandos (.commandMenu) */
   display: flex;
   align-items: center; /* Alineación central vertical */
   gap: 8px;
@@ -355,6 +417,120 @@
   padding: 6px 6px 6px 16px; /* Padding para el input y espacio para el botón */
   box-shadow: 0 2px 4px var(--color-shadow);
   transition: all 0.2s;
+}
+
+/* Banner de error inline de comandos de chat (comando desconocido, historial corto, fallo IA...) */
+.commandErrorBanner {
+  padding: 6px 12px;
+  margin-bottom: 8px;
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Píldora no bloqueante para comandos `runsInBackground` (/tareas, /nota) — ver
+   BackgroundTaskIndicator.jsx. Independiente de .commandErrorBanner: nunca deshabilita
+   el input, solo informa que hay una tarea de comando corriendo en la cola de IA. */
+.backgroundTaskPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  margin-bottom: 8px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  width: fit-content;
+}
+
+.backgroundTaskSpinner {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  border: 2px solid var(--color-border-secondary);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Menú flotante de comandos de chat ("/") — mismo patrón que .plusMenu, pero ancho completo */
+.commandMenu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px var(--color-shadow-md);
+  z-index: 110;
+  overflow: hidden;
+}
+
+.commandMenuTitle {
+  padding: 8px 14px 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.commandMenuEmpty {
+  padding: 6px 14px 12px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.commandMenuItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.commandMenuItem:last-child {
+  padding-bottom: 10px;
+}
+
+.commandMenuItem:hover,
+.commandMenuItemActive {
+  background: var(--color-bg-tertiary);
+}
+
+.commandMenuItemTop {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.commandMenuName {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.commandMenuLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.commandMenuDesc {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
 }
 
 .messageInputContainer:focus-within {

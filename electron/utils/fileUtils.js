@@ -3,7 +3,7 @@ const path = require('path');
 
 // Extensiones soportadas para adjuntos
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
-const TEXT_EXTENSIONS = ['.txt', '.md'];
+const TEXT_EXTENSIONS = ['.txt', '.md', '.yaml', '.yml'];
 const PDF_EXTENSIONS = ['.pdf'];
 const EXCEL_EXTENSIONS = ['.xlsx', '.xls'];
 const SUPPORTED_EXTENSIONS = [...IMAGE_EXTENSIONS, ...TEXT_EXTENSIONS, ...PDF_EXTENSIONS, ...EXCEL_EXTENSIONS];

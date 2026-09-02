@@ -1,5 +1,7 @@
 // Servicio para interactuar con LM Studio (API compatible con OpenAI)
 import { getSettings } from '../settingsService';
+import { toOpenAIToolsFormat } from './tools';
+import { buildOpenAIToolMessages, parseOpenAIToolMessage } from './openAIToolChat';
 
 /**
  * Elimina artefactos de modelos razonadores de una respuesta de LM Studio:
@@ -192,8 +194,9 @@ export async function checkLMStudioAvailability(baseUrl = null) {
  * @param {string} textContent - Mensaje de usuario
  * @param {string|null} modelOverride - Modelo a usar (opcional)
  * @param {string|null} systemPrompt - Instrucciones de sistema (opcional)
+ * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
  */
-export async function sendToLMStudio(textContent, modelOverride = null, systemPrompt = null) {
+export async function sendToLMStudio(textContent, modelOverride = null, systemPrompt = null, signal = null) {
   const settings = await getSettings();
   const url = normalizeBaseUrl(settings.lmStudioHost || 'http://localhost:1234');
   const model = modelOverride || settings.lmStudioModel;
@@ -216,7 +219,8 @@ export async function sendToLMStudio(textContent, modelOverride = null, systemPr
       // Desactiva el bloque <think> en modelos razonadores (DeepSeek R1, QwQ, etc.)
       // LM Studio ≥ 0.3.x lo soporta; los modelos no-razonadores lo ignoran.
       reasoning_effort: 'none'
-    })
+    }),
+    signal,
   });
 
   if (!response.ok) {
@@ -233,8 +237,9 @@ export async function sendToLMStudio(textContent, modelOverride = null, systemPr
 
 /**
  * Envía una petición a LM Studio (modo streaming)
+ * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
  */
-export async function sendToLMStudioStreaming(textContent, onChunk, modelOverride = null) {
+export async function sendToLMStudioStreaming(textContent, onChunk, modelOverride = null, signal = null) {
   const settings = await getSettings();
   const url = normalizeBaseUrl(settings.lmStudioHost || 'http://localhost:1234');
   const model = modelOverride || settings.lmStudioModel;
@@ -249,7 +254,8 @@ export async function sendToLMStudioStreaming(textContent, onChunk, modelOverrid
       messages: [{ role: 'user', content: textContent }],
       stream: true,
       reasoning_effort: 'none'
-    })
+    }),
+    signal,
   });
 
   if (!response.ok) {
@@ -306,9 +312,10 @@ export async function sendToLMStudioStreaming(textContent, onChunk, modelOverrid
  * @param {Array<{role:'system'|'user'|'assistant', content: string}>} messages
  * @param {Function} onChunk
  * @param {string|null} modelOverride
+ * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
  * @returns {Promise<string>}
  */
-export async function chatCompletionStreaming(messages, onChunk, modelOverride = null) {
+export async function chatCompletionStreaming(messages, onChunk, modelOverride = null, signal = null) {
   const settings = await getSettings();
   const url = normalizeBaseUrl(settings.lmStudioHost || 'http://localhost:1234');
   const model = modelOverride || settings.lmStudioModel;
@@ -319,6 +326,7 @@ export async function chatCompletionStreaming(messages, onChunk, modelOverride =
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model, messages, stream: true, reasoning_effort: 'none' }),
+    signal,
   });
 
   if (!response.ok) {
@@ -360,4 +368,52 @@ export async function chatCompletionStreaming(messages, onChunk, modelOverride =
   }
 
   return stripThinkBlocks(fullText);
+}
+
+/**
+ * Chat de una sola pasada (sin streaming) con soporte de `tools`. Usado
+ * EXCLUSIVAMENTE por el loop de tool-calling de `providerRouter.js`. El soporte
+ * real de `tools` en LM Studio depende enteramente del modelo cargado (best
+ * effort, igual que el resto de function-calling local) — no verificado en vivo
+ * durante esta implementación. Si el modelo cargado no soporta `tools`, LM
+ * Studio debería devolver la respuesta como texto normal (sin `tool_calls`),
+ * que el loop trata como "sin tool call, seguir con texto normal".
+ *
+ * @param {Array} messages - Mensajes en formato genérico (ver `openAIToolChat.js`)
+ * @param {{tools?: Array, model?: string}} [options]
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<{text: string, toolCalls: Array|null}>}
+ */
+export async function chatCompletionOnce(messages, options = {}, signal = null) {
+  const settings = await getSettings();
+  const url = normalizeBaseUrl(settings.lmStudioHost || 'http://localhost:1234');
+  const model = options.model || settings.lmStudioModel;
+
+  if (!model) throw new Error('No hay modelo cargado o seleccionado en LM Studio');
+
+  const response = await fetch(`${url}${LM_STUDIO_ENDPOINTS.chatCompletions}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      messages: buildOpenAIToolMessages(messages),
+      stream: false,
+      reasoning_effort: 'none',
+      ...(options.tools?.length ? { tools: toOpenAIToolsFormat(options.tools) } : {}),
+    }),
+    signal,
+  });
+
+  if (!response.ok) {
+    const errBody = await response.json().catch(() => ({}));
+    const errMsg = typeof errBody.error === 'string'
+      ? errBody.error
+      : (errBody.error?.message || errBody.message || '');
+    throw new Error(`LM Studio Error: ${response.status}${errMsg ? ' — ' + errMsg : ''}`);
+  }
+
+  const data = await response.json();
+  const message = data.choices?.[0]?.message || {};
+  const parsed = parseOpenAIToolMessage(message);
+  return { text: stripThinkBlocks(parsed.text), toolCalls: parsed.toolCalls };
 }

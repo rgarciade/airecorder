@@ -1,6 +1,8 @@
 // Servicio para interactuar con la API de Kimi (Moonshot AI)
 
 import { getSettings } from '../settingsService';
+import { toOpenAIToolsFormat } from './tools';
+import { buildOpenAIToolMessages, parseOpenAIToolMessage } from './openAIToolChat';
 
 const KIMI_API_BASE = 'https://api.moonshot.ai/v1';
 
@@ -60,9 +62,10 @@ export function getKimiAvailableModels() {
  * @param {string} textContent - El contenido a enviar (mensaje de usuario)
  * @param {string|null} modelOverride - Modelo a usar (opcional)
  * @param {string|null} systemPrompt - Instrucciones de sistema (opcional, reemplaza el genérico de Kimi)
+ * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
  * @returns {Promise<string>} - Respuesta generada
  */
-export async function sendToKimi(textContent, modelOverride = null, systemPrompt = null) {
+export async function sendToKimi(textContent, modelOverride = null, systemPrompt = null, signal = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
@@ -96,6 +99,7 @@ export async function sendToKimi(textContent, modelOverride = null, systemPrompt
           'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify(body),
+        signal,
       });
 
       if (response.status === 429) {
@@ -120,7 +124,9 @@ export async function sendToKimi(textContent, modelOverride = null, systemPrompt
         continue;
       }
 
-      console.error('Error enviando a Kimi:', error);
+      if (!(error?.cancelled || error?.name === 'AbortError')) {
+        console.error('Error enviando a Kimi:', error);
+      }
       throw error;
     }
   }
@@ -132,9 +138,10 @@ export async function sendToKimi(textContent, modelOverride = null, systemPrompt
  * @param {Function} onChunk - Callback que recibe cada chunk de texto
  * @param {string|null} modelOverride - Modelo a usar (opcional)
  * @param {string|null} systemPrompt - Instrucciones de sistema (opcional)
+ * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
  * @returns {Promise<string>} - Texto completo de la respuesta
  */
-export async function sendToKimiStreaming(textContent, onChunk, modelOverride = null, systemPrompt = null) {
+export async function sendToKimiStreaming(textContent, onChunk, modelOverride = null, systemPrompt = null, signal = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
@@ -171,6 +178,7 @@ export async function sendToKimiStreaming(textContent, onChunk, modelOverride = 
           'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify(body),
+        signal,
       });
 
       console.log(`[Kimi] Respuesta recibida: ${response.status} ${response.statusText}`);
@@ -232,7 +240,9 @@ export async function sendToKimiStreaming(textContent, onChunk, modelOverride = 
         continue;
       }
 
-      console.error('Error en streaming de Kimi:', error);
+      if (!(error?.cancelled || error?.name === 'AbortError')) {
+        console.error('Error en streaming de Kimi:', error);
+      }
       throw error;
     }
   }
@@ -247,9 +257,10 @@ export async function sendToKimiStreaming(textContent, onChunk, modelOverride = 
  * @param {Array<{role:'system'|'user'|'assistant', content: string}>} messages
  * @param {Function} onChunk
  * @param {string|null} modelOverride
+ * @param {AbortSignal} [signal] - Permite cancelar la petición en curso
  * @returns {Promise<string>}
  */
-export async function chatCompletionStreaming(messages, onChunk, modelOverride = null) {
+export async function chatCompletionStreaming(messages, onChunk, modelOverride = null, signal = null) {
   const MAX_RETRIES = 3;
   const BASE_DELAY = 2000;
 
@@ -268,6 +279,7 @@ export async function chatCompletionStreaming(messages, onChunk, modelOverride =
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
         body: JSON.stringify(body),
+        signal,
       });
 
       if (response.status === 429) throw new Error('429 Too Many Requests');
@@ -286,8 +298,62 @@ export async function chatCompletionStreaming(messages, onChunk, modelOverride =
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
-      console.error('Error en chatCompletionStreaming de Kimi:', error);
+      if (!(error?.cancelled || error?.name === 'AbortError')) {
+        console.error('Error en chatCompletionStreaming de Kimi:', error);
+      }
       throw error;
     }
+  }
+}
+
+/**
+ * Chat de una sola pasada (sin streaming) con soporte de `tools`. Usado
+ * EXCLUSIVAMENTE por el loop de tool-calling de `providerRouter.js`.
+ * Moonshot documenta compatibilidad con el formato `tools`/`tool_calls` de
+ * OpenAI en su API — NO verificado en vivo durante esta implementación. Si
+ * Moonshot llegase a rechazar el campo `tools`, el `fetch` fallará y el loop de
+ * `providerRouter.js` lo captura como error del provider (no rompe la
+ * conversación, pero SÍ corta ese turno — ver guarda defensiva documentada en
+ * README).
+ *
+ * @param {Array} messages - Mensajes en formato genérico (ver `openAIToolChat.js`)
+ * @param {{tools?: Array, model?: string}} [options]
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<{text: string, toolCalls: Array|null}>}
+ */
+export async function chatCompletionOnce(messages, options = {}, signal = null) {
+  const settings = await getSettings();
+  const apiKey = settings.kimiApiKey;
+  const model = options.model || settings.kimiModel || 'kimi-k2';
+
+  if (!apiKey) throw new Error('No se ha configurado la Kimi API Key en los ajustes.');
+
+  const body = {
+    model,
+    messages: buildOpenAIToolMessages(messages),
+    stream: false,
+    ...(options.tools?.length ? { tools: toOpenAIToolsFormat(options.tools) } : {}),
+  };
+
+  try {
+    const response = await fetch(`${KIMI_API_BASE}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify(body),
+      signal,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Error en la API de Kimi: ${response.status} ${errorData.error?.message || ''}`);
+    }
+
+    const data = await response.json();
+    return parseOpenAIToolMessage(data.choices?.[0]?.message || {});
+  } catch (error) {
+    if (!(error?.cancelled || error?.name === 'AbortError')) {
+      console.error('Error en chatCompletionOnce de Kimi:', error);
+    }
+    throw error;
   }
 }

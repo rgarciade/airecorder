@@ -178,6 +178,18 @@ module.exports.registerProjectsHandlers = () => {
     }
   });
 
+  // Reemplaza atómicamente todos los mensajes de un chat (usado por /compact)
+  ipcMain.handle('replace-project-chat-messages', async (event, chatId, messages) => {
+    try {
+      const result = dbService.replaceChatMessages(chatId, messages || []);
+      if (!result.success) throw new Error(result.error);
+      return { success: true };
+    } catch (error) {
+      console.error('Error reemplazando mensajes del chat:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // Guardar análisis de proyecto (mantiene ruta actual)
   ipcMain.handle('save-project-analysis', async (event, projectId, analysis) => {
     try {

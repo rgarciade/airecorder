@@ -4,7 +4,8 @@ import ReactMarkdown from 'react-markdown';
 import {
   MdClose, MdCheck, MdSchedule, MdMoreVert,
   MdMic, MdAutoAwesome, MdChecklist, MdInbox,
-  MdOpenInNew, MdContentCopy, MdKeyboardArrowDown, MdKeyboardArrowRight
+  MdOpenInNew, MdContentCopy, MdKeyboardArrowDown, MdKeyboardArrowRight,
+  MdDeleteOutline
 } from 'react-icons/md';
 import styles from './AiQueue.module.css';
 import { aiQueueService } from '../../services/ai/aiQueueService';
@@ -87,6 +88,7 @@ export default function AiQueue() {
   const [detailTask, setDetailTask] = useState(null); // tarea abierta en el modal
   const [copiedField, setCopiedField] = useState(null); // 'prompt' | 'response'
   const [expandedGroups, setExpandedGroups] = useState({});
+  const [showCurrentMenu, setShowCurrentMenu] = useState(false);
 
   // Suscribirse al servicio de cola
   useEffect(() => {
@@ -105,6 +107,11 @@ export default function AiQueue() {
     const timer = setInterval(() => setElapsed(formatElapsed(startedAt)), 1000);
     return () => clearInterval(timer);
   }, [queueState.current?.startedAt]);
+
+  // Cierra el menú de la tarea actual si esta cambia o termina
+  useEffect(() => {
+    setShowCurrentMenu(false);
+  }, [queueState.current?.id]);
 
   const handleCancel = useCallback((taskId) => {
     aiQueueService.cancel(taskId);
@@ -274,9 +281,32 @@ export default function AiQueue() {
                 <span className={styles.processingDot} />
                 {t('aiQueue.processing')}
               </span>
-              <button className={styles.moreBtn} title={t('aiQueue.moreOptions')}>
-                <MdMoreVert size={20} />
-              </button>
+              <div className={styles.moreMenuWrapper}>
+                <button
+                  className={styles.moreBtn}
+                  title={t('aiQueue.moreOptions')}
+                  onClick={() => setShowCurrentMenu((v) => !v)}
+                >
+                  <MdMoreVert size={20} />
+                </button>
+                {showCurrentMenu && (
+                  <>
+                    <div className={styles.menuOverlay} onClick={() => setShowCurrentMenu(false)} />
+                    <div className={styles.moreMenu}>
+                      <button
+                        className={styles.moreMenuItemDanger}
+                        onClick={() => {
+                          handleCancel(current.id);
+                          setShowCurrentMenu(false);
+                        }}
+                      >
+                        <MdDeleteOutline size={16} />
+                        {t('aiQueue.cancelTask')}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         ) : (

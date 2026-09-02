@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useTranslation } from 'react-i18next';
 import styles from './ChatInterface.module.css';
 import {
   MdSend, MdPerson, MdSmartToy, MdDeleteOutline, MdMoreHoriz,
   MdAdd, MdAttachFile, MdClose, MdImage, MdPictureAsPdf, MdDescription, MdInsertDriveFile, MdTableChart,
   MdVisibility, MdVisibilityOff, MdLink, MdContentPaste
 } from 'react-icons/md';
+import { parseChatCommand, getCommandMenuQuery, validateChatCommand, filterChatCommands } from '../../services/chat/chatCommands';
+import BackgroundTaskIndicator from './BackgroundTaskIndicator';
 
 function AttachmentTypeIcon({ type, size = 14 }) {
   if (type === 'image') return <MdImage size={size} />;
@@ -44,7 +47,15 @@ export default function ChatInterface({
   onActiveAttachmentsChange,
   allowNewAttachments = true,
   onAddChannel = null,
+  onCommand = null,
+  onResolvePendingAction = null,
 }) {
+  const { t } = useTranslation();
+  // Evita doble-click accidental mientras se resuelve una `pendingAction` (ver
+  // providerRouter.js#_runToolCallingLoop) — deshabilita el grupo de botones del
+  // mensaje en curso hasta que la promesa de onResolvePendingAction termine (o el
+  // mensaje se re-renderice como resuelto, lo que ocurra primero).
+  const [resolvingId, setResolvingId] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   const [showOptions, setShowOptions] = useState(false);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
@@ -52,6 +63,21 @@ export default function ChatInterface({
   const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [attachmentSearch, setAttachmentSearch] = useState('');
+
+  // Comandos de chat (/compact, ...)
+  const [showCommandMenu, setShowCommandMenu] = useState(false);
+  const [commandQuery, setCommandQuery] = useState('');
+  const [commandIndex, setCommandIndex] = useState(0);
+  const [commandError, setCommandError] = useState(null);
+  // Guarda el i18nKey del comando en curso (no solo un booleano) para poder
+  // mostrar un texto específico ("Compactando…") en vez de uno genérico.
+  const [commandRunning, setCommandRunning] = useState(null);
+
+  // Historial de mensajes propios (↑/↓ estilo terminal). -1 = no navegando (editando
+  // mensaje nuevo). historyDraft guarda lo que había escrito antes de empezar a
+  // navegar, para poder restaurarlo al bajar más allá del mensaje más reciente.
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [historyDraft, setHistoryDraft] = useState('');
 
   // Estado del modal de pegar conversación
   const [showPasteModal, setShowPasteModal] = useState(false);
@@ -64,6 +90,7 @@ export default function ChatInterface({
   const modelDropdownRef = useRef(null);
   const plusMenuRef = useRef(null);
   const attachmentPickerRef = useRef(null);
+  const commandMenuRef = useRef(null);
 
   // Cerrar menús al hacer click fuera
   useEffect(() => {
@@ -80,6 +107,9 @@ export default function ChatInterface({
       if (attachmentPickerRef.current && !attachmentPickerRef.current.contains(event.target)) {
         setShowAttachmentPicker(false);
       }
+      if (commandMenuRef.current && !commandMenuRef.current.contains(event.target)) {
+        setShowCommandMenu(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -94,20 +124,144 @@ export default function ChatInterface({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || isLoading) return;
+    if (!newMessage.trim() || isLoading || commandRunning) return;
 
-    const message = newMessage.trim();
+    const raw = newMessage.trim();
+    const parsed = onCommand ? parseChatCommand(raw) : { isCommand: false };
+
+    // Rama de comando: parsear ANTES del camino normal. Los comandos no consumen
+    // adjuntos ni pasan por onSendMessage — se resuelven enteramente aquí.
+    if (parsed.isCommand) {
+      setNewMessage('');
+      setHistoryIndex(-1);
+      setShowCommandMenu(false);
+
+      const validation = validateChatCommand(parsed.command, {
+        isBusy: isLoading || commandRunning,
+        historyLength: chatHistory.length,
+        args: parsed.args,
+      });
+
+      if (!validation.valid) {
+        // Genérico por diseño: cualquier comando futuro con minHistoryMessages/requiresArgs
+        // usa su propio i18nKey (registrado en chatCommands.js), no el de /compact hardcodeado.
+        // validateChatCommand garantiza parsed.command != null cuando reason !== 'unknown'/'busy'.
+        setCommandError(
+          validation.reason === 'busy' ? t('chatCommands.busy') :
+          validation.reason === 'tooShort' ? t(`${parsed.command.i18nKey}.tooShort`) :
+          validation.reason === 'emptyArgs' ? t(`${parsed.command.i18nKey}.emptyQuery`) :
+          t('chatCommands.unknown')
+        );
+        return;
+      }
+
+      setCommandError(null);
+      setCommandRunning(parsed.command.i18nKey);
+      try {
+        const result = await onCommand(parsed.name, parsed.args);
+        if (result && result.success === false && result.error) {
+          setCommandError(result.error);
+        }
+      } finally {
+        setCommandRunning(null);
+      }
+      return;
+    }
+
+    const message = raw;
     setNewMessage('');
-    
+    setHistoryIndex(-1);
+
     // Guardamos los adjuntos actuales para esta petición
     const currentAttachments = [...activeAttachments];
-    
+
     // Limpiamos la barra de input para que no sigan seleccionados visualmente
     if (onActiveAttachmentsChange) {
       onActiveAttachmentsChange([]);
     }
-    
+
     await onSendMessage(message, currentAttachments);
+  };
+
+  // Detecta si el input encaja con "/nombre-en-construcción" para abrir el menú de comandos.
+  const handleMessageInputChange = (e) => {
+    const value = e.target.value;
+    setNewMessage(value);
+    setCommandError(null);
+    // Solo dispara en eventos reales del DOM (tecleo/pegado), nunca cuando `setNewMessage`
+    // lo llama la navegación por historial (↑/↓) — sirve para detectar que el usuario
+    // se puso a editar a mano y "sale" del modo navegación.
+    setHistoryIndex(-1);
+
+    if (!onCommand) return;
+
+    const query = getCommandMenuQuery(value);
+    if (query !== null) {
+      setShowCommandMenu(true);
+      setCommandQuery(query);
+      setCommandIndex(0);
+    } else {
+      setShowCommandMenu(false);
+    }
+  };
+
+  // Navegación por teclado del menú de comandos: ↓/↑ navegan, Enter/Tab autocompletan
+  // (con preventDefault — imprescindible, el input vive dentro de un <form onSubmit>), Esc cierra.
+  const handleInputKeyDown = (e) => {
+    if (showCommandMenu) {
+      const commands = filterChatCommands(commandQuery);
+      if (commands.length === 0) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setCommandIndex((i) => (i + 1) % commands.length);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setCommandIndex((i) => (i - 1 + commands.length) % commands.length);
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        const cmd = commands[Math.min(commandIndex, commands.length - 1)];
+        setNewMessage(`/${cmd.name} `);
+        setShowCommandMenu(false);
+      } else if (e.key === 'Escape') {
+        setShowCommandMenu(false);
+      }
+      return;
+    }
+
+    // Historial de mensajes propios (↑/↓, estilo terminal) — solo cuando el menú de
+    // comandos no está abierto, para no pisar su propia navegación por teclado.
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+
+    const userMessages = chatHistory
+      .filter((m) => m.tipo === 'usuario')
+      .map((m) => m.contenido);
+    if (userMessages.length === 0) return;
+
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (historyIndex === -1) setHistoryDraft(newMessage);
+      const nextIndex = historyIndex === -1 ? userMessages.length - 1 : Math.max(0, historyIndex - 1);
+      setHistoryIndex(nextIndex);
+      setNewMessage(userMessages[nextIndex]);
+    } else if (historyIndex !== -1) {
+      // ArrowDown solo hace algo si ya estábamos navegando — si no, no hay "más reciente"
+      // hacia donde bajar y se deja el comportamiento nativo del input (no-op en un solo renglón).
+      e.preventDefault();
+      const nextIndex = historyIndex + 1;
+      if (nextIndex >= userMessages.length) {
+        setHistoryIndex(-1);
+        setNewMessage(historyDraft);
+      } else {
+        setHistoryIndex(nextIndex);
+        setNewMessage(userMessages[nextIndex]);
+      }
+    }
+  };
+
+  const handleCommandItemSelect = (cmd) => {
+    setNewMessage(`/${cmd.name} `);
+    setShowCommandMenu(false);
   };
 
   const handleSuggestionClick = (text) => {
@@ -188,6 +342,27 @@ export default function ChatInterface({
       return a.filename !== attachmentToRemove.filename;
     });
     onActiveAttachmentsChange?.(updated);
+  };
+
+  // Click en uno de los botones de una `pendingAction` — delega la ejecución real
+  // (determinística, vía executeTool) al padre (RecordingDetailWithTranscription.jsx
+  // / ProjectDetail.jsx), este componente solo evita el doble-click mientras resuelve.
+  //
+  // BUG REAL corregido: se pasaba `message.id`, pero ese id puede ser SINTÉTICO
+  // (asignado por `normalizeChatHistory` al expandir un par pregunta/respuesta
+  // recargado desde disco — ver chatHistory.js) y no existir en el dato crudo que
+  // el padre busca en su historial — el click no encontraba nada y no hacía nada.
+  // Se pasa `pendingAction.id` (el id de tool_call, estable en ambos formatos de
+  // almacenamiento) en su lugar. `resolvingId` sigue keyed por `message.id` — es
+  // solo estado visual del render actual, no necesita ser estable entre formatos.
+  const handleResolvePendingActionClick = async (messageId, pendingActionId, optionIndex) => {
+    if (!onResolvePendingAction || resolvingId === messageId) return;
+    setResolvingId(messageId);
+    try {
+      await onResolvePendingAction(pendingActionId, optionIndex);
+    } finally {
+      setResolvingId(null);
+    }
   };
 
   const formatMessageTime = (dateString) => {
@@ -401,6 +576,11 @@ export default function ChatInterface({
     td: ({ children }) => <td className={styles.messageTableCell}>{children}</td>,
   };
 
+  // Comando activo resuelto desde el registro (no hardcodea ningún nombre concreto):
+  // si el input actual encaja con un comando conocido, su i18nKey decide el placeholder
+  // de argumentos ("/compact <foco>", o el que declare un futuro segundo comando).
+  const activeCommand = onCommand ? parseChatCommand(newMessage).command : null;
+
   return (
     <div className={styles.container}>
       <div className={styles.chatContainer}>
@@ -520,6 +700,28 @@ export default function ChatInterface({
                       {processMessageContent(message.contenido || '')}
                     </ReactMarkdown>
                   </div>
+                  {message.pendingAction && (
+                    message.pendingAction.resolved ? (
+                      <div className={styles.pendingActionResolved}>
+                        {t('chatPendingAction.chosen', { option: message.pendingAction.resolution })}
+                      </div>
+                    ) : (
+                      <div className={styles.pendingActionOptions}>
+                        {message.pendingAction.options.map((option, idx) => (
+                          <button
+                            key={`${message.id}-opt-${idx}`}
+                            type="button"
+                            className={`${styles.pendingActionButton} ${idx === 0 ? styles.pendingActionButtonPrimary : ''}`}
+                            disabled={resolvingId === message.id}
+                            onClick={() => handleResolvePendingActionClick(message.id, message.pendingAction.id, idx)}
+                            title={option}
+                          >
+                            <span className={styles.pendingActionButtonText}>{option}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )
+                  )}
                   <div className={styles.messageTime}>
                     {formatMessageTime(message.fecha)}
                   </div>
@@ -527,7 +729,19 @@ export default function ChatInterface({
               </div>
             ))
           )}
-          {isLoading && !(chatHistory.length > 0 && chatHistory[chatHistory.length - 1]?.id === 'streaming') && (
+          {commandRunning && (
+            <div className={`${styles.message} ${styles.asistente}`}>
+              <div className={styles.messageAvatar}>
+                <MdSmartToy size={16} />
+              </div>
+              <div className={styles.messageContent}>
+                <div className={styles.messageText}>
+                  {t(`${commandRunning}.running`)}
+                </div>
+              </div>
+            </div>
+          )}
+          {!commandRunning && isLoading && !(chatHistory.length > 0 && chatHistory[chatHistory.length - 1]?.id === 'streaming') && (
             <div className={`${styles.message} ${styles.asistente}`}>
               <div className={styles.messageAvatar}>
                 <MdSmartToy size={16} />
@@ -581,7 +795,42 @@ export default function ChatInterface({
             </div>
           )}
 
+          {/* Indicador no bloqueante de /tareas o /nota corriendo en background (aiQueueService) —
+              independiente de commandError/commandRunning, nunca deshabilita el input. */}
+          {onCommand && <BackgroundTaskIndicator />}
+
+          {/* Error inline de comandos (comando desconocido, historial corto, fallo de IA...) */}
+          {commandError && (
+            <div className={styles.commandErrorBanner}>{commandError}</div>
+          )}
+
           <div className={styles.messageInputContainer}>
+
+            {/* Menú flotante de comandos ("/") — solo si el padre soporta comandos */}
+            {onCommand && showCommandMenu && (
+              <div className={styles.commandMenu} ref={commandMenuRef}>
+                <div className={styles.commandMenuTitle}>{t('chatCommands.menuTitle')}</div>
+                {filterChatCommands(commandQuery).length === 0 ? (
+                  <div className={styles.commandMenuEmpty}>{t('chatCommands.unknown')}</div>
+                ) : (
+                  filterChatCommands(commandQuery).map((cmd, idx) => (
+                    <button
+                      key={cmd.name}
+                      type="button"
+                      className={`${styles.commandMenuItem} ${idx === commandIndex ? styles.commandMenuItemActive : ''}`}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleCommandItemSelect(cmd)}
+                    >
+                      <div className={styles.commandMenuItemTop}>
+                        <span className={styles.commandMenuName}>/{cmd.name}</span>
+                        <span className={styles.commandMenuLabel}>{t(`${cmd.i18nKey}.label`)}</span>
+                      </div>
+                      <span className={styles.commandMenuDesc}>{t(`${cmd.i18nKey}.description`)}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
 
             {/* Botón + (subir archivo nuevo) - Solo si hay onPickNewAttachment */}
             {onPickNewAttachment && (
@@ -747,14 +996,19 @@ export default function ChatInterface({
             <input
               type="text"
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder={placeholder}
+              onChange={handleMessageInputChange}
+              onKeyDown={handleInputKeyDown}
+              placeholder={
+                commandRunning ? t(`${commandRunning}.running`) :
+                activeCommand ? t(`${activeCommand.i18nKey}.argsPlaceholder`) :
+                placeholder
+              }
               className={styles.messageInput}
-              disabled={isLoading}
+              disabled={isLoading || commandRunning}
             />
             <button
               type="submit"
-              disabled={!newMessage.trim() || isLoading}
+              disabled={!newMessage.trim() || isLoading || commandRunning}
               className={styles.sendButton}
             >
               <MdSend size={18} />

@@ -134,7 +134,8 @@ export function useCustomConnections(initialConnections = []) {
     }));
 
     try {
-      const result = await window.electronAPI.listCustomModels(id);
+      const connectionData = connections.find((connection) => connection.id === id);
+      const result = await window.electronAPI.listCustomModels(id, connectionData);
       if (result?.success) {
         const models = result.models || [];
         setTestResults((previous) => ({
@@ -159,7 +160,7 @@ export function useCustomConnections(initialConnections = []) {
     } finally {
       setTestingConnectionId(null);
     }
-  }, []);
+  }, [connections]);
 
   const getConnectionsToSave = useCallback(
     () => connections.filter((connection) => !stagedDeletions.includes(connection.id)),

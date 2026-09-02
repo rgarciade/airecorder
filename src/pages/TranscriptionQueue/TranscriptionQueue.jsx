@@ -28,6 +28,18 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
     }
   }, []);
 
+  const getErrorMessage = (item) => {
+    if (!item.error || item.error === 'Cancelled by user') return null;
+    const diskSpaceMatch = item.error.match(/^DISK_SPACE::([\d.]+)::([\d.]+)$/);
+    if (diskSpaceMatch) {
+      return t('transcriptionQueue.errors.diskSpace', {
+        expectedMb: Math.round(parseFloat(diskSpaceMatch[1])),
+        freeMb: Math.round(parseFloat(diskSpaceMatch[2])),
+      });
+    }
+    return t('transcriptionQueue.errors.generic', { message: item.error });
+  };
+
   const processQueueData = (data) => {
       if (data && data.active) {
         const active = data.active.find(t => t.status === 'processing');
@@ -299,6 +311,9 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
                         {item.model || 'default'}
                       </span>
                     </div>
+                    {item.status !== 'completed' && item.status !== 'cancelled' && item.error !== 'Cancelled by user' && getErrorMessage(item) && (
+                      <p className={styles.errorDetail} title={getErrorMessage(item)}>{getErrorMessage(item)}</p>
+                    )}
                   </div>
                 </div>
               ))}

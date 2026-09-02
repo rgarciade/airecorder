@@ -103,6 +103,25 @@ class ProjectChatService {
   }
 
   /**
+   * Reemplaza atómicamente todos los mensajes de un chat (usado por el comando /compact).
+   * DELETE + N INSERT en una única transacción SQLite en vez de clear+N saves.
+   * @param {string} chatId
+   * @param {Array<{tipo: 'usuario'|'asistente', contenido: string}>} messages
+   * @returns {Promise<boolean>}
+   */
+  async replaceChatHistory(chatId, messages) {
+    try {
+      if (!window.electronAPI?.replaceProjectChatMessages) throw new Error('API no disponible');
+      const result = await window.electronAPI.replaceProjectChatMessages(chatId, messages);
+      if (!result.success) throw new Error(result.error);
+      return true;
+    } catch (error) {
+      console.error('Error reemplazando mensajes del chat:', error);
+      return false;
+    }
+  }
+
+  /**
    * Genera una respuesta de la IA real usando el paradigma V2 (array de mensajes nativo).
    * Soporta streaming en tiempo real via onChunk.
    *
@@ -137,6 +156,7 @@ class ProjectChatService {
         projectId, question, recordingIds, recordingTitles, chatHistory, ragMode, options, onChunk
       );
     } catch (error) {
+      if (error.cancelled) throw error;
       console.error('Error generando respuesta IA:', error);
       return { text: 'Lo siento, ha ocurrido un error al procesar tu pregunta.', contextInfo: null };
     }

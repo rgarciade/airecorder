@@ -7,11 +7,15 @@ import { createTestDB, initTestDB } from './dbSetup.js';
 describe('RecordingsDbService', () => {
   let db;
   let recordings;
+  let projects;
+  let speakers;
 
   beforeEach(() => {
     db = createTestDB();
     const services = initTestDB(db);
     recordings = services.recordings;
+    projects = services.projects;
+    speakers = services.speakers;
   });
 
   describe('saveRecording', () => {
@@ -35,6 +39,14 @@ describe('RecordingsDbService', () => {
       expect(result.success).toBe(true);
       const recording = recordings.getRecording('test/audio1.wav');
       expect(recording.created_at).toBeDefined();
+    });
+
+    it('persiste source por defecto y source explícito', () => {
+      recordings.saveRecording('test/default-source.wav', 10);
+      recordings.saveRecording('test/imported-source.wav', 11, 'recorded', null, null, 'conversation-import');
+
+      expect(recordings.getRecording('test/default-source.wav').source).toBe('audio');
+      expect(recordings.getRecording('test/imported-source.wav').source).toBe('conversation-import');
     });
   });
 
@@ -65,6 +77,17 @@ describe('RecordingsDbService', () => {
       expect(result.success).toBe(true);
       const recording = recordings.getRecording('test/audio1.wav');
       expect(recording.duration).toBe(180.0);
+    });
+  });
+
+  describe('setSkipDiarization', () => {
+    it('persiste tanto la activación como la desactivación del flag', () => {
+      const recording = recordings.saveRecording('test/skip-diarization.wav', 12);
+
+      expect(recordings.setSkipDiarization(recording.id, true).success).toBe(true);
+      expect(recordings.getRecordingById(recording.id).skip_diarization).toBe(1);
+      expect(recordings.setSkipDiarization(recording.id, false).success).toBe(true);
+      expect(recordings.getRecordingById(recording.id).skip_diarization).toBe(0);
     });
   });
 
@@ -119,6 +142,32 @@ describe('RecordingsDbService', () => {
       recordings.deleteRecording('test/audio1.wav');
       const recording = recordings.getRecording('test/audio1.wav');
       expect(recording).toBeNull();
+    });
+
+    it('elimina en cascada las dependencias SQLite soportadas', () => {
+      const recording = recordings.saveRecording('test/dependent-cascade.wav', 20);
+      const taskId = recordings.enqueueTask(recording.id, 'whisper');
+      const project = projects.createProject('Recording dependencies');
+      const speaker = speakers.createSpeaker('Recording dependency speaker');
+      projects.addRecordingToProject(project.id, recording.id);
+      speakers.upsertRecordingSpeakerResolution(recording.id, 'SPEAKER_00', speaker.id);
+      db.prepare("INSERT INTO recording_notes (recording_id, template_slug, content_md) VALUES (?, ?, ?)")
+        .run(recording.id, 'standup', 'Dependent note');
+
+      const result = recordings.deleteRecording('test/dependent-cascade.wav');
+
+      expect(result.success).toBe(true);
+      expect(recordings.getTaskById(taskId)).toBeNull();
+      expect(projects.getProjectRecordingIds(project.id)).toEqual([]);
+      expect(speakers.getRecordingSpeakerResolutions(recording.id)).toBeNull();
+      expect(db.prepare('SELECT * FROM recording_notes WHERE recording_id = ?').get(recording.id)).toBeUndefined();
+    });
+
+    it('caracteriza las mutaciones no-op sobre grabaciones inexistentes', () => {
+      expect(recordings.updateStatus('test/missing.wav', 'transcribed').info.changes).toBe(0);
+      expect(recordings.updateDuration('test/missing.wav', 42).info.changes).toBe(0);
+      expect(recordings.setSkipDiarization(999999, true).info.changes).toBe(0);
+      expect(recordings.deleteRecording('test/missing.wav').info.changes).toBe(0);
     });
   });
 
