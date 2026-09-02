@@ -59,8 +59,9 @@ cd airecorder
 # 2. Install Node dependencies
 npm install
 
-# 3. Rebuild native modules for Electron
-npm rebuild better-sqlite3 --runtime=electron --target=31.7.7 --dist-url=https://electronjs.org/headers --build-from-source
+# 3. Native modules (better-sqlite3) are compiled for Electron automatically
+#    by the `postinstall` hook. If you ever need to redo it manually:
+#    npm run rebuild
 
 # 4. Install Python dependencies
 pip install -r requirements.txt
