@@ -5,6 +5,7 @@ const { app } = require('electron');
 const dbService = require('../database/dbService');
 const notificationService = require('./notificationService');
 const { getSetting } = require('../utils/paths');
+const { getPackagedPythonBinaryPath, getFfmpegStaticPath } = require('../utils/packagedBinaries');
 const ffprobeInstaller = require('@ffprobe-installer/ffprobe');
 
 const SUPPORTED_AUDIO_EXTENSIONS = ['webm', 'wav', 'mp3', 'm4a', 'ogg', 'aac', 'flac'];
@@ -160,17 +161,8 @@ class TranscriptionManager {
                         this.updateProgress(0, 'diarizing');
                         
                         // Obtener rutas de ffmpeg/ffprobe para pasarlas al script
-                        let ffmpegPath = null;
-                        let ffprobePath = null;
-                        
-                        if (!app.isPackaged) {
-                            // En dev, intentar usar los de node_modules
-                            ffmpegPath = path.join(__dirname, '../../node_modules/ffmpeg-static/ffmpeg');
-                        } else {
-                            const resourcesPath = process.resourcesPath;
-                            ffmpegPath = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'ffmpeg-static', 'ffmpeg');
-                        }
-                        ffprobePath = getFfprobePath();
+                        const ffmpegPath = getFfmpegStaticPath(!app.isPackaged);
+                        const ffprobePath = getFfprobePath();
 
                         const diarizationArgs = [
                             '--audio_file', sysAudioPath,
@@ -238,7 +230,7 @@ class TranscriptionManager {
             // En producción, asumimos que diarization_analyzer también está compilado o empaquetado
             // Pero como es nuevo y experimental, quizás lo ejecutamos vía python si está disponible, 
             // o lo agregamos al build. Por ahora, asumimos la misma lógica que el principal.
-            executablePath = path.join(resourcesPath, 'python-bin', scriptName.replace('.py', ''));
+            executablePath = getPackagedPythonBinaryPath(scriptName.replace('.py', ''));
             execArgs = [];
             if (!fs.existsSync(executablePath)) {
                 // Fallback a script si no está el binario (ej. en desarrollo o si no se compiló)
@@ -292,10 +284,9 @@ runTranscriptionProcess(task, diarizationFile, onProgress) {
             const scriptPath = path.join(__dirname, '../../python/audio_sync_analyzer.py');
             execArgs = [scriptPath];
         } else {
-            const resourcesPath = process.resourcesPath;
-            executablePath = path.join(resourcesPath, 'python-bin', 'audio_sync_analyzer');
+            executablePath = getPackagedPythonBinaryPath('audio_sync_analyzer');
             execArgs = [];
-            ffmpegPath = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'ffmpeg-static', 'ffmpeg');
+            ffmpegPath = getFfmpegStaticPath(false);
             ffprobePath = getFfprobePath();
         }
 
@@ -321,7 +312,7 @@ runTranscriptionProcess(task, diarizationFile, onProgress) {
         const spawnEnv = { ...process.env, PYTHONUNBUFFERED: '1', PYTHONIOENCODING: 'utf-8' };
         if (ffmpegPath && fs.existsSync(ffmpegPath)) {
             spawnEnv.FFMPEG_PATH = ffmpegPath;
-            spawnEnv.PATH = path.dirname(ffmpegPath) + ':' + (spawnEnv.PATH || '');
+            spawnEnv.PATH = path.dirname(ffmpegPath) + path.delimiter + (spawnEnv.PATH || '');
         }
 
         this.process = spawn(executablePath, args, { env: spawnEnv });

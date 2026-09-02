@@ -77,6 +77,7 @@ ipcMain.handle('mi-evento', async (event, params) => {
 
 *   `RecordingOverlay.jsx` muestra un checkbox "Descartar diarización" en el diálogo de detalles al terminar la grabación (solo si `settings.enableDiarization` está activo globalmente) y lo pasa como `{ skipDiarization }` a `recordingsService.transcribeRecording()`.
 *   `transcriptionManager.processQueue()` combina `settings.enableDiarization && !recording.skip_diarization` para decidir si ejecuta `diarization_analyzer.py`. El flag persiste en la fila del recording, así que también aplica si la tarea se reintenta o se re-encola manualmente.
+*   La resolución de los binarios empaquetados (el binario Python de `resources/python-bin` y `ffmpeg-static`) vive en `electron/utils/packagedBinaries.js`, que agrega el sufijo `.exe` en Windows — `child_process.spawn()` no resuelve extensiones y sin el sufijo el spawn falla con `ENOENT` (issue #154).
 *   Los demás puntos de entrada (`RecordingList`, `RecordingDetail`, `Home`) no pasan `options`, por lo que no tocan el flag y respetan el valor ya guardado en el recording.
 
 ### IPC: IA / Conexiones OpenAI personalizadas

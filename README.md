@@ -153,6 +153,8 @@ python python/audio_sync_analyzer.py \
 
 **ffmpeg/ffprobe bundled (`--ffmpeg` / `--ffprobe`):** in the packaged app, the manager passes explicit paths to the bundled `ffmpeg-static` and `@ffprobe-installer/ffprobe` binaries. These live in **different** directories, and pydub probes audio via a bare `ffprobe` resolved from `PATH` (it ignores `AudioSegment.ffprobe`). The analyzer therefore prepends **both** binaries' directories to `PATH`. This is required because a GUI launch (Finder/Dock/Spotlight) does not inherit a shell `PATH`, so without it audio decoding fails with `[Errno 2] No such file or directory: 'ffprobe'` and no transcript is produced.
 
+**Packaged binary resolution:** resolving the bundled Python binary (`resources/python-bin`) and `ffmpeg-static` paths is centralized in `electron/utils/packagedBinaries.js`, which appends the `.exe` suffix on Windows. This is required because `child_process.spawn()` does not resolve extensions, so without the explicit suffix the packaged `audio_sync_analyzer.exe` and `ffmpeg.exe` fail to spawn with `ENOENT` (issue #154).
+
 > Nota: se reemplazó `ffprobe-static` (sin mantenimiento desde 2020) por `@ffprobe-installer/ffprobe` porque el primero empaquetaba el mismo binario x86_64 tanto en `bin/darwin/x64` como en `bin/darwin/arm64`, generando el aviso "Fin de compatibilidad con apps para Intel" en macOS Apple Silicon (issue #125). `@ffprobe-installer/ffprobe` resuelve el binario nativo correcto según `os.arch()` en tiempo de instalación.
 
 ### Diarización y Extracción de Embeddings
