@@ -165,6 +165,7 @@
     "micNotFound": "⚠️ No microphone found.\n\nPlease connect a microphone and try again.",
     "errorStartingRecording": "Could not start recording: {{error}}",
     "errorTranscribing": "Error starting transcription: {{error}}",
+    "noModelInstalledConfirm": "⚠️ You don't have any Whisper model installed to transcribe with your current settings.\n\nPlease download a model in Settings → Transcription → Models and downloads.\n\nDo you want to go to Settings now?",
     "errorImporting": "Error importing transcription: {{error}}",
     "errorImportingAudio": "Error importing audio: {{error}}",
     "errorImportingConversation": "Error importing conversation",
@@ -237,6 +238,12 @@
     "extraInstructionsPlaceholder": "E.g.: Sprint planning meeting with the frontend team. Focus on technical decisions and task assignments...",
     "discardDiarization": "Discard diarization (speaker identification) for this meeting"
   },
+  "downloadIndicator": {
+    "title": "Model downloads",
+    "activeLabel": "{{model}} · {{percent}}%",
+    "errorLabel": "{{count}} download(s) failed",
+    "summary": "{{done}} of {{total}} downloads"
+  },
   "settings": {
     "title": "AIRecorder Settings",
     "subtitle": "Settings",
@@ -299,6 +306,7 @@
       "recentMeetings": "How many recent recordings are shown in the project summary highlights.",
       "microphone": "Select the input device for your recordings.",
       "whisperModel": "Choose the default model for new transcriptions. Smaller models are faster but less accurate.",
+      "whisperModelNoneInstalled": "You don't have any Whisper model installed. Download one in the \"Models and downloads\" section below before transcribing.",
       "cpuThreads": "More threads increase transcription speed but use more computer resources.",
       "ragModel": "Specific model for answering RAG queries (e.g.: deepseek-r1). Leave empty to use the main model.",
       "generalModel": "Model used for summaries, analysis and processing tasks.",
@@ -327,7 +335,8 @@
       "small": "Small (Recommended)",
       "medium": "Medium",
       "large": "Large (Accurate)",
-      "large-v3": "Large v3 (Accurate)"
+      "large-v3": "Large v3 (Accurate)",
+      "notInstalledSuffix": "{{model}} (not installed — go to Settings)"
     },
     "diskSpace": {
       "loading": "Calculating disk space…",

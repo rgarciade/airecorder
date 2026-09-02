@@ -165,6 +165,7 @@
     "micNotFound": "⚠️ No se encontró ningún micrófono.\n\nPor favor, conecta un micrófono e intenta de nuevo.",
     "errorStartingRecording": "No se pudo iniciar la grabación: {{error}}",
     "errorTranscribing": "Error iniciando transcripción: {{error}}",
+    "noModelInstalledConfirm": "⚠️ No tienes ningún modelo Whisper instalado para transcribir con tu configuración actual.\n\nPor favor, descarga un modelo en Ajustes → Transcripción → Modelos y descargas.\n\n¿Quieres ir a Ajustes ahora?",
     "errorImporting": "Error importando la transcripción: {{error}}",
     "errorImportingAudio": "Error importando audio: {{error}}",
     "errorImportingConversation": "Error al importar la conversación",
@@ -237,6 +238,12 @@
     "extraInstructionsPlaceholder": "Ej: Reunión de planificación del sprint con el equipo frontend. Foco en decisiones técnicas y asignación de tareas...",
     "discardDiarization": "Descartar diarización (identificación de hablantes) en esta reunión"
   },
+  "downloadIndicator": {
+    "title": "Descargas de modelos",
+    "activeLabel": "{{model}} · {{percent}}%",
+    "errorLabel": "{{count}} descarga(s) con error",
+    "summary": "{{done}} de {{total}} descargas"
+  },
   "settings": {
     "title": "Ajustes de AIRecorder",
     "subtitle": "Configuración",
@@ -299,6 +306,7 @@
       "recentMeetings": "Cuántas grabaciones recientes se muestran en los highlights del resumen de proyecto.",
       "microphone": "Selecciona el dispositivo de entrada para tus grabaciones.",
       "whisperModel": "Elige el modelo por defecto para nuevas transcripciones. Los modelos pequeños son más rápidos pero menos precisos.",
+      "whisperModelNoneInstalled": "No tienes ningún modelo Whisper instalado. Descarga uno en la sección \"Modelos y descargas\" de abajo antes de transcribir.",
       "cpuThreads": "Más hilos aumentan la velocidad de transcripción pero consumen más recursos del ordenador.",
       "ragModel": "Modelo específico para responder consultas RAG (ej: deepseek-r1). Dejar vacío para usar el modelo principal.",
       "generalModel": "Modelo utilizado para resúmenes, análisis y tareas de procesamiento.",
@@ -327,7 +335,8 @@
       "small": "Small (Recomendado)",
       "medium": "Medium",
       "large": "Large (Preciso)",
-      "large-v3": "Large v3 (Preciso)"
+      "large-v3": "Large v3 (Preciso)",
+      "notInstalledSuffix": "{{model}} (no instalado — ir a Ajustes)"
     },
     "diskSpace": {
       "loading": "Calculando espacio en disco…",

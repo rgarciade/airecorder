@@ -176,7 +176,7 @@ export default function ModelsSection() {
   };
 
   return (
-    <section className={styles.section}>
+    <section className={styles.section} id="models-and-downloads-section">
       <div className={styles.sectionHeader}>
         <div className={styles.sectionTitleGroup}>
           <MdCloudDownload className={styles.sectionIcon} size={20} />

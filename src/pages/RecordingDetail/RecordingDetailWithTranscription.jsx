@@ -5,6 +5,7 @@ import { selectSpeakersMap } from '../../store/slices/speakersSlice';
 import recordingsService from '../../services/recordingsService';
 import projectsService from '../../services/projectsService';
 import { getSettings, updateSettings, addSettingsListener, removeSettingsListener } from '../../services/settingsService';
+import { buildSelectableModelOptions, isModelInstalled, hasAnyInstalledModel } from '../../utils/whisperModelGuard.js';
 import { getAvailableModels, checkModelSupportsStreaming, getOllamaModelInfo } from '../../services/ai/ollamaProvider';
 import { getLMStudioModels } from '../../services/ai/lmStudioProvider';
 // generateWithContext y generateWithContextStreaming se mantienen para el análisis (resúmenes, etc.)
@@ -58,14 +59,6 @@ import {
   MdMoreVert,
   MdAutoAwesome
 } from 'react-icons/md';
-
-const whisperModels = [
-  { value: 'tiny', label: 'Tiny (Fastest)' },
-  { value: 'base', label: 'Base' },
-  { value: 'small', label: 'Small (Recommended)' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'large', label: 'Large (Precise)' },
-];
 
 const DEEPSEEK_CHAT_MODELS = [
   { value: 'deepseek-chat', label: 'DeepSeek Chat' },
@@ -183,7 +176,13 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   // Re-transcribe Modal
   const [showTranscribeModal, setShowTranscribeModal] = useState(false);
   const [selectedWhisperModel, setSelectedWhisperModel] = useState('small');
-  
+  // Catálogo dinámico de modelos Whisper (INV6, PR4 hardening) — reemplaza
+  // el array hardcodeado sin i18n que vivía antes a nivel de módulo. Data
+  // fetching propio (patrón `ModelsSection.jsx`/`ModelStep.jsx`, D10),
+  // refrescado cada vez que se abre el modal de re-transcripción para no
+  // mostrar un inventario stale (`handleReTranscribeClick`).
+  const [whisperModelItems, setWhisperModelItems] = useState([]);
+
   // Actions dropdown
   const [showActionsMenu, setShowActionsMenu] = useState(false);
   const actionsMenuRef = useRef(null);
@@ -1559,6 +1558,21 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   };
 
   const handleReTranscribeClick = () => {
+    // INV6 (PR4 hardening): refresca el inventario cada vez que se abre el
+    // modal (D10 — mismo criterio que `DiskSpaceIndicator`/`ModelsSection`),
+    // para no ofrecer un catálogo stale. Si el modelo actualmente
+    // seleccionado ya no está instalado (o nunca lo estuvo), se cambia
+    // automáticamente al primer modelo instalado disponible.
+    Promise.resolve(window.electronAPI?.resources?.list?.())
+      .then((snapshot) => {
+        const items = snapshot?.ok ? (snapshot.items || []) : [];
+        setWhisperModelItems(items);
+        if (!isModelInstalled(items, selectedWhisperModel)) {
+          const firstInstalled = items.find((item) => item.state === 'installed');
+          if (firstInstalled) setSelectedWhisperModel(firstInstalled.id);
+        }
+      })
+      .catch(() => setWhisperModelItems([]));
     setShowTranscribeModal(true);
   };
 
@@ -1582,6 +1596,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   };
 
   const handleConfirmReTranscribe = async () => {
+    // Defensa en profundidad (INV6): el botón ya queda deshabilitado si el
+    // modelo seleccionado no está instalado, pero esto evita encolar si de
+    // todos modos se llega a llamar (p. ej. estado stale).
+    if (!isModelInstalled(whisperModelItems, selectedWhisperModel)) return;
     setShowTranscribeModal(false);
     try {
       const result = await recordingsService.transcribeRecording(recording.dbId || recording.id, selectedWhisperModel);
@@ -2208,49 +2226,77 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       )}
 
       {/* Re-transcribe Modal */}
-      {showTranscribeModal && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <h3 className={styles.modalTitle}>Re-generate Transcription</h3>
-            <p className={styles.modalText}>
-              Choose the Whisper model size. This will overwrite the current transcription.
-            </p>
-            
-            <div className={styles.modalForm}>
-              <div className={styles.modalSection}>
-                <label className={styles.modalLabel}>Whisper Model</label>
-                <select 
-                  className={styles.select}
-                  value={selectedWhisperModel}
-                  onChange={(e) => setSelectedWhisperModel(e.target.value)}
+      {showTranscribeModal && (() => {
+        // INV6 (PR4 hardening): opciones derivadas del inventario dinámico
+        // (`whisperModelItems`, refrescado en `handleReTranscribeClick`) en
+        // vez del catálogo hardcodeado sin i18n que vivía antes a nivel de
+        // módulo. Los modelos no instalados quedan atenuados (`disabled`);
+        // el `onChange` solo actualiza el estado local — nunca dispara una
+        // descarga (auditado, ver Fase 4.9-4.10 de tasks.md).
+        const whisperModelOptions = buildSelectableModelOptions(whisperModelItems, t);
+        const noWhisperModelInstalled = !hasAnyInstalledModel(whisperModelItems);
+        const selectedInstalled = isModelInstalled(whisperModelItems, selectedWhisperModel);
+
+        return (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modalContent}>
+              <h3 className={styles.modalTitle}>Re-generate Transcription</h3>
+              <p className={styles.modalText}>
+                Choose the Whisper model size. This will overwrite the current transcription.
+              </p>
+
+              <div className={styles.modalForm}>
+                <div className={styles.modalSection}>
+                  <label className={styles.modalLabel}>Whisper Model</label>
+                  <select
+                    className={styles.select}
+                    data-testid="retranscribe-model-select"
+                    value={selectedWhisperModel}
+                    onChange={(e) => setSelectedWhisperModel(e.target.value)}
+                  >
+                    {whisperModelOptions.map(model => (
+                      <option key={model.value} value={model.value} disabled={model.disabled}>{model.label}</option>
+                    ))}
+                  </select>
+                  <p className={styles.helpText}>
+                    Smaller models are faster, larger models are more precise.
+                  </p>
+                  {noWhisperModelInstalled && (
+                    <p
+                      className={styles.helpText}
+                      data-testid="retranscribe-no-model-cta"
+                      style={{ color: 'var(--color-warning)', cursor: 'pointer', textDecoration: 'underline' }}
+                      onClick={() => {
+                        setShowTranscribeModal(false);
+                        onNavigateToSettings?.('general', 'models-and-downloads-section');
+                      }}
+                    >
+                      {t('settings.helpText.whisperModelNoneInstalled')}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.modalButtons}>
+                <button
+                  className={styles.cancelModalBtn}
+                  onClick={() => setShowTranscribeModal(false)}
                 >
-                  {whisperModels.map(model => (
-                    <option key={model.value} value={model.value}>{model.label}</option>
-                  ))}
-                </select>
-                <p className={styles.helpText}>
-                  Smaller models are faster, larger models are more precise.
-                </p>
+                  Cancel
+                </button>
+                <button
+                  className={styles.confirmModalBtn}
+                  data-testid="retranscribe-start-btn"
+                  disabled={!selectedInstalled}
+                  onClick={handleConfirmReTranscribe}
+                >
+                  Start Transcription
+                </button>
               </div>
             </div>
-
-            <div className={styles.modalButtons}>
-              <button 
-                className={styles.cancelModalBtn} 
-                onClick={() => setShowTranscribeModal(false)}
-              >
-                Cancel
-              </button>
-              <button 
-                className={styles.confirmModalBtn} 
-                onClick={handleConfirmReTranscribe}
-              >
-                Start Transcription
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
       {/* Chat Context Mode Confirm Modal */}
       {showChatModeConfirm && (
         <div className={styles.modalOverlay}>

@@ -354,3 +354,149 @@ No se tocó PR1, PR2 (ya commiteados en la branch base) ni PR4. No se hizo `git 
 ### Status (actualizado tras fix pass)
 
 4/4 fases de PR3 completas + fix pass post-review aplicado (2 BLOCKER + 1 CRITICAL confirmados, los 3 corregidos). Full suite 1283/1283 green. Próximo: `sdd-verify`/re-verify sobre PR3, luego PR4 (bocadillo global + hardening de los 4 selectores) cuando se retome.
+
+---
+
+# Apply Progress: onboarding-whisper-downloads — PR 4 Bocadillo global + hardening de los 4 selectores — COMPLETE (5/5 fases)
+
+**Scope of this batch**: PR4 — Fase 1 a Fase 5 (`tasks.md`, bloque "PR 4 — Bocadillo global + hardening de los 4 selectores"), el último de la pila. PR1/PR2/PR3 ya estaban `[x]` completos de batches previos; no se tocó ningún archivo de esos tres salvo los 4 selectores que son alcance explícito de PR4 (`Home.jsx`, `RecordingOverlay.jsx`, `RecordingDetailWithTranscription.jsx`, `TranscriptionSection.jsx`).
+**Mode**: Strict TDD (RED → GREEN → REFACTOR por tarea)
+
+## Completed Tasks
+
+### Fase 1: `useDownloadManager`
+- [x] 1.1-1.2 — `src/hooks/useDownloadManager.js`: pull inicial `resources.getQueue()` + suscripción `resources.onProgress()` con unsubscribe en cleanup (patrón `useQueueManager.js`). Además del snapshot crudo, trackea (en un `Set` en un ref) los ids vistos en `queue` durante el "batch" actual para poder calcular visibilidad (IND1/IND5) incluso después de que un id salga de `queue` (al pasar a `installed` o `error`).
+
+### Fase 2: `DownloadIndicator`
+- [x] 2.1-2.2 — Estado contraído: nombre + % de la descarga activa (o resumen de error si no hay activa pero sí una trackeada en error).
+- [x] 2.3-2.4 — Click en la cápsula contraída expande el detalle de cola + resumen "N de M descargas" (`batchTotal`/`batchDone`, calculados por `useDownloadManager`).
+- [x] 2.5-2.6 — Click en el CUERPO expandido navega a Ajustes → Modelos y descargas; los botones explícitos (colapsar, cerrar, reintentar) usan `stopPropagation` para no disparar la navegación — ver Deviations #1 sobre esta interpretación del "click".
+- [x] 2.7-2.8 — Botón cerrar: solo llama `onClose` (delegado a `useDownloadManager().close`), nunca `resources.cancel()`.
+- [x] 2.9-2.10 — Visibilidad automática (IND5) calculada en `useDownloadManager`: visible mientras `queue.length > 0` O algún id trackeado esté en `error`; se limpia el batch (y deja de reclamar visibilidad) solo cuando AMBAS condiciones son falsas. Un id nuevo en `queue` siempre resetea `closed` a `false` (una descarga nueva reabre el bocadillo aunque el usuario lo haya cerrado antes).
+
+### Fase 3: `BottomLeftStack` + coexistencia con `RecordingOverlay`
+- [x] 3.1-3.2 — `src/components/BottomLeftStack/`: contenedor `column-reverse` genérico (sin conocimiento de sus hijos).
+- [x] 3.3 — `RecordingOverlay.module.css`: clase `.inStack` neutraliza `position/bottom/left/z-index` propios; `RecordingOverlay.jsx` recibe prop `inStack` (default `false`, backward-compatible).
+- [x] 3.4 — `App.jsx`: `useDownloadManager()` montado a nivel de app (siempre activo, incluso con el bocadillo oculto — necesario para detectar descargas nuevas y reabrir tras un cierre); `<BottomLeftStack>` envuelve `RecordingOverlay` (con `inStack`) y `DownloadIndicator`, montados en ESE orden — con `column-reverse`, el primer hijo en DOM queda al fondo del stack, así que `RecordingOverlay` primero + `DownloadIndicator` después coloca el bocadillo VISUALMENTE ENCIMA del overlay, tal como pide D9.
+
+### Fase 4: Hardening de los 4 selectores (solo-instalados, INV6)
+- [x] 4.1-4.2 — `Home.jsx` (`handleTranscribe`, `handleConfirmImport`): antes de encolar, resuelve `settings.whisperModel` (o `'small'`) y confirma que esté `installed` vía `resolveTranscribableModel()`. Si no lo está, `window.confirm(t('home.noModelInstalledConfirm'))` → si acepta, navega a Ajustes → Modelos y descargas (`onSettings('general', 'models-and-downloads-section')`); si no, no hace nada. Nunca encola.
+- [x] 4.3-4.4 — `RecordingOverlay.jsx` (`handleSaveDetails`, auto-transcripción al guardar): mismo `resolveTranscribableModel()`, reutilizando el `settings` ya cargado (sin round-trip IPC extra). Si el modelo no está instalado, se omite el encolado con un `console.warn` — **sin diálogo bloqueante** (ver Deviations #2, decisión de producto documentada explícitamente).
+- [x] 4.5-4.6 — `RecordingDetailWithTranscription.jsx`: eliminado el array `whisperModels` hardcodeado sin i18n (L62-68 original); nuevo estado `whisperModelItems` poblado vía `resources.list()` en `handleReTranscribeClick()` (refresca cada vez que se abre el modal, D10) — si el modelo previamente seleccionado ya no está instalado, se autoselecciona el primer modelo instalado disponible. El `<select>` usa `buildSelectableModelOptions()` (opciones no instaladas quedan `disabled`); el botón "Start Transcription" queda `disabled` si el modelo seleccionado no está instalado; si NINGÚN modelo está instalado, aparece un CTA de texto clickeable que cierra el modal y navega a Ajustes → Modelos y descargas (`onNavigateToSettings('general', 'models-and-downloads-section')` — requirió extender la firma de esa prop en `App.jsx` para reenviar el segundo argumento `targetElement`, antes se descartaba).
+- [x] 4.7-4.8 — `TranscriptionSection.jsx`: reemplazado el consumo de `whisperModels` (ya "aplanado", sin info de instalación) por `modelCatalog` crudo + `buildSelectableModelOptions()` — opciones no instaladas quedan `disabled` con etiqueta "(no instalado — ir a Ajustes)"; si NINGÚN modelo está instalado, aparece un texto de ayuda (`data-testid=whisper-model-none-installed-cta`) señalando la sección "Modelos y descargas" más abajo EN LA MISMA página (sin necesidad de navegación — ya están en Ajustes → General).
+- [x] 4.9-4.10 — Auditoría transversal: `rg -n "resources\.download" Home.jsx RecordingOverlay.jsx RecordingDetailWithTranscription.jsx TranscriptionSection.jsx` → cero resultados en los 4 archivos. Cubierto explícitamente por test en `TranscriptionSection.test.jsx` ("never triggers a download when the selection changes") y por diseño en los otros 3 (ninguno tiene código que invoque `resources.download`).
+
+### Fase 5: Defaults y documentación
+- [x] 5.1 — `src/services/settingsService.js`: `whisperModel: 'small'` agregado al objeto de defaults de `getSettings()` (antes ausente — el fallback `settings.whisperModel || 'small'` disperso en varios call-sites ya asumía esto implícitamente, ahora es explícito y consultable por `resolveTranscribableModel()`/`TranscriptionSection`/`ModelStep` sin depender de que cada call-site repita el `|| 'small'`).
+- [x] 5.2 — Claves i18n nuevas (es/en): `downloadIndicator.{title,activeLabel,errorLabel,summary}`, `settings.whisperModels.notInstalledSuffix`, `settings.helpText.whisperModelNoneInstalled`, `home.noModelInstalledConfirm`.
+
+## TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 1.1-1.2 | `src/tests/hooks/useDownloadManager.test.jsx` | Unit (hook, jsdom) | N/A (new) | ✅ Written | ✅ 7/7 passed | ✅ visible/hidden, IND4 close, IND5 auto-hide, IND5 stays-visible-on-error, IND1-over-close re-open | ➖ None needed |
+| 2.1-2.10 | `src/tests/components/DownloadIndicator.test.jsx` | Unit (component, jsdom) | N/A (new) | ✅ Written | ✅ 6/6 passed | ✅ collapsed label, expand+summary, navigate-except-close, close-no-cancel, error-summary+retry(not download) | ➖ None needed |
+| 3.1-3.2 | `src/tests/components/BottomLeftStack.test.jsx` | Unit (component, jsdom) | N/A (new) | ✅ Written | ✅ 2/2 passed | ✅ two children (DOM order) + single child | ➖ None needed (purely structural container) |
+| 4.1-4.2, 4.3-4.4 | `src/tests/utils/resolveTranscribableModel.test.jsx`, `src/tests/utils/whisperModelGuard.test.js` | Unit (pure, DI) | N/A (new) | ✅ Written | ✅ 6/6 + 11/11 passed | ✅ installed/not-installed/unknown-id/null-guard/fails-closed-on-reject/fails-closed-on-ok-false/default-window.electronAPI | ➖ None needed — ver Deviations #3 sobre por qué NO se montó `Home.jsx`/`RecordingOverlay.jsx` completos |
+| 4.5-4.6 | `src/tests/utils/whisperModelGuard.test.js` (`buildSelectableModelOptions`) | Unit (pure) | N/A (new) | ✅ Written | ✅ (incluido en los 11/11 de arriba) | ✅ disabled flag + label distinto para no-instalados + catálogo vacío/null | ➖ None needed — ver Deviations #3 sobre `RecordingDetailWithTranscription.jsx` |
+| 4.7-4.8 | `src/tests/pages/Settings/components/GeneralTab/TranscriptionSection.test.jsx` | Unit (component, jsdom) | N/A (primer test file de este componente) | ✅ Written | ✅ 4/4 passed | ✅ disabled options, onChange nunca descarga, CTA visible sin instalados, CTA ausente con al menos 1 instalado | ➖ None needed |
+| 5.1 | `src/tests/services/settingsService.test.jsx` | Unit | N/A (primer test file de este servicio) | ✅ Written | ✅ 1/1 passed | ➖ Triangulación innecesaria (tarea puramente estructural — un solo campo default, un solo resultado posible) — "Triangulation skipped: constant/default value addition, no branching" | ➖ None needed |
+
+### Test Summary (this batch)
+- **Total tests written**: 37 (7 useDownloadManager + 6 DownloadIndicator + 2 BottomLeftStack + 11 whisperModelGuard + 6 resolveTranscribableModel + 4 TranscriptionSection + 1 settingsService)
+- **Total tests passing**: 37/37 (new). Full suite: **1320/1320 green** (1283 pre-existing tras fix pass PR3 + 37 nuevos).
+- **Layers used**: Unit/hook-jsdom (7), Unit/component-jsdom (12), Unit/pure-DI (18)
+- **Approval tests** (refactoring): None — `TranscriptionSection.jsx`/`RecordingDetailWithTranscription.jsx`/`Home.jsx`/`RecordingOverlay.jsx` son cambios aditivos+wiring sobre comportamiento existente, verificados por la suite completa quedando verde (sin regresiones) en vez de approval tests dedicados, dado que ninguno tenía test previo que capturar.
+- **Pure functions created**: `isModelInstalled`, `hasAnyInstalledModel`, `buildSelectableModelOptions` (`whisperModelGuard.js`); `resolveTranscribableModel` (composición async con inyección de dependencias, no 100% pura pero sin mocks de infraestructura)
+
+## Deviations from Design
+
+1. **Interpretación del "click" de `DownloadIndicator` (IND2 vs IND3)**: el spec/tasks.md pide simultáneamente "click en contraído lo expande" (IND2) y "click navega a Ajustes... excepto botón cerrar" (IND3) sin distinguir contraído/expandido explícitamente. Implementado como progresión: click en la CÁPSULA CONTRAÍDA → expande (consistente con el propio `RecordingOverlay` minimizado, que también expande al click); click en el CUERPO EXPANDIDO → navega a Ajustes. Los botones explícitos (colapsar/cerrar/reintentar) siempre `stopPropagation`. Es una interpretación defendible y no ambigua de un requisito que, leído literalmente, sería contradictorio si se aplicara "click siempre navega" también al estado contraído (nunca se podría expandir).
+
+2. **`RecordingOverlay.jsx` (auto-transcripción al guardar) NO muestra un diálogo bloqueante cuando el modelo no está instalado**, a diferencia de `Home.jsx` (que sí usa `window.confirm`). Decisión de producto explícita: este disparo es automático (parte del flujo "Guardar y Salir" de una grabación recién terminada), no una acción explícita de "transcribir" iniciada por el usuario — interrumpirlo con un diálogo de confirmación en medio de ese flujo sería intrusivo. Se omite el encolado (no se rompe la regla "no se encola") y se deja un `console.warn` accionable para debugging; el usuario puede transcribir manualmente más tarde desde Home, que SÍ muestra el CTA. Documentado explícitamente porque el batch pidió "mismo criterio" en los 4 puntos — este es el único de los 4 que se aparta del patrón de diálogo bloqueante, con motivo de UX razonado, no un descuido.
+
+3. **Ningún test monta `Home.jsx`, `RecordingOverlay.jsx` o `RecordingDetailWithTranscription.jsx` completos.** Los tres son archivos grandes y preexistentes con 7+ dependencias externas cada uno (`recordingsService`, `recordingAiService`, `providerRouter`, `audioService`, múltiples proveedores de IA, `ragService`, etc.) — montarlos violaría la regla de higiene de mocks de `strict-tdd.md` ("7+ mocks → STOP, estás testeando en la capa equivocada"). Aplicado el mismo criterio Extract-Before-Mock ya usado en PR2 (`whisperModelCatalog.js`) y PR3 (hooks aislados): la lógica de DECISIÓN (¿está instalado el modelo?, ¿qué opciones mostrar atenuadas?) se extrajo a `src/utils/whisperModelGuard.js` (pura) y `src/utils/resolveTranscribableModel.js` (async con inyección de dependencias), ambos testeados exhaustivamente SIN mocks de framework. El wiring dentro de los 3 componentes grandes es deliberadamente delgado (pocas líneas, llama a las funciones ya testeadas) y se verificó por: (a) syntax check (`esbuild`) antes de correr la suite, (b) lectura manual del diff, (c) la suite completa quedando 1320/1320 verde (ningún test preexistente de estos archivos se rompió porque no existían — no hay regresión posible en ese sentido, pero tampoco hay cobertura de regresión FUTURA sobre el wiring exacto). Riesgo residual documentado: un futuro refactor accidental de `handleReTranscribeClick`/`handleTranscribe`/`handleSaveDetails` que rompa la llamada a la función guardia no sería detectado por un test automático hasta que alguien agregue cobertura de montaje completo de estos 3 componentes (fuera de alcance de PR4).
+
+4. **`ModelsSection.jsx` recibió `id="models-and-downloads-section"`** (no pedido explícitamente en las tareas de Fase 4/5, pero necesario para que el patrón de navegación con anchor ya usado en la app — `handleOpenSettings(tab, targetElement)` + `Settings.jsx`'s `scrollIntoView` por `getElementById` — funcione desde el bocadillo global, `Home.jsx` y `RecordingDetailWithTranscription.jsx`). Sin este `id`, los 3 CTAs de navegación cruzada quedarían rotos (navegarían a la pestaña "General" pero sin hacer scroll a la sección correcta).
+
+5. **`App.jsx`'s `onNavigateToSettings` para `RecordingDetailWithTranscription` extendido** de `(tab) => handleOpenSettings(tab)` a `(tab, targetElement) => handleOpenSettings(tab, targetElement)` — cambio de una línea, necesario para que el nuevo CTA de la Fase 4.6 pueda pasar el `targetElement` (antes se descartaba silenciosamente, aunque ningún consumidor previo lo necesitaba).
+
+6. **`SettingsContext.jsx`'s `whisperModels` (contexto ya computado, `computeWhisperModelOptions`) quedó sin consumidores** tras el cambio de Fase 4.7-4.8 (`TranscriptionSection.jsx` ahora usa `modelCatalog` crudo + `buildSelectableModelOptions` directamente, porque necesita el `.state` de cada item para atenuar). Se DEJÓ el campo en el valor de contexto (no se borró) — quitar un valor de la API pública de `SettingsContext` es un cambio arquitectónico más amplio no pedido por `tasks.md`, y `computeWhisperModelOptions`/`whisperModelCatalog.js` (PR2) siguen teniendo su propia cobertura de test intacta.
+
+## Decisión de consolidación: `useOnboardingModelPersistence` vs `useDownloadManager` global
+
+**Decisión: NO consolidar. Se mantienen como hooks independientes, con suscripciones paralelas a `resources.onProgress()`.**
+
+**Evaluación explícita pedida por el batch — ¿es un problema real o están bien así?**
+
+1. **¿Hay riesgo técnico de duplicación/inconsistencia por dos (ahora tres, contando `useDownloadManager`) suscripciones paralelas al mismo evento IPC?** No. `preload.js#onProgress` usa `ipcRenderer.on('resources:progress', wrapped)` / `removeListener` — el `EventEmitter` nativo de Electron soporta N listeners independientes sobre el mismo canal sin conflicto; cada uno recibe el mismo snapshot y mantiene su PROPIO estado local completamente aislado (esto ya se validó y quedó documentado en el fix pass BLOCKER #2 de PR3, cuando `useOnboardingModelPersistence` se elevó precisamente para coexistir con la suscripción de `useModelDownloadStep`). Agregar una tercera suscripción (`useDownloadManager`, ahora en `App.jsx`) no introduce ningún riesgo nuevo de esa clase.
+
+2. **¿Son responsabilidades semánticamente distintas, o es la misma lógica duplicada dos veces?** Son distintas, y consolidarlas sería una REGRESIÓN funcional, no una simplificación:
+   - `useOnboardingModelPersistence`: regla de negocio ACOTADA a un origen específico — "si ESTA descarga fue iniciada explícitamente desde el paso de onboarding (`trackDownload(id)` llamado por `ModelStep`), y termina bien, conviértela en el modelo por defecto". Es un opt-in explícito por origen.
+   - `useDownloadManager`: hook GLOBAL, agnóstico al origen — trackea CUALQUIER descarga que aparezca en la cola (iniciada desde onboarding, desde Ajustes → Modelos y descargas, o desde cualquier punto futuro), solo para fines de UI (mostrar/ocultar el bocadillo, progreso, error). No tiene ni debería tener opinión sobre si debe persistirse como default.
+   - Si `useDownloadManager` absorbiera la persistencia, CUALQUIER descarga completada en cualquier parte de la app (p. ej. un usuario que en Ajustes descarga `medium` solo para tenerlo disponible, sin intención de cambiar su modelo por defecto) sobrescribiría silenciosamente `settings.whisperModel` — esto contradice el diseño ya implementado y revisado de `ModelsSection.jsx` (PR2), que deliberadamente NO cambia `whisperModel` al completar una instalación (el usuario cambia su default explícitamente desde el `<select>` de `TranscriptionSection`).
+
+3. **Conclusión**: no hay beneficio real en unificar — solo se compartiría el nombre del evento IPC que escuchan, no la lógica de negocio. Mantenerlos separados es la opción MÁS SEGURA (menos acoplamiento entre un flujo de onboarding acotado y un hook global de UI) y ya está validada en producción de código (PR3's fix pass) como un patrón sin efectos secundarios.
+
+## Issues Found
+
+None blocking. `npm test` (`vitest run`) — full suite: **1320/1320 green**.
+
+## Files Changed (this batch)
+
+| File | Action | What Was Done |
+|------|--------|----------------|
+| `src/hooks/useDownloadManager.js` | Created | Hook global: pull inicial + suscripción + visibilidad automática (IND1/IND4/IND5) |
+| `src/components/DownloadIndicator/DownloadIndicator.jsx` + `.module.css` | Created | Bocadillo contraído/expandido, navegación, cerrar, reintentar |
+| `src/components/BottomLeftStack/BottomLeftStack.jsx` + `.module.css` | Created | Contenedor `column-reverse` compartido |
+| `src/components/RecordingOverlay/RecordingOverlay.jsx` | Modified | Prop `inStack` (default `false`) |
+| `src/components/RecordingOverlay/RecordingOverlay.module.css` | Modified | Clase `.inStack` |
+| `src/App.jsx` | Modified | Monta `useDownloadManager()` + `BottomLeftStack` (`RecordingOverlay` + `DownloadIndicator`); extiende `onNavigateToSettings` de `RecordingDetailWithTranscription` para reenviar `targetElement` |
+| `src/utils/whisperModelGuard.js` | Created | `isModelInstalled`, `hasAnyInstalledModel`, `buildSelectableModelOptions` — lógica pura compartida por los 4 selectores |
+| `src/utils/resolveTranscribableModel.js` | Created | Resuelve `settings.whisperModel` + confirma instalación, con inyección de dependencias (usado por `Home.jsx`/`RecordingOverlay.jsx`) |
+| `src/pages/Home/Home.jsx` | Modified | `handleTranscribe`/`handleConfirmImport`: guardia INV6 + CTA (`window.confirm` → `onSettings`) |
+| `src/components/RecordingOverlay/RecordingOverlay.jsx` | Modified | `handleSaveDetails`: guardia INV6 sin diálogo bloqueante (ver Deviations #2) |
+| `src/pages/RecordingDetail/RecordingDetailWithTranscription.jsx` | Modified | Eliminado catálogo hardcodeado sin i18n; inventario dinámico + opciones atenuadas + botón deshabilitado + CTA de navegación |
+| `src/pages/Settings/components/GeneralTab/TranscriptionSection.jsx` | Modified | Opciones atenuadas vía `buildSelectableModelOptions(modelCatalog, t)` + CTA in-page |
+| `src/pages/Settings/components/GeneralTab/ModelsSection.jsx` | Modified | `id="models-and-downloads-section"` (target de los CTAs de navegación) |
+| `src/services/settingsService.js` | Modified | `whisperModel: 'small'` en defaults |
+| `src/i18n/locales/es.json`, `src/i18n/locales/en.json` | Modified | Claves nuevas: `downloadIndicator.*`, `settings.whisperModels.notInstalledSuffix`, `settings.helpText.whisperModelNoneInstalled`, `home.noModelInstalledConfirm` |
+| `src/tests/hooks/useDownloadManager.test.jsx` | Created | 7 tests |
+| `src/tests/components/DownloadIndicator.test.jsx` | Created | 6 tests |
+| `src/tests/components/BottomLeftStack.test.jsx` | Created | 2 tests |
+| `src/tests/utils/whisperModelGuard.test.js` | Created | 11 tests |
+| `src/tests/utils/resolveTranscribableModel.test.jsx` | Created | 6 tests |
+| `src/tests/pages/Settings/components/GeneralTab/TranscriptionSection.test.jsx` | Created | 4 tests (primer test file de este componente) |
+| `src/tests/services/settingsService.test.jsx` | Created | 1 test (primer test file de este servicio) |
+| `openspec/changes/onboarding-whisper-downloads/tasks.md` | Modified | PR4 Fase 1-5 marcadas `[x]` (con notas de Deviation en 4.1/4.3/4.5) |
+
+### Files Changed (fix pass post-review)
+
+| File | Action | What Was Done |
+|------|--------|----------------|
+| `src/hooks/useDownloadManager.js` | Modified | Bug fix: `batchDone` cuenta solo `state==='installed'`, no "salió de `queue`" |
+| `src/tests/hooks/useDownloadManager.test.jsx` | Modified | Assertions nuevas de `batchDone`/`batchTotal` en el escenario mixto instalado+error (sin test nuevo) |
+| `src/tests/components/BottomLeftStack.test.jsx` | Modified | +3 tests: composición REAL (`RecordingOverlay`+`DownloadIndicator`, no stubs) en los 3 escenarios (IND6) |
+| `src/tests/components/RecordingOverlay.test.jsx` | Created | 2 tests: wiring INV6 de `handleSaveDetails` (feliz + sin-modelo-instalado) |
+| `src/tests/pages/Home/Home.test.jsx` | Created | 2 tests: wiring INV6 de `handleTranscribe` (feliz + sin-modelo-instalado) |
+| `src/tests/pages/RecordingDetail/RecordingDetailWithTranscription.test.jsx` | Created | 2 tests: wiring INV6 del modal de re-transcripción (botón deshabilitado + CTA) |
+
+## Status (PR4 — cierre del change)
+
+5/5 fases completas de PR4 (Fase 1-5, tareas 1.1-5.2, todas `[x]`). Full suite **1320/1320 green**. Este era el ÚLTIMO PR de la pila de 4 (`gh stack`, `stacked-to-main`) — con PR4 completo, el change `onboarding-whisper-downloads` (issue #149) queda funcionalmente completo end-to-end: núcleo IPC (PR1), Ajustes → Modelos y descargas (PR2), paso de onboarding (PR3), y bocadillo global + hardening de selectores (PR4). No se hizo `git add`/`commit`/`push`/PR (regla explícita del proyecto) — queda a cargo del usuario. Próximo recomendado: `sdd-verify` sobre PR4 (y idealmente una pasada de judgment-day igual que en PR1/PR2/PR3, dado el patrón ya establecido de encontrar BLOCKER/CRITICAL reales en cada PR previo).
+
+## Fix pass PR4 post-review (2 CRITICAL + 1 bug real) — todos confirmados y corregidos
+
+4 revisores en fresco (judgment-day) encontraron 2 CRITICAL (huecos de cobertura de cero verificación automática, no bugs de comportamiento) y 1 defecto de comportamiento real (reportado como WARNING pero corregido como bug). La deuda de duplicación entre hooks (4ta reimplementación de boilerplate `resources.*`, canal IPC `resources:get-queue` duplicado de `resources:list`) quedó explícitamente FUERA de este pase — pendiente como issue aparte.
+
+1. **CRITICAL — IND6 (bocadillo + `RecordingOverlay` conviviendo) sin ningún test que montara la composición REAL.** El único test existente (`BottomLeftStack.test.jsx`) usaba stubs genéricos (`<div data-testid=...>`), nunca `RecordingOverlay`/`DownloadIndicator` reales — la neutralización de `position/bottom/left` vía la clase `.inStack` estaba verificada solo por lectura manual. **Fix**: nueva `describe` en `BottomLeftStack.test.jsx` que monta `RecordingOverlay` (con `inStack`) y `DownloadIndicator` REALES (no stubs) en los 3 escenarios — solo grabación, solo descarga, ambas a la vez — y verifica `classList.contains(overlayStyles.inStack)` en el DOM real (comparando contra el mismo import de `RecordingOverlay.module.css` que usa el componente, para que el hash de CSS Modules coincida sin necesidad de computar estilos). Requirió mockear `react-redux` (`useDispatch`) y `services/settingsService` (`getSettings`, para que el `useEffect` de diarización de `RecordingOverlay` no dispare un `getSettings()` real sin `window.electronAPI`) — mismo criterio de higiene de mocks ya usado en el resto de PR4.
+2. **CRITICAL — wiring de los 3 selectores grandes (`Home.jsx`, `RecordingOverlay.jsx`, `RecordingDetailWithTranscription.jsx`) sin ningún test de integración.** Solo la lógica PURA reutilizada (`resolveTranscribableModel.js`, `whisperModelGuard.js`) tenía cobertura exhaustiva (Deviation #3 original) — el wiring que las invoca desde los 3 componentes reales nunca se había montado ni una vez. **Fix**: 3 archivos nuevos, cada uno monta el componente REAL con Extract-Before-Mock aplicado a sus dependencias pesadas no relacionadas (IA, chat, RAG, audio):
+   - `src/tests/components/RecordingOverlay.test.jsx` (2 tests): camino feliz (modelo instalado → `recordingsService.transcribeRecording` se llama al completar el flujo "detener y guardar" → "Guardar y salir") y camino sin-modelo-instalado (omite el encolado con `console.warn`, confirma que NUNCA llama a `window.confirm` — Deviation #2 sigue vigente).
+   - `src/tests/pages/Home/Home.test.jsx` (2 tests): camino feliz (`window.electronAPI.transcribeRecording` se llama directo, sin `window.confirm`) y camino sin-modelo-instalado (`window.confirm(t('home.noModelInstalledConfirm'))` → acepta → `onSettings('general','models-and-downloads-section')`, nunca encola).
+   - `src/tests/pages/RecordingDetail/RecordingDetailWithTranscription.test.jsx` (2 tests): abre el modal de re-transcripción real vía el menú de acciones y verifica `disabled={!selectedInstalled}` en el botón "Start Transcription" + que el CTA (`retranscribe-no-model-cta`) cierra el modal y navega a Ajustes.
+   - Gotcha de montaje: `RecordingDetailWithTranscription.jsx` importa estáticamente `TranscriptionChatTab` (que a su vez importa `ChatInterface.jsx` → `chatCommands.js`) aunque `activeTab==='overview'` por defecto nunca lo renderice — un import estático se evalúa igual. `chatCommands.js` necesita `MIN_COMPACT_HISTORY_MESSAGES`/`MIN_SUMMARY_HISTORY_MESSAGES` de `services/chat/chatTokens.js` — mockear ese módulo (como se intentó al principio) rompe el import estático porque el mock no re-exporta esas constantes. Se dejó `chat/chatTokens.js`/`chat/chatHistory.js` SIN mockear (son módulos puros sin I/O ni dependencias pesadas) y solo se mockeó `hooks/useChatCommands` (el hook que sí ejecuta lógica de chat).
+3. **Bug real — `batchDone`/`batchTotal` en `useDownloadManager.js` contaba descargas fallidas como completadas.** `batchDone = trackedIds.length - queue.length` contaba cualquier ítem que salió de `queue`, sin importar si terminó en `installed` (éxito) o `error` (fallo) — con 1 instalado + 1 error de 2 trackeados, el bocadillo mostraba "2 de 2" en vez de "1 de 2". **Fix** (`src/hooks/useDownloadManager.js`): `batchDone` ahora filtra `trackedIds` por `item?.state === 'installed'` — los ítems en `error` siguen contando en `batchTotal` pero no en `batchDone`. Ajustado el test existente ("stays visible with an actionable error... IND5", `useDownloadManager.test.jsx`) con assertions explícitas: `batchTotal` 2, `batchDone` 1 en ese escenario mixto. No se tocó `DownloadIndicator.jsx` — ya consumía `batchDone`/`batchTotal` correctamente, el bug estaba solo en el cálculo del hook.
+
+**Test Summary (fix pass)**: 9 tests nuevos (3 BottomLeftStack + 2 RecordingOverlay + 2 Home + 2 RecordingDetailWithTranscription) + 1 test existente reforzado con assertions nuevas (sin sumar al conteo). Full suite: **1329/1329 green** (1320 + 9).
+
+No se tocó PR1/PR2/PR3. No se tocó la deuda de duplicación (`resources:get-queue`, 4ta reimplementación del hook `resources.*`) — queda pendiente como issue aparte, tal como se pidió. No `git add`/`commit`/`push` (regla explícita del proyecto).
