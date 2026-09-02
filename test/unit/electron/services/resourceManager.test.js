@@ -128,6 +128,37 @@ describe('resourceManager', () => {
       const result = resourceManager.checkSpace('does-not-exist');
       expect(result).toEqual({ ok: false, error: 'unknown-model' });
     });
+
+    // CRITICAL (fix post-review PR2): `freeBytes: null` (statfsSync falló,
+    // ver `statfsCacheDirAncestor`) se coaccionaba a `0 >= requiredBytes` y
+    // siempre daba `sufficient: false`, indistinguible de "espacio
+    // insuficiente" real para el consumidor IPC.
+    it('freeBytes null (statfsSync falló): sufficient es null, no false — "no se pudo verificar" distinto de "insuficiente"', () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(fs, 'statfsSync').mockImplementation(() => {
+        throw new Error('EACCES: permission denied, statfs');
+      });
+
+      const result = resourceManager.checkSpace('small');
+
+      expect(result.ok).toBe(true);
+      expect(result.freeBytes).toBeNull();
+      expect(result.sufficient).toBeNull();
+      expect(result.sufficient).not.toBe(false);
+      expect(result.remainingAfterBytes).toBeNull();
+    });
+
+    it('download() no bloquea con "insufficient-space" cuando el espacio no se pudo verificar (freeBytes null)', () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(fs, 'statfsSync').mockImplementation(() => {
+        throw new Error('EIO: error de disco');
+      });
+
+      const result = resourceManager.download('small');
+
+      expect(result.ok).toBe(true);
+      expect(spawnMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('cola serie con progreso individual y global — DL2', () => {

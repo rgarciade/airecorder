@@ -244,7 +244,14 @@ class ResourceManager {
 
     const { freeBytes, totalBytes } = this.statfsCacheDirAncestor();
     const requiredBytes = entry.estimatedBytes + SPACE_MARGIN_BYTES;
-    const sufficient = freeBytes >= requiredBytes;
+    // `freeBytes` puede ser `null` cuando `statfsSync` falló (ver
+    // `statfsCacheDirAncestor`): eso significa "no se pudo verificar el
+    // espacio", NO "no hay espacio suficiente". Antes, `null >= requiredBytes`
+    // coaccionaba a `0 >= requiredBytes` y siempre daba `false`, bloqueando el
+    // flujo de descarga como si faltara espacio (CRITICAL, fix post-review
+    // PR2). Se distingue explícitamente con `sufficient: null` para que el
+    // consumidor (IPC renderer) pueda diferenciar ambos casos.
+    const sufficient = freeBytes == null ? null : freeBytes >= requiredBytes;
 
     return {
       ok: true,
@@ -253,7 +260,7 @@ class ResourceManager {
       totalBytes,
       requiredBytes,
       estimatedBytes: entry.estimatedBytes,
-      remainingAfterBytes: freeBytes - entry.estimatedBytes,
+      remainingAfterBytes: freeBytes == null ? null : freeBytes - entry.estimatedBytes,
     };
   }
 

@@ -12,6 +12,7 @@
  *   - onConfirm: () => void
  *   - onCancel: () => void
  *   - isDanger: boolean (para acciones destructivas)
+ *   - confirmTestId / cancelTestId: string (opcional, para `data-testid` en tests)
  */
 
 import React from 'react';
@@ -26,6 +27,8 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
   isDanger = false,
+  confirmTestId,
+  cancelTestId,
 }) {
   if (!isOpen) return null;
 
@@ -49,12 +52,13 @@ export default function ConfirmModal({
         </div>
 
         <div className={styles.footer}>
-          <button className={styles.cancelBtn} onClick={onCancel}>
+          <button className={styles.cancelBtn} onClick={onCancel} data-testid={cancelTestId}>
             {cancelText}
           </button>
           <button
             className={`${styles.confirmBtn} ${isDanger ? styles.dangerBtn : ''}`}
             onClick={onConfirm}
+            data-testid={confirmTestId}
           >
             {confirmText}
           </button>

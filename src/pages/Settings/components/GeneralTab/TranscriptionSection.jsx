@@ -3,13 +3,18 @@ import {
   MdTranslate, MdGraphicEq, MdAutoFixHigh, MdAccountTree, MdVisibility, MdVisibilityOff
 } from 'react-icons/md';
 import styles from '../../Settings.module.css';
-import { useSettings, mockLanguages, whisperModels } from '../../SettingsContext';
+import { useSettings, mockLanguages } from '../../SettingsContext';
 
 export default function TranscriptionSection() {
   const {
     t,
     selectedLanguage, setSelectedLanguage,
     whisperModel, setWhisperModel,
+    // Catálogo dinámico de modelos Whisper (INV1/INV6) — reemplaza el export
+    // estático `whisperModels` que vivía antes en `SettingsContext.jsx`.
+    // El filtrado a "solo instalados + CTA" (INV6, hardening) es tarea de PR4;
+    // aquí solo se cambia la FUENTE de datos, sin tocar el resto del flujo.
+    whisperModels,
     cpuThreads, setCpuThreads,
     maxCpuThreads,
     autoTranscribe, setAutoTranscribe,

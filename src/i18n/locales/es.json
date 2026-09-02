@@ -326,7 +326,47 @@
       "base": "Base",
       "small": "Small (Recomendado)",
       "medium": "Medium",
-      "large": "Large (Preciso)"
+      "large": "Large (Preciso)",
+      "large-v3": "Large v3 (Preciso)"
+    },
+    "diskSpace": {
+      "loading": "Calculando espacio en disco…",
+      "unavailable": "Espacio en disco no disponible",
+      "freeOfTotal": "{{free}} libres de {{total}}"
+    },
+    "modelsSection": {
+      "title": "Modelos y descargas",
+      "loadError": "No se pudo cargar el listado de modelos. Comprobá tu conexión o intentá de nuevo.",
+      "states": {
+        "notInstalled": "No descargado",
+        "queued": "En cola",
+        "downloading": "Descargando",
+        "installed": "Listo",
+        "deleting": "Eliminando…",
+        "error": "Falló"
+      },
+      "errors": {
+        "insufficientSpace": "Espacio insuficiente",
+        "network": "Error de conexión",
+        "cancelled": "Cancelado",
+        "unknown": "Error desconocido"
+      },
+      "confirm": {
+        "downloadTitle": "Descargar modelo",
+        "purpose": "Se descargará el modelo \"{{model}}\" para transcripción con Whisper.",
+        "size": "Tamaño de la descarga: {{size}}",
+        "free": "Espacio libre actual: {{free}}",
+        "remaining": "Espacio libre estimado tras la descarga: {{remaining}}",
+        "insufficientSpace": "No hay espacio suficiente para descargar este modelo (libre: {{free}}, requerido: {{required}}).",
+        "spaceUnavailable": "No pudimos verificar el espacio libre en disco (tamaño de la descarga: {{required}}). ¿Querés continuar de todos modos?",
+        "deleteTitle": "Eliminar modelo",
+        "freedSpace": "Se liberará aproximadamente {{size}} de espacio en disco.",
+        "deleteError": "No se pudo eliminar el modelo. Intentá de nuevo. (Código: {{error}})"
+      },
+      "deleteGuard": {
+        "defaultModel": "No se puede eliminar: es el modelo por defecto configurado en Ajustes. Elegí otro modelo por defecto antes de eliminarlo.",
+        "inQueue": "No se puede eliminar: hay transcripciones pendientes o en curso que usan este modelo."
+      }
     },
     "providers": {
       "ollamaActive": "Ollama Activo",
@@ -384,7 +424,10 @@
       "checking": "Comprobando...",
       "cancel": "Cancelar",
       "detect": "Detectar",
-      "inUse": "usados"
+      "inUse": "usados",
+      "retry": "Reintentar",
+      "delete": "Eliminar",
+      "continueAnyway": "Continuar de todos modos"
     },
     "messages": {
       "saveSuccess": "Ajustes guardados con éxito",

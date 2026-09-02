@@ -105,30 +105,30 @@ Sin infraestructura de test Python en el repo: 2.1-2.2 se verifican manualmente 
 
 ### Fase 1: Catálogo en `SettingsContext`
 
-- [ ] 1.1 [RED] Test: `SettingsContext` obtiene el catálogo de modelos vía `resources.list()` (IPC), no de lista estática — INV1, INV6
-- [ ] 1.2 [GREEN] Modificar `src/pages/Settings/SettingsContext.jsx` (L27-33) — catálogo desde IPC — INV1, INV6
+- [x] 1.1 [RED] Test: `SettingsContext` obtiene el catálogo de modelos vía `resources.list()` (IPC), no de lista estática — INV1, INV6
+- [x] 1.2 [GREEN] Modificar `src/pages/Settings/SettingsContext.jsx` (L27-33) — catálogo desde IPC — INV1, INV6
 
 ### Fase 2: `DiskSpaceIndicator`
 
-- [ ] 2.1 [RED] Test: al montar llama `resources.refresh()` y muestra libre/total; al desmontar+remontar vuelve a llamar (sin valor stale) — INV5
-- [ ] 2.2 [GREEN] Crear `src/components/DiskSpaceIndicator/` (`.jsx` + `.module.css`) — `useEffect` con deps `[]` — INV5
+- [x] 2.1 [RED] Test: al montar llama `resources.refresh()` y muestra libre/total; al desmontar+remontar vuelve a llamar (sin valor stale) — INV5
+- [x] 2.2 [GREEN] Crear `src/components/DiskSpaceIndicator/` (`.jsx` + `.module.css`) — `useEffect` con deps `[]` — INV5
 
 ### Fase 3: `ModelsSection`
 
-- [ ] 3.1 [RED] Test: `ModelsSection` lista modelos con estado/tamaño y monta `DiskSpaceIndicator` encima de la lista — INV1, INV5
-- [ ] 3.2 [GREEN] Crear `src/pages/Settings/components/GeneralTab/ModelsSection.jsx` — INV1, INV5
-- [ ] 3.3 [RED] Test: click descargar → `resources.checkSpace()` muestra finalidad/tamaño/libre/restante; confirmar → `resources.download(id)`; espacio insuficiente bloquea sin encolar — DL1, DL2
-- [ ] 3.4 [GREEN] Implementar flujo de confirmación de descarga en `ModelsSection.jsx` — DL1, DL2
-- [ ] 3.5 [RED] Test: modelo `descargando` muestra % en vivo desde `resources:progress` — DL2
-- [ ] 3.6 [GREEN] Conectar `ModelsSection.jsx` al snapshot de progreso — DL2
-- [ ] 3.7 [RED] Test: botones cancelar/reintentar visibles según estado, invocan `resources.cancel/download` — DL3, DL4
-- [ ] 3.8 [GREEN] Implementar acciones cancelar/reintentar en `ModelsSection.jsx` — DL3, DL4
-- [ ] 3.9 [RED] Test: borrar deshabilitado/con mensaje si `reason: 'default-model'|'in-queue'`; confirmación muestra espacio a liberar — DL5
-- [ ] 3.10 [GREEN] Implementar confirmación + guardia de borrado en `ModelsSection.jsx` — DL5
+- [x] 3.1 [RED] Test: `ModelsSection` lista modelos con estado/tamaño y monta `DiskSpaceIndicator` encima de la lista — INV1, INV5
+- [x] 3.2 [GREEN] Crear `src/pages/Settings/components/GeneralTab/ModelsSection.jsx` — INV1, INV5
+- [x] 3.3 [RED] Test: click descargar → `resources.checkSpace()` muestra finalidad/tamaño/libre/restante; confirmar → `resources.download(id)`; espacio insuficiente bloquea sin encolar — DL1, DL2
+- [x] 3.4 [GREEN] Implementar flujo de confirmación de descarga en `ModelsSection.jsx` — DL1, DL2
+- [x] 3.5 [RED] Test: modelo `descargando` muestra % en vivo desde `resources:progress` — DL2
+- [x] 3.6 [GREEN] Conectar `ModelsSection.jsx` al snapshot de progreso — DL2
+- [x] 3.7 [RED] Test: botones cancelar/reintentar visibles según estado, invocan `resources.cancel/retry` — DL3, DL4
+- [x] 3.8 [GREEN] Implementar acciones cancelar/reintentar en `ModelsSection.jsx` — DL3, DL4
+- [x] 3.9 [RED] Test: borrar deshabilitado/con mensaje si `reason: 'default-model'|'in-queue'`; confirmación muestra espacio a liberar — DL5
+- [x] 3.10 [GREEN] Implementar confirmación + guardia de borrado en `ModelsSection.jsx` — DL5
 
 ### Fase 4: Documentación
 
-- [ ] 4.1 [GREEN] Añadir claves i18n `src/i18n/locales/{es,en}.json` para `ModelsSection`/`DiskSpaceIndicator` (estados, acciones, mensajes de guardia)
+- [x] 4.1 [GREEN] Añadir claves i18n `src/i18n/locales/{es,en}.json` para `ModelsSection`/`DiskSpaceIndicator` (estados, acciones, mensajes de guardia)
 
 **Entrega PR2**: `gh stack` apilado sobre PR1.
 
