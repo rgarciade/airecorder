@@ -140,28 +140,28 @@ Sin infraestructura de test Python en el repo: 2.1-2.2 se verifican manualmente 
 
 ### Fase 1: Hook de estado
 
-- [ ] 1.1 [RED] Test `useModelDownloadStep`: preselecciona `small`; expone `selectModel/startDownload/status`; no persiste `whisperModel` hasta completar — ONB2, ONB4
-- [ ] 1.2 [GREEN] Crear `src/pages/Onboarding/useModelDownloadStep.js` — ONB2, ONB4
+- [x] 1.1 [RED] Test `useModelDownloadStep`: preselecciona `small`; expone `selectModel/startDownload/status`; no persiste `whisperModel` hasta completar — ONB2, ONB4
+- [x] 1.2 [GREEN] Crear `src/pages/Onboarding/useModelDownloadStep.js` — ONB2, ONB4
 
 ### Fase 2: Paso UI
 
-- [ ] 2.1 [RED] Test `ModelStep`: catálogo visible con tamaños/estados; `small` preseleccionado — ONB1, ONB2
-- [ ] 2.2 [GREEN] Crear `src/pages/Onboarding/ModelStep.jsx` — ONB1, ONB2
-- [ ] 2.3 [RED] Test: cambiar selección a `medium` actualiza el modelo activo para una descarga posterior — ONB2
-- [ ] 2.4 [GREEN] Implementar cambio de selección en `ModelStep.jsx` — ONB2
-- [ ] 2.5 [RED] Test: avanzar/completar el wizard sin iniciar descarga (botón "Siguiente" nunca bloqueado por estado de descarga) — ONB3
-- [ ] 2.6 [GREEN] Asegurar avance no bloqueante en `ModelStep.jsx` — ONB3
-- [ ] 2.7 [RED] Test: descarga completada desde el paso → `settings.whisperModel` = modelo descargado; fallida/cancelada → no persiste — ONB4
-- [ ] 2.8 [GREEN] Implementar persistencia condicional en `useModelDownloadStep.js` (transición a `installed` del id activo → `updateSettings({whisperModel: id})`) — ONB4
+- [x] 2.1 [RED] Test `ModelStep`: catálogo visible con tamaños/estados; `small` preseleccionado — ONB1, ONB2
+- [x] 2.2 [GREEN] Crear `src/pages/Onboarding/ModelStep.jsx` — ONB1, ONB2
+- [x] 2.3 [RED] Test: cambiar selección a `medium` actualiza el modelo activo para una descarga posterior — ONB2
+- [x] 2.4 [GREEN] Implementar cambio de selección en `ModelStep.jsx` — ONB2
+- [x] 2.5 [RED] Test: avanzar/completar el wizard sin iniciar descarga (botón "Siguiente" nunca bloqueado por estado de descarga) — ONB3
+- [x] 2.6 [GREEN] Asegurar avance no bloqueante en `ModelStep.jsx` — ONB3
+- [x] 2.7 [RED] Test: descarga completada desde el paso → `settings.whisperModel` = modelo descargado; fallida/cancelada → no persiste — ONB4 (test vive en `useModelDownloadStep.test.jsx`, ver Deviations — el GREEN real está en el hook, no en `ModelStep.jsx`)
+- [x] 2.8 [GREEN] Implementar persistencia condicional en `useModelDownloadStep.js` (transición a `installed` del id activo → `updateSettings({whisperModel: id})`) — ONB4
 
 ### Fase 3: Wiring en `Onboarding.jsx`
 
-- [ ] 3.1 [RED] Test de integración: `Onboarding.jsx` incluye "Modelo de transcripción" en `STEPS` y lo renderiza en su posición — ONB1
-- [ ] 3.2 [GREEN] Modificar `src/pages/Onboarding/Onboarding.jsx` — entrada en `STEPS` + render de `ModelStep` (sin estado nuevo en el wizard) — ONB1
+- [x] 3.1 [RED] Test de integración: `Onboarding.jsx` incluye "Modelo de transcripción" en `STEPS` y lo renderiza en su posición — ONB1
+- [x] 3.2 [GREEN] Modificar `src/pages/Onboarding/Onboarding.jsx` — entrada en `STEPS` + render de `ModelStep` (sin estado nuevo en el wizard) — ONB1
 
 ### Fase 4: Documentación
 
-- [ ] 4.1 [GREEN] Añadir claves i18n `src/i18n/locales/{es,en}.json` para el paso "Modelo de transcripción"
+- [x] 4.1 [GREEN] Añadir claves i18n `src/i18n/locales/{es,en}.json` para el paso "Modelo de transcripción"
 
 **Entrega PR3**: `gh stack` apilado sobre PR2 (orden de pila; dependencia funcional real es solo PR1).
 

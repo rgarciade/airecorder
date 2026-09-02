@@ -866,6 +866,7 @@
     "steps": {
       "welcome": "Bienvenido a AIRecorder",
       "aiInfo": "Conoce la IA Local",
+      "model": "Modelo de Transcripción",
       "ai": "Configuración de IA",
       "permissions": "Permisos del Sistema",
       "preferences": "Preferencias",
@@ -1010,6 +1011,14 @@
       "changeBtn": "Cambiar",
       "nextBtn": "Siguiente paso",
       "optional": "Opcional"
+    },
+    "model": {
+      "title": "Modelo de transcripción",
+      "subtitle": "Elige el modelo de Whisper que usará AIRecorder para transcribir tus grabaciones. Podés descargarlo ahora o más tarde desde Ajustes — el onboarding no espera a que termine.",
+      "loading": "Cargando catálogo de modelos…",
+      "loadError": "No se pudo cargar el catálogo de modelos. Podés continuar y descargarlo más tarde desde Ajustes.",
+      "downloadBtn": "Descargar",
+      "nextBtn": "Siguiente paso"
     },
     "footer": {
       "back": "Atrás"
