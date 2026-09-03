@@ -582,10 +582,13 @@
   width: 100%;
 }
 
-/* Container for bars and labels grid */
+/* Container for bars and labels — flex-wrap: fills each line before
+   wrapping, never splits a step column across lines, and centers any
+   leftover items on the next line. */
 .stepProgressGrid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 1rem;
 }
 
@@ -594,6 +597,9 @@
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
+  flex: 1 1 80px;
+  min-width: 60px;
+  max-width: 140px;
 }
 
 /* The horizontal bar */
