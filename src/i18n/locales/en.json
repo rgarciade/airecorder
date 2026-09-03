@@ -326,7 +326,47 @@
       "base": "Base",
       "small": "Small (Recommended)",
       "medium": "Medium",
-      "large": "Large (Accurate)"
+      "large": "Large (Accurate)",
+      "large-v3": "Large v3 (Accurate)"
+    },
+    "diskSpace": {
+      "loading": "Calculating disk space…",
+      "unavailable": "Disk space unavailable",
+      "freeOfTotal": "{{free}} free of {{total}}"
+    },
+    "modelsSection": {
+      "title": "Models & Downloads",
+      "loadError": "Couldn't load the model list. Check your connection or try again.",
+      "states": {
+        "notInstalled": "Not downloaded",
+        "queued": "Queued",
+        "downloading": "Downloading",
+        "installed": "Ready",
+        "deleting": "Deleting…",
+        "error": "Failed"
+      },
+      "errors": {
+        "insufficientSpace": "Insufficient space",
+        "network": "Connection error",
+        "cancelled": "Cancelled",
+        "unknown": "Unknown error"
+      },
+      "confirm": {
+        "downloadTitle": "Download model",
+        "purpose": "The \"{{model}}\" model will be downloaded for Whisper transcription.",
+        "size": "Download size: {{size}}",
+        "free": "Current free space: {{free}}",
+        "remaining": "Estimated free space after download: {{remaining}}",
+        "insufficientSpace": "Not enough space to download this model (free: {{free}}, required: {{required}}).",
+        "spaceUnavailable": "We couldn't verify the free disk space (download size: {{required}}). Do you want to continue anyway?",
+        "deleteTitle": "Delete model",
+        "freedSpace": "This will free up approximately {{size}} of disk space.",
+        "deleteError": "Couldn't delete the model. Please try again. (Code: {{error}})"
+      },
+      "deleteGuard": {
+        "defaultModel": "Can't delete: it's the default model configured in Settings. Choose a different default model before deleting it.",
+        "inQueue": "Can't delete: there are pending or in-progress transcriptions using this model."
+      }
     },
     "providers": {
       "ollamaActive": "Ollama Active",
@@ -384,7 +424,10 @@
       "checking": "Checking...",
       "cancel": "Cancel",
       "detect": "Detect",
-      "inUse": "used"
+      "inUse": "used",
+      "retry": "Retry",
+      "delete": "Delete",
+      "continueAnyway": "Continue anyway"
     },
     "messages": {
       "saveSuccess": "Settings saved successfully",

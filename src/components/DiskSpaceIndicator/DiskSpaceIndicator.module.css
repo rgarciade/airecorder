@@ -1,0 +1,23 @@
+.container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 16px;
+}
+
+.icon {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

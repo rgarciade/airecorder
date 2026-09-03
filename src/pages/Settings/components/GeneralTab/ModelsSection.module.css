@@ -1,0 +1,54 @@
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border-subtle, var(--color-border-primary));
+}
+
+.row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.row:first-child {
+  padding-top: 0;
+}
+
+.info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.name {
+  font-weight: 600;
+  color: var(--color-text-heading);
+  text-transform: capitalize;
+}
+
+.size {
+  font-size: 0.8125rem;
+  color: var(--color-text-tertiary);
+}
+
+.state {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+}
+
+.progress {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}

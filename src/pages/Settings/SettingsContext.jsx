@@ -10,6 +10,7 @@ import { applyTheme } from '../../services/themeService';
 import { useCustomConnections } from '../../hooks/useCustomConnections';
 import { CustomOpenAIProvider, OPENAI_BASE_URL } from '../../services/ai/customOpenAIProvider';
 import { reconcileCodexSelection } from '../../services/ai/codexModelSelection';
+import { fetchModelCatalog, computeWhisperModelOptions } from './whisperModelCatalog';
 
 export const mockLanguages = [
   { value: 'es', label: 'Español' },
@@ -24,13 +25,12 @@ export const fontSizes = [
   { value: 'xlarge', label: 'Muy Grande' },
 ];
 
-export const whisperModels = [
-  { value: 'tiny', label: 'Tiny (Muy Rápido)' },
-  { value: 'base', label: 'Base' },
-  { value: 'small', label: 'Small (Recomendado)' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'large', label: 'Large (Preciso)' },
-];
+// `whisperModels` ya NO es una lista estática hardcodeada (INV1/INV6): se
+// deriva en runtime del catálogo obtenido vía IPC `resources.list()` — ver
+// `modelCatalog`/`loadModelCatalog` más abajo y `whisperModelCatalog.js`.
+// Se expone únicamente como valor de contexto (`useSettings().whisperModels`),
+// no como export estático del módulo, porque su contenido depende del
+// inventario real de modelos instalados/catalogados en cada instalación.
 
 const SettingsContext = createContext(null);
 
@@ -60,6 +60,10 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
   const [hfToken, setHfToken] = useState('');
   const [speakerSimilarityThreshold, setSpeakerSimilarityThreshold] = useState(0.85);
   const [whisperModel, setWhisperModel] = useState('small');
+  // Catálogo dinámico de modelos Whisper (INV1/INV6) — obtenido vía IPC
+  // `resources.list()`, no una lista estática. Fuente para `ModelsSection`
+  // y para las opciones derivadas de `whisperModels` (ver `value` más abajo).
+  const [modelCatalog, setModelCatalog] = useState([]);
   const [cpuThreads, setCpuThreads] = useState(4);
   const [maxCpuThreads, setMaxCpuThreads] = useState(4);
   const [microphones, setMicrophones] = useState([]);
@@ -208,12 +212,27 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
     });
   }, []);
 
+  /** Refresca el catálogo dinámico de modelos Whisper vía IPC (INV1/INV6). */
+  const loadModelCatalog = useCallback(async () => {
+    const items = await fetchModelCatalog(window.electronAPI);
+    setModelCatalog(items);
+    return items;
+  }, []);
+
   const loadSettings = async () => {
     try {
       setIsLoading(true);
       // Load microphones
       const systemMicrophones = await getSystemMicrophones();
       setMicrophones(systemMicrophones);
+
+      // Load dynamic Whisper model catalog (replaces the old hardcoded list).
+      // MUST be awaited (like getSystemMicrophones() above) — firing it
+      // without await let loadSettings() finish (isLoading -> false) before
+      // the catalog resolved, so `whisperModels`/`modelCatalog` could remain
+      // empty even after settings were reported as "loaded" (BLOCKER,
+      // fix post-review PR2).
+      await loadModelCatalog();
 
       // Load mic permission status
       if (window.electronAPI?.getMicrophonePermission) {
@@ -805,6 +824,10 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
     // Transcription
     selectedLanguage, setSelectedLanguage,
     whisperModel, setWhisperModel,
+    // Catálogo dinámico de modelos Whisper (INV1/INV6) — ver whisperModelCatalog.js
+    modelCatalog,
+    loadModelCatalog,
+    whisperModels: computeWhisperModelOptions(modelCatalog, t),
     cpuThreads, setCpuThreads,
     maxCpuThreads,
     autoTranscribe, setAutoTranscribe,
