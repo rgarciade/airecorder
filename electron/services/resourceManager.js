@@ -490,10 +490,16 @@ class ResourceManager {
 
   /** Revierte el estado transitorio `deleting` y recalcula el snapshot — se
    * llama en TODAS las salidas de `runDeleteProcess` (spawn fallido, evento
-   * `error` y cierre normal) para no dejar un item colgado en `deleting`. */
+   * `error` y cierre normal) para no dejar un item colgado en `deleting`.
+   * También refresca `freeBytes`/`totalBytes` (igual que `onDownloadClose`)
+   * — un borrado exitoso libera espacio y el snapshot emitido debe
+   * reflejarlo, no solo el cambio de estado del item. */
   finishDeleting(id) {
     this.deletingIds.delete(id);
     this.items = this.computeItems();
+    const { freeBytes, totalBytes } = this.statfsCacheDirAncestor();
+    this.freeBytes = freeBytes;
+    this.totalBytes = totalBytes;
     this.emitUpdate();
   }
 

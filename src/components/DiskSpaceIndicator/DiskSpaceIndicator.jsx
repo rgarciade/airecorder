@@ -13,6 +13,12 @@
  * desmonta/remonta al navegar entre vistas (no hay memoización de instancia
  * entre vistas), así que nunca muestra un valor stale heredado de un
  * montaje anterior.
+ *
+ * Además se suscribe a `resources.onProgress()` (mismo snapshot completo
+ * que consume `ModelsSection`/`useDownloadManager`): sin esto, el espacio
+ * libre/total quedaba stale mientras el usuario permanecía en la misma
+ * vista y completaba una descarga o un borrado — recién se veía el valor
+ * correcto al salir y volver a entrar (remount).
  */
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -42,8 +48,14 @@ export default function DiskSpaceIndicator({ className = '' }) {
         if (!cancelled) setLoading(false);
       });
 
+    const unsubscribe = window.electronAPI?.resources?.onProgress?.((result) => {
+      if (cancelled) return;
+      if (result?.ok) setSnapshot(result);
+    });
+
     return () => {
       cancelled = true;
+      unsubscribe?.();
     };
   }, []);
 

@@ -219,6 +219,20 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
     return items;
   }, []);
 
+  // Se suscribe a `resources.onProgress()` (mismo snapshot completo que
+  // consume `ModelsSection`) para mantener `modelCatalog`/`whisperModels`
+  // al día mientras el usuario descarga o borra un modelo desde Ajustes →
+  // Modelos y descargas: sin esto, el selector "Tamaño del Modelo Whisper"
+  // de TranscriptionSection quedaba mostrando el catálogo del momento en
+  // que se cargaron los ajustes, y recién se veía actualizado saliendo y
+  // volviendo a entrar a Ajustes (remount de este provider).
+  useEffect(() => {
+    const unsubscribe = window.electronAPI?.resources?.onProgress?.(() => {
+      loadModelCatalog();
+    });
+    return () => unsubscribe?.();
+  }, [loadModelCatalog]);
+
   const loadSettings = async () => {
     try {
       setIsLoading(true);
