@@ -592,14 +592,17 @@
   gap: 1rem;
 }
 
-/* Individual step column */
+/* Individual step column — flex-basis 0 + min-width 0 forces every column
+   to the exact same width (equal division of the row), instead of the
+   default flex behavior where a column with a longer label (e.g. "Modelo
+   de Transcripción") stays wider than its siblings because it won't
+   shrink below its own content's natural width. */
 .stepColumn {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  flex: 1 1 80px;
-  min-width: 60px;
-  max-width: 140px;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 /* The horizontal bar */
