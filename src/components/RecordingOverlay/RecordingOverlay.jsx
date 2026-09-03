@@ -7,9 +7,10 @@ import ProjectSelector from '../ProjectSelector/ProjectSelector';
 import projectsService from '../../services/projectsService';
 import recordingsService from '../../services/recordingsService';
 import { getSettings } from '../../services/settingsService';
+import { resolveTranscribableModel } from '../../utils/resolveTranscribableModel';
 import { MdStop, MdExpandMore, MdDeleteOutline, MdMic, MdMicOff, MdPictureInPicture } from 'react-icons/md';
 
-const RecordingOverlay = ({ recorder, onFinish }) => {
+const RecordingOverlay = ({ recorder, onFinish, inStack = false }) => {
   const dispatch = useDispatch();
   const { t } = useTranslation();
   const [time, setTime] = useState(0);
@@ -225,7 +226,24 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
     try {
       const settings = await getSettings();
       if (settings.autoTranscribe !== false && dbId) {
-        recordingsService.transcribeRecording(dbId, settings.whisperModel || null, { skipDiarization: discardDiarization }).catch(console.error);
+        // INV6 (design.md — "Fuente única para los 4 selectores"): este
+        // disparo es automático (sin selector propio) — si el modelo por
+        // defecto no está instalado, se omite el encolado en vez de
+        // encolar una tarea que `transcriptionManager` rechazaría de todos
+        // modos (PR1). No se interrumpe el flujo de guardado con un diálogo
+        // bloqueante: la grabación ya quedó guardada, y el usuario puede
+        // transcribirla manualmente más tarde desde Home (que sí muestra el
+        // CTA a Ajustes).
+        // Reutiliza el `settings` ya cargado arriba (evita una segunda
+        // llamada IPC redundante a `getSettings()`).
+        const { modelId, installed } = await resolveTranscribableModel({
+          getSettings: () => Promise.resolve(settings),
+        });
+        if (installed) {
+          recordingsService.transcribeRecording(dbId, modelId, { skipDiarization: discardDiarization }).catch(console.error);
+        } else {
+          console.warn('[RecordingOverlay] Auto-transcripción omitida: el modelo Whisper por defecto no está instalado.');
+        }
       }
     } catch (error) {
       console.error('Error al verificar autoTranscribe:', error);
@@ -298,7 +316,7 @@ const RecordingOverlay = ({ recorder, onFinish }) => {
   return (
     <>
       <div
-        className={`${styles.overlay} ${isExpanded ? styles.overlayExpanded : styles.overlayMinimized}`}
+        className={`${styles.overlay} ${inStack ? styles.inStack : ''} ${isExpanded ? styles.overlayExpanded : styles.overlayMinimized}`}
         onClick={() => !isExpanded && setIsExpanded(true)}
       >
         <div className={styles.container}>

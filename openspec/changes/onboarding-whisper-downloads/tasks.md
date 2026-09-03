@@ -173,45 +173,45 @@ Sin infraestructura de test Python en el repo: 2.1-2.2 se verifican manualmente 
 
 ### Fase 1: `useDownloadManager`
 
-- [ ] 1.1 [RED] Test `useDownloadManager`: pull inicial `resources.getQueue()` + suscripción `resources.onProgress()` con unsubscribe en cleanup (patrón `src/hooks/useQueueManager.js`) — IND1, DL2
-- [ ] 1.2 [GREEN] Crear `src/hooks/useDownloadManager.js` — IND1, DL2
+- [x] 1.1 [RED] Test `useDownloadManager`: pull inicial `resources.getQueue()` + suscripción `resources.onProgress()` con unsubscribe en cleanup (patrón `src/hooks/useQueueManager.js`) — IND1, DL2
+- [x] 1.2 [GREEN] Crear `src/hooks/useDownloadManager.js` — IND1, DL2
 
 ### Fase 2: `DownloadIndicator`
 
-- [ ] 2.1 [RED] Test contraído: muestra nombre + % de la descarga activa — IND2
-- [ ] 2.2 [GREEN] Crear `src/components/DownloadIndicator/` (estado contraído) — IND2
-- [ ] 2.3 [RED] Test expandir: click alterna a detalle de cola + resumen "N de M descargas" — IND2
-- [ ] 2.4 [GREEN] Implementar estado expandido en `DownloadIndicator` — IND2
-- [ ] 2.5 [RED] Test: click navega a Ajustes → Modelos y descargas (excepto botón cerrar) — IND3
-- [ ] 2.6 [GREEN] Implementar navegación on-click en `DownloadIndicator` — IND3
-- [ ] 2.7 [RED] Test: cerrar oculta el bocadillo sin llamar `resources.cancel()` — IND4
-- [ ] 2.8 [GREEN] Implementar botón cerrar (solo oculta estado local) — IND4
-- [ ] 2.9 [RED] Test: todas `listo` → oculto automático; alguna `falló` → visible con acción reintentar — IND5
-- [ ] 2.10 [GREEN] Implementar lógica de visibilidad automática en `useDownloadManager`/`DownloadIndicator` — IND5
+- [x] 2.1 [RED] Test contraído: muestra nombre + % de la descarga activa — IND2
+- [x] 2.2 [GREEN] Crear `src/components/DownloadIndicator/` (estado contraído) — IND2
+- [x] 2.3 [RED] Test expandir: click alterna a detalle de cola + resumen "N de M descargas" — IND2
+- [x] 2.4 [GREEN] Implementar estado expandido en `DownloadIndicator` — IND2
+- [x] 2.5 [RED] Test: click navega a Ajustes → Modelos y descargas (excepto botón cerrar) — IND3
+- [x] 2.6 [GREEN] Implementar navegación on-click en `DownloadIndicator` — IND3
+- [x] 2.7 [RED] Test: cerrar oculta el bocadillo sin llamar `resources.cancel()` — IND4
+- [x] 2.8 [GREEN] Implementar botón cerrar (solo oculta estado local) — IND4
+- [x] 2.9 [RED] Test: todas `listo` → oculto automático; alguna `falló` → visible con acción reintentar — IND5
+- [x] 2.10 [GREEN] Implementar lógica de visibilidad automática en `useDownloadManager`/`DownloadIndicator` — IND5
 
 ### Fase 3: `BottomLeftStack` + coexistencia con `RecordingOverlay`
 
-- [ ] 3.1 [RED] Test `BottomLeftStack`: renderiza `DownloadIndicator` + `RecordingOverlay` simultáneamente en `column-reverse`, bocadillo debajo del overlay — IND6
-- [ ] 3.2 [GREEN] Crear `src/components/BottomLeftStack/` — IND6
-- [ ] 3.3 [GREEN] Modificar `src/components/RecordingOverlay/RecordingOverlay.module.css` — clase `inStack` neutraliza `position/bottom/left` propios (L3-6) — IND6
-- [ ] 3.4 [GREEN] Modificar `src/App.jsx` (L236-245) — montar `BottomLeftStack` + `useDownloadManager` — IND1, IND6
+- [x] 3.1 [RED] Test `BottomLeftStack`: renderiza `DownloadIndicator` + `RecordingOverlay` simultáneamente en `column-reverse`, bocadillo debajo del overlay — IND6
+- [x] 3.2 [GREEN] Crear `src/components/BottomLeftStack/` — IND6
+- [x] 3.3 [GREEN] Modificar `src/components/RecordingOverlay/RecordingOverlay.module.css` — clase `inStack` neutraliza `position/bottom/left` propios (L3-6) — IND6
+- [x] 3.4 [GREEN] Modificar `src/App.jsx` (L236-245) — montar `BottomLeftStack` + `useDownloadManager` — IND1, IND6
 
 ### Fase 4: Hardening de los 4 selectores (solo-instalados)
 
-- [ ] 4.1 [RED] Test `src/pages/Home/Home.jsx` (L243,478): solo ofrece modelos `installed`; sin ninguno instalado, CTA de bloqueo a Ajustes — INV6
-- [ ] 4.2 [GREEN] Modificar `Home.jsx` — filtrar por instalados + CTA de bloqueo — INV6
-- [ ] 4.3 [RED] Test `src/components/RecordingOverlay/RecordingOverlay.jsx` (L228): mismo criterio — INV6
-- [ ] 4.4 [GREEN] Modificar `RecordingOverlay.jsx` — filtrar + CTA — INV6
-- [ ] 4.5 [RED] Test `src/pages/RecordingDetail/RecordingDetailWithTranscription.jsx` (L62,1587,2227): elimina catálogo hardcodeado propio sin i18n, usa inventario central; solo instalados + CTA — INV6
-- [ ] 4.6 [GREEN] Modificar `RecordingDetailWithTranscription.jsx` — migrar a inventario central — INV6
-- [ ] 4.7 [RED] Test selector de Ajustes en `src/pages/Settings/components/GeneralTab/TranscriptionSection.jsx`: solo instalados + CTA — INV6
-- [ ] 4.8 [GREEN] Modificar `TranscriptionSection.jsx` — filtrar por instalados + CTA — INV6
-- [ ] 4.9 [RED] Test transversal: seleccionar cualquier opción (instalada o atenuada) en los 4 selectores nunca dispara `resources.download()` — INV6
-- [ ] 4.10 [GREEN] Auditoría final de los 4 selectores — confirmar ausencia de `onChange`→`download` residual — INV6
+- [x] 4.1 [RED] Test `src/pages/Home/Home.jsx` (L243,478): solo ofrece modelos `installed`; sin ninguno instalado, CTA de bloqueo a Ajustes — INV6 (ver Deviations — extraído a `resolveTranscribableModel.js`/`whisperModelGuard.js`, testeados sin montar `Home.jsx` completo)
+- [x] 4.2 [GREEN] Modificar `Home.jsx` — filtrar por instalados + CTA de bloqueo — INV6
+- [x] 4.3 [RED] Test `src/components/RecordingOverlay/RecordingOverlay.jsx` (L228): mismo criterio — INV6 (ver Deviations — mismo `resolveTranscribableModel.js`, sin CTA bloqueante — ver Deviations sobre por qué)
+- [x] 4.4 [GREEN] Modificar `RecordingOverlay.jsx` — filtrar + CTA — INV6
+- [x] 4.5 [RED] Test `src/pages/RecordingDetail/RecordingDetailWithTranscription.jsx` (L62,1587,2227): elimina catálogo hardcodeado propio sin i18n, usa inventario central; solo instalados + CTA — INV6 (ver Deviations — cobertura vía `whisperModelGuard.test.js`, componente sin test de montaje completo)
+- [x] 4.6 [GREEN] Modificar `RecordingDetailWithTranscription.jsx` — migrar a inventario central — INV6
+- [x] 4.7 [RED] Test selector de Ajustes en `src/pages/Settings/components/GeneralTab/TranscriptionSection.jsx`: solo instalados + CTA — INV6
+- [x] 4.8 [GREEN] Modificar `TranscriptionSection.jsx` — filtrar por instalados + CTA — INV6
+- [x] 4.9 [RED] Test transversal: seleccionar cualquier opción (instalada o atenuada) en los 4 selectores nunca dispara `resources.download()` — INV6
+- [x] 4.10 [GREEN] Auditoría final de los 4 selectores — confirmar ausencia de `onChange`→`download` residual — INV6
 
 ### Fase 5: Defaults y documentación
 
-- [ ] 5.1 [GREEN] Modificar `src/services/settingsService.js` — `whisperModel: 'small'` en defaults
-- [ ] 5.2 [GREEN] Añadir claves i18n `src/i18n/locales/{es,en}.json` para `DownloadIndicator` y CTAs de bloqueo de los 4 selectores
+- [x] 5.1 [GREEN] Modificar `src/services/settingsService.js` — `whisperModel: 'small'` en defaults
+- [x] 5.2 [GREEN] Añadir claves i18n `src/i18n/locales/{es,en}.json` para `DownloadIndicator` y CTAs de bloqueo de los 4 selectores
 
 **Entrega PR4**: `gh stack` apilado sobre PR3 (último de la pila).

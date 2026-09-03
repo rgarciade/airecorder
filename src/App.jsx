@@ -5,6 +5,7 @@ import useAutoAnalyze from './hooks/useAutoAnalyze'
 import useAppearance from './hooks/useAppearance'
 import useDatabaseStatus from './hooks/useDatabaseStatus'
 import useQueueManager from './hooks/useQueueManager'
+import useDownloadManager from './hooks/useDownloadManager'
 import useNotificationHandler from './hooks/useNotificationHandler'
 import useNavigation from './hooks/useNavigation'
 import useSession from './hooks/useSession'
@@ -22,6 +23,8 @@ import AiQueue from './pages/AiQueue/AiQueue'
 import SpeakersPage from './pages/Speakers/SpeakersPage'
 import SpeakerDetail from './pages/Speakers/SpeakerDetail'
 import RecordingOverlay from './components/RecordingOverlay/RecordingOverlay'
+import DownloadIndicator from './components/DownloadIndicator/DownloadIndicator'
+import BottomLeftStack from './components/BottomLeftStack/BottomLeftStack'
 import Sidebar from './components/Sidebar/Sidebar';
 import Onboarding from './pages/Onboarding/Onboarding';
 import styles from './App.module.css'
@@ -74,6 +77,7 @@ export default function App() {
   useAutoAnalyze();
   useAppearance(appSettings);
   const { queueCount, queueState, loadQueueData } = useQueueManager();
+  const downloadManager = useDownloadManager();
   const { dbFallbackBanner } = useDatabaseStatus();
   useNotificationHandler(handleNavigateToRecording);
 
@@ -203,7 +207,7 @@ export default function App() {
             recording={selectedRecording} 
             onBack={handleBack}
             onNavigateToProject={handleNavigateToProject}
-            onNavigateToSettings={(tab) => handleOpenSettings(tab)}
+            onNavigateToSettings={(tab, targetElement) => handleOpenSettings(tab, targetElement)}
           />
         )}
         {currentView === 'queue' && (
@@ -233,15 +237,33 @@ export default function App() {
         )}
       </div>
       
-      {/* Mostrar RecordingOverlay cuando está grabando */}
-      {isRecording && currentView !== 'onboarding' && (
-        <RecordingOverlay
-          recorder={currentRecorder}
-          onFinish={() => {
-            setCurrentRecorder(null);
-            setRefreshTrigger(prev => prev + 1); // Refrescar Home al finalizar
-          }}
-        />
+      {/* Stack compartido (design.md D9): RecordingOverlay + bocadillo global
+          de descargas de modelos Whisper conviven sin superponerse — ver
+          BottomLeftStack.jsx para el porqué del orden de montaje. */}
+      {currentView !== 'onboarding' && (
+        <BottomLeftStack>
+          {isRecording && (
+            <RecordingOverlay
+              inStack
+              recorder={currentRecorder}
+              onFinish={() => {
+                setCurrentRecorder(null);
+                setRefreshTrigger(prev => prev + 1); // Refrescar Home al finalizar
+              }}
+            />
+          )}
+          {downloadManager.visible && (
+            <DownloadIndicator
+              items={downloadManager.items}
+              queue={downloadManager.queue}
+              active={downloadManager.active}
+              batchTotal={downloadManager.batchTotal}
+              batchDone={downloadManager.batchDone}
+              onClose={downloadManager.close}
+              onNavigateToSettings={() => handleOpenSettings('general', 'models-and-downloads-section')}
+            />
+          )}
+        </BottomLeftStack>
       )}
     </div>
   )

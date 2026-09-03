@@ -4,17 +4,22 @@ import {
 } from 'react-icons/md';
 import styles from '../../Settings.module.css';
 import { useSettings, mockLanguages } from '../../SettingsContext';
+import { buildSelectableModelOptions, hasAnyInstalledModel } from '../../../../utils/whisperModelGuard.js';
+import ModelsSection from './ModelsSection';
 
 export default function TranscriptionSection() {
   const {
     t,
     selectedLanguage, setSelectedLanguage,
     whisperModel, setWhisperModel,
-    // Catálogo dinámico de modelos Whisper (INV1/INV6) — reemplaza el export
-    // estático `whisperModels` que vivía antes en `SettingsContext.jsx`.
-    // El filtrado a "solo instalados + CTA" (INV6, hardening) es tarea de PR4;
-    // aquí solo se cambia la FUENTE de datos, sin tocar el resto del flujo.
-    whisperModels,
+    // Catálogo dinámico de modelos Whisper (INV1/INV6), obtenido vía IPC
+    // `resources.list()` (`SettingsContext.jsx`). PR4 (hardening): las
+    // opciones del selector se derivan de este catálogo crudo (con
+    // `.state`) vía `buildSelectableModelOptions`, en vez del `whisperModels`
+    // ya "aplanado" — los modelos no instalados quedan atenuados
+    // (`disabled`) con una etiqueta que indica ir a Ajustes, nunca disparan
+    // una descarga (el `onChange` solo llama `setWhisperModel`).
+    modelCatalog,
     cpuThreads, setCpuThreads,
     maxCpuThreads,
     autoTranscribe, setAutoTranscribe,
@@ -25,6 +30,9 @@ export default function TranscriptionSection() {
     speakerSimilarityThreshold, setSpeakerSimilarityThreshold,
     showApiKey, setShowApiKey,
   } = useSettings();
+
+  const whisperModelOptions = buildSelectableModelOptions(modelCatalog, t);
+  const noModelInstalled = !hasAnyInstalledModel(modelCatalog);
 
   return (
     <section className={styles.section}>
@@ -55,16 +63,22 @@ export default function TranscriptionSection() {
           <label className={styles.label}>{t('settings.fields.whisperModel')}</label>
           <select
             className={styles.input}
+            data-testid="whisper-model-select"
             value={whisperModel}
             onChange={(e) => setWhisperModel(e.target.value)}
           >
-            {whisperModels.map(model => (
-              <option key={model.value} value={model.value}>{t(`settings.whisperModels.${model.value}`)}</option>
+            {whisperModelOptions.map(model => (
+              <option key={model.value} value={model.value} disabled={model.disabled}>{model.label}</option>
             ))}
           </select>
           <p className={styles.helpText}>
             {t('settings.helpText.whisperModel')}
           </p>
+          {noModelInstalled && (
+            <p className={styles.helpText} data-testid="whisper-model-none-installed-cta" style={{ color: 'var(--color-warning)' }}>
+              {t('settings.helpText.whisperModelNoneInstalled')}
+            </p>
+          )}
         </div>
 
         <div className={styles.formGroup} style={{ marginBottom: 0 }}>
@@ -85,6 +99,15 @@ export default function TranscriptionSection() {
           </p>
         </div>
       </div>
+
+      {/* "Modelos y descargas" (issue #149): gestiona inventario/descargas de
+          modelos Whisper vía IPC `resources:*`. Sección DISTINTA del <select>
+          de arriba (que elige el modelo por defecto para nuevas
+          transcripciones): esta sección administra qué modelos existen en
+          disco, no cuál se usa. Se renderiza acá, justo debajo del selector
+          de modelo, en vez de al final de todo Motor de Transcripción, para
+          que quede contextualmente junto al campo que gestiona. */}
+      <ModelsSection />
 
       {/* Auto-transcripción */}
       <div className={styles.card} style={{marginTop: '16px'}}>
