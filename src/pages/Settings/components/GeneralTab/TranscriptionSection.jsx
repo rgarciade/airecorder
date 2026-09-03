@@ -5,6 +5,7 @@ import {
 import styles from '../../Settings.module.css';
 import { useSettings, mockLanguages } from '../../SettingsContext';
 import { buildSelectableModelOptions, hasAnyInstalledModel } from '../../../../utils/whisperModelGuard.js';
+import ModelsSection from './ModelsSection';
 
 export default function TranscriptionSection() {
   const {
@@ -98,6 +99,15 @@ export default function TranscriptionSection() {
           </p>
         </div>
       </div>
+
+      {/* "Modelos y descargas" (issue #149): gestiona inventario/descargas de
+          modelos Whisper vía IPC `resources:*`. Sección DISTINTA del <select>
+          de arriba (que elige el modelo por defecto para nuevas
+          transcripciones): esta sección administra qué modelos existen en
+          disco, no cuál se usa. Se renderiza acá, justo debajo del selector
+          de modelo, en vez de al final de todo Motor de Transcripción, para
+          que quede contextualmente junto al campo que gestiona. */}
+      <ModelsSection />
 
       {/* Auto-transcripción */}
       <div className={styles.card} style={{marginTop: '16px'}}>
