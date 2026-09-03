@@ -236,3 +236,121 @@ No se tocó PR1 (ya commiteado en la branch base), PR3, PR4. No se hizo `git add
 4/4 fases de PR2 completas + fix pass post-review aplicado (1 BLOCKER + 3 CRITICAL confirmados, los 4 corregidos). Full suite 1262/1262 green. Próximo: `sdd-verify`/re-verify sobre PR2, luego PR3 (onboarding) cuando se retome.
 
 **Review Workload note**: el diff medido de este batch (código + tests + i18n + CSS) es de aproximadamente 886 líneas nuevas más ~169 líneas netas modificadas en archivos existentes ≈ 1055 líneas — por encima de la estimación "PR2 ~400-500" de `tasks.md`, aunque la lógica de producción "dura" (sin contar tests/i18n/CSS) ronda las ~470 líneas, más cerca del rango "Medium" estimado. La partición en 4 PRs y la estrategia `stacked-to-main` ya estaban decididas antes de este `sdd-apply` (`Decision needed before apply: No` en `tasks.md`), así que no se bloqueó el batch; se deja esta medición para que el reviewer humano tenga el dato real al evaluar el PR.
+
+---
+
+# Apply Progress: onboarding-whisper-downloads — PR 3 Onboarding: paso "Modelo de transcripción" — COMPLETE (4/4 fases)
+
+**Scope of this batch**: PR3 — Fase 1 a Fase 4 (`tasks.md`, bloque "PR 3 — Onboarding: paso 'Modelo de transcripción'"). PR1 (Núcleo) y PR2 (Ajustes → Modelos y descargas) ya estaban `[x]` completos de batches previos; no se tocó ningún archivo de PR1/PR2/PR4.
+**Mode**: Strict TDD (RED → GREEN por tarea)
+
+## Completed Tasks
+
+### Fase 1: Hook de estado
+- [x] 1.1-1.2 — `useModelDownloadStep()` (`src/pages/Onboarding/useModelDownloadStep.js`): preselecciona `small` (ONB2), expone `{items, queue, selectedId, selectModel, startDownload, status}`, hace su propio pull inicial (`resources.list()`) + suscripción (`resources.onProgress()`) — mismo patrón de data-fetching propio que `DiskSpaceIndicator.jsx`/`ModelsSection.jsx` (design.md D10).
+
+### Fase 2: Paso UI
+- [x] 2.1-2.2 — `ModelStep.jsx` (`src/pages/Onboarding/ModelStep.jsx`): catálogo visible con tamaño (`formatGb`) y estado por modelo (radio buttons), `small` preseleccionado.
+- [x] 2.3-2.4 — Cambiar la selección (`selectModel(id)`) actualiza `selectedId` sin iniciar ninguna descarga; una `startDownload()` posterior usa la selección actualizada.
+- [x] 2.5-2.6 — El botón "Siguiente" (`onNext`) NUNCA se deshabilita — a diferencia de `PermissionsStep`/`AiConfigStep` (que sí condicionan su avance), este paso es no bloqueante por diseño (ONB3), incluso con una descarga activa en curso.
+- [x] 2.7-2.8 — Persistencia condicional: `useModelDownloadStep.js` rastrea internamente (`activeDownloadIdRef`, no expuesto) el id de la descarga que ESTE hook inició; solo cuando ese id transiciona a `installed` (`previousStatesRef` detecta el cambio de estado) llama `updateSettings({whisperModel: id})`. Fallida (`error`)/cancelada (D6: barrido de `.incomplete` → vuelve a `not-installed`)/modelo instalado por fuera de este paso sin `startDownload()` propio → nunca persiste (ONB4). Ver Deviations #1 sobre dónde vive el test 2.7.
+
+### Fase 3: Wiring en `Onboarding.jsx`
+- [x] 3.1-3.2 — `STEPS` (ahora exportado con `export const STEPS`, ver Deviations #2) incluye `{ id: 'model' }`; `Onboarding.jsx` renderiza `<ModelStep t={onNext=handleNext} onBack={handleBack} StepProgressComponent={...} />` en `currentStep === 2`, siguiendo el mismo patrón de props (`t/onBack/onNext/StepProgressComponent`) que `PermissionsStep`/`PreferencesStep`/`LocalAiInfoStep`. Sin estado nuevo dentro de `Onboarding.jsx` — todo vive en `useModelDownloadStep.js` (regla anti-monolito de `AGENTS.md`). Posición elegida (ver Deviations #3): justo después de `aiInfo`, antes de `ai`.
+
+### Fase 4: Documentación
+- [x] 4.1 — Claves i18n nuevas en `src/i18n/locales/{es,en}.json`: `onboarding.model.*` (`title/subtitle/loading/loadError/downloadBtn/nextBtn`) y `onboarding.steps.model`. Reutiliza (no duplica) `settings.modelsSection.states.*` y `settings.misc.recommended` — mismo criterio de reuso cross-namespace ya usado en `ReadyStep.jsx` (`settings.roles.*`).
+- Matriz de documentación obligatoria (`AGENTS.md`): no aplica — ningún archivo de esta tanda pertenece a `electron/main.js`, `preload.js`, `dbService.js`, `services/ai/*`, `transcriptionManager.js` o `audio_sync_analyzer.py`.
+
+## TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 1.1-1.2, 2.7-2.8 | `src/tests/pages/Onboarding/useModelDownloadStep.test.jsx` | Unit (hook, jsdom) | N/A (new) | ✅ Written | ✅ 8/8 passed | ✅ multiple cases per behavior (preselect, exposed API, no-persist-before-complete, selection→download id, persist-on-installed with no-double-persist check, no-persist-on-error, no-persist-on-cancel/revert, no-persist-for-externally-installed-model) | ➖ None needed (hook has no CSS/markup to refactor; extracted refs instead of nested setState tricks during first pass) |
+| 2.1-2.6 | `src/tests/pages/Onboarding/ModelStep.test.jsx` | Unit (component, jsdom) | N/A (new) | ✅ Written | ✅ 4/4 passed | ✅ catalog+preselection, selection-change+download-id, next-never-blocked (idle + actively-downloading cases) | ➖ None needed |
+| 3.1-3.2 | `src/tests/pages/Onboarding/Onboarding.test.jsx` | Integration (jsdom) | N/A (first test file for `Onboarding.jsx`) | ✅ Written | ✅ 3/3 passed | ✅ STEPS-array assertion + rendered-position assertion + advance-moves-forward assertion | ➖ None needed |
+
+### Test Summary (this batch)
+- **Total tests written**: 15 (8 useModelDownloadStep + 4 ModelStep + 3 Onboarding wiring)
+- **Total tests passing**: 15/15 (new). Full suite: **1277/1277 green** (1262 pre-existing after PR2's fix pass + 15 new).
+- **Layers used**: Unit/hook-jsdom (8), Unit/component-jsdom (4), Integration/jsdom (3)
+- **Approval tests** (refactoring): None — no refactoring of pre-existing behavior. `Onboarding.jsx`'s STEPS/labels/render-switch renumbering is additive insertion, not behavior change for the other 6 pre-existing steps; verified by the full suite staying green and by the new Onboarding.test.jsx itself exercising the real (non-stubbed) welcome→aiInfo transition.
+- **Pure functions created**: none new (`formatGb` reused from PR2); state-transition detection logic in `useModelDownloadStep.js` (`applySnapshot`) is not extracted as a standalone pure function because it necessarily closes over refs or would need them passed as arguments — kept inline given the hook itself is already small and directly tested.
+
+## Deviations from Design
+
+1. **Task 2.7's RED test lives in `useModelDownloadStep.test.jsx`, not in a `ModelStep.test.jsx` "Fase 2.7" describe block**, even though `tasks.md` numbers it under "Fase 2: Paso UI". `tasks.md`'s own GREEN counterpart (2.8) says "Implementar persistencia condicional en `useModelDownloadStep.js`" — the logic genuinely lives in the hook, not in `ModelStep.jsx` (which is purely presentational). Testing it where the logic actually executes (with full control over synthetic `resources:progress` snapshots and no risk of coupling the assertion to DOM structure) is more precise and avoids inflating `ModelStep.test.jsx` with backend-shape-heavy setup for a concern that isn't rendering-related. Same precedent as PR2 Deviation #1 (aligning test placement with where implementation actually lives over literal task-file section headers). `tasks.md` task 2.7's text was left as-is (already accurate about WHAT is tested, just not WHICH file) plus a parenthetical note pointing to this deviation.
+2. **`STEPS` is now `export const STEPS` instead of a private `const`.** Minimal, backward-compatible change (no runtime behavior difference — `Onboarding.jsx` still uses it exactly as before) needed to write a real, non-brittle "Fase 3.1" integration test asserting `ONB1` ("Onboarding.jsx incluye el paso en STEPS") without parsing the component's rendered DOM as a STEPS-array proxy.
+3. **Step position: `model` was placed right after `aiInfo` and before `ai`** (index 2 of 7), not at the end or immediately before `permissions`/`preferences`. Neither `proposal.md`, `spec.md`, nor `design.md` specify an exact wizard position (`spec.md`'s ONB1 only requires "a step of its own, separate from the others"). Product rationale: transcription is the front of the whole pipeline — the "ai" step configures the LLM used to analyze/summarize the ALREADY-transcribed text, so picking/downloading the Whisper model before configuring that LLM follows the real audio → transcription → AI-analysis order. Secondary, non-decisive factor: `aiInfo` and `preferences` are the only two pre-existing steps whose "next" action has no gating condition (`AiConfigStep` gates on `canProceed`, `PermissionsStep` gates on `micStatus === 'granted'`), which made this position the cleanest to reach via real (non-mocked) navigation in `Onboarding.test.jsx` — a happy side effect of the product rationale above, not the primary driver.
+4. **No `resources:check-space` confirmation flow in `ModelStep.jsx`** (unlike `ModelsSection.jsx`'s `checkSpace()` → modal → confirm → `download()` flow from PR2). Not in `tasks.md`'s PR3 scope (no DL1 reference in the PR3 task list, only ONB1-4) and not in `spec.md`'s onboarding-model-selection requirements. `startDownload()` calls `resources.download(id)` directly; the backend (`resourceManager.processQueue()`, already fixed in PR1's post-review pass) still re-checks space before actually starting the download and sets `item.error = {code:'insufficient-space',...}` if it doesn't fit — surfaced via the existing `settings.modelsSection.states.error`/state text in `ModelStep.jsx`'s per-item state label, same criterion as `ModelsSection.jsx`'s `ERROR_CODE_KEY_MAP`, just without a dedicated error-detail message component (out of scope here). This intentionally does NOT repeat the `freeBytes: null` coercion bug fixed in PR2's fix-pass, because this flow never reads `checkSpace()`'s `sufficient`/`freeBytes` fields at all — there is nothing to coerce.
+5. **Download button only shown when `item.state === 'not-installed'`** (no cancel/retry/delete affordances in the onboarding step). Cancel/retry/delete are PR2-scoped (Settings → Modelos y descargas) per the design's File Changes table and are reachable later from there; repeating them here was out of `tasks.md`'s PR3 scope and would have duplicated `ModelsSection.jsx` logic for a step whose whole point (ONB3) is that the user is never blocked by download state — if a download fails, the user can simply click "Siguiente" and manage it later from Ajustes.
+
+## Issues Found
+
+None blocking. `npm test` full suite: **1277/1277 green**.
+
+## Files Changed (this batch)
+
+| File | Action | What Was Done |
+|------|--------|----------------|
+| `src/pages/Onboarding/useModelDownloadStep.js` | Created | Hook de estado: catálogo + selección + descarga + persistencia condicional (Fase 1, 2.7-2.8) |
+| `src/pages/Onboarding/ModelStep.jsx` | Created | Paso UI presentacional: catálogo con radio buttons, botón de descarga, footer con "Siguiente" no bloqueante (Fase 2) |
+| `src/pages/Onboarding/Onboarding.jsx` | Modified | `STEPS` exportado + entrada `{ id: 'model' }`; `labels` de `renderStepProgress` extendido; render switch renumerado (`currentStep 2..6`) e inserción de `<ModelStep>` en `currentStep === 2` (Fase 3) |
+| `src/i18n/locales/es.json`, `src/i18n/locales/en.json` | Modified | Nuevas claves `onboarding.model.*` y `onboarding.steps.model` (Fase 4) |
+| `src/tests/pages/Onboarding/useModelDownloadStep.test.jsx` | Created | 8 tests (Fase 1, 2.7-2.8) |
+| `src/tests/pages/Onboarding/ModelStep.test.jsx` | Created | 4 tests (Fase 2.1-2.6) |
+| `src/tests/pages/Onboarding/Onboarding.test.jsx` | Created | 3 tests (Fase 3.1-3.2) |
+| `openspec/changes/onboarding-whisper-downloads/tasks.md` | Modified | PR3 Fase 1-4 marcadas `[x]`, nota agregada a la tarea 2.7 (ver Deviation #1) |
+
+## Status
+
+4/4 fases completas de PR3 — Onboarding: paso "Modelo de transcripción" (Fase 1-4, tareas 1.1-4.1, todas `[x]`). Funcional end-to-end sobre el contrato IPC `resources:*` de PR1 (ya estable), independiente en funcionalidad de PR2 (solo comparte la dependencia de PR1). No se tocó ningún archivo de PR1, PR2 o PR4. No se hizo `git add`/`commit`/`push`/PR (regla explícita del proyecto) — queda a cargo del usuario/orquestador. Próximo: `sdd-verify` sobre PR3, luego PR4 (bocadillo global + hardening de los 4 selectores) cuando se retome.
+
+## Fix pass PR3 post-review
+
+4 revisores en fresco encontraron 2 BLOCKER y 1 CRITICAL confirmados sobre el código ya implementado de PR3. Aplicados quirúrgicamente — solo estos 3 issues, WARNING/SUGGESTION quedaron fuera de este pase. `npm test` completo: **1283/1283 verdes** (1277 previos + 6 nuevos).
+
+### Fixes Applied
+
+1. **BLOCKER — `startDownload()` descartaba en silencio el fallo síncrono de `resources:download`** (`src/pages/Onboarding/useModelDownloadStep.js`, `src/pages/Onboarding/ModelStep.jsx`)
+   - `resourceManager.download(id)` puede devolver `{ ok: false, error: 'insufficient-space'|'unknown-model'|'already-queued'|'already-installed' }` de forma SÍNCRONA, ANTES de encolar nada — no pasa por el mecanismo de estado de error por ítem que sí cubre `processQueue()` (ese solo aplica a fallos DESPUÉS de encolar). El código anterior hacía `await window.electronAPI?.resources?.download?.(selectedId);` sin mirar el resultado: un fallo (p. ej. espacio insuficiente al hacer clic en "Descargar") no mostraba nada al usuario.
+   - Fix: `startDownload()` ahora captura el resultado; si `result.ok === false`, setea un nuevo estado `startError: { code }` (distinto de `items[].error`, que sigue cubriendo los fallos post-cola) y NO llama a `onDownloadStart` (ver Fix 2 — nada que trackear si nunca arrancó). `ModelStep.jsx` renderiza `data-testid="model-start-error"` reutilizando las claves i18n ya existentes `settings.modelsSection.errors.*` (cross-namespace, mismo criterio que el resto del archivo) vía un mapeo local mínimo (`START_ERROR_KEY_MAP`, solo `insufficient-space`→`insufficientSpace`, el resto→`unknown`) — no hizo falta duplicar el `ERROR_CODE_KEY_MAP` completo de PR2 porque los códigos síncronos de `download()` no coinciden con los códigos de `items[].error.code` de `processQueue()`. El botón de descarga sigue visible para reintentar: el ítem nunca sale de `not-installed` porque `download()` nunca llegó a encolar nada.
+   - Coincide con lo reportado por los revisores, sin hallazgos adicionales.
+   - Tests nuevos: 2 en `useModelDownloadStep.test.jsx` (`startError` se setea con el código; se limpia en un reintento exitoso posterior) + 2 en `ModelStep.test.jsx` (mensaje visible + botón de reintento disponible; `onDownloadStart` NO se llama cuando falla).
+
+2. **BLOCKER — la persistencia ONB4 se perdía si el usuario avanzaba el wizard con la descarga en curso** (`src/pages/Onboarding/useOnboardingModelPersistence.js` [nuevo], `src/pages/Onboarding/useModelDownloadStep.js`, `src/pages/Onboarding/ModelStep.jsx`, `src/pages/Onboarding/Onboarding.jsx`)
+   - El tracking de "qué modelo hay que persistir como default al completarse" vivía en `activeDownloadIdRef`/`previousStatesRef`, refs LOCALES a `useModelDownloadStep.js`, llamado desde `ModelStep.jsx`. Como `ModelStep` se desmonta al avanzar a otro paso del wizard (render condicional por `currentStep` en `Onboarding.jsx`), esos refs morían junto con el componente — la detección de "pasó a `installed`" dejaba de correr apenas el usuario avanzaba con la descarga en background, violando el escenario explícito del spec ("Terminar el onboarding con una descarga en curso", ONB4). Bug secundario relacionado: el ref de un solo slot (`activeDownloadIdRef`) se pisaba si el usuario cambiaba de modelo seleccionado mientras uno ya estaba descargando, perdiendo el tracking del primero.
+   - **Diseño elegido**: se subió el tracking a un hook nuevo, `useOnboardingModelPersistence.js`, poseído por `Onboarding.jsx` — el único componente que permanece montado durante TODO el wizard, a diferencia de cada step individual. Expone `trackDownload(id)`, que `ModelStep.jsx` invoca (vía el nuevo prop `onDownloadStart` reenviado a `useModelDownloadStep({ onDownloadStart })`) cuando una descarga arranca con éxito. El hook elevado tiene su PROPIA suscripción a `resources.onProgress()` — independiente y paralela a la de `useModelDownloadStep` (ambas coexisten sin conflicto: `preload.js#onProgress` usa `ipcRenderer.on`/`removeListener`, que soporta múltiples listeners simultáneos sin problema) — por lo que sigue activa sin importar en qué paso del wizard esté el usuario. Usa un `Map` (id → último estado conocido) en vez de un único ref, así que soporta más de una descarga en tracking simultáneo sin pisarse. `useModelDownloadStep.js` dejó de poseer este estado por completo (se eliminaron `activeDownloadIdRef`/`previousStatesRef` y la persistencia inline en `applySnapshot`); ahora solo notifica el arranque exitoso, sin saber ni importarle quién persiste.
+   - Alternativas descartadas: (a) Context de React dedicado — evaluado pero un hook simple devuelto por `Onboarding.jsx` y pasado por props alcanza para un solo consumidor (`ModelStep`) sin la ceremonia de un Provider nuevo; (b) construir ya la infraestructura completa del bocadillo global de PR4 — explícitamente fuera de alcance de esta corrección (ver instrucciones del batch), hubiera sido sobre-ingeniería para lo que este BLOCKER puntual necesita.
+   - Fuera de alcance (documentado, no un defecto de esta corrección): sobrevivir un cierre completo de la app — el `Map` vive en un `useRef` de `Onboarding.jsx`, que se desmonta cuando termina/cierra el onboarding. Alcanza con sobrevivir mientras el wizard sigue abierto, que es lo que exige el escenario del spec.
+   - Coincide con lo reportado por los revisores, sin hallazgos adicionales.
+   - Tests nuevos: `src/tests/pages/Onboarding/Onboarding.modelPersistence.test.jsx` (archivo nuevo, 2 tests) — monta `Onboarding.jsx` real (con `ModelStep` real, NO stubeado, a diferencia de `Onboarding.test.jsx`; solo se stubea `AiConfigStep` para poder navegar más allá de "model" sin acoplar el test a esa UI) y simula el bus de `resources:progress` con múltiples listeners independientes (como el `ipcRenderer.on` real) para poder desuscribir solo el de `ModelStep` al desmontarlo y verificar que el de `Onboarding` sigue vivo. Caso 1: inicia descarga de `small`, avanza el wizard (desmonta `ModelStep`), completa la descarga vía snapshot → `updateSettings({whisperModel:'small'})` se llama igual. Caso 2: inicia `small`, cambia la selección a `medium` mid-descarga e inicia esa también, ambas completan en momentos distintos → ambas se persisten (`updateSettings` llamado 2 veces, una por cada una, sin perder la primera).
+
+3. **CRITICAL — faltaba cobertura de test del path de fallo de carga del catálogo** (`src/tests/pages/Onboarding/useModelDownloadStep.test.jsx`, `src/tests/pages/Onboarding/ModelStep.test.jsx`)
+   - No había ningún test que ejerciera `resources.list()` rechazando. El código YA manejaba el caso (`.catch(() => setStatus('error'))`, agregado en la implementación original de PR3 Fase 1) — no era un bug de lógica, solo faltaba la prueba, mismo patrón que el hallazgo #5 del fix-pass de PR1.
+   - Nota sobre el caso "`resources.list` no existe" (mencionado como alternativa en el pedido): NO se agregó como caso adicional de `status: 'error'` porque, con `window.electronAPI?.resources?.list?.()`, la ausencia de la función hace que la expresión completa evalúe a `undefined` en vez de lanzar — `Promise.resolve(undefined)` RESUELVE (no rechaza), y el hook llega a `status: 'ready'` con catálogo vacío (degradación silenciosa intencional para entornos sin `electronAPI`, p. ej. preview de navegador, mismo criterio ya usado en otros hooks de este batch). Forzar `'error'` en ese caso hubiera sido un cambio de comportamiento no confirmado por los revisores, fuera del alcance de este CRITICAL (que es sobre falta de cobertura, no sobre un bug de comportamiento adicional).
+   - De paso (pedido explícito del batch): los mocks de `Snapshot` en ambos archivos de test no incluían `cacheDir`/`freeBytes`/`totalBytes` (divergían del shape real que sí usan los fixtures de PR1/PR2, ver `resourceManager.js#rescan()` y `ModelsSection.test.jsx`). Se agregaron a `makeSnapshot()` en ambos archivos para que el mock refleje el contrato real, aunque el código de PR3 no los lea todavía.
+   - Coincide con lo reportado por los revisores; el matiz sobre "o no existe" fue una precisión de alcance, no una discrepancia sobre el hallazgo en sí.
+   - Tests nuevos: 1 en `useModelDownloadStep.test.jsx` (`status` llega a `'error'`, no queda colgado en `'loading'`) + 1 en `ModelStep.test.jsx` (`data-testid="model-step-load-error"` se renderiza con el mensaje que promete "podés continuar y descargarlo después", y el botón `model-step-next` NO queda bloqueado — ONB3).
+
+### Test Summary (fix pass)
+- **Total tests nuevos**: 6 (2 en `useModelDownloadStep.test.jsx` [Fix 1 startError] + 1 en `useModelDownloadStep.test.jsx` [Fix 3 catalog-error] − 4 tests de persistencia removidos de ese mismo archivo + 5 agregados [2 onDownloadStart + 2 startError + 1 catalog-error] = neto 8/8 en ese archivo; 4 nuevos en `ModelStep.test.jsx` [Fix 1 x2, Fix 2 wiring x1, Fix 3 x1] = 8/8 en ese archivo; 2 nuevos en `Onboarding.modelPersistence.test.jsx` [archivo nuevo, Fix 2] = 2/2)
+- **Full suite**: **1283/1283 green** (1277 previos del apply original de PR3 + 6 netos nuevos)
+- Ver el conteo detallado por archivo en la salida de `npx vitest run src/tests/pages/Onboarding --reporter=verbose`: `useModelDownloadStep.test.jsx` 8/8, `ModelStep.test.jsx` 8/8, `Onboarding.modelPersistence.test.jsx` 2/2 (nuevo), `Onboarding.test.jsx` 3/3 (sin cambios) — 21/21 en el directorio.
+
+### Files Changed (fix pass)
+| File | Action | What Was Done |
+|------|--------|----------------|
+| `src/pages/Onboarding/useOnboardingModelPersistence.js` | Created | Hook elevado: `Map` de tracking + suscripción propia a `resources.onProgress()` + `trackDownload(id)` (Fix 2) |
+| `src/pages/Onboarding/useModelDownloadStep.js` | Modified | Eliminados `activeDownloadIdRef`/`previousStatesRef` y la persistencia inline en `applySnapshot` (Fix 2); nuevo parámetro `{ onDownloadStart }` y estado `startError` en `startDownload()` (Fix 1) |
+| `src/pages/Onboarding/ModelStep.jsx` | Modified | Nuevo prop `onDownloadStart` reenviado al hook (Fix 2); render de `data-testid="model-start-error"` con `START_ERROR_KEY_MAP` (Fix 1) |
+| `src/pages/Onboarding/Onboarding.jsx` | Modified | Usa `useOnboardingModelPersistence()`, pasa `trackDownload` como `onDownloadStart` a `<ModelStep>` (Fix 2) |
+| `src/tests/pages/Onboarding/useModelDownloadStep.test.jsx` | Modified | Reescrito: removidos los 4 tests de persistencia (ahora cubiertos en `Onboarding.modelPersistence.test.jsx`), agregados tests de `onDownloadStart`/`startError`/catálogo (Fix 1, 2, 3) |
+| `src/tests/pages/Onboarding/ModelStep.test.jsx` | Modified | +4 tests (Fix 1 x2, Fix 2 wiring x1, Fix 3 x1); `makeSnapshot()` extendido con `cacheDir`/`freeBytes`/`totalBytes` (Fix 3) |
+| `src/tests/pages/Onboarding/Onboarding.modelPersistence.test.jsx` | Created | 2 tests de integración (Fix 2 — sobrevive desmontaje de `ModelStep`, trackea más de una descarga simultánea) |
+
+No se tocó PR1, PR2 (ya commiteados en la branch base) ni PR4. No se hizo `git add`/`commit`/`push`/PR (regla explícita del proyecto). `tasks.md` no requirió cambios: los 3 fixes son correcciones dentro del alcance ya marcado `[x]` de PR3, no tareas nuevas.
+
+### Status (actualizado tras fix pass)
+
+4/4 fases de PR3 completas + fix pass post-review aplicado (2 BLOCKER + 1 CRITICAL confirmados, los 3 corregidos). Full suite 1283/1283 green. Próximo: `sdd-verify`/re-verify sobre PR3, luego PR4 (bocadillo global + hardening de los 4 selectores) cuando se retome.
