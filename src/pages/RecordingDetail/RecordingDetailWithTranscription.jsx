@@ -1285,6 +1285,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         provider: aiProvider,
         settings: savedSettings,
       });
+      // El modelo elegido en el modal (Local Model / LM Studio Model) prevalece
+      // sobre el guardado en Ajustes — este último es solo el valor inicial.
+      if (aiProvider === 'ollama' && selectedOllamaModel) providerOverrides.model = selectedOllamaModel;
+      if (aiProvider === 'lmstudio' && selectedLmStudioModel) providerOverrides.model = selectedLmStudioModel;
 
       // Leer contenido de adjuntos seleccionados para la regeneración
       let regenerateDocContext = '';
@@ -2106,6 +2110,40 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                   customConnections={customConnections}
                 />
 
+                {aiProvider === 'ollama' && (
+                  <>
+                    <label className={styles.modalLabel}>Local Model</label>
+                    <select
+                      className={styles.select}
+                      value={selectedOllamaModel}
+                      onChange={(e) => setSelectedOllamaModel(e.target.value)}
+                    >
+                      <option value="" disabled>Select a model...</option>
+                      {ollamaModels.map(model => (
+                        <option key={model} value={model}>{model}</option>
+                      ))}
+                    </select>
+                  </>
+                )}
+
+                {aiProvider === 'lmstudio' && (
+                  <>
+                    <label className={styles.modalLabel}>LM Studio Model</label>
+                    <select
+                      className={styles.select}
+                      value={selectedLmStudioModel}
+                      onChange={(e) => setSelectedLmStudioModel(e.target.value)}
+                    >
+                      <option value="" disabled>Select a model...</option>
+                      {lmStudioModels.length > 0
+                        ? lmStudioModels.map(model => (
+                            <option key={model} value={model}>{model}</option>
+                          ))
+                        : <option value="" disabled>LM Studio no disponible o sin modelos</option>
+                      }
+                    </select>
+                  </>
+                )}
               </div>
 
               {/* Options Section */}
