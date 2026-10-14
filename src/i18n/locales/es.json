@@ -165,6 +165,7 @@
     "micNotFound": "⚠️ No se encontró ningún micrófono.\n\nPor favor, conecta un micrófono e intenta de nuevo.",
     "errorStartingRecording": "No se pudo iniciar la grabación: {{error}}",
     "errorTranscribing": "Error iniciando transcripción: {{error}}",
+    "noModelInstalledConfirm": "⚠️ No tienes ningún modelo Whisper instalado para transcribir con tu configuración actual.\n\nPor favor, descarga un modelo en Ajustes → Transcripción → Modelos y descargas.\n\n¿Quieres ir a Ajustes ahora?",
     "errorImporting": "Error importando la transcripción: {{error}}",
     "errorImportingAudio": "Error importando audio: {{error}}",
     "errorImportingConversation": "Error al importar la conversación",
@@ -237,6 +238,12 @@
     "extraInstructionsPlaceholder": "Ej: Reunión de planificación del sprint con el equipo frontend. Foco en decisiones técnicas y asignación de tareas...",
     "discardDiarization": "Descartar diarización (identificación de hablantes) en esta reunión"
   },
+  "downloadIndicator": {
+    "title": "Descargas de modelos",
+    "activeLabel": "{{model}} · {{percent}}%",
+    "errorLabel": "{{count}} descarga(s) con error",
+    "summary": "{{done}} de {{total}} descargas"
+  },
   "settings": {
     "title": "Ajustes de AIRecorder",
     "subtitle": "Configuración",
@@ -299,6 +306,7 @@
       "recentMeetings": "Cuántas grabaciones recientes se muestran en los highlights del resumen de proyecto.",
       "microphone": "Selecciona el dispositivo de entrada para tus grabaciones.",
       "whisperModel": "Elige el modelo por defecto para nuevas transcripciones. Los modelos pequeños son más rápidos pero menos precisos.",
+      "whisperModelNoneInstalled": "No tienes ningún modelo Whisper instalado. Descarga uno en la sección \"Modelos y descargas\" de abajo antes de transcribir.",
       "cpuThreads": "Más hilos aumentan la velocidad de transcripción pero consumen más recursos del ordenador.",
       "ragModel": "Modelo específico para responder consultas RAG (ej: deepseek-r1). Dejar vacío para usar el modelo principal.",
       "generalModel": "Modelo utilizado para resúmenes, análisis y tareas de procesamiento.",
@@ -326,7 +334,48 @@
       "base": "Base",
       "small": "Small (Recomendado)",
       "medium": "Medium",
-      "large": "Large (Preciso)"
+      "large": "Large (Preciso)",
+      "large-v3": "Large v3 (Preciso)",
+      "notInstalledSuffix": "{{model}} (no instalado — ir a Ajustes)"
+    },
+    "diskSpace": {
+      "loading": "Calculando espacio en disco…",
+      "unavailable": "Espacio en disco no disponible",
+      "freeOfTotal": "{{free}} libres de {{total}}"
+    },
+    "modelsSection": {
+      "title": "Modelos y descargas",
+      "loadError": "No se pudo cargar el listado de modelos. Comprobá tu conexión o intentá de nuevo.",
+      "states": {
+        "notInstalled": "No descargado",
+        "queued": "En cola",
+        "downloading": "Descargando",
+        "installed": "Listo",
+        "deleting": "Eliminando…",
+        "error": "Falló"
+      },
+      "errors": {
+        "insufficientSpace": "Espacio insuficiente",
+        "network": "Error de conexión",
+        "cancelled": "Cancelado",
+        "unknown": "Error desconocido"
+      },
+      "confirm": {
+        "downloadTitle": "Descargar modelo",
+        "purpose": "Se descargará el modelo \"{{model}}\" para transcripción con Whisper.",
+        "size": "Tamaño de la descarga: {{size}}",
+        "free": "Espacio libre actual: {{free}}",
+        "remaining": "Espacio libre estimado tras la descarga: {{remaining}}",
+        "insufficientSpace": "No hay espacio suficiente para descargar este modelo (libre: {{free}}, requerido: {{required}}).",
+        "spaceUnavailable": "No pudimos verificar el espacio libre en disco (tamaño de la descarga: {{required}}). ¿Querés continuar de todos modos?",
+        "deleteTitle": "Eliminar modelo",
+        "freedSpace": "Se liberará aproximadamente {{size}} de espacio en disco.",
+        "deleteError": "No se pudo eliminar el modelo. Intentá de nuevo. (Código: {{error}})"
+      },
+      "deleteGuard": {
+        "defaultModel": "No se puede eliminar: es el modelo por defecto configurado en Ajustes. Elegí otro modelo por defecto antes de eliminarlo.",
+        "inQueue": "No se puede eliminar: hay transcripciones pendientes o en curso que usan este modelo."
+      }
     },
     "providers": {
       "ollamaActive": "Ollama Activo",
@@ -384,7 +433,10 @@
       "checking": "Comprobando...",
       "cancel": "Cancelar",
       "detect": "Detectar",
-      "inUse": "usados"
+      "inUse": "usados",
+      "retry": "Reintentar",
+      "delete": "Eliminar",
+      "continueAnyway": "Continuar de todos modos"
     },
     "messages": {
       "saveSuccess": "Ajustes guardados con éxito",
@@ -823,6 +875,7 @@
     "steps": {
       "welcome": "Bienvenido a AIRecorder",
       "aiInfo": "Conoce la IA Local",
+      "model": "Modelo de Transcripción",
       "ai": "Configuración de IA",
       "permissions": "Permisos del Sistema",
       "preferences": "Preferencias",
@@ -967,6 +1020,14 @@
       "changeBtn": "Cambiar",
       "nextBtn": "Siguiente paso",
       "optional": "Opcional"
+    },
+    "model": {
+      "title": "Modelo de transcripción",
+      "subtitle": "Elige el modelo de Whisper que usará AIRecorder para transcribir tus grabaciones. Podés descargarlo ahora o más tarde desde Ajustes — el onboarding no espera a que termine.",
+      "loading": "Cargando catálogo de modelos…",
+      "loadError": "No se pudo cargar el catálogo de modelos. Podés continuar y descargarlo más tarde desde Ajustes.",
+      "downloadBtn": "Descargar",
+      "nextBtn": "Siguiente paso"
     },
     "footer": {
       "back": "Atrás"

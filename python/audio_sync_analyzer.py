@@ -3,8 +3,18 @@ import multiprocessing
 
 multiprocessing.freeze_support()
 
-import os
 import sys
+
+# Dispatch temprano para el subcomando "resources" (descarga/borrado/escaneo
+# de modelos Whisper). Se resuelve ANTES de los imports pesados (matplotlib,
+# librosa, faster_whisper ~1.5-3s) para que `resources scan/download/delete`
+# no pague ese costo — es un módulo aislado, ver design.md D5.
+if len(sys.argv) > 1 and sys.argv[1] == "resources":
+    from model_resources import main as resources_main
+
+    sys.exit(resources_main(sys.argv[2:]))
+
+import os
 import tempfile
 
 # Configurar matplotlib ANTES de importarlo
@@ -46,17 +56,28 @@ BASE_DIR = "/Users/raul.garciad/Desktop/recorder/grabaciones"
 # Configuración
 SAMPLE_RATE = 44100  # Mayor resolución para sincronización fina
 CHUNK_SIZE_MS = 1000  # Tamaño de chunks en milisegundos
-WHISPER_MODEL = "large"  # Opciones: tiny, base, small, medium, large
+# WHISPER_MODEL ya no tiene default a nivel de módulo (D8): --model es
+# obligatorio y main() lo setea via `global` antes de que cualquier método
+# lo lea. El default previo ("large", 3 GB) era código muerto — parse_args()
+# ya sobrescribía con "small" incondicionalmente en cada ejecución real.
 MIN_SIGNAL_RMS = 0.001
 SILENT_TRACK_THRESHOLD_PCT = 99.5
 
 
 class AudioSyncAnalyzer:
-    def __init__(self, mic_file, system_file, output_dir, diarization_file=None):
+    def __init__(
+        self,
+        mic_file,
+        system_file,
+        output_dir,
+        diarization_file=None,
+        model_cache_dir=None,
+    ):
         self.mic_file = mic_file
         self.system_file = system_file
         self.output_dir = output_dir
         self.diarization_file = diarization_file
+        self.model_cache_dir = model_cache_dir
         self.mic_audio = None
         self.system_audio = None
         self.mic_data = None
@@ -104,7 +125,14 @@ class AudioSyncAnalyzer:
         return audio
 
     def load_whisper_model(self):
-        """Cargar el modelo Whisper para transcripción"""
+        """Cargar el modelo Whisper para transcripción.
+
+        `local_files_only=True` es la puerta autoritativa real (D3, capa 3):
+        si el modelo no está en `self.model_cache_dir`, falla fuerte y
+        visible en vez de descargar 3 GB en silencio (D8). Node ya bloquea
+        el spawn antes de llegar aquí (`transcriptionManager` + D8 en
+        `resourceManager.isInstalled()`); este error es la última guardia.
+        """
         print(
             f"🤖 Cargando modelo Whisper '{WHISPER_MODEL}' con {CPU_THREADS} hilos...",
             flush=True,
@@ -115,11 +143,14 @@ class AudioSyncAnalyzer:
                 device="cpu",
                 compute_type="int8",
                 cpu_threads=CPU_THREADS,
+                download_root=self.model_cache_dir,
+                local_files_only=True,
             )
             print("✅ Modelo Whisper cargado correctamente", flush=True)
             return True
         except Exception as e:
             print(f"❌ Error cargando modelo Whisper: {e}")
+            print(f"ERROR:MODEL_NOT_INSTALLED::{WHISPER_MODEL}", flush=True)
             return False
 
     def load_audio_files(self, mic_exists=True, sys_exists=True):
@@ -1088,8 +1119,16 @@ def parse_args():
     parser.add_argument(
         "--model",
         type=str,
-        default="small",
-        help="Modelo de Whisper (tiny, base, small, medium, large)",
+        required=True,
+        help="Modelo de Whisper (tiny, base, small, medium, large-v3). Sin default: "
+        "el modelo activo lo decide siempre Node vía resourceManager (D8).",
+    )
+    parser.add_argument(
+        "--model_cache_dir",
+        type=str,
+        default=None,
+        help="Directorio de caché de Hugging Face resuelto por resourceManager.resolveCacheDir() (D2). "
+        "Se pasa a WhisperModel(download_root=..., local_files_only=True).",
     )
     parser.add_argument(
         "--language",
@@ -1203,7 +1242,11 @@ def main():
     output_dir = os.path.join(base_dir, basename, "analysis")
 
     analyzer = AudioSyncAnalyzer(
-        mic_file, system_file, output_dir, diarization_file=args.diarization_file
+        mic_file,
+        system_file,
+        output_dir,
+        diarization_file=args.diarization_file,
+        model_cache_dir=args.model_cache_dir,
     )
     success = analyzer.run_full_analysis()
 

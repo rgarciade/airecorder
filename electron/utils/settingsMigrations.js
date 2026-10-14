@@ -47,4 +47,20 @@ function migrateCustomChatModelField(settings) {
   return false;
 }
 
-module.exports = { migrateGeminiFreeTier, migrateCustomChatModelField };
+/**
+ * Migración D7 (design.md): 'large' se renombra a 'large-v3'. Es un cambio de
+ * string puro y SIN re-descarga — `faster_whisper/utils.py` ya mapea "large"
+ * al mismo repo de HF ('Systran/faster-whisper-large-v3'), así que el modelo
+ * ya descargado sigue estando en la misma carpeta de caché (INV2). No pide
+ * confirmación al usuario, se aplica de forma silenciosa al iniciar.
+ * @returns {boolean} true si modificó `settings` (hay que persistir)
+ */
+function migrateWhisperModelAlias(settings) {
+  if (settings.whisperModel === 'large') {
+    settings.whisperModel = 'large-v3';
+    return true;
+  }
+  return false;
+}
+
+module.exports = { migrateGeminiFreeTier, migrateCustomChatModelField, migrateWhisperModelAlias };

@@ -16,10 +16,26 @@ import ReadyStep from './ReadyStep';
 import AiConfigStep from './AiConfigStep';
 import PreferencesStep from './PreferencesStep';
 import LocalAiInfoStep from './LocalAiInfoStep';
+import ModelStep from './ModelStep';
+import { useOnboardingModelPersistence } from './useOnboardingModelPersistence';
 
-const STEPS = [
+// Orden del wizard (PR3, Fase 3 — ONB1): "model" (Modelo de transcripción)
+// se ubica justo después de "aiInfo" y antes de "ai". Racional de producto:
+// la transcripción es la entrada de todo el pipeline (el chat/RAG de "ai"
+// opera SOBRE el texto ya transcripto), así que elegir/descargar el modelo
+// de Whisper antes de configurar el proveedor de IA de chat sigue el orden
+// real del pipeline de audio → transcripción → IA. Sin estado de UI nuevo
+// aquí: todo el estado del paso (catálogo, selección, descarga) vive en
+// `useModelDownloadStep.js` (regla anti-monolito de AGENTS.md), igual que
+// los demás steps ya extraídos. Excepción explícita: el tracking de
+// persistencia ONB4 (`useOnboardingModelPersistence`, más abajo) SÍ vive
+// acá — necesita sobrevivir la navegación entre steps, y `Onboarding.jsx`
+// es el único componente montado durante todo el wizard (fix post-review
+// PR3, BLOCKER).
+export const STEPS = [
   { id: 'welcome' },
   { id: 'aiInfo' },
+  { id: 'model' },
   { id: 'ai' },
   { id: 'permissions' },
   { id: 'preferences' },
@@ -105,6 +121,10 @@ export default function Onboarding({ onComplete }) {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState('system');
   const [appVersion, setAppVersion] = useState('');
+
+  // Tracking de persistencia ONB4 elevado desde `useModelDownloadStep.js`
+  // (BLOCKER, fix post-review PR3) — ver JSDoc de `useOnboardingModelPersistence.js`.
+  const { trackDownload } = useOnboardingModelPersistence();
 
   useEffect(() => {
     checkPermissions();
@@ -488,6 +508,7 @@ export default function Onboarding({ onComplete }) {
           const labels = [
             t('onboarding.steps.welcome'),
             t('onboarding.steps.aiInfo'),
+            t('onboarding.steps.model'),
             t('onboarding.steps.ai'),
             t('onboarding.steps.permissions'),
             t('onboarding.steps.preferences'),
@@ -649,6 +670,19 @@ export default function Onboarding({ onComplete }) {
   if (currentStep === 2) return (
     <>
       {renderLangSelector()}
+      <ModelStep
+        t={t}
+        onBack={handleBack}
+        onNext={handleNext}
+        StepProgressComponent={renderStepProgress()}
+        onDownloadStart={trackDownload}
+      />
+    </>
+  );
+
+  if (currentStep === 3) return (
+    <>
+      {renderLangSelector()}
       <AiConfigStep
         t={t}
         activeAiRole={activeAiRole}
@@ -666,7 +700,7 @@ export default function Onboarding({ onComplete }) {
     </>
   );
 
-  if (currentStep === 3) return (
+  if (currentStep === 4) return (
     <>
       {renderLangSelector()}
       <PermissionsStep
@@ -684,7 +718,7 @@ export default function Onboarding({ onComplete }) {
     </>
   );
 
-  if (currentStep === 4) return (
+  if (currentStep === 5) return (
     <>
       {renderLangSelector()}
       <PreferencesStep
@@ -702,7 +736,7 @@ export default function Onboarding({ onComplete }) {
     </>
   );
 
-  if (currentStep === 5) return (
+  if (currentStep === 6) return (
     <>
       {renderLangSelector()}
       <ReadyStep

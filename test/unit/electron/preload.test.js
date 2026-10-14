@@ -38,3 +38,53 @@ describe('Codex preload bridge', () => {
     expect(invoke).toHaveBeenCalledWith('ai:codex-models');
   });
 });
+
+describe('resources preload bridge', () => {
+  it('exposes list/refresh/checkSpace/download/cancel/retry/remove/getQueue through the exact IPC channels', async () => {
+    invoke.mockResolvedValue({ ok: true });
+
+    await exposedApi.resources.list();
+    expect(invoke).toHaveBeenCalledWith('resources:list');
+
+    await exposedApi.resources.refresh();
+    expect(invoke).toHaveBeenCalledWith('resources:refresh');
+
+    await exposedApi.resources.checkSpace('small');
+    expect(invoke).toHaveBeenCalledWith('resources:check-space', 'small');
+
+    await exposedApi.resources.download('small');
+    expect(invoke).toHaveBeenCalledWith('resources:download', 'small');
+
+    await exposedApi.resources.cancel('small');
+    expect(invoke).toHaveBeenCalledWith('resources:cancel', 'small');
+
+    await exposedApi.resources.retry('small');
+    expect(invoke).toHaveBeenCalledWith('resources:retry', 'small');
+
+    await exposedApi.resources.remove('small');
+    expect(invoke).toHaveBeenCalledWith('resources:delete', 'small');
+
+    await exposedApi.resources.getQueue();
+    expect(invoke).toHaveBeenCalledWith('resources:get-queue');
+  });
+
+  it('onProgress se suscribe a resources:progress y devuelve un unsubscribe explícito', () => {
+    const onMock = nodeRequire.cache[electronPath].exports.ipcRenderer.on;
+    const removeListenerMock = nodeRequire.cache[electronPath].exports.ipcRenderer.removeListener;
+    onMock.mockClear();
+    removeListenerMock.mockClear();
+
+    const listener = vi.fn();
+    const unsubscribe = exposedApi.resources.onProgress(listener);
+
+    expect(onMock).toHaveBeenCalledWith('resources:progress', expect.any(Function));
+    const wrapped = onMock.mock.calls[0][1];
+
+    const payload = { ok: true, items: [] };
+    wrapped(null, payload);
+    expect(listener).toHaveBeenCalledWith(payload);
+
+    unsubscribe();
+    expect(removeListenerMock).toHaveBeenCalledWith('resources:progress', wrapped);
+  });
+});

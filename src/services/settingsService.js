@@ -40,6 +40,12 @@ export const getSettings = async () => {
       language: 'es',
       uiLanguage: 'es',
       microphone: '',
+      // Whisper (issue #149) — default explícito requerido por el
+      // hardening "solo instalados" de los 4 selectores (INV6, PR4): los
+      // puntos que resuelven el modelo implícitamente (Home.jsx,
+      // RecordingOverlay.jsx) necesitan un id concreto para poder consultar
+      // el inventario antes de encolar, no `undefined`.
+      whisperModel: 'small',
       // Gemini
       geminiApiKey: '',
       geminiModel: 'gemini-2.0-flash',
