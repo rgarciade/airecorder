@@ -6,7 +6,7 @@ const speakerManager = require('../services/speakerManager');
 const diarizationService = require('../services/diarizationService');
 const { resolveSpeakersInText } = require('../services/speakerResolver');
 const { getRecordingsPath, getFolderPathFromId, settingsPath } = require('../utils/paths');
-const { updateRecordingMetadata } = require('../utils/recordingMetadata');
+const { updateRecordingMetadata, readDisplayName } = require('../utils/recordingMetadata');
 
 module.exports.registerRecordingsHandlers = () => {
 
@@ -53,18 +53,7 @@ module.exports.registerRecordingsHandlers = () => {
               }
 
               // Leer nombre personalizado de metadata.json si existe
-              let displayName = item;
-              const metadataPath = path.join(itemPath, 'metadata.json');
-              if (fs.existsSync(metadataPath)) {
-                try {
-                  const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-                  if (metadata.customName) {
-                    displayName = metadata.customName;
-                  }
-                } catch (e) {
-                  console.warn(`Error leyendo metadata para ${item}:`, e);
-                }
-              }
+              const displayName = readDisplayName(itemPath, item);
 
               // Obtener proyecto asociado
               const project = dbService.getRecordingProject(item);
@@ -340,6 +329,35 @@ module.exports.registerRecordingsHandlers = () => {
       return { success: true, folderName: safeNewName };
     } catch (error) {
       console.error('Error renaming recording:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Nombre mostrado en la cola de IA: customName de metadata.json o, si no hay, el nombre de la carpeta
+  ipcMain.handle('get-recording-name', async (event, recordingId) => {
+    try {
+      if (recordingId === undefined || recordingId === null || String(recordingId).trim() === '') {
+        return { success: false, error: 'ID de grabación no válido' };
+      }
+      const folderName = await getFolderPathFromId(recordingId);
+      const isUnsafe = typeof folderName !== 'string'
+        || folderName.trim() === ''
+        || path.isAbsolute(folderName)
+        || folderName.split(/[\\/]/).includes('..');
+      if (isUnsafe) {
+        return { success: false, error: 'ID de grabación no válido' };
+      }
+
+      const baseOutputDir = path.resolve(await getRecordingsPath());
+      const recordingDir = path.resolve(baseOutputDir, folderName);
+      if (!recordingDir.startsWith(baseOutputDir + path.sep)) {
+        return { success: false, error: 'ID de grabación no válido' };
+      }
+
+      const name = readDisplayName(recordingDir, path.basename(recordingDir));
+      return { success: true, name };
+    } catch (error) {
+      console.error('Error obteniendo nombre de grabación:', error);
       return { success: false, error: error.message };
     }
   });

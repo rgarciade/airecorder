@@ -33,4 +33,28 @@ async function updateRecordingMetadata(folderPath, patch) {
   return { written: true };
 }
 
-module.exports = { updateRecordingMetadata };
+/**
+ * Lee el nombre a mostrar de una grabación desde su metadata.json.
+ * Devuelve customName si es un string no vacío; si no (ausente, corrupto, vacío), el fallback.
+ * @param {string} folderPath - Ruta absoluta de la carpeta de la grabación
+ * @param {string} fallback - Nombre a usar si no hay customName válido
+ * @returns {string}
+ */
+function readDisplayName(folderPath, fallback) {
+  const metadataPath = path.join(folderPath, 'metadata.json');
+  if (!fs.existsSync(metadataPath)) {
+    return fallback;
+  }
+  try {
+    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    const customName = metadata && typeof metadata === 'object' ? metadata.customName : null;
+    if (typeof customName === 'string' && customName.trim() !== '') {
+      return customName;
+    }
+  } catch (e) {
+    console.warn(`Error leyendo metadata en ${folderPath}:`, e.message);
+  }
+  return fallback;
+}
+
+module.exports = { updateRecordingMetadata, readDisplayName };
