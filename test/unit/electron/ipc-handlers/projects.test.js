@@ -79,7 +79,15 @@ const dbServiceMock = {
 
 // ── Mock de paths.js — PROJECTS_PATH es una constante de string ─────────
 const FAKE_PROJECTS_PATH = '/fake/userData/projects';
-const pathsMock = { PROJECTS_PATH: FAKE_PROJECTS_PATH };
+// getRecordingsPath/getFolderPathFromId: used to locate each recording's
+// metadata.json (projectName sync). fs.existsSync is mocked to false below,
+// so in this file the metadata sync is always skipped; it is covered with a
+// real temp dir in projects.metadata.test.js.
+const pathsMock = {
+  PROJECTS_PATH: FAKE_PROJECTS_PATH,
+  getRecordingsPath: vi.fn(async () => '/fake/recordings'),
+  getFolderPathFromId: vi.fn(async (id) => `folder-${id}`),
+};
 
 beforeAll(() => {
   originalElectronEntry = nodeRequire.cache[electronPath];
@@ -124,6 +132,9 @@ function resetAllMocks() {
   ipcMainMock.handle.mockImplementation((channel, cb) => {
     handlers[channel] = cb;
   });
+  // Defaults so the projectName metadata sync has something to read.
+  dbServiceMock.getRecordingProject.mockReturnValue(null);
+  dbServiceMock.getProjectRecordingIds.mockReturnValue([]);
 }
 
 beforeEach(async () => {

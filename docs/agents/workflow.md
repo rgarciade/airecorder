@@ -1,6 +1,6 @@
 # Workflow
 
-Settings read by the `flow-plan` and `flow-work` skills. Edit this file directly to change them.
+Settings read by the `flow-backlog` and `flow-work` skills. Edit this file directly to change them.
 
 ## Task tracker
 

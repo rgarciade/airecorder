@@ -29,9 +29,11 @@
  * `ipcMain.handle` se mockea igual que en export.test.js: captura cada
  * callback registrado en un objeto `handlers` para invocarlo directamente.
  */
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import { createRequire } from 'node:module';
 import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import crypto from 'crypto';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -78,10 +80,11 @@ const dbServiceMock = {
   updatePlatformConnectionTokens: vi.fn(),
   savePlatformConnection: vi.fn(),
   updateDuration: vi.fn(),
+  getRecordingProject: vi.fn(),
 };
 
 // ── Mock de paths.js ────────────────────────────────────────────────────
-const pathsMock = { getRecordingsPath: vi.fn() };
+const pathsMock = { getRecordingsPath: vi.fn(), getFolderPathFromId: vi.fn() };
 
 // ── Mock de chatSyncUtils.js ────────────────────────────────────────────
 const chatSyncUtilsMock = {
@@ -1026,5 +1029,112 @@ describe('sync-project-integrations', () => {
 
     expect(teamsMock.fetchMessages).toHaveBeenCalled();
     expect(result.newMessages).toBe(1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// #166 — projectName en el metadata.json de las grabaciones creadas por sync.
+// Usa fs real sobre un directorio temporal (se restauran los espías de
+// fs.promises del beforeEach global) y un dbService que modela la relación
+// grabación↔proyecto, para afirmar sobre el metadata.json resultante.
+// ─────────────────────────────────────────────────────────────────────────
+
+describe('#166 projectName en metadata.json de grabaciones creadas por sync', () => {
+  const PROJECT = { id: 9, name: 'Proyecto Alfa' };
+  let tmpDir;
+  let savedFolders;
+  let projectLinks;
+
+  function connection() {
+    return {
+      id: 1,
+      platform: 'google-chat',
+      access_token_encrypted: encToken('at'),
+      refresh_token_encrypted: encToken('rt'),
+      token_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+    };
+  }
+
+  function integration() {
+    return {
+      id: 900,
+      connection_id: 1,
+      channel_id: 'space/1',
+      channel_name: 'General',
+      recording_id: null,
+      last_sync_at: null,
+      date_from: null,
+      date_to: null,
+    };
+  }
+
+  function readCreatedMetadata() {
+    const folders = fs.readdirSync(tmpDir);
+    expect(folders).toHaveLength(1);
+    return JSON.parse(fs.readFileSync(path.join(tmpDir, folders[0], 'metadata.json'), 'utf8'));
+  }
+
+  beforeEach(() => {
+    fs.promises.readFile.mockRestore();
+    fs.promises.writeFile.mockRestore();
+    fs.promises.mkdir.mockRestore();
+
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'airecorder-oauth-166-'));
+    pathsMock.getRecordingsPath.mockResolvedValue(tmpDir);
+
+    savedFolders = new Map();
+    projectLinks = new Map();
+    dbServiceMock.saveRecording.mockImplementation((folderName) => {
+      const id = 1000 + savedFolders.size;
+      savedFolders.set(id, folderName);
+      return { success: true, id };
+    });
+    dbServiceMock.getRecordingById.mockImplementation((id) =>
+      savedFolders.has(id) ? { id, relative_path: savedFolders.get(id) } : null
+    );
+    pathsMock.getFolderPathFromId.mockImplementation(async (id) => savedFolders.get(id) ?? String(id));
+    dbServiceMock.addRecordingToProject.mockImplementation((projectId, recordingId) => {
+      projectLinks.set(recordingId, projectId);
+      return { success: true };
+    });
+    dbServiceMock.getRecordingProject.mockImplementation((recordingId) =>
+      projectLinks.get(recordingId) === PROJECT.id ? { ...PROJECT } : null
+    );
+
+    dbServiceMock.getPlatformConnectionById.mockReturnValue(connection());
+    googleChatMock.fetchMessages.mockResolvedValue([{ speaker: 'Ana', text: 'hola', timestamp: 't1' }]);
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('O-a: sync-chat-integrations con projectId → metadata.json con customName y projectName del proyecto', async () => {
+    dbServiceMock.getChatIntegrations.mockReturnValue([integration()]);
+
+    const result = await handlers['sync-chat-integrations']({}, { chatId: 'chat-1', projectId: PROJECT.id, settings: {} });
+
+    expect(result.errors).toEqual([]);
+    expect(readCreatedMetadata()).toEqual({ customName: 'General', projectName: 'Proyecto Alfa' });
+  });
+
+  it('O-b: sync-chat-integrations sin projectId → metadata.json con customName y sin clave projectName', async () => {
+    dbServiceMock.getChatIntegrations.mockReturnValue([integration()]);
+
+    const result = await handlers['sync-chat-integrations']({}, { chatId: 'chat-1', projectId: null, settings: {} });
+
+    expect(result.errors).toEqual([]);
+    const metadata = readCreatedMetadata();
+    expect(metadata).toEqual({ customName: 'General' });
+    expect(metadata).not.toHaveProperty('projectName');
+  });
+
+  it('O-c: sync-project-integrations → metadata.json con projectName del proyecto', async () => {
+    dbServiceMock.getProjectIntegrations.mockReturnValue([integration()]);
+
+    const result = await handlers['sync-project-integrations']({}, { projectId: PROJECT.id, settings: {} });
+
+    expect(result.errors).toEqual([]);
+    expect(readCreatedMetadata()).toEqual({ customName: 'General', projectName: 'Proyecto Alfa' });
   });
 });
