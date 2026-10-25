@@ -861,7 +861,7 @@ describe('get-recording-name', () => {
 
     const result = await handlers['get-recording-name']({}, 'rec-1');
 
-    expect(result).toEqual({ success: true, name: 'rec-1' });
+    expect(result).toEqual({ success: true, name: 'folder-rec-1' });
   });
 
   it.each([
@@ -875,7 +875,7 @@ describe('get-recording-name', () => {
 
     const result = await handlers['get-recording-name']({}, 'rec-1');
 
-    expect(result).toEqual({ success: true, name: 'rec-1' });
+    expect(result).toEqual({ success: true, name: 'folder-rec-1' });
   });
 
   it('returns the folder name when metadata.json is missing', async () => {
@@ -884,7 +884,7 @@ describe('get-recording-name', () => {
 
     const result = await handlers['get-recording-name']({}, 'rec-1');
 
-    expect(result).toEqual({ success: true, name: 'rec-1' });
+    expect(result).toEqual({ success: true, name: 'folder-rec-1' });
   });
 
   it('returns the folder name when metadata.json is corrupt JSON', async () => {
@@ -892,7 +892,7 @@ describe('get-recording-name', () => {
 
     const result = await handlers['get-recording-name']({}, 'rec-1');
 
-    expect(result).toEqual({ success: true, name: 'rec-1' });
+    expect(result).toEqual({ success: true, name: 'folder-rec-1' });
   });
 
   it.each([
@@ -904,7 +904,7 @@ describe('get-recording-name', () => {
 
     const result = await handlers['get-recording-name']({}, 'rec-1');
 
-    expect(result).toEqual({ success: true, name: 'rec-1' });
+    expect(result).toEqual({ success: true, name: 'folder-rec-1' });
   });
 
   it('returns success with the folder name for an unknown folder', async () => {
@@ -912,7 +912,7 @@ describe('get-recording-name', () => {
 
     const result = await handlers['get-recording-name']({}, 'does-not-exist');
 
-    expect(result).toEqual({ success: true, name: 'does-not-exist' });
+    expect(result).toEqual({ success: true, name: 'folder-does-not-exist' });
   });
 
   it.each([
@@ -963,6 +963,39 @@ describe('get-recording-name', () => {
 
     expect(pathsMock.getFolderPathFromId).toHaveBeenCalledWith(7);
     expect(result).toEqual({ success: true, name: 'Desde BD' });
+  });
+
+  it('falls back to the resolved folder name, not the id, for a numeric id without customName', async () => {
+    pathsMock.getFolderPathFromId.mockImplementation(async () => 'real-folder');
+    serveMetadata(JSON.stringify({ other: 1 }));
+
+    const result = await handlers['get-recording-name']({}, 7);
+
+    expect(result).toEqual({ success: true, name: 'real-folder' });
+  });
+
+  it('falls back to the basename when the resolved folder is nested', async () => {
+    pathsMock.getFolderPathFromId.mockImplementation(async () => 'project/real-folder');
+    serveMetadata(JSON.stringify({}));
+
+    const result = await handlers['get-recording-name']({}, 7);
+
+    expect(result).toEqual({ success: true, name: 'real-folder' });
+  });
+
+  it.each([
+    ['a sibling dir sharing the base prefix', '/fake/recordings-evil/x'],
+    ['a path escaping through the base', '/fake/recordings/../outside'],
+    ['the base directory itself outside via parent', '/fake'],
+  ])('rejects %s resolved outside the recordings base without reading any file', async (_label, resolved) => {
+    pathsMock.getFolderPathFromId.mockImplementation(async () => resolved);
+    serveMetadata(JSON.stringify({ customName: 'Leaked' }));
+
+    const result = await handlers['get-recording-name']({}, 7);
+
+    expect(result.success).toBe(false);
+    expect(typeof result.error).toBe('string');
+    expectNoFileRead();
   });
 
   it('returns success:false when getRecordingsPath rejects', async () => {
