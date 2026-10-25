@@ -20,6 +20,8 @@ async function updateRecordingMetadata(folderPath, patch) {
     const parsed = JSON.parse(await fs.promises.readFile(metadataPath, 'utf8'));
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
       metadata = parsed;
+    } else {
+      console.warn(`metadata.json de ${folderPath} no es un objeto, se sobrescribe`);
     }
   } catch (e) {
     if (e.code !== 'ENOENT') {

@@ -5,14 +5,20 @@ const dbService = require('../database/dbService');
 const { PROJECTS_PATH, getRecordingsPath, getFolderPathFromId } = require('../utils/paths');
 const { updateRecordingMetadata } = require('../utils/recordingMetadata');
 
-// Lee de la BD sin propagar errores (los fallos de metadata no deben alterar el resultado IPC)
-function safeRead(read, fallback) {
+// Lee de la BD sin propagar errores. Es aceptable tragar el fallo: la metadata es un espejo
+// informativo (SQLite es la fuente de verdad) y no debe alterar el resultado IPC tras escribir en la BD
+function readOrDefault(read, fallback) {
   try {
     return read();
   } catch (error) {
     console.error('Error leyendo datos para sincronizar metadata:', error);
     return fallback;
   }
+}
+
+// Sincroniza el proyecto actual de una grabación (o null si no tiene) en su metadata.json
+async function syncRecordingProjectName(recordingId) {
+  await syncProjectName([recordingId], readOrDefault(() => dbService.getRecordingProject(recordingId)?.name ?? null, null));
 }
 
 // Refleja el nombre del proyecto en el metadata.json de cada grabación.
@@ -72,7 +78,7 @@ module.exports.registerProjectsHandlers = () => {
         projectData.description,
         projectData.members
       );
-      await syncProjectName(safeRead(() => dbService.getProjectRecordingIds(projectId), []), project.name);
+      await syncProjectName(readOrDefault(() => dbService.getProjectRecordingIds(projectId), []), project.name);
       return { success: true, project };
     } catch (error) {
       console.error('Error actualizando proyecto:', error);
@@ -84,7 +90,7 @@ module.exports.registerProjectsHandlers = () => {
   ipcMain.handle('delete-project', async (event, projectId) => {
     try {
       // Leer los ids ANTES de borrar: ON DELETE CASCADE los elimina
-      const recordingIds = safeRead(() => dbService.getProjectRecordingIds(projectId), []);
+      const recordingIds = readOrDefault(() => dbService.getProjectRecordingIds(projectId), []);
       dbService.deleteProject(projectId);
       await syncProjectName(recordingIds, null);
       return { success: true };
@@ -98,7 +104,7 @@ module.exports.registerProjectsHandlers = () => {
   ipcMain.handle('add-recording-to-project', async (event, projectId, recordingId) => {
     try {
       dbService.addRecordingToProject(projectId, recordingId);
-      await syncProjectName([recordingId], safeRead(() => dbService.getRecordingProject(recordingId)?.name ?? null, null));
+      await syncRecordingProjectName(recordingId);
       return { success: true };
     } catch (error) {
       console.error('Error agregando grabación al proyecto:', error);
@@ -110,7 +116,7 @@ module.exports.registerProjectsHandlers = () => {
   ipcMain.handle('remove-recording-from-project', async (event, projectId, recordingId) => {
     try {
       dbService.removeRecordingFromProject(projectId, recordingId);
-      await syncProjectName([recordingId], safeRead(() => dbService.getRecordingProject(recordingId)?.name ?? null, null));
+      await syncRecordingProjectName(recordingId);
       return { success: true };
     } catch (error) {
       console.error('Error eliminando grabación del proyecto:', error);
