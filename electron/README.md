@@ -73,7 +73,7 @@ ipcMain.handle('mi-evento', async (event, params) => {
 
 ### IPC: `get-recording-name` — nombre en la cola de IA
 
-`ipc-handlers/recordings.js` expone `get-recording-name(recordingId)` → `{ success: true, name }` o `{ success: false, error }`. `name` es el `customName` de `metadata.json` (si es un string no vacío) o, si no, el nombre de la carpeta; rechaza ids vacíos o con path traversal. Se usa desde `recordingsService.getRecordingName()` para el título de `queueMeta.name` en `recordingAiService`.
+`ipc-handlers/recordings.js` expone `get-recording-name(recordingId)` → `{ success: true, name }` o `{ success: false, error }`. `name` es el `customName` de `metadata.json` (si es un string no vacío) o, si no, el nombre de la carpeta resuelta (`basename`, no el id numérico); rechaza ids vacíos, absolutos, con `..` o cuya ruta resuelta quede fuera de la carpeta de grabaciones (contención). Se usa desde `recordingsService.getRecordingName()` para el título de `queueMeta.name` en `recordingAiService`.
 
 ### IPC: `transcribe-recording` — descarte puntual de diarización
 

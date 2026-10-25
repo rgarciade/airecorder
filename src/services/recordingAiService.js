@@ -731,7 +731,6 @@ class RecordingAiService {
    */
   async improveTask(recordingId, task, userInstructions = '') {
     try {
-      const recName = await this._getRecordingName(recordingId);
       // Obtener contexto (preferiblemente resumen detallado)
       let contextText = await recordingsService.getTranscriptionTxt(recordingId);
       try {
