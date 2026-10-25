@@ -306,7 +306,7 @@ Cada carpeta de grabación puede tener un `metadata.json` con campos informativo
 *   `customName`: nombre personalizado (lo escribe `rename-recording`).
 *   `projectName`: nombre del proyecto al que pertenece la grabación, o `null` si no tiene.
 
-**SQLite es la fuente de verdad**; `metadata.json` es solo un reflejo para quien lea la carpeta sin la app. `updateRecordingMetadata(folderPath, patch)` hace un merge superficial (conserva el resto de claves), no crea la carpeta si no existe y parte de `{}` si el archivo falta o está corrupto. Mantienen `projectName` sincronizado: `add-recording-to-project`, `remove-recording-from-project`, `update-project` y `delete-project` (este lee los ids antes de borrar por el `ON DELETE CASCADE`). Un fallo al escribir metadata se registra en consola y nunca cambia el resultado IPC.
+**SQLite es la fuente de verdad**; `metadata.json` es solo un reflejo para quien lea la carpeta sin la app. `updateRecordingMetadata(folderPath, patch)` hace un merge superficial (conserva el resto de claves), no crea la carpeta si no existe y parte de `{}` si el archivo falta o está corrupto. Mantienen `projectName` sincronizado: `add-recording-to-project`, `remove-recording-from-project`, `update-project`, `delete-project` (este lee los ids antes de borrar por el `ON DELETE CASCADE`) y la sincronización OAuth de chats/proyectos (`sync-chat-integrations`, `sync-project-integrations`) al vincular grabaciones nuevas. La lógica vive en `services/projectRecordingMetadata.js`. Un fallo al escribir metadata se registra en consola y nunca cambia el resultado IPC.
 
 ## 4. Monitor de Micrófono del Sistema (`services/microphoneMonitor.js`)
 

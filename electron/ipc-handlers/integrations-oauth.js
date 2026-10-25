@@ -21,6 +21,7 @@ const { getRecordingsPath } = require('../utils/paths');
 const { buildTranscriptionTxt, buildTranscriptionJson, assignRelativeTimestamps } = require('../integrations/chatSyncUtils');
 const googleChat = require('../integrations/googleChatSyncService');
 const teams = require('../integrations/teamsSyncService');
+const { syncRecordingProjectName } = require('../services/projectRecordingMetadata');
 
 // ── Constantes ─────────────────────────────────────────────────────────────────
 const REDIRECT_URI_GOOGLE = 'airecorder://google-chat-callback';
@@ -297,7 +298,10 @@ module.exports.registerIntegrationsOAuthHandlers = () => {
           const dbResult = dbService.saveRecording(folderName, 0, 'transcribed', new Date().toISOString(), transcriptionModel);
           if (!dbResult.success) throw new Error('Error guardando grabación en BD');
           recordingId = dbResult.id;
-          if (projectId) dbService.addRecordingToProject(projectId, recordingId);
+          if (projectId) {
+            dbService.addRecordingToProject(projectId, recordingId);
+            await syncRecordingProjectName(recordingId);
+          }
         }
 
         const analysisDir = path.join(recordingFolderPath, 'analysis');
@@ -401,6 +405,7 @@ module.exports.registerIntegrationsOAuthHandlers = () => {
 
           // Vincular al proyecto
           dbService.addRecordingToProject(projectId, recordingId);
+          await syncRecordingProjectName(recordingId);
         }
 
         const analysisDir = path.join(recordingFolderPath, 'analysis');
