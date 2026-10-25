@@ -5,7 +5,7 @@ How this repo's tasks are read, created and changed. `flow-backlog` and `flow-wo
 - **Tracker**: GitHub Issues in `rgarciade/airecorder`
 - **Access**: GitHub CLI (`gh`) 2.94+, run inside the clone; `{owner}/{repo}` is filled in by `gh api`.
   - The active `gh` account on this machine is a work account. **Every `gh` command here runs with the personal account's token**: prefix it with `GH_TOKEN=$(gh auth token -u rgarciade)`. Never switch the active `gh` account.
-  - `git push` over the default SSH key fails for this repo (the key belongs to the work account). Push over HTTPS with the personal token: `git -c credential.helper= -c credential.helper='!f(){ echo username=rgarciade; echo "password=$(gh auth token -u rgarciade)"; }; f' push`.
+  - `git push` over the default SSH key fails for this repo (the key belongs to the work account). Push over HTTPS with the personal token, naming the HTTPS URL explicitly (`origin` is an SSH URL, so Git never calls the credential helper when pushing to it): `git -c credential.helper= -c credential.helper='!f(){ echo username=rgarciade; echo "password=$(gh auth token -u rgarciade)"; }; f' push https://github.com/rgarciade/airecorder.git HEAD:<branch>`.
 - **Code host**: GitHub (pull requests live in the same repo)
 
 ## Format
