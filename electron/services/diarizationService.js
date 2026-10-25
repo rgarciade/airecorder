@@ -15,7 +15,6 @@
 const fs = require('fs');
 const path = require('path');
 const speakerManager = require('./speakerManager');
-const dbService = require('../database/dbService');
 
 /**
  * @typedef {Object} SpeakerResolutionResult

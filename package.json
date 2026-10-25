@@ -7,7 +7,7 @@
     "predev": "node scripts/native-binary.js electron",
     "dev": "cross-env NODE_ENV=development concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "build": "vite build",
-    "lint": "eslint . --report-unused-disable-directives --max-warnings 123",
+    "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "preelectron:dev": "node scripts/native-binary.js electron",
     "electron:dev": "cross-env NODE_ENV=development electron .",

@@ -65,7 +65,7 @@ module.exports.registerAudioHandlers = () => {
   // Manejador para detener grabación
   ipcMain.handle('stop-recording', async () => {
     try {
-      const result = await audioRecorder.stopRecording();
+      await audioRecorder.stopRecording();
       return { success: true };
     } catch (error) {
       console.error('Error stopping recording:', error);

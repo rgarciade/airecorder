@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -72,7 +72,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
 
   // Estados para adjuntos del proyecto
   const [projectAttachments, setProjectAttachments] = useState([]);
-  const [activeAttachments, setActiveAttachments] = useState([]);
+  const [, setActiveAttachments] = useState([]);
 
   // Estados para RAG de proyecto
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -103,11 +103,8 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
 
   // Estados para canales vinculados por chat
   const [showChannelPicker, setShowChannelPicker] = useState(false);
-  const [chatIntegrations, setChatIntegrations] = useState([]);
-  const [syncingChannelId, setSyncingChannelId] = useState(null);
+  const [, setChatIntegrations] = useState([]);
   const [oauthSettings, setOauthSettings] = useState({});
-  const [expandedChannelIds, setExpandedChannelIds] = useState(new Set());
-  const [channelMessages, setChannelMessages] = useState({}); // { [integrationId]: [{ text, speaker }] }
 
   const wikiPageCount = useSelector((state) => {
     if (!project?.id) return 0;
@@ -193,28 +190,101 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
         console.error('Error cargando configuración de IA en ProjectDetail:', e);
       }
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- configuración de IA cargada una sola vez al montar; sessionModel no debe relanzarla
   }, []);
+
+  // Loaders del proyecto: dependen solo del id del proyecto, así que son estables entre renders
+  const loadProjectData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [summary, members, highlights, details, recordings, duration, tasks] = await Promise.all([
+        projectAiService.getProjectSummary(project.id),
+        projectAiService.getProjectMembers(project.id),
+        projectAiService.getProjectHighlights(project.id),
+        projectAiService.getProjectDetails(project.id),
+        projectAiService.getProjectRecordingSummaries(project.id),
+        projectsService.getProjectTotalDuration(project.id),
+        recordingsService.getProjectTaskSuggestions(project.id)
+      ]);
+
+      // Cargar adjuntos de todas las grabaciones del proyecto
+      let allAttachments = [];
+      if (recordings && recordings.length > 0) {
+        const attachmentsPromises = recordings.map(async (rec) => {
+          const atts = await getAttachments(rec.id);
+          return atts.map(a => ({ ...a, recordingId: rec.id, recordingName: rec.title }));
+        });
+        const nestedAtts = await Promise.all(attachmentsPromises);
+        allAttachments = nestedAtts.flat();
+      }
+
+      setProjectSummary(summary);
+      setProjectMembers(members);
+      setProjectHighlights(highlights);
+      setProjectDetails(details);
+      setRecordingSummaries(recordings);
+      setProjectDuration(duration);
+      setProjectTasks(tasks || []);
+      setProjectAttachments(allAttachments);
+    } catch (error) {
+      console.error('Error cargando datos del proyecto:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [project?.id]);
+
+  const loadProjectChats = useCallback(async () => {
+    try {
+      const chatsList = await projectChatService.getProjectChats(project.id);
+      setChats(chatsList);
+
+      // Seleccionar el primer chat como activo
+      if (chatsList.length > 0) {
+        setActiveChatId(chatsList[0].id);
+      }
+    } catch (error) {
+      console.error('Error cargando chats del proyecto:', error);
+    }
+  }, [project?.id]);
+
+  const loadChatHistory = useCallback(async (chatId) => {
+    try {
+      const history = await projectChatService.getProjectChatHistory(project.id, chatId);
+      setChatHistory(history);
+    } catch (error) {
+      console.error('Error cargando historial del chat:', error);
+    }
+  }, [project?.id]);
+
+  const loadProjectTasks = useCallback(async () => {
+    try {
+      const tasks = await recordingsService.getProjectTaskSuggestions(project.id);
+      setProjectTasks(tasks || []);
+    } catch (error) {
+      console.error('Error cargando tareas del proyecto:', error);
+    }
+  }, [project?.id]);
 
   // Cargar datos del proyecto al montar
   useEffect(() => {
     if (project) {
       loadProjectData();
     }
-  }, [project]);
+  }, [project, loadProjectData]);
 
   // Cargar chats del proyecto
   useEffect(() => {
     if (project) {
       loadProjectChats();
     }
-  }, [project]);
+  }, [project, loadProjectChats]);
 
   // Cargar historial del chat activo
   useEffect(() => {
     if (activeChatId && project) {
       loadChatHistory(activeChatId);
     }
-  }, [activeChatId, project]);
+  }, [activeChatId, project, loadChatHistory]);
 
   // Suscripción a chatPendingService para restaurar estado de carga tras navegación
   useEffect(() => {
@@ -236,7 +306,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     });
 
     return () => unsubscribe();
-  }, [activeChatId]);
+  }, [activeChatId, loadChatHistory]);
 
   // Auto-indexar grabaciones del chat activo cuando cambia el chat seleccionado
   useEffect(() => {
@@ -266,6 +336,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
         setRagStatuses(prev => ({ ...prev, [recId]: null }));
       }
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- auto-indexado RAG solo al cambiar chat/contexto; ragStatuses se actualiza dentro del efecto y relanzaría la indexación
   }, [activeChatId, chats]);
 
   // Cargar adjuntos del contexto del chat activo
@@ -319,22 +390,13 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   }, []);
 
   // --- HANDLERS ---
-  const loadProjectTasks = async () => {
-    try {
-      const tasks = await recordingsService.getProjectTaskSuggestions(project.id);
-      setProjectTasks(tasks || []);
-    } catch (error) {
-      console.error('Error cargando tareas del proyecto:', error);
-    }
-  };
-
   // Refresca tareas al entrar a la pestaña: pueden haberse creado vía `/tareas` en el
   // chat de proyecto (persiste directo a SQLite, sin pasar por setProjectTasks).
   useEffect(() => {
     if (activeTab === 'tasks' && project?.id) {
       loadProjectTasks();
     }
-  }, [activeTab, project?.id]);
+  }, [activeTab, project?.id, loadProjectTasks]);
 
   const handleUpdateProjectTask = async (updatedTask) => {
     const saved = await recordingsService.updateTaskSuggestion(
@@ -377,68 +439,6 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
         .map(t => updatesMap[t.id] !== undefined ? { ...t, sort_order: updatesMap[t.id] } : t)
         .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
     );
-  };
-
-  const loadProjectData = async () => {
-    setIsLoading(true);
-    try {
-      const [summary, members, highlights, details, recordings, duration, tasks] = await Promise.all([
-        projectAiService.getProjectSummary(project.id),
-        projectAiService.getProjectMembers(project.id),
-        projectAiService.getProjectHighlights(project.id),
-        projectAiService.getProjectDetails(project.id),
-        projectAiService.getProjectRecordingSummaries(project.id),
-        projectsService.getProjectTotalDuration(project.id),
-        recordingsService.getProjectTaskSuggestions(project.id)
-      ]);
-
-      // Cargar adjuntos de todas las grabaciones del proyecto
-      let allAttachments = [];
-      if (recordings && recordings.length > 0) {
-        const attachmentsPromises = recordings.map(async (rec) => {
-          const atts = await getAttachments(rec.id);
-          return atts.map(a => ({ ...a, recordingId: rec.id, recordingName: rec.title }));
-        });
-        const nestedAtts = await Promise.all(attachmentsPromises);
-        allAttachments = nestedAtts.flat();
-      }
-
-      setProjectSummary(summary);
-      setProjectMembers(members);
-      setProjectHighlights(highlights);
-      setProjectDetails(details);
-      setRecordingSummaries(recordings);
-      setProjectDuration(duration);
-      setProjectTasks(tasks || []);
-      setProjectAttachments(allAttachments);
-    } catch (error) {
-      console.error('Error cargando datos del proyecto:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadProjectChats = async () => {
-    try {
-      const chatsList = await projectChatService.getProjectChats(project.id);
-      setChats(chatsList);
-
-      // Seleccionar el primer chat como activo
-      if (chatsList.length > 0) {
-        setActiveChatId(chatsList[0].id);
-      }
-    } catch (error) {
-      console.error('Error cargando chats del proyecto:', error);
-    }
-  };
-
-  const loadChatHistory = async (chatId) => {
-    try {
-      const history = await projectChatService.getProjectChatHistory(project.id, chatId);
-      setChatHistory(history);
-    } catch (error) {
-      console.error('Error cargando historial del chat:', error);
-    }
   };
 
   const handleChatSelect = (chatId) => {
@@ -911,46 +911,6 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     setChatIntegrations(list || []);
   };
 
-  // Sincronizar un canal concreto
-  const handleSyncChannel = async (integration) => {
-    setSyncingChannelId(integration.id);
-    try {
-      await window.electronAPI.syncChatIntegrations({ chatId: activeChatId, projectId: project.id, settings: oauthSettings });
-      const list = await window.electronAPI.getChatIntegrations(activeChatId);
-      setChatIntegrations(list || []);
-    } finally {
-      setSyncingChannelId(null);
-    }
-  };
-
-  // Desvincular un canal
-  const handleUnlinkChannel = async (integrationId) => {
-    if (!window.confirm('¿Desvincular este canal?')) return;
-    await window.electronAPI.unlinkChannelFromChat(integrationId);
-    setChatIntegrations(prev => prev.filter(i => i.id !== integrationId));
-  };
-
-  // Expandir/colapsar vista de mensajes de un canal
-  const toggleChannelMessages = async (integration) => {
-    const id = integration.id;
-    const next = new Set(expandedChannelIds);
-    if (next.has(id)) {
-      next.delete(id);
-      setExpandedChannelIds(next);
-      return;
-    }
-    next.add(id);
-    setExpandedChannelIds(next);
-
-    // Cargar mensajes si tiene una grabación asociada
-    if (integration.recording_id && !channelMessages[id]) {
-      try {
-        const txt = await window.electronAPI.getTranscriptionTxt(integration.recording_id);
-        setChannelMessages(prev => ({ ...prev, [id]: txt || '' }));
-      } catch { /* ignore */ }
-    }
-  };
-
   const activeChat = chats.find(c => c.id === activeChatId);
 
   // Cómputo agregado del estado RAG para el chat activo
@@ -960,7 +920,6 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const someRagIndexed = activeChatRecordingIds.some(id => ragStatuses[id] === true);
   const totalRagChunksCount = activeChatRecordingIds.reduce((s, id) => s + (ragTotalChunks[id] || 0), 0);
   const aggregateRagIndexed = isAnyIndexing ? false : (allRagKnown ? (someRagIndexed ? true : 'skipped') : null);
-  const activeChatAttachments = projectAttachments.filter(a => activeChatRecordingIds.includes(a.recordingId));
 
   return (
     <div className={styles.container}>
@@ -1324,7 +1283,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
               )}
             </div>
 
-            {/* Canales vinculados al chat */}
+            {/* Canales vinculados al chat (desactivado; los handlers de sync/unlink/mensajes se eliminaron, ver historial de git) */}
             {/*
             {activeChatId && chatIntegrations.length > 0 && (
               <div className={styles.chatContextInfo}>

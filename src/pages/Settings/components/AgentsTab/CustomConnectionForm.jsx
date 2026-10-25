@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- EMPTY_DRAFT se exporta junto al formulario que lo consume como estado inicial */
 import React, { useState } from 'react';
 import {
   MdVisibility,
@@ -9,7 +10,7 @@ const EMPTY_DRAFT = { name: '', baseUrl: '', apiKey: '' };
 
 export { EMPTY_DRAFT };
 
-export default function CustomConnectionForm({ draft, setDraft, onSave, onCancel, isEditing, t }) {
+export default function CustomConnectionForm({ draft, setDraft, onSave, onCancel, t }) {
   const [showKey, setShowKey] = useState(false);
   const canSave = draft.name.trim() && draft.baseUrl.trim();
 

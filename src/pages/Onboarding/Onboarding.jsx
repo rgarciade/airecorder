@@ -18,29 +18,7 @@ import PreferencesStep from './PreferencesStep';
 import LocalAiInfoStep from './LocalAiInfoStep';
 import ModelStep from './ModelStep';
 import { useOnboardingModelPersistence } from './useOnboardingModelPersistence';
-
-// Orden del wizard (PR3, Fase 3 — ONB1): "model" (Modelo de transcripción)
-// se ubica justo después de "aiInfo" y antes de "ai". Racional de producto:
-// la transcripción es la entrada de todo el pipeline (el chat/RAG de "ai"
-// opera SOBRE el texto ya transcripto), así que elegir/descargar el modelo
-// de Whisper antes de configurar el proveedor de IA de chat sigue el orden
-// real del pipeline de audio → transcripción → IA. Sin estado de UI nuevo
-// aquí: todo el estado del paso (catálogo, selección, descarga) vive en
-// `useModelDownloadStep.js` (regla anti-monolito de AGENTS.md), igual que
-// los demás steps ya extraídos. Excepción explícita: el tracking de
-// persistencia ONB4 (`useOnboardingModelPersistence`, más abajo) SÍ vive
-// acá — necesita sobrevivir la navegación entre steps, y `Onboarding.jsx`
-// es el único componente montado durante todo el wizard (fix post-review
-// PR3, BLOCKER).
-export const STEPS = [
-  { id: 'welcome' },
-  { id: 'aiInfo' },
-  { id: 'model' },
-  { id: 'ai' },
-  { id: 'permissions' },
-  { id: 'preferences' },
-  { id: 'finish' },
-];
+import { STEPS } from './onboardingSteps';
 
 export default function Onboarding({ onComplete }) {
   const { t } = useTranslation();
@@ -118,7 +96,7 @@ export default function Onboarding({ onComplete }) {
   const [selectedCustomGeneralModel, setSelectedCustomGeneralModel] = useState('');
   const [selectedCustomEmbedModel, setSelectedCustomEmbedModel] = useState('');
 
-  const [isSaving, setIsSaving] = useState(false);
+  const [, setIsSaving] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState('system');
   const [appVersion, setAppVersion] = useState('');
 
@@ -137,6 +115,7 @@ export default function Onboarding({ onComplete }) {
   useEffect(() => {
     if (codexStatus?.connected && !codexModelsLoaded.current) loadCodexModelsOnboarding();
     if (!codexStatus?.connected) codexModelsLoaded.current = false;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- solo debe reaccionar al cambio de conexión de Codex; el loader se redefine en cada render
   }, [codexStatus?.connected]);
 
   const checkPermissions = async () => {

@@ -75,7 +75,7 @@ module.exports.registerSettingsHandlers = () => {
       try {
         fs.renameSync(settingsPath, settingsPath + '.corrupt.bak');
         console.warn('[Settings] settings.json corrupto — renombrado a .corrupt.bak para regenerar');
-      } catch {}
+      } catch { /* si no se puede renombrar, se devuelve igualmente el error original */ }
       return { success: false, error: error.message };
     }
   });
@@ -124,7 +124,7 @@ module.exports.registerSettingsHandlers = () => {
       if (fs.existsSync(settingsPath)) {
         try {
           settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-        } catch (_) {}
+        } catch (_) { /* settings.json ilegible: se parte de ajustes vacíos */ }
       }
       settings.databasePath = newPath;
       const settingsDir = path.dirname(settingsPath);

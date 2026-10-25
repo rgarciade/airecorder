@@ -137,7 +137,7 @@ module.exports.registerRecordingsHandlers = () => {
           try {
             const settingsData = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
             speakerThreshold = settingsData.speakerSimilarityThreshold ?? 0.85;
-          } catch (_) {}
+          } catch (_) { /* settings.json ilegible: se usa el umbral por defecto */ }
         }
 
         const dbRecording = dbService.getRecording(folderName);

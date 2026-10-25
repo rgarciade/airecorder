@@ -3,14 +3,13 @@ import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { selectSpeakersMap } from '../../store/slices/speakersSlice';
 import recordingsService from '../../services/recordingsService';
-import projectsService from '../../services/projectsService';
-import { getSettings, updateSettings, addSettingsListener, removeSettingsListener } from '../../services/settingsService';
+import { getSettings, updateSettings, addSettingsListener } from '../../services/settingsService';
 import { buildSelectableModelOptions, isModelInstalled, hasAnyInstalledModel } from '../../utils/whisperModelGuard.js';
 import { getAvailableModels, checkModelSupportsStreaming, getOllamaModelInfo } from '../../services/ai/ollamaProvider';
 import { getLMStudioModels } from '../../services/ai/lmStudioProvider';
 // generateWithContext y generateWithContextStreaming se mantienen para el análisis (resúmenes, etc.)
 // El chat de grabaciones usa callChatProviderStreaming directamente.
-import { callProvider, callProviderStreaming, callChatProviderStreaming, isCustom } from '../../services/ai/providerRouter';
+import { callChatProviderStreaming } from '../../services/ai/providerRouter';
 import { ALL_TOOLS, executeConfirmedAction } from '../../services/ai/tools';
 import { chatSystemPrompt } from '../../prompts/aiPrompts';
 import { ragSystemPrompt, mapHistoryToMessages } from '../../prompts/ragPrompts';
@@ -87,7 +86,6 @@ function parseTimestampToSeconds(ts) {
 
 export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject, onNavigateToSettings }) {
   const { t } = useTranslation();
-  const persistentRecordingId = recording?.dbId ?? recording?.id ?? null;
 
   // ── Redux: mapa de hablantes con ediciones del usuario ──
   const reduxSpeakersMap = useSelector(selectSpeakersMap);
@@ -289,6 +287,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         setSelectedLmStudioModel(settings.lmStudioModel || '');
       }
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- carga por grabación; añadir chatContextMode/currentRecordingDbId relanzaría la carga del chat
   }, [recording]);
 
   // Suscripción a chatPendingService para restaurar estado de carga tras navegación
@@ -408,6 +407,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     return () => {
       unsubscribe();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- verificación del modelo solo al cambiar la selección; sessionModel relanzaría la verificación
   }, []);
 
   // 2. Fetch models when provider changes (Ollama o LM Studio)
@@ -433,6 +433,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         })
         .catch(err => console.error("Error fetching LM Studio models:", err));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- los modelos seleccionados no deben relanzar la carga del catálogo
   }, [aiProvider]);
 
   // 3. Load or Generate Summaries & Participants
@@ -567,6 +568,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       }
     };
     loadOrGenerate();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- el efecto no debe relanzar la generación de IA al cambiar isGeneratingAi/currentRecordingDbId
   }, [recording]);
 
   // Refresca tareas al entrar a la pestaña: `tasks` puede quedar desactualizado si se

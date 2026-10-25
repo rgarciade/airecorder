@@ -178,7 +178,7 @@ function registerWikiHandlers(ipcMain) {
             content_md: markdown,
           }) || page;
         } catch (updateError) {
-          try { wikiQueries.deletePage(page.id); } catch (_) {}
+          try { wikiQueries.deletePage(page.id); } catch (_) { /* limpieza best-effort de la página; se devuelve el error original */ }
           return { success: false, error: updateError.message };
         }
       }

@@ -25,10 +25,6 @@ export default function ChatInterface({
   isLoading = false,
   placeholder = "Haz una pregunta...",
   title = "Chat",
-  aiProvider = 'gemini',
-  ollamaModels = [],
-  selectedOllamaModel = '',
-  onOllamaModelChange = () => { },
   onNavigateToRecording,
   onSeekToTime,          // (segundos: number) → seek directo en el player de la vista actual
   onDeleteMessage,
@@ -45,7 +41,6 @@ export default function ChatInterface({
   onPasteAttachment = null,
   activeAttachments = [],
   onActiveAttachmentsChange,
-  allowNewAttachments = true,
   onAddChannel = null,
   onCommand = null,
   onResolvePendingAction = null,

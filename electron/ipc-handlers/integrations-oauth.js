@@ -285,7 +285,7 @@ module.exports.registerIntegrationsOAuthHandlers = () => {
 
         if (!recordingFolderPath) {
           const platformPrefix = connection.platform === 'google-chat' ? 'gchat' : 'teams_sync';
-          const safeName = (integration.channel_name || 'channel').replace(/[^a-zA-Z0-9_\-]/g, '_').slice(0, 40);
+          const safeName = (integration.channel_name || 'channel').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
           const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
           const folderName = `${platformPrefix}_${safeName}_${ts}`;
           recordingFolderPath = path.join(recordingsDir, folderName);
@@ -386,7 +386,7 @@ module.exports.registerIntegrationsOAuthHandlers = () => {
         if (!recordingFolderPath) {
           // Primera sync: crear carpeta de grabación
           const platformPrefix = connection.platform === 'google-chat' ? 'gchat' : 'teams_sync';
-          const safeName = (integration.channel_name || 'channel').replace(/[^a-zA-Z0-9_\-]/g, '_').slice(0, 40);
+          const safeName = (integration.channel_name || 'channel').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
           const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
           const folderName = `${platformPrefix}_${safeName}_${ts}`;
           recordingFolderPath = path.join(recordingsDir, folderName);

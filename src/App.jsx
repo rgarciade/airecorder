@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { startRecording } from './store/recordingSlice'
 import useAutoAnalyze from './hooks/useAutoAnalyze'
@@ -40,11 +40,9 @@ export default function App() {
     currentView,
     setCurrentView,
     selectedRecording,
-    setSelectedRecording,
     selectedProjectId,
     selectedProject,
     selectedSpeakerId,
-    setSelectedSpeakerId,
     settingsInitialTab,
     settingsTargetElement,
     handleNavigateToRecording,
@@ -76,7 +74,7 @@ export default function App() {
   // Hooks de lógica desacoplada
   useAutoAnalyze();
   useAppearance(appSettings);
-  const { queueCount, queueState, loadQueueData } = useQueueManager();
+  const { queueCount, queueState } = useQueueManager();
   const downloadManager = useDownloadManager();
   const { dbFallbackBanner, setDbFallbackBanner } = useDatabaseStatus();
   useNotificationHandler(handleNavigateToRecording);

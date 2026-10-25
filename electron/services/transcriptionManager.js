@@ -346,7 +346,9 @@ runTranscriptionProcess(task, diarizationFile, onProgress) {
                 const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
                 if (settings.cpuThreads) args.push('--threads', settings.cpuThreads.toString());
             }
-        } catch (e) {}
+        } catch (e) {
+            console.warn('[Manager] No se pudo leer cpuThreads de la configuración:', e.message);
+        }
 
         const spawnEnv = { ...process.env, PYTHONUNBUFFERED: '1', PYTHONIOENCODING: 'utf-8' };
         if (ffmpegPath && fs.existsSync(ffmpegPath)) {

@@ -224,7 +224,7 @@ async function handleFindTasks(args, toolContext) {
   return { tasks: filtered.map(toCompactTask) };
 }
 
-async function handleCreateTask(args, toolContext) {
+async function handleCreateTask(args) {
   const title = (args?.title || '').trim();
   if (!title) {
     return { error: 'invalid_arguments', message: 'title is required to create a task.' };
@@ -321,7 +321,7 @@ async function handleUpdateTask(args, toolContext) {
  * sistema), no de un input arbitrario de la IA o del usuario — re-fetchear acá
  * sería una llamada IPC redundante.
  */
-async function updateTaskConfirmed(toolArgs, toolContext) {
+async function updateTaskConfirmed(toolArgs) {
   const { id, title, content, layer, status } = toolArgs || {};
   try {
     const savedTask = await recordingsService.updateTaskSuggestion(id, title, content, layer, status);
@@ -367,7 +367,7 @@ async function handleDeleteTask(args, toolContext) {
  * (el único que la IA puede disparar), así que acá no hace falta re-fetchear
  * ni re-validar (mismo razonamiento que `updateTaskConfirmed`).
  */
-async function deleteTaskConfirmed(toolArgs, toolContext) {
+async function deleteTaskConfirmed(toolArgs) {
   const { id, title } = toolArgs || {};
   try {
     const ok = await recordingsService.deleteTaskSuggestion(id);

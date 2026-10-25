@@ -97,8 +97,8 @@ export default function AiQueue() {
   }, []);
 
   // Timer del tiempo transcurrido de la tarea actual
+  const startedAt = queueState.current?.startedAt;
   useEffect(() => {
-    const startedAt = queueState.current?.startedAt;
     if (!startedAt) {
       setElapsed('0s');
       return;
@@ -106,7 +106,7 @@ export default function AiQueue() {
     setElapsed(formatElapsed(startedAt));
     const timer = setInterval(() => setElapsed(formatElapsed(startedAt)), 1000);
     return () => clearInterval(timer);
-  }, [queueState.current?.startedAt]);
+  }, [startedAt]);
 
   // Cierra el menú de la tarea actual si esta cambia o termina
   useEffect(() => {

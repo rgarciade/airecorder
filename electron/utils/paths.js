@@ -22,7 +22,7 @@ async function getRecordingsPath() {
     try {
       fs.renameSync(settingsPath, settingsPath + '.corrupt.bak');
       console.warn('[Paths] settings.json corrupto — renombrado a .corrupt.bak para regenerar');
-    } catch {}
+    } catch { /* si no se puede renombrar, se continúa con los ajustes por defecto */ }
   }
   
   // COMPATIBILIDAD

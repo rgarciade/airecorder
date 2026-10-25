@@ -46,7 +46,6 @@ export default function EpicsTab({
   onDeleteComment,        // (commentId) => Promise<void>
   // Props para vincular/desvincular tareas de proyecto (desde vista de transcripción)
   onAddToProject,         // (taskId) => Promise<void> — si se pasa, muestra botón en tareas sin project_id
-  activeProjectId,        // number | undefined — proyecto activo (reservado para uso futuro)
   projectEmptyHint,       // string | undefined — mensaje extra en empty state (solo en vista proyecto)
 }) {
   const [expandedTaskId, setExpandedTaskId] = useState(null);
@@ -98,6 +97,7 @@ export default function EpicsTab({
         status: task.status || 'backlog',
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- solo debe sincronizar al cambiar tasks; reaccionar a expandedTaskId pisaría la edición en curso
   }, [tasks]);
 
   // Si la tarea del detailTask cambia externamente, sincronizar
@@ -105,6 +105,7 @@ export default function EpicsTab({
     if (!detailTask) return;
     const updated = tasks.find(t => t.id === detailTask.id);
     if (updated) setDetailTask(updated);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- solo debe sincronizar al cambiar tasks; detailTask se actualiza desde este mismo efecto
   }, [tasks]);
 
   const handleToggleExpand = (taskId) => {

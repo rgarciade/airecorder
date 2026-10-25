@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useTranslation } from 'react-i18next';
 import { MdAdd, MdContentCopy, MdEdit, MdDelete, MdCheck, MdPictureAsPdf, MdDescription } from 'react-icons/md';
@@ -13,11 +13,7 @@ export default function NotesTab({ recordingId, onGenerateClick }) {
 
   const isSpanish = i18n.language === 'es';
 
-  useEffect(() => {
-    loadNotes();
-  }, [recordingId]);
-
-  const loadNotes = async () => {
+  const loadNotes = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -29,7 +25,11 @@ export default function NotesTab({ recordingId, onGenerateClick }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [recordingId]);
+
+  useEffect(() => {
+    loadNotes();
+  }, [loadNotes]);
 
   const handleCopy = async (note) => {
     try {

@@ -13,11 +13,12 @@ export default function RecordButton({ onRecordingStart }) {
 
   const [selectedMicrophone, setSelectedMicrophone] = useState('');
   const [error, setError] = useState(null);
-  const [audioDevices, setAudioDevices] = useState([]);
+  const [, setAudioDevices] = useState([]);
 
   // Cargar configuración y dispositivos al inicializar
   useEffect(() => {
     loadInitialData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- carga inicial una sola vez al montar
   }, []);
 
   const loadInitialData = async () => {

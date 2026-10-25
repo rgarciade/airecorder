@@ -75,7 +75,7 @@ const formatReleaseNotes = (markdown, maxLength = DEFAULT_MAX_LENGTH) => {
     .replace(/\*\*([^*]+)\*\*|__([^_]+)__/g, '$1$2')
     .replace(/(?<!\w)[*_]([^*_\n]+)[*_](?!\w)/g, '$1')
     .replace(/`([^`]+)`/g, '$1')
-    .replace(/\\([\\`*{}\[\]()#+\-.!_>])/g, '$1');
+    .replace(/\\([\\`*{}[\]()#+\-.!_>])/g, '$1');
 
   text = decodeHtmlEntities(text)
     .split('\n')
