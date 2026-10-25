@@ -78,7 +78,7 @@ export default function App() {
   useAppearance(appSettings);
   const { queueCount, queueState, loadQueueData } = useQueueManager();
   const downloadManager = useDownloadManager();
-  const { dbFallbackBanner } = useDatabaseStatus();
+  const { dbFallbackBanner, setDbFallbackBanner } = useDatabaseStatus();
   useNotificationHandler(handleNavigateToRecording);
 
   const handleOnboardingComplete = () => {

@@ -20,6 +20,9 @@ Este archivo contiene el contexto crítico general y las reglas de comportamient
 | **Build Frontend** | `npm run build` |
 | **Build macOS DMG** | `npm run electron:build` |
 | **Rebuild Native Modules** | `npm run rebuild` |
+| **Lint (ESLint 9)** | `npm run lint` |
+
+El lint tiene un baseline de warnings (`--max-warnings` en `package.json`): no lo subas; si arreglas warnings, bájalo. Los errores (`no-undef`, `rules-of-hooks`) siempre fallan.
 
 ## 3. Arquitectura Basada en Componentes (Lee antes de actuar)
 

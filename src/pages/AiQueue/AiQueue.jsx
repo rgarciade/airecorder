@@ -203,8 +203,6 @@ export default function AiQueue() {
       // If the parent or any subtask is processing, calculate elapsed total time
       if (parentCopy.status === 'processing' || parentCopy.subtasks.some(s => s.status === 'processing' || s.status === 'pending')) {
          parentCopy.status = 'processing';
-         // The main entry should be the "Resumen detallado final" or whatever parent is
-         parentCopy.name = parentCopy.name;
       }
 
       displayHistory.push(parentCopy);
