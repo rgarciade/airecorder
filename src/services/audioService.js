@@ -498,8 +498,6 @@ class MixedAudioRecorder {
       
       // Configurar callback personalizado para sistema
       if (this.systemRecorder.mediaRecorder) {
-        const originalOnStop = this.systemRecorder.mediaRecorder.onstop;
-        
         this.systemRecorder.mediaRecorder.onstop = () => {
           console.log('Grabación del sistema completada');
           if (this.systemRecorder.audioChunks.length > 0) {

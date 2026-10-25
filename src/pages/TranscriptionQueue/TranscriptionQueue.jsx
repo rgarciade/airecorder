@@ -6,12 +6,12 @@ import {
   MdMic, MdVideoCameraFront, MdAudiotrack, MdCheck, MdUpload
 } from 'react-icons/md';
 
-export default function TranscriptionQueue({ onBack, queueState, onNavigateToRecording }) {
+export default function TranscriptionQueue({ queueState, onNavigateToRecording }) {
   const { t } = useTranslation();
   const [activeTask, setActiveTask] = useState(null);
   const [queue, setQueue] = useState([]);
   const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   // Sync with prop updates from App.jsx
   useEffect(() => {
@@ -26,6 +26,7 @@ export default function TranscriptionQueue({ onBack, queueState, onNavigateToRec
     if (!queueState || (!queueState.active && !queueState.history)) {
         loadQueueData();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- carga de respaldo una sola vez al montar
   }, []);
 
   const getErrorMessage = (item) => {

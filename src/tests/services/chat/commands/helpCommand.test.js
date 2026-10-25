@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { runHelp } from '../../../../services/chat/commands/helpCommand.js';
 import { CHAT_COMMANDS } from '../../../../services/chat/chatCommands.js';
 
-function fakeT(key, opts) {
+function fakeT(key, _opts) {
   if (key === 'chatCommands.help.header') return '## Comandos disponibles';
   if (key.endsWith('.description')) return `desc:${key}`;
   return key;

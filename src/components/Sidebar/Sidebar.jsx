@@ -9,7 +9,7 @@ import BugReportButton from '../BugReportButton/BugReportButton';
 
 const WIKI_URL = import.meta.env.VITE_WIKI_URL || 'https://rgarciade.github.io/airecorder/vp/';
 
-const Sidebar = ({ currentView, onViewChange, queueCount = 0, diarizationEnabled = false }) => {
+const Sidebar = ({ currentView, onViewChange, queueCount = 0 }) => {
   const { t } = useTranslation();
   const [aiQueueCount, setAiQueueCount] = useState(0);
 

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- AI_PROVIDERS es la fuente única de datos de proveedores y vive junto al componente que la usa */
 import React from 'react';
 import { SiOllama, SiGooglegemini, SiDeepseek } from 'react-icons/si';
 import { AiOutlineOpenAI } from 'react-icons/ai';

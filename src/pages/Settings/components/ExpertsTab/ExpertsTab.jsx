@@ -61,6 +61,11 @@ export default function ExpertsTab() {
 
   const experts = getAvailableExperts();
 
+  const loadCustomizations = useCallback(async (expertId) => {
+    const data = await window.electronAPI.getExpertCustomizations(expertId);
+    setCustomizations(data || {});
+  }, []);
+
   // ── Cargar settings y customizaciones iniciales ───────────────────────
 
   useEffect(() => {
@@ -73,12 +78,7 @@ export default function ExpertsTab() {
       setLoading(false);
     }
     load();
-  }, []);
-
-  const loadCustomizations = useCallback(async (expertId) => {
-    const data = await window.electronAPI.getExpertCustomizations(expertId);
-    setCustomizations(data || {});
-  }, []);
+  }, [loadCustomizations]);
 
   // ── Cambiar el experto que se está editando ───────────────────────────
 

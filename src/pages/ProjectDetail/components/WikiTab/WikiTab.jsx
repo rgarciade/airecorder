@@ -7,7 +7,6 @@ import WikiPageViewer from './WikiPageViewer';
 const WikiPageEditor = lazy(() => import('./WikiPageEditor'));
 import {
   clearError,
-  clearCurrentPage,
   createPage,
   deletePage,
   generateStarterPage,

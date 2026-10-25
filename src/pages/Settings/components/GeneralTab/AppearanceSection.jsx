@@ -3,7 +3,8 @@ import {
   MdTextFormat, MdLightMode, MdDarkMode, MdBrightness6
 } from 'react-icons/md';
 import styles from '../../Settings.module.css';
-import { useSettings, fontSizes } from '../../SettingsContext';
+import { useSettings } from '../../SettingsContext';
+import { fontSizes } from '../../settingsOptions';
 
 export default function AppearanceSection() {
   const {

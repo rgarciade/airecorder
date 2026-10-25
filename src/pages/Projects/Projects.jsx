@@ -8,11 +8,11 @@ import { MdChevronLeft, MdChevronRight, MdClose } from 'react-icons/md';
 import ProjectCard from './components/ProjectCard';
 import RecentUploadsTable from './components/RecentUploadsTable';
 
-export default function Projects({ onBack, onRecordingSelect, onProjectDetail, initialProjectId = null }) {
+export default function Projects({ onProjectDetail }) {
   const { t } = useTranslation();
   const [projects, setProjects] = useState([]);
   const [recordings, setRecordings] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Modals state

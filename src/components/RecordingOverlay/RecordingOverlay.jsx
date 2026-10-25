@@ -15,7 +15,7 @@ const RecordingOverlay = ({ recorder, onFinish, inStack = false }) => {
   const { t } = useTranslation();
   const [time, setTime] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [, setShowSaveDialog] = useState(false);
   const [fileName, setFileName] = useState('');
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showProcessing, setShowProcessing] = useState(false);
@@ -23,7 +23,7 @@ const RecordingOverlay = ({ recorder, onFinish, inStack = false }) => {
   const [isDiscarding, setIsDiscarding] = useState(false);
   const [showProjectSelector, setShowProjectSelector] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
-  const [recordingId, setRecordingId] = useState(null);
+  const [, setRecordingId] = useState(null);
   const [dbId, setDbId] = useState(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [newName, setNewName] = useState('');

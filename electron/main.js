@@ -6,7 +6,7 @@ require('dotenv').config();
 // ========================================
 // 1. IMPORTACIONES GLOBALES
 // ========================================
-const { app, BrowserWindow, ipcMain, systemPreferences, session, protocol, dialog, Notification } = require('electron');
+const { app, BrowserWindow, ipcMain, systemPreferences, protocol, dialog, Notification } = require('electron');
 const { initMain } = require('electron-audio-loopback');
 const path = require('path');
 const fs = require('fs');

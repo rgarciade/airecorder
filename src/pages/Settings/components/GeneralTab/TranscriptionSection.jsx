@@ -3,7 +3,8 @@ import {
   MdTranslate, MdGraphicEq, MdAutoFixHigh, MdAccountTree, MdVisibility, MdVisibilityOff
 } from 'react-icons/md';
 import styles from '../../Settings.module.css';
-import { useSettings, mockLanguages } from '../../SettingsContext';
+import { useSettings } from '../../SettingsContext';
+import { mockLanguages } from '../../settingsOptions';
 import { buildSelectableModelOptions, hasAnyInstalledModel } from '../../../../utils/whisperModelGuard.js';
 import ModelsSection from './ModelsSection';
 

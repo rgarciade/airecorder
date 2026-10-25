@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- el módulo exporta el hook useSettings junto al Provider (patrón estándar de contexto); separarlo rompería los imports existentes */
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSystemMicrophones } from '../../services/audioService';
@@ -11,19 +12,6 @@ import { useCustomConnections } from '../../hooks/useCustomConnections';
 import { CustomOpenAIProvider, OPENAI_BASE_URL } from '../../services/ai/customOpenAIProvider';
 import { reconcileCodexSelection } from '../../services/ai/codexModelSelection';
 import { fetchModelCatalog, computeWhisperModelOptions } from './whisperModelCatalog';
-
-export const mockLanguages = [
-  { value: 'es', label: 'Español' },
-  { value: 'en', label: 'English' },
-  { value: 'fr', label: 'Français' },
-];
-
-export const fontSizes = [
-  { value: 'small', label: 'Pequeño' },
-  { value: 'medium', label: 'Mediano' },
-  { value: 'large', label: 'Grande' },
-  { value: 'xlarge', label: 'Muy Grande' },
-];
 
 // `whisperModels` ya NO es una lista estática hardcodeada (INV1/INV6): se
 // deriva en runtime del catálogo obtenido vía IPC `resources.list()` — ver
@@ -210,6 +198,7 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
     window.electronAPI?.getAppVersion?.().then(r => {
       if (r?.success) setAppVersion(r.version);
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- carga inicial una sola vez al montar; loadSettings se redefine en cada render
   }, []);
 
   /** Refresca el catálogo dinámico de modelos Whisper vía IPC (INV1/INV6). */

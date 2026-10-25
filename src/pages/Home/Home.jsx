@@ -16,7 +16,7 @@ import NewSessionCard from './components/NewSessionCard';
 import StatsRow from './components/StatsRow';
 import RecordingCard from '../../components/RecordingCard/RecordingCard';
 
-export default function Home({ onSettings, onProjects, onRecordingStart, onRecordingSelect, onNavigateToProject, refreshTrigger }) {
+export default function Home({ onSettings, onProjects, onRecordingStart, onRecordingSelect, refreshTrigger }) {
   const { t } = useTranslation();
   const dispatch = useDispatch();
   const { isRecording } = useSelector((state) => state.recording);
@@ -24,7 +24,7 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
   const [recordings, setRecordings] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [, setError] = useState(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
   
   // Pagination

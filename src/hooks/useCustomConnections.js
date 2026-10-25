@@ -46,7 +46,6 @@ export function stagedDeletionsReducer(state, action) {
 }
 
 export function validateCustomConnectionsSave({
-  connections,
   stagedDeletions,
   aiProvider,
   embeddingProvider,

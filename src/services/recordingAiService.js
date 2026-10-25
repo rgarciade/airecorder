@@ -549,19 +549,19 @@ class RecordingAiService {
           console.warn('Parsing JSON de participantes falló, intentando fallback regex...');
           const cleanResponseForFallback = cleanAiResponse(participantsResponse.text);
           const lines = cleanResponseForFallback.split('\n');
-          const listRegex = /^[\*\-\+]\s+([^\(:\n]+)(?:[\(:\s]+([^\)\n]+)\)?)?/;
+          const listRegex = /^[*\-+]\s+([^(:\n]+)(?:[(:\s]+([^)\n]+)\)?)?/;
 
           const fallbackParticipants = [];
 
           for (const line of lines) {
             const trimmedLine = line.trim();
-            if (trimmedLine.match(/^[\*\-]?\s*(Personajes|Participantes|Speakers|Nombres):/i)) continue;
+            if (trimmedLine.match(/^[*-]?\s*(Personajes|Participantes|Speakers|Nombres):/i)) continue;
 
             const match = trimmedLine.match(listRegex);
             if (match) {
               const name = match[1].trim();
               let role = match[2] ? match[2].trim() : 'Participante';
-              role = role.replace(/[\)\:]$/, '');
+              role = role.replace(/[):]$/, '');
 
               if (name.length > 1 && !name.toLowerCase().includes("ninguno")) {
                 fallbackParticipants.push({ name, role });

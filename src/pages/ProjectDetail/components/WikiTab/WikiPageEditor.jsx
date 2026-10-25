@@ -13,6 +13,7 @@ export default function WikiPageEditor({ page, onSave, onCancel, onClose, theme 
     setTitle(page?.title || '');
     setContent(page?.content_md || '');
     setShowCloseConfirm(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- el formulario se reinicia solo al cambiar de página (page?.id), no al editar su contenido
   }, [page?.id]);
 
   const editorTheme = useMemo(() => (theme === 'dark' ? 'dark' : 'light'), [theme]);

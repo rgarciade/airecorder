@@ -47,6 +47,7 @@ function approvedDeviceAuthUrl(value) {
 }
 function stripAnsi(value) {
   return String(value || '')
+    // eslint-disable-next-line no-control-regex -- los códigos ANSI CSI empiezan por ESC (\u001B): el carácter de control es justo lo que se busca
     .replace(/[\u001B\u009B](?:\[[0-?]*[ -/]*[@-~]|[0-?]*[ -/]*[@-~])/g, '')
     .replace(/\\(?:x1[bB]|u001[bB])\[[0-?]*[ -/]*[@-~]/g, '')
     .replace(/\[(?:\d{1,3}(?:;\d{1,3})*)m/g, '');
@@ -139,7 +140,7 @@ function runCli(args, { timeout = 15000, onOutput, signal, ...limits } = {}) {
       if (settled) return;
       settled = true;
       cleanup();
-      try { child.kill(); } catch {}
+      try { child.kill(); } catch { /* el proceso ya terminó */ }
       reject(error);
     };
     const receive = (chunk, stream) => {
@@ -263,7 +264,7 @@ async function startLogin({ requestId, onProgress, timeoutMs = 120000, statusPol
       settled = true;
       statusController.abort();
       detach();
-      if (kill && !child.killed) { try { child.kill(); } catch {} }
+      if (kill && !child.killed) { try { child.kill(); } catch { /* el proceso ya terminó */ } }
       resolve(result);
       return true;
     };

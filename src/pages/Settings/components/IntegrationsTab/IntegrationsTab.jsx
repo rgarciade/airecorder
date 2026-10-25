@@ -125,7 +125,6 @@ export default function IntegrationsTab() {
             const creds = credentials[platform];
             const isConnecting = connecting === platform;
             const msg = statusMsg[platform];
-            const platformT = t(`settings.integrations.platforms.${platform}`);
 
             return (
               <div key={platform} className={ownStyles.platformCard}>
