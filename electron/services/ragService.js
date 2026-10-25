@@ -4,6 +4,7 @@ const path = require("path");
 const embeddingService = require("./embeddingService");
 const { resolveSpeakersInText } = require("./speakerResolver");
 const dbService = require("../database/dbService");
+const { getRecordingsPath } = require("../utils/paths");
 
 // Umbral: transcripciones menores a este valor no usan RAG
 const MIN_TEXT_LENGTH_FOR_RAG = 8000; // ~2000 tokens
@@ -396,10 +397,10 @@ async function searchRecording(recordingPath, query, topK = 10) {
 
   // Buscar en LanceDB (con retry tras invalidar caché si falla)
   let vectorRows;
+  let table;
   for (let attempt = 0; attempt < 2; attempt++) {
     const db = await getConnection(vectordbPath);
 
-    let table;
     try {
       table = await db.openTable("chunks");
     } catch {
