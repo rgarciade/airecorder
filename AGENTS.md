@@ -53,3 +53,17 @@ Las IAs tienen la obligación estricta de mantener el contexto de la aplicación
 | `src/services/ai/providerRouter.js`, `src/services/ai/*` | `src/services/ai/README.md` (Sección Proveedores de IA) |
 | `src/prompts/aiPrompts.js` | `src/services/ai/README.md` (Sección Prompts y Formatos) |
 | `electron/transcriptionManager.js`, `python/audio_sync_analyzer.py` | `README.md` (raíz) (Sección Pipeline de Transcripción) |
+
+## Agent skills
+
+### Task tracker
+
+GitHub Issues (PRs on GitHub too). How every task operation is done: see `docs/agents/tracker.md`.
+
+### Domain docs
+
+single-context. See `docs/agents/domain.md`.
+
+### Workflow
+
+Branches, base branch, languages, model tiers, test commands, Engram sync and docs for the flow skills. See `docs/agents/workflow.md`.

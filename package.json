@@ -35,10 +35,10 @@
     "test:watch": "npm run pretest && node scripts/vitest-electron.js",
     "test:unit": "npm test",
     "test:coverage": "npm run pretest && node scripts/vitest-electron.js run --coverage",
-    "web:dev": "npm run docs:build && npx serve docs -l 4000",
-    "docs:dev": "vitepress dev docs --port 3001",
-    "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs --port 3001"
+    "web:dev": "npm run docs:build && npx serve web-docs -l 4000",
+    "docs:dev": "vitepress dev web-docs --port 3001",
+    "docs:build": "vitepress build web-docs",
+    "docs:preview": "vitepress preview web-docs --port 3001"
   },
   "build": {
     "appId": "com.airecorder.app",

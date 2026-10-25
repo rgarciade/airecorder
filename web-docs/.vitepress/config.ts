@@ -245,7 +245,7 @@ export default defineConfig({
     )
   },
 
-  // FIX 2: regenerate docs/sitemap.xml (covers the whole site, not just the
+  // FIX 2: regenerate web-docs/sitemap.xml (covers the whole site, not just the
   // VitePress wiki) from the actual page list on every build — no manual drift.
   buildEnd(siteConfig) {
     const today = new Date().toISOString().slice(0, 10)
@@ -294,7 +294,7 @@ export default defineConfig({
 
     lines.push('</urlset>', '')
 
-    // outDir is docs/vp — sitemap.xml must live at docs/sitemap.xml (site root)
+    // outDir is web-docs/vp — sitemap.xml must live at web-docs/sitemap.xml (site root)
     const sitemapPath = path.resolve(siteConfig.outDir, '../sitemap.xml')
     fs.writeFileSync(sitemapPath, lines.join('\n'), 'utf-8')
   }
