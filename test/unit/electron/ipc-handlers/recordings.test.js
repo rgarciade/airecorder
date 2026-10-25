@@ -40,6 +40,7 @@
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import { createRequire } from 'node:module';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -821,7 +822,13 @@ describe('rename-recording', () => {
   const oldPath = path.join(baseDir, oldFolder);
 
   function setup({ existsOverrides = {}, dbEntry = null, internalFiles = [], metadataContent } = {}) {
+    // Stateful: once the folder has been renamed, its new path exists on disk.
+    let movedTo = null;
+    fs.promises.rename.mockImplementation(async (from, to) => {
+      if (from === oldPath) movedTo = to;
+    });
     fs.existsSync.mockImplementation((p) => {
+      if (movedTo !== null && p === movedTo) return true;
       if (p in existsOverrides) return existsOverrides[p];
       return false;
     });
@@ -941,6 +948,31 @@ describe('rename-recording', () => {
 
     const written = JSON.parse(fs.promises.writeFile.mock.calls.find((c) => c[0].endsWith('metadata.json'))[1]);
     expect(written).toEqual({ customName: 'Nuevo Nombre' });
+  });
+
+  it('keeps projectName and sets the new customName in metadata.json (real fs)', async () => {
+    vi.restoreAllMocks();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rename-recording-test-'));
+    try {
+      fs.mkdirSync(path.join(tmpDir, oldFolder));
+      fs.writeFileSync(
+        path.join(tmpDir, oldFolder, 'metadata.json'),
+        JSON.stringify({ customName: 'Old name', projectName: 'Project A' })
+      );
+      pathsMock.getRecordingsPath.mockResolvedValue(tmpDir);
+      dbServiceMock.getRecording.mockReturnValue(null);
+
+      const result = await handlers['rename-recording']({}, 1, 'Nuevo Nombre');
+
+      expect(result).toEqual({ success: true, folderName: 'Nuevo Nombre' });
+      const written = JSON.parse(fs.readFileSync(path.join(tmpDir, 'Nuevo Nombre', 'metadata.json'), 'utf8'));
+      expect(written).toEqual({ customName: 'Nuevo Nombre', projectName: 'Project A' });
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 
   it('fs.promises.rename falla → capturado, success:false', async () => {
