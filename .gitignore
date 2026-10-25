@@ -29,7 +29,6 @@ coverage
 devfiles/
 .agents/
 plans/
-opencode.json
 python-dist/
 python/build/
 Auto SOX - Generador de IPES - Sesión Trabajo.docx
@@ -43,10 +42,6 @@ electron-dist/
 web-docs/vp/
 web-docs/.vitepress/cache/
 
-.opencode/tui.json
 .engram/manifest.json
 .engram/chunks/5f967ce3.jsonl.gz
 .engram/chunks/02359549.jsonl.gz
-.atl/.skill-registry.cache.json
-.atl/
-.atl/skill-registry.md
