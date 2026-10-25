@@ -912,8 +912,8 @@ class RecordingAiService {
    */
   async _getRecordingName(recordingId) {
     try {
-      const rec = await recordingsService.getRecordingById(recordingId);
-      return rec?.name || recordingId;
+      const name = await recordingsService.getRecordingName(recordingId);
+      return name || recordingId;
     } catch {
       return recordingId;
     }

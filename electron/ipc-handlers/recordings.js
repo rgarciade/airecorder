@@ -344,6 +344,42 @@ module.exports.registerRecordingsHandlers = () => {
     }
   });
 
+  // Nombre mostrado en la cola de IA: customName de metadata.json o, si no hay, el nombre de la carpeta
+  ipcMain.handle('get-recording-name', async (event, recordingId) => {
+    try {
+      if (recordingId === undefined || recordingId === null || String(recordingId).trim() === '') {
+        return { success: false, error: 'ID de grabación no válido' };
+      }
+      const folderName = await getFolderPathFromId(recordingId);
+      const isUnsafe = typeof folderName !== 'string'
+        || folderName.trim() === ''
+        || path.isAbsolute(folderName)
+        || folderName.split(/[\\/]/).includes('..');
+      if (isUnsafe) {
+        return { success: false, error: 'ID de grabación no válido' };
+      }
+
+      const baseOutputDir = await getRecordingsPath();
+      const metadataPath = path.join(baseOutputDir, folderName, 'metadata.json');
+      let name = String(recordingId);
+      if (fs.existsSync(metadataPath)) {
+        try {
+          const metadata = JSON.parse(await fs.promises.readFile(metadataPath, 'utf8'));
+          const customName = metadata && typeof metadata === 'object' ? metadata.customName : null;
+          if (typeof customName === 'string' && customName.trim() !== '') {
+            name = customName;
+          }
+        } catch {
+          // metadata.json ausente o corrupto: se usa el nombre de la carpeta
+        }
+      }
+      return { success: true, name };
+    } catch (error) {
+      console.error('Error obteniendo nombre de grabación:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // Obtener una grabación específica por ID
   ipcMain.handle('get-recording-by-id', async (event, recordingId) => {
     try {

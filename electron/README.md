@@ -71,6 +71,10 @@ ipcMain.handle('mi-evento', async (event, params) => {
 *   **Puente Seguro:** `preload.js` expone de forma segura (Context Bridge) las funciones necesarias al renderizador, mapeándolas con `ipcRenderer.invoke()`.
 *   **Backend al React:** El backend puede enviar eventos no solicitados (como actualizaciones de estado de transcripción) utilizando `win.webContents.send('evento-nombre', datos)`. El frontend debe tener listeners (ej. `window.electronAPI.onQueueUpdate()`).
 
+### IPC: `get-recording-name` — nombre en la cola de IA
+
+`ipc-handlers/recordings.js` expone `get-recording-name(recordingId)` → `{ success: true, name }` o `{ success: false, error }`. `name` es el `customName` de `metadata.json` (si es un string no vacío) o, si no, el nombre de la carpeta; rechaza ids vacíos o con path traversal. Se usa desde `recordingsService.getRecordingName()` para el título de `queueMeta.name` en `recordingAiService`.
+
 ### IPC: `transcribe-recording` — descarte puntual de diarización
 
 `ipc-handlers/transcription.js` expone `transcribe-recording(recordingId, model, options)`, donde `options.skipDiarization` (boolean opcional) marca `recordings.skip_diarization` vía `transcriptionManager.addTask()` antes de encolar la tarea.

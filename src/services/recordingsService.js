@@ -76,6 +76,27 @@ class RecordingsService {
   }
 
   /**
+   * Obtiene el nombre mostrado de una grabación (customName o nombre de carpeta)
+   * @param {string} recordingId - ID de la grabación
+   * @returns {Promise<string|null>} Nombre o null si no se pudo obtener
+   */
+  async getRecordingName(recordingId) {
+    try {
+      if (!window.electronAPI?.getRecordingName) {
+        throw new Error('API de Electron no disponible');
+      }
+      const result = await window.electronAPI.getRecordingName(recordingId);
+      if (!result?.success || typeof result.name !== 'string' || result.name.trim() === '') {
+        return null;
+      }
+      return result.name;
+    } catch (error) {
+      console.error('Error obteniendo nombre de grabación:', error);
+      return null;
+    }
+  }
+
+  /**
    * Obtiene la transcripción combinada en texto plano de una grabación específica
    * @param {string} recordingId - ID de la grabación
    * @returns {Promise<string|null>} Texto plano o null si no existe

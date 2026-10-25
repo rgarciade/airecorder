@@ -87,6 +87,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Obtener transcripción en texto plano de una grabación específica
   getTranscriptionTxt: (recordingId) => ipcRenderer.invoke('get-transcription-txt', recordingId),
 
+  // Nombre de la grabación (customName o nombre de carpeta) para la cola de IA
+  getRecordingName: (recordingId) => ipcRenderer.invoke('get-recording-name', recordingId),
+
   // Guardar y leer resumen de Gemini
   saveAiSummary: (recordingId, summaryJson) => ipcRenderer.invoke('save-ai-summary', recordingId, summaryJson),
   getAiSummary: (recordingId) => ipcRenderer.invoke('get-ai-summary', recordingId),
