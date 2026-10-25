@@ -145,6 +145,10 @@ beforeAll(() => {
     loaded: true,
     exports: pathsMock,
   };
+
+  // Preload the real helper so it is in require.cache before beforeEach spies
+  // fs.readFileSync (Node's CJS loader reads module source with it).
+  nodeRequire('../../../../electron/utils/recordingMetadata.js');
 });
 
 afterAll(() => {
