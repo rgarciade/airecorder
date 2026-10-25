@@ -49,7 +49,8 @@ vi.mock('../../../pages/Onboarding/ModelStep.jsx', () => ({
   ),
 }));
 
-const { default: Onboarding, STEPS } = await import('../../../pages/Onboarding/Onboarding.jsx');
+const { default: Onboarding } = await import('../../../pages/Onboarding/Onboarding.jsx');
+const { STEPS } = await import('../../../pages/Onboarding/onboardingSteps.js');
 
 function clickButtonWithText(container, text) {
   const button = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.includes(text));
