@@ -301,6 +301,13 @@ Al ser una transacción, o se aplican los tres pasos o ninguno — nunca queda e
 El sistema guarda metadatos en la base de datos (ID, duración, estados), pero el contenido pesado (archivos WAV, archivos JSON de los resúmenes de IA, transcripciones txt) reside en el sistema de archivos (Filesystem).
 *   *Importante:* El ID de la grabación (`recordingId`) en la base de datos es numérico. En el disco, las carpetas de las grabaciones usan strings (`relative_path`). La función `getFolderPathFromId()` se utiliza para traducir el ID numérico a la ruta correcta en disco.
 
+### `metadata.json` de grabación (`utils/recordingMetadata.js`)
+Cada carpeta de grabación puede tener un `metadata.json` con campos informativos:
+*   `customName`: nombre personalizado (lo escribe `rename-recording`).
+*   `projectName`: nombre del proyecto al que pertenece la grabación, o `null` si no tiene.
+
+**SQLite es la fuente de verdad**; `metadata.json` es solo un reflejo para quien lea la carpeta sin la app. `updateRecordingMetadata(folderPath, patch)` hace un merge superficial (conserva el resto de claves), no crea la carpeta si no existe y parte de `{}` si el archivo falta o está corrupto. Mantienen `projectName` sincronizado: `add-recording-to-project`, `remove-recording-from-project`, `update-project` y `delete-project` (este lee los ids antes de borrar por el `ON DELETE CASCADE`). Un fallo al escribir metadata se registra en consola y nunca cambia el resultado IPC.
+
 ## 4. Monitor de Micrófono del Sistema (`services/microphoneMonitor.js`)
 
 Detecta cuándo otro proceso del sistema activa el micrófono y notifica al usuario para que pueda iniciar una grabación.

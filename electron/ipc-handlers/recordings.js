@@ -6,6 +6,7 @@ const speakerManager = require('../services/speakerManager');
 const diarizationService = require('../services/diarizationService');
 const { resolveSpeakersInText } = require('../services/speakerResolver');
 const { getRecordingsPath, getFolderPathFromId, settingsPath } = require('../utils/paths');
+const { updateRecordingMetadata } = require('../utils/recordingMetadata');
 
 module.exports.registerRecordingsHandlers = () => {
 
@@ -334,15 +335,7 @@ module.exports.registerRecordingsHandlers = () => {
       }
 
       // 4. Guardar el customName en metadata.json por si acaso (aunque la carpeta ya tenga el nombre)
-      const metadataPath = path.join(newPath, 'metadata.json');
-      let metadata = {};
-      if (fs.existsSync(metadataPath)) {
-        try {
-          metadata = JSON.parse(await fs.promises.readFile(metadataPath, 'utf8'));
-        } catch (e) {}
-      }
-      metadata.customName = newName;
-      await fs.promises.writeFile(metadataPath, JSON.stringify(metadata, null, 2), 'utf8');
+      await updateRecordingMetadata(newPath, { customName: newName });
       
       return { success: true, folderName: safeNewName };
     } catch (error) {
