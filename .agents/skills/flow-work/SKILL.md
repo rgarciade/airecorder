@@ -271,6 +271,8 @@ Read `references/code-review.md` and run its two axes as two parallel subagents:
 
 Each saves under `flow/<repo>/<id>/review-standards` or `flow/<repo>/<id>/review-spec`. Show the findings as numbered tables, one per axis, and ask the user which to fix by number, as described in "Aggregate" in `references/code-review.md`.
 
+**Cross-agent review (optional).** Only when an agent manager that can launch other coding agents is installed (Orca, or a similar tool) and the user's own instructions allow it: run the two review axes through it with a different agent than the one running this flow, for an independent second opinion. Flow in Claude → review with Codex; flow in Codex or OpenCode → review with Claude. Launch it in the current worktree (never create a new one), with a read-only brief that follows the subagent briefs above (same pointers, notes keys and hand-back contract). If no such manager is available, or the other agent cannot be launched, run the review with the harness's own subagents as described above, and say so in one line. Never require the manager.
+
 If any, brief a fix subagent with those findings. It never touches test files. Re-run the checks from Phase 6, then give the commit command (`fix(<commit-ref>): …` or `refactor(<commit-ref>): …`, ending with `&& git push`). If a fix changes the plan, propose the plan record edit as in Phase 6.
 
 ## Phase 8: Final report and PR
