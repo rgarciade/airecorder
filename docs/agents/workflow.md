@@ -34,10 +34,12 @@ Settings read by the `flow-backlog` and `flow-work` skills. Edit this file direc
 
 ## Models
 
-Model tiers used by `flow-work`'s subagents. Use the model names your harness accepts (for example `opus` and `sonnet` in Claude Code, or `provider/model-id` in OpenCode). Write `inherit` to use the session model.
+Model profiles used by `flow-work`'s subagents. Each profile maps the two tiers, **strong** (plan, tests) and **fast** (research, implement, review, fix), to models. Use the model names your harness accepts (for example `opus` and `sonnet` in Claude Code, or `provider/model-id` in OpenCode). Write `inherit` to use the session model.
 
-- **strong** (plan, tests): `opus`
-- **fast** (research, implement, review, fix): `sonnet`
+`flow-work` runs every task on **standard**. It proposes **deep** only when it judges a task very complex, and switches only after the user's OK.
+
+- **standard**: strong `sonnet`, fast `sonnet`
+- **deep**: strong `opus`, fast `sonnet`
 
 ## Docs
 

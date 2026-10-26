@@ -27,7 +27,14 @@ coverage
 *.sln
 *.sw?
 devfiles/
-.agents/
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/flow-backlog/
+!.agents/skills/flow-setup/
+!.agents/skills/flow-work/
+!.agents/skills/setup-matt-pocock-skills/
+!.agents/skills/to-tickets/
 plans/
 python-dist/
 python/build/
