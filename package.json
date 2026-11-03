@@ -34,6 +34,7 @@
     "test": "node scripts/vitest-electron.js run",
     "test:watch": "npm run pretest && node scripts/vitest-electron.js",
     "test:unit": "npm test",
+    "test:py": "python3 -m pytest python/tests -q",
     "test:coverage": "npm run pretest && node scripts/vitest-electron.js run --coverage",
     "web:dev": "npm run docs:build && npx serve web-docs -l 4000",
     "docs:dev": "vitepress dev web-docs --port 3001",

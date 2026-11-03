@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import { createRequire } from 'node:module';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /**
  * `transcriptionManager.js` es CJS puro (`require`/`module.exports`) y hace
@@ -24,6 +26,12 @@ const pathsPath = nodeRequire.resolve('../../../../electron/utils/paths.js');
 const dbServicePath = nodeRequire.resolve('../../../../electron/database/dbService.js');
 const notificationServicePath = nodeRequire.resolve('../../../../electron/services/notificationService.js');
 const resourceManagerPath = nodeRequire.resolve('../../../../electron/services/resourceManager.js');
+// #174: the module does not exist before implementation, so its cache key is
+// built by hand instead of `nodeRequire.resolve` (which would throw).
+const micEchoServicePath = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../../../electron/services/micEcho/micEchoService.js'
+);
 
 const getSettingMock = vi.fn((key, defaultValue) => defaultValue);
 const dbServiceMock = {
@@ -35,11 +43,16 @@ const dbServiceMock = {
   getNextTask: vi.fn(),
   getActiveQueue: vi.fn(() => []),
   getQueueHistory: vi.fn(() => []),
+  updateTask: vi.fn(),
 };
 const resourceManagerMock = {
   isInstalled: vi.fn(),
   getSnapshot: vi.fn(() => ({ cacheDir: '/fake/hf-cache' })),
   resolveCacheDir: vi.fn(() => '/fake/hf-cache'),
+};
+const micEchoServiceMock = {
+  waitFor: vi.fn(() => Promise.resolve()),
+  cancelMicEcho: vi.fn(),
 };
 
 let originalElectronEntry;
@@ -47,6 +60,7 @@ let originalPathsEntry;
 let originalDbServiceEntry;
 let originalNotificationServiceEntry;
 let originalResourceManagerEntry;
+let originalMicEchoServiceEntry;
 
 beforeAll(() => {
   originalElectronEntry = nodeRequire.cache[electronPath];
@@ -78,6 +92,12 @@ beforeAll(() => {
     id: resourceManagerPath, filename: resourceManagerPath, loaded: true,
     exports: resourceManagerMock,
   };
+
+  originalMicEchoServiceEntry = nodeRequire.cache[micEchoServicePath];
+  nodeRequire.cache[micEchoServicePath] = {
+    id: micEchoServicePath, filename: micEchoServicePath, loaded: true,
+    exports: { micEchoService: micEchoServiceMock, createMicEchoService: vi.fn() },
+  };
 });
 
 afterAll(() => {
@@ -86,6 +106,7 @@ afterAll(() => {
   if (originalDbServiceEntry) nodeRequire.cache[dbServicePath] = originalDbServiceEntry; else delete nodeRequire.cache[dbServicePath];
   if (originalNotificationServiceEntry) nodeRequire.cache[notificationServicePath] = originalNotificationServiceEntry; else delete nodeRequire.cache[notificationServicePath];
   if (originalResourceManagerEntry) nodeRequire.cache[resourceManagerPath] = originalResourceManagerEntry; else delete nodeRequire.cache[resourceManagerPath];
+  if (originalMicEchoServiceEntry) nodeRequire.cache[micEchoServicePath] = originalMicEchoServiceEntry; else delete nodeRequire.cache[micEchoServicePath];
 });
 
 describe('transcriptionManager — bloqueo pre-spawn si el modelo no está instalado (D8, INV6, DL1)', () => {
@@ -207,5 +228,72 @@ describe('transcriptionManager — runTranscriptionProcess: regresión de filas 
 
     expect(resourceManagerMock.isInstalled).toHaveBeenCalledWith('large-v3');
     expect(resourceManagerMock.isInstalled).not.toHaveBeenCalledWith('small');
+  });
+});
+
+describe('transcriptionManager.processQueue — waits for the mic echo job of the recording (#174, S2)', () => {
+  let transcriptionManager;
+  const task = { id: 55, recording_id: 7, model: 'small' };
+
+  function deferred() {
+    let resolve;
+    let reject;
+    const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+    return { promise, resolve, reject };
+  }
+
+  beforeEach(async () => {
+    transcriptionManager = (await import('../../../../electron/services/transcriptionManager.js')).default;
+    transcriptionManager.activeTask = null;
+    transcriptionManager.process = null;
+    transcriptionManager.basePath = '/fake/recordings';
+
+    getSettingMock.mockClear().mockImplementation((key, defaultValue) => defaultValue);
+    Object.values(dbServiceMock).forEach((fn) => fn.mockClear && fn.mockClear());
+    dbServiceMock.getNextTask.mockReset().mockReturnValueOnce(task).mockReturnValue(null);
+    dbServiceMock.getRecordingById.mockReset().mockReturnValue({ id: 7, relative_path: 'rec/uno' });
+    micEchoServiceMock.waitFor.mockReset().mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('S2a: does not start the transcription while the echo job of that recording is pending', async () => {
+    const echoJob = deferred();
+    micEchoServiceMock.waitFor.mockReturnValue(echoJob.promise);
+    const runSpy = vi.spyOn(transcriptionManager, 'runTranscriptionProcess').mockResolvedValue();
+
+    const processing = transcriptionManager.processQueue();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(micEchoServiceMock.waitFor).toHaveBeenCalledWith('rec/uno');
+    expect(runSpy).not.toHaveBeenCalled();
+
+    echoJob.resolve();
+    await processing;
+
+    expect(runSpy).toHaveBeenCalledTimes(1);
+    expect(dbServiceMock.updateTask).toHaveBeenCalledWith(55, 'completed', 'completed', 100);
+  });
+
+  it('S2b: still transcribes when waiting for the echo job fails', async () => {
+    micEchoServiceMock.waitFor.mockRejectedValue(new Error('echo job exploded'));
+    const runSpy = vi.spyOn(transcriptionManager, 'runTranscriptionProcess').mockResolvedValue();
+
+    await transcriptionManager.processQueue();
+
+    expect(micEchoServiceMock.waitFor).toHaveBeenCalledWith('rec/uno');
+    expect(runSpy).toHaveBeenCalledTimes(1);
+    expect(dbServiceMock.updateTask).toHaveBeenCalledWith(55, 'completed', 'completed', 100);
+  });
+
+  it('S2c: transcribes without delay when there is no echo job for the recording', async () => {
+    const runSpy = vi.spyOn(transcriptionManager, 'runTranscriptionProcess').mockResolvedValue();
+
+    await transcriptionManager.processQueue();
+
+    expect(runSpy).toHaveBeenCalledTimes(1);
+    expect(dbServiceMock.updateTask).toHaveBeenCalledWith(55, 'completed', 'completed', 100);
   });
 });
