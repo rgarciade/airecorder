@@ -4,6 +4,7 @@ const path = require('path');
 const dbService = require('../database/dbService');
 const { getRecordingsPath } = require('../utils/paths');
 const AudioRecorder = require('../services/audioRecorder');
+const { micEchoService } = require('../services/micEcho/micEchoService');
 
 const audioRecorder = new AudioRecorder();
 
@@ -130,6 +131,19 @@ module.exports.registerAudioHandlers = () => {
       return { success: true, filePath, message: `Archivo guardado en ${filePath}` };
     } catch (error) {
       console.error('Error saving system audio:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Offline echo cancellation of the mic track (#174). The job is reserved
+  // before the first await so a queued transcription can wait for it.
+  ipcMain.handle('cancel-mic-echo', async (event, folderName) => {
+    try {
+      micEchoService.reserve?.(folderName);
+      const baseOutputDir = await getRecordingsPath();
+      return await micEchoService.cancelMicEcho(path.join(baseOutputDir, folderName), folderName);
+    } catch (error) {
+      micEchoService.release?.(folderName);
       return { success: false, error: error.message };
     }
   });

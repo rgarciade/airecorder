@@ -75,6 +75,14 @@ ipcMain.handle('mi-evento', async (event, params) => {
 
 `ipc-handlers/recordings.js` expone `get-recording-name(recordingId)` → `{ success: true, name }` o `{ success: false, error }`. `name` es el `customName` de `metadata.json` (si es un string no vacío) o, si no, el nombre de la carpeta resuelta (`basename`, no el id numérico); rechaza ids vacíos, absolutos, con `..` o cuya ruta resuelta quede fuera de la carpeta de grabaciones (contención). Se usa desde `recordingsService.getRecordingName()` para el título de `queueMeta.name` en `recordingAiService`.
 
+### IPC: `cancel-mic-echo` — cancelación de eco del micrófono (issue #174)
+
+- `window.electronAPI.cancelMicEcho(folderName)` se dispara (sin await) desde `MixedAudioRecorder.handleSeparateRecordingStop` tras guardar ambas pistas y antes de `onStop`.
+- El handler (`ipc-handlers/audio.js`) reserva el trabajo de forma síncrona (`micEchoService.reserve`), resuelve `<recordingsPath>/<folder>` y llama a `micEchoService.cancelMicEcho(dir, folder)`. Devuelve `{ success, applied?, reason?, error? }` y nunca rechaza.
+- `services/micEcho/micEchoService.js` (`createMicEchoService({ runEchoCancel, fs, logger })`): usa `{base}-system.webm` como referencia y lanza el subcomando `echo-cancel --mic --ref --out --ffmpeg` del analizador Python (resolución de binario/ffmpeg en `utils/pythonCommand.js`).
+- Contrato de nombres: `{base}-microphone.webm` (pista limpia si hubo eco), `{base}-microphone-original.webm` (original, solo si se aplicó), `{base}-echo-tmp.webm` (temporal), `analysis/echo_cancellation.json` (informe). Idempotente (la fuente es el original si existe), con recuperación y rollback ante fallos.
+- `transcriptionManager.processQueue` hace `await micEchoService.waitFor(recording.relative_path)` antes de diarizar/transcribir; un fallo del eco nunca bloquea la transcripción.
+
 ### IPC: `transcribe-recording` — descarte puntual de diarización
 
 `ipc-handlers/transcription.js` expone `transcribe-recording(recordingId, model, options)`, donde `options.skipDiarization` (boolean opcional) marca `recordings.skip_diarization` vía `transcriptionManager.addTask()` antes de encolar la tarea.

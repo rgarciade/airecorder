@@ -39,6 +39,9 @@ a = Analysis(
         'huggingface_hub',
         # Gestion de descargas de modelos (model_resources.py, dispatch "resources")
         'model_resources',
+        # Offline mic echo cancellation (dispatch "echo-cancel", #174)
+        'echo_canceller',
+        'echo_cancel_cli',
         'requests',
         'tqdm',
         'filelock',

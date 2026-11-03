@@ -14,6 +14,13 @@ if len(sys.argv) > 1 and sys.argv[1] == "resources":
 
     sys.exit(resources_main(sys.argv[2:]))
 
+# Early dispatch for "echo-cancel" (#174): offline mic echo cancellation needs
+# only numpy + ffmpeg, so it runs before the heavy transcription imports.
+if len(sys.argv) > 1 and sys.argv[1] == "echo-cancel":
+    from echo_cancel_cli import main as echo_cancel_main
+
+    sys.exit(echo_cancel_main(sys.argv[2:]))
+
 import os
 import tempfile
 
