@@ -41,6 +41,7 @@ a = Analysis(
         'model_resources',
         # Offline mic echo cancellation (dispatch "echo-cancel", #174)
         'echo_canceller',
+        'echo_res',
         'echo_cancel_cli',
         'requests',
         'tqdm',

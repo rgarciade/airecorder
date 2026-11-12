@@ -10,8 +10,17 @@ microphone track picks it up again as a delayed, filtered echo. Pipeline:
    foreground/background pair for double-talk control: the background filter
    always adapts, the foreground (the one producing output) only takes its
    coefficients when the background clearly performs better.
-3. Mild residual echo suppression (scalar per block, disabled in double talk).
-4. Safeguards: a global gate (no coherent echo or silent reference -> the mic
+3. Residual echo suppression (`echo_res.py`): a per-bin, frequency-domain gain
+   for what the linear filter cannot predict (loudspeaker distortion, browser
+   AEC/AGC). Smoothed in time and frequency, it protects near-end speech.
+4. Warm start: the filter starts from zero, so the first system-audio
+   intervention would be barely cancelled while it converges. Offline we can
+   afford a short pre-pass over the first seconds of active reference and start
+   the real pass (from t=0) with those weights (`warm_up`).
+5. Echo gain tracking: the mic path may have a time-varying gain (browser AGC),
+   which a static filter cannot follow, so a fast scalar gain is applied to the
+   filter output.
+6. Safeguards: a global gate (no coherent echo or silent reference -> the mic
    is returned untouched) and a local per-block fallback to the mic, with
    crossfades, whenever the processed block would be louder than the mic.
 
@@ -20,6 +29,8 @@ produce the same samples and memory stays bounded.
 """
 
 import numpy as np
+
+from echo_res import RES_PARAMS, ResidualSuppressor
 
 DEFAULT_PARAMS = {
     # Adaptive filter
@@ -48,11 +59,17 @@ DEFAULT_PARAMS = {
     "ref_silence_rms": 1e-5,
     "ref_active_rms": 1e-3,
     "min_erle_db": 3.0,
-    # Residual echo suppression
-    "res_max_attenuation_db": 6.0,
-    "res_smoothing": 0.7,
     # Local fallback
     "fallback_margin_db": 0.0,
+    # Echo gain tracking (scalar LS gain between the mic and the filter output)
+    "gain_tracking": True,
+    "gain_smoothing": 0.6,
+    "gain_min": 0.5,
+    "gain_max": 3.0,
+    # Warm start pre-pass: stops after this much active reference (or EOF)
+    "warm_active_seconds": 20.0,
+    # Residual echo suppression (frequency domain, see echo_res.py)
+    **RES_PARAMS,
 }
 
 
@@ -248,7 +265,11 @@ class EchoCanceller:
         self.emitted = 0
         self.dtype = None
         self.weight = 1.0
-        self.res_gain = 1.0
+        self.res = ResidualSuppressor(sr, self.B, self.p)
+        self.echo_gain = 1.0
+        self.gain_num = 0.0
+        self.gain_den = 0.0
+        self.active_blocks = 0
         self.bad_blocks = 0
         self.stats = {"mic_energy": 0.0, "out_energy": 0.0, "blocks": 0, "fallback_blocks": 0}
 
@@ -323,12 +344,21 @@ class EchoCanceller:
 
         y_f = self._filter(self.Wf)
         y_b = self._filter(self.Wb)
+        if p["gain_tracking"]:
+            a = p["gain_smoothing"]
+            # Only learn the gain while the reference is playing; during ref
+            # silence d/y_f would be a noise ratio, not an echo gain.
+            if _rms(x) >= p["ref_active_rms"]:
+                self.gain_num = a * self.gain_num + (1 - a) * float(np.dot(d, y_f))
+                self.gain_den = a * self.gain_den + (1 - a) * float(np.dot(y_f, y_f))
+            if self.gain_den > 1e-9:
+                self.echo_gain = float(np.clip(self.gain_num / self.gain_den, p["gain_min"], p["gain_max"]))
+            y_f = y_f * self.echo_gain
         e_f = d - y_f
         e_b = d - y_b
         ef_energy = float(np.dot(e_f, e_f))
         eb_energy = float(np.dot(e_b, e_b))
         mic_energy = float(np.dot(d, d))
-        echo_energy = float(np.dot(y_f, y_f))
 
         # Background always adapts; foreground follows only when it wins.
         self._adapt(self.Wb, e_b)
@@ -343,15 +373,9 @@ class EchoCanceller:
         else:
             self.bad_blocks = 0
 
-        # Mild residual echo suppression: attenuate only when the error is
-        # mostly residual echo (far-end only), never during double talk.
         ref_active = _rms(x) >= p["ref_active_rms"]
-        target = 1.0
-        if ref_active and echo_energy > 0 and ef_energy < 0.1 * echo_energy:
-            target = 10 ** (-p["res_max_attenuation_db"] / 20)
-        s = p["res_smoothing"]
-        self.res_gain = s * self.res_gain + (1 - s) * target
-        e = e_f * self.res_gain
+        self.active_blocks += int(ref_active)
+        e = e_f
 
         # Local fallback to the mic, with a crossfade across the block.
         limit = mic_energy * 10 ** (p["fallback_margin_db"] / 10)
@@ -361,6 +385,9 @@ class EchoCanceller:
         if float(np.dot(out, out)) > limit:
             out = d.copy()
         self.weight = target_w
+        # Also runs on blocks that fell back to the mic: it only attenuates the
+        # bins the model sees as echo, so a fallback block is not left untouched.
+        out = self.res.process(out, y_f, ref_active)
         if target_w == 0.0:
             self.stats["fallback_blocks"] += 1
 
@@ -369,6 +396,21 @@ class EchoCanceller:
             self.stats["out_energy"] += float(np.dot(out, out))
         self.stats["blocks"] += 1
         return out
+
+    # -- warm start ----------------------------------------------------------
+    def active_seconds(self):
+        return self.active_blocks * self.B / self.sr
+
+    def warm_up_done(self):
+        return self.active_seconds() >= self.p["warm_active_seconds"]
+
+    def export_state(self):
+        return {"W": self.Wf.copy(), "power": self.power.copy()}
+
+    def import_state(self, state):
+        self.Wf[:] = state["W"]
+        self.Wb[:] = state["W"]
+        self.power[:] = state["power"]
 
     def erle_db(self):
         if self.stats["mic_energy"] <= 0:
@@ -393,6 +435,32 @@ def analyze(mic, ref, sr, params=None):
     return analyzer
 
 
+def warm_up_stream(blocks, sr, decision, params=None):
+    """Streaming pre-pass shared by the CLI and `warm_up`; returns the converged state.
+
+    `blocks` yields (mic_block, ref_block) pairs of equal length. Runs a
+    throwaway canceller (output discarded) and stops consuming as soon as
+    `warm_active_seconds` of active reference were seen, or the input ends.
+    """
+    p = dict(_params(params), res_enabled=False)  # only the filter weights are kept
+    canceller = EchoCanceller(sr, decision["align"], p, drift_ratio=decision["drift_ratio"])
+    for mic_block, ref_block in blocks:
+        canceller.process(mic_block, ref_block)
+        if canceller.warm_up_done():
+            break
+    return canceller.export_state()
+
+
+def warm_up(mic, ref, sr, decision, params=None):
+    """Whole-array wrapper over `warm_up_stream` (see there)."""
+    step = int(_params(params)["block_size"]) * 16
+    ref_fit = ref[: len(mic)]
+    if len(ref_fit) < len(mic):
+        ref_fit = np.concatenate([ref_fit, np.zeros(len(mic) - len(ref_fit), dtype=ref.dtype)])
+    blocks = ((mic[i:i + step], ref_fit[i:i + step]) for i in range(0, len(mic), step))
+    return warm_up_stream(blocks, sr, decision, params)
+
+
 def cancel_echo(mic, ref, sr, params=None):
     """Cancels the echo of ref in mic. Returns (out, report).
 
@@ -407,6 +475,7 @@ def cancel_echo(mic, ref, sr, params=None):
     delay_ms = 1000.0 * decision["delay"] / sr
     delays_ms = decision["delays_ms"]
     canceller = EchoCanceller(sr, decision["align"], p, drift_ratio=decision["drift_ratio"])
+    canceller.import_state(warm_up(mic, ref, sr, decision, p))
     ref_fit = ref[: len(mic)]
     if len(ref_fit) < len(mic):
         ref_fit = np.concatenate([ref_fit, np.zeros(len(mic) - len(ref_fit), dtype=ref.dtype)])

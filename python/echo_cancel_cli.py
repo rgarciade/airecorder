@@ -14,15 +14,17 @@ leaves no --out file behind.
 """
 
 import argparse
+import contextlib
 import json
 import os
+import stat
 import subprocess
 import sys
 import tempfile
 
 import numpy as np
 
-from echo_canceller import DEFAULT_PARAMS, EchoCanceller, SegmentAnalyzer
+from echo_canceller import DEFAULT_PARAMS, EchoCanceller, SegmentAnalyzer, warm_up_stream
 
 SAMPLE_RATE = 48000
 READ_SECONDS = 1.0
@@ -65,9 +67,15 @@ class Decoder:
         self.total += len(block)
         return block
 
-    def close(self):
+    def close(self, abort=False):
+        """abort=True: the consumer stopped early; kill ffmpeg and skip the checks."""
+        if abort and self.proc.poll() is None:
+            self.proc.terminate()
         self.proc.stdout.close()
         code = self.proc.wait()
+        if abort:
+            self.stderr.close()
+            return
         self.stderr.seek(0)
         message = self.stderr.read().decode("utf-8", "replace").strip()
         self.stderr.close()
@@ -78,8 +86,13 @@ class Decoder:
 
 
 def _stream_pairs(ffmpeg, mic_path, ref_path, block):
-    """Yields (mic_block, ref_block); ref is zero-padded/trimmed to the mic."""
+    """Yields (mic_block, ref_block); ref is zero-padded/trimmed to the mic.
+
+    If the consumer stops early (generator closed), both decoders are killed
+    and reaped instead of being drained.
+    """
     mic, ref = Decoder(ffmpeg, mic_path), Decoder(ffmpeg, ref_path)
+    finished = False
     try:
         while True:
             m = mic.read(block)
@@ -91,11 +104,12 @@ def _stream_pairs(ffmpeg, mic_path, ref_path, block):
             yield m, r
         while not ref.done:  # drain so ffmpeg exits cleanly
             ref.read(block)
+        finished = True
     finally:
         try:
-            mic.close()
+            mic.close(abort=not finished)
         finally:
-            ref.close()
+            ref.close(abort=not finished)
 
 
 def _analyze(ffmpeg, mic_path, ref_path, params):
@@ -106,8 +120,17 @@ def _analyze(ffmpeg, mic_path, ref_path, params):
     return analyzer.decision()
 
 
+def _warm_up(ffmpeg, mic_path, ref_path, decision, params):
+    """Pre-pass over the start of the recording: the converged filter state
+    lets the real pass cancel the first system-audio intervention."""
+    block = int(SAMPLE_RATE * READ_SECONDS)
+    with contextlib.closing(_stream_pairs(ffmpeg, mic_path, ref_path, block)) as pairs:
+        return warm_up_stream(pairs, SAMPLE_RATE, decision, params)
+
+
 def _cancel(ffmpeg, mic_path, ref_path, decision, params, tmp_out):
     canceller = EchoCanceller(SAMPLE_RATE, decision["align"], params, drift_ratio=decision["drift_ratio"])
+    canceller.import_state(_warm_up(ffmpeg, mic_path, ref_path, decision, params))
     encoder_log = tempfile.TemporaryFile()
     encoder = subprocess.Popen(
         [ffmpeg, "-y", "-v", "error", "-nostdin", "-f", "f32le", "-ar", str(SAMPLE_RATE), "-ac", "1",
@@ -160,6 +183,15 @@ def run(argv):
             "fallback_blocks": canceller.stats["fallback_blocks"],
         }
         if report["applied"]:
+            # mkstemp creates the file as 0600; keep the original mic file's mode instead.
+            try:
+                mode = stat.S_IMODE(os.stat(args.mic).st_mode)
+            except OSError:
+                mode = 0o644
+            try:
+                os.chmod(tmp_out, mode | 0o600)  # the owner must always be able to read/write
+            except OSError as error:
+                print(f"ECHO_WARNING cannot set output permissions: {error}", file=sys.stderr, flush=True)
             os.replace(tmp_out, args.out)
         return report
     finally:
