@@ -6,9 +6,12 @@ import { buildOpenAIToolMessages, parseOpenAIToolMessage } from './openAIToolCha
 
 export const OPENAI_BASE_URL = 'https://api.openai.com';
 
+const DEFAULT_API_PREFIX = '/v1';
+const DEFAULT_ERROR_LABEL = 'Custom OpenAI';
+
 const CUSTOM_ENDPOINTS = {
-  models: '/v1/models',
-  chatCompletions: '/v1/chat/completions',
+  models: '/models',
+  chatCompletions: '/chat/completions',
 };
 
 /**
@@ -79,17 +82,24 @@ function createThinkFilter() {
   };
 }
 
-function buildErrorMessage(response, errBody) {
+function buildErrorMessage(response, errBody, label = DEFAULT_ERROR_LABEL) {
   const errMsg =
     typeof errBody.error === 'string'
       ? errBody.error
       : errBody.error?.message || errBody.message || '';
-  return `Custom OpenAI Error: ${response.status}${errMsg ? ' — ' + errMsg : ''}`;
+  return `${label} Error: ${response.status}${errMsg ? ' — ' + errMsg : ''}`;
 }
 
 export class CustomOpenAIProvider {
-  constructor({ baseUrl, apiKey, model }) {
+  /**
+   * @param {{baseUrl:string, apiKey?:string, model?:string, apiPrefix?:string, errorLabel?:string}} config
+   *   `apiPrefix` es el tramo entre la URL base y `/models|/chat/completions` ('/v1' por defecto;
+   *   '' para APIs como Z.AI cuya URL base ya incluye la versión). `errorLabel` prefija los errores.
+   */
+  constructor({ baseUrl, apiKey, model, apiPrefix = DEFAULT_API_PREFIX, errorLabel = DEFAULT_ERROR_LABEL }) {
     this.baseUrl = normalizeBaseUrl(baseUrl);
+    this.apiPrefix = apiPrefix;
+    this.errorLabel = errorLabel;
     this.apiKey = apiKey || '';
     this.model = model || '';
   }
@@ -119,7 +129,7 @@ export class CustomOpenAIProvider {
       { role: 'user', content: prompt },
     ];
 
-    const response = await fetch(`${this.baseUrl}${CUSTOM_ENDPOINTS.chatCompletions}`, {
+    const response = await fetch(`${this.baseUrl}${this.apiPrefix}${CUSTOM_ENDPOINTS.chatCompletions}`, {
       method: 'POST',
       headers: this._headers(),
       body: JSON.stringify({
@@ -132,7 +142,7 @@ export class CustomOpenAIProvider {
 
     if (!response.ok) {
       const errBody = await response.json().catch(() => ({}));
-      throw new Error(buildErrorMessage(response, errBody));
+      throw new Error(buildErrorMessage(response, errBody, this.errorLabel));
     }
 
     const data = await response.json();
@@ -184,7 +194,7 @@ export class CustomOpenAIProvider {
   async chatCompletionOnce(messages, options = {}, signal = null) {
     this._requireModel();
 
-    const response = await fetch(`${this.baseUrl}${CUSTOM_ENDPOINTS.chatCompletions}`, {
+    const response = await fetch(`${this.baseUrl}${this.apiPrefix}${CUSTOM_ENDPOINTS.chatCompletions}`, {
       method: 'POST',
       headers: this._headers(),
       body: JSON.stringify({
@@ -198,7 +208,7 @@ export class CustomOpenAIProvider {
 
     if (!response.ok) {
       const errBody = await response.json().catch(() => ({}));
-      throw new Error(buildErrorMessage(response, errBody));
+      throw new Error(buildErrorMessage(response, errBody, this.errorLabel));
     }
 
     const data = await response.json();
@@ -208,7 +218,7 @@ export class CustomOpenAIProvider {
   }
 
   async _streamChatCompletions(messages, onChunk, signal) {
-    const response = await fetch(`${this.baseUrl}${CUSTOM_ENDPOINTS.chatCompletions}`, {
+    const response = await fetch(`${this.baseUrl}${this.apiPrefix}${CUSTOM_ENDPOINTS.chatCompletions}`, {
       method: 'POST',
       headers: this._headers(),
       body: JSON.stringify({
@@ -221,7 +231,7 @@ export class CustomOpenAIProvider {
 
     if (!response.ok) {
       const errBody = await response.json().catch(() => ({}));
-      throw new Error(buildErrorMessage(response, errBody));
+      throw new Error(buildErrorMessage(response, errBody, this.errorLabel));
     }
 
     const reader = response.body.getReader();
@@ -264,13 +274,13 @@ export class CustomOpenAIProvider {
    * @returns {Promise<Array<{name:string, label:string, description:string}>>}
    */
   async listModels() {
-    const response = await fetch(`${this.baseUrl}${CUSTOM_ENDPOINTS.models}`, {
+    const response = await fetch(`${this.baseUrl}${this.apiPrefix}${CUSTOM_ENDPOINTS.models}`, {
       headers: this._headers(),
     });
 
     if (!response.ok) {
       const errBody = await response.json().catch(() => ({}));
-      throw new Error(buildErrorMessage(response, errBody));
+      throw new Error(buildErrorMessage(response, errBody, this.errorLabel));
     }
 
     const data = await response.json();

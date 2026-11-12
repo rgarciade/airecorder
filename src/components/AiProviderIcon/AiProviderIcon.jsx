@@ -26,6 +26,16 @@ function KimiMark({ size, ...props }) {
   );
 }
 
+// react-icons no incluye Zhipu/Z.AI: marca "Z" propia en SVG inline.
+function GlmMark({ size, ...props }) {
+  const computedSize = size || '1em';
+  return (
+    <svg fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" width={computedSize} height={computedSize} xmlns="http://www.w3.org/2000/svg" {...props}>
+      <path d="M5 5h14L5 19h14" />
+    </svg>
+  );
+}
+
 /**
  * Fuente única de verdad para el logo/ícono de cada proveedor de IA soportado.
  * Agregar un proveedor nuevo acá alcanza para que aparezca correctamente en
@@ -36,6 +46,7 @@ export const AI_PROVIDERS = {
   lmstudio: { label: 'LM Studio', Icon: LmStudioMark },
   openai: { label: 'OpenAI', Icon: AiOutlineOpenAI },
   codex: { label: 'Codex', Icon: AiOutlineOpenAI },
+  glm: { label: 'GLM', Icon: GlmMark },
   gemini: { label: 'Gemini', Icon: SiGooglegemini },
   kimi: { label: 'Kimi', Icon: KimiMark },
   deepseek: { label: 'DeepSeek', Icon: SiDeepseek },

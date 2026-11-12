@@ -6,7 +6,7 @@ Este directorio maneja todo el enrutamiento y la generación de contenido a trav
 
 Para evitar atar el código de la interfaz a una API de IA específica, el sistema utiliza un **Patrón de Enrutador** (`providerRouter.js`).
 
-*   **Proveedores disponibles:** Gemini (`geminiProvider.js`, config única — sin distinción Free/Pro), OpenAI (`customOpenAIProvider.js` con `baseUrl` fija `OPENAI_BASE_URL`), Ollama (`ollamaProvider.js`), DeepSeek (`deepseekProvider.js`), Kimi (`kimiProvider.js`), LM Studio (`lmStudioProvider.js`), y conexiones OpenAI-compatible personalizadas (`customOpenAIProvider.js` con `baseUrl` configurable por el usuario).
+*   **Proveedores disponibles:** Gemini (`geminiProvider.js`, config única — sin distinción Free/Pro), OpenAI (`customOpenAIProvider.js` con `baseUrl` fija `OPENAI_BASE_URL`), GLM / Z.AI Coding Plan (`glmProvider.js` sobre `customOpenAIProvider.js`, ver [GLM](#glm-zai-coding-plan)), Ollama (`ollamaProvider.js`), DeepSeek (`deepseekProvider.js`), Kimi (`kimiProvider.js`), LM Studio (`lmStudioProvider.js`), y conexiones OpenAI-compatible personalizadas (`customOpenAIProvider.js` con `baseUrl` configurable por el usuario).
 *   **Flujo:** React llama directamente a las APIs de IA usando las claves guardadas en los `Settings`. `providerRouter.js` selecciona el proveedor activo basado en `settings.aiProvider`. Los valores con prefijo `custom:{id}` se resuelven a partir de `settings.customConnections`.
 *   **Cómo añadir un nuevo proveedor:** Crea un archivo `nuevoProvider.js` con dos tipos de funciones:
     1. `sendToNuevo(textContent, modelOverride, systemPrompt, signal)` — para análisis/resúmenes con system prompt separado.
@@ -15,20 +15,35 @@ Para evitar atar el código de la interfaz a una API de IA específica, el siste
 
 ### Conexiones OpenAI personalizadas
 
-El archivo `customOpenAIProvider.js` expone la clase `CustomOpenAIProvider`, instanciada con `{baseUrl, apiKey, model}`. Implementa los mismos métodos que los proveedores locales:
+El archivo `customOpenAIProvider.js` expone la clase `CustomOpenAIProvider`, instanciada con `{baseUrl, apiKey, model, apiPrefix?, errorLabel?}` (`apiPrefix` por defecto `'/v1'`; `errorLabel` por defecto `'Custom OpenAI'`, aparece como `<label> Error: <status>`). Implementa los mismos métodos que los proveedores locales:
 
 | Método | Uso |
 |--------|-----|
 | `sendMessage(prompt, systemPrompt, signal)` | Análisis / resúmenes |
 | `sendMessageStreaming(prompt, onChunk, systemPrompt, signal)` | Chat streaming con prompt simple |
 | `chatCompletionStreaming(messages, onChunk, signal)` | Chat nativo con historial de mensajes |
-| `listModels()` | Lista modelos desde `GET /v1/models` |
+| `chatCompletionOnce(messages, {tools}, signal)` | Una pasada con `tools` (loop de tool-calling) |
+| `listModels()` | Lista modelos desde `GET <baseUrl><apiPrefix>/models` |
 
 `signal` es un `AbortSignal` opcional (default `null`) para cancelar la petición en curso — ver [Cancelación de la tarea en curso](#cancelación-de-la-tarea-en-curso-abortcontroller).
 
 El router usa `isCustom(provider)` y `resolveCustomConnection(settings, provider)` para detectar el prefijo `custom:` y resolver la conexión. Si el `id` no existe, devuelve un error seguro sin crashear. Los proveedores integrados siguen funcionando sin cambios.
 
 La misma clase `CustomOpenAIProvider` también implementa el proveedor fijo **OpenAI** (`case 'openai'` en `providerRouter.js`): se instancia con `baseUrl: OPENAI_BASE_URL` (constante exportada desde `customOpenAIProvider.js`, `https://api.openai.com`) en vez de una URL configurable por el usuario. Solo pide API Key + modelo, igual que Gemini/DeepSeek/Kimi.
+
+### GLM (Z.AI Coding Plan)
+
+> **Beta:** se implementó con tests y sin probarlo con una cuenta real de Z.AI. La UI (`settings.providers.glmBeta`) y la guía pública avisan al usuario y le piden abrir una incidencia si algo falla.
+
+`glmProvider.js` no es un cliente nuevo: reutiliza `CustomOpenAIProvider` con `apiPrefix: ''` (la URL base de Z.AI ya incluye `/v4`) y `errorLabel: 'GLM'`.
+
+*   **Endpoints** (`GLM_ENDPOINTS`): `plan` (por defecto) `https://api.z.ai/api/coding/paas/v4`; `general` `https://api.z.ai/api/paas/v4`. Los paths son `<base>/models` y `<base>/chat/completions`.
+*   **Ajustes:** `glmApiKey`, `glmModel` (vacío por defecto; se elige el primer modelo listado si falta), `glmEndpointMode` (`'plan'` | `'general'`) y `glmBaseUrl` opcional: si no está vacía (tras `trim`, sin `/` final) sustituye al endpoint elegido (p. ej. bigmodel.cn). `resolveGlmBaseUrl(settings)` lo resuelve; `createGlmClient(settings, model)` construye el cliente que usan los cuatro `switch` del router (análisis, streaming, chat streaming y loop de tools).
+*   **Modelos:** `fetchGlmModels(settings)` consulta `/models` y devuelve `{models, isFallback}`; ante cualquier fallo (o lista vacía) devuelve `GLM_FALLBACK_MODELS` (`glm-5.2`, `glm-5-turbo`, `glm-4.7`) con `isFallback: true`. `listGlmModels(settings)` es un wrapper que devuelve solo el array. El aviso no bloqueante de lista de respaldo se muestra solo en Settings (según `isFallback`); el onboarding cae al respaldo en silencio. `requireGlmClient(settings, model?)` valida clave y modelo y crea el cliente para el router.
+*   **Sin embeddings:** `electron/services/embeddingService.js` avisa (`GLM no soporta embeddings, se usa el siguiente proveedor`) y cae a otro proveedor. En la UI se oculta/deshabilita en el rol de embeddings.
+*   **Sin API de cuota/uso:** Z.AI no documenta una API de consumo del plan, por lo que la app no muestra uso. `reasoning_content` se ignora; `stripThinkBlocks` sigue limpiando bloques `<think>`.
+*   **Errores:** `No se ha configurado la GLM API Key en los ajustes.` / `No se ha seleccionado un modelo de GLM.`; `validateProviderConfig` → `Falta configurar la GLM API Key`. Nombre del motor en la cola: `GLM: <modelo>`.
+*   **Contexto:** `getActiveProviderContextWindow` devuelve `null` (cloud, sin chunking); las pantallas de chat asumen 128000 tokens.
 
 ## 2. Los Prompts y Plantillas (`src/prompts/aiPrompts.js`)
 
@@ -141,6 +156,7 @@ se guarda en `ollamaRagModel` / `lmStudioRagModel` — **nunca sobrescribe el Mo
 | **Gemini** | Campo `system_instruction: { parts: [{ text }] }` en el body de `generateContent` |
 | **Ollama** | Campo `system` en el body de `/api/generate` |
 | **DeepSeek** | Mensaje `{ role: 'system', content }` antes del mensaje de usuario |
+| **GLM** | Mensaje `{ role: 'system', content }` antes del mensaje de usuario (vía `CustomOpenAIProvider`) |
 | **Kimi** | Reemplaza el system genérico hardcodeado por el system prompt específico de la tarea |
 | **LM Studio** | Mensaje `{ role: 'system', content }` antes del mensaje de usuario |
 
@@ -485,7 +501,7 @@ A diferencia de `/tareas` (`chat/commands/tasksCommand.js`), que extrae action i
 | `update_task` | `id` (requerido), `title?`, `content?`, `layer?`, `status?` | Descripción explícita: "solo llamar si el usuario pidió explícitamente cambiar ESTA tarea existente". SIEMPRE devuelve la propuesta (ya mergeada) — sin `confirm` en el schema, no hay forma de que la IA ejecute directo. |
 | `delete_task` | `id` (requerido) | SIEMPRE devuelve una petición de confirmación — sin `confirm` en el schema, no hay forma de que la IA ejecute directo. |
 
-`toOpenAIToolsFormat(catalog)` (definido en `tools/index.js`, default `ALL_TOOLS`) traduce el catálogo al formato `tools:[{type:'function', function:{...}}]` que usan los 5 proveedores OpenAI-compatibles (OpenAI/custom, DeepSeek, Kimi, LM Studio, Ollama). `toGeminiToolsFormat(catalog)` lo traduce al formato nativo de Gemini (`tools:[{functionDeclarations:[...]}]`).
+`toOpenAIToolsFormat(catalog)` (definido en `tools/index.js`, default `ALL_TOOLS`) traduce el catálogo al formato `tools:[{type:'function', function:{...}}]` que usan los 6 proveedores OpenAI-compatibles ((OpenAI/custom, GLM, DeepSeek, Kimi, LM Studio, Ollama)). `toGeminiToolsFormat(catalog)` lo traduce al formato nativo de Gemini (`tools:[{functionDeclarations:[...]}]`).
 
 ### 6.2 Ejecución + guarda de seguridad (`tools/taskTools.js` + `tools/index.js`)
 
@@ -535,17 +551,18 @@ Cada proveedor expone una función/método `chatCompletionOnce` (o `sendToGemini
 |-----------|---------|---------------------|------------------------|
 | Gemini | `sendToGeminiChatOnce` (`geminiProvider.js`) | `toGeminiToolsFormat` | Implementado según documentación pública (`functionCall`/`functionResponse`). **No verificado en vivo** contra la API real durante este cambio. |
 | OpenAI + custom | `CustomOpenAIProvider#chatCompletionOnce` (`customOpenAIProvider.js`) | `toOpenAIToolsFormat` | Formato OpenAI estándar, documentado y estable. |
+| GLM (Z.AI) | `CustomOpenAIProvider#chatCompletionOnce` vía `requireGlmClient` (`glmProvider.js`) | `toOpenAIToolsFormat` | Z.AI documenta `tools`/`tool_calls` compatible con OpenAI. **No verificado en vivo**. |
 | DeepSeek | `chatCompletionOnce` (`deepseekProvider.js`) | `toOpenAIToolsFormat` | DeepSeek documenta `tools`/`tool_calls` compatible con OpenAI. **No verificado en vivo**. |
 | Kimi (Moonshot) | `chatCompletionOnce` (`kimiProvider.js`) | `toOpenAIToolsFormat` | Moonshot documenta compatibilidad OpenAI. **No verificado en vivo** — si la API rechaza `tools`, el `fetch` falla y ese turno corta con error (no rompe la conversación, pero sí ese intento). |
 | LM Studio | `chatCompletionOnce` (`lmStudioProvider.js`) | `toOpenAIToolsFormat` | Depende enteramente del modelo cargado (best-effort). **No verificado en vivo**. |
 | Ollama | `chatCompletionOnce` (`ollamaProvider.js`) | `toOpenAIToolsFormat` | Ollama documenta `tools` en `/api/chat` desde v0.3, solo para modelos "tool-capable" (ej. llama3.1, qwen2.5, gemma3). Si el modelo no lo soporta, simplemente no hay `tool_calls` en la respuesta (comportamiento esperado, no error). **Verificado en producción (Ollama + gemma3): `find_tasks` funciona** — pero ver el bug real documentado abajo (§6.4.1). |
 | Codex | — | — | No pasa por `chatCompletionOnce`/`_runToolCallingLoop` — tiene su propio camino separado (§6.7) vía `outputSchema` estructurado, no tool-calling. |
 
-`openAIToolChat.js` factoriza dos helpers puros compartidos por los 5 proveedores OpenAI-compatibles: `buildOpenAIToolMessages(messages, {stringifyArguments})` (traduce el formato interno del loop al array `messages` nativo, incluyendo `tool_calls`/`role:'tool'`) y `parseOpenAIToolMessage(message)` (parsea `tool_calls` de la respuesta a `{id, name, arguments}`, tolerante tanto a `arguments` como JSON string —OpenAI/DeepSeek/Kimi/LM Studio— como ya-objeto —Ollama—).
+`openAIToolChat.js` factoriza dos helpers puros compartidos por los 6 proveedores OpenAI-compatibles: `buildOpenAIToolMessages(messages, {stringifyArguments})` (traduce el formato interno del loop al array `messages` nativo, incluyendo `tool_calls`/`role:'tool'`) y `parseOpenAIToolMessage(message)` (parsea `tool_calls` de la respuesta a `{id, name, arguments}`, tolerante tanto a `arguments` como JSON string —OpenAI/GLM/DeepSeek/Kimi/LM Studio— como ya-objeto —Ollama—).
 
 #### 6.4.1 Bug real confirmado: Ollama exige `function.arguments` como objeto, NO como string
 
-A diferencia del spec real de OpenAI (donde `function.arguments` SIEMPRE es un JSON string), **Ollama devuelve `arguments` como objeto JSON nativo** en su propia respuesta de `/api/chat`. Si el turno siguiente del loop de tool-calling reenvía ese mismo `tool_calls` re-serializando `arguments` a string (comportamiento por defecto de `buildOpenAIToolMessages`, correcto para OpenAI/DeepSeek/Kimi/LM Studio), el motor de templates de Ollama rechaza el mensaje completo con:
+A diferencia del spec real de OpenAI (donde `function.arguments` SIEMPRE es un JSON string), **Ollama devuelve `arguments` como objeto JSON nativo** en su propia respuesta de `/api/chat`. Si el turno siguiente del loop de tool-calling reenvía ese mismo `tool_calls` re-serializando `arguments` a string (comportamiento por defecto de `buildOpenAIToolMessages`, correcto para OpenAI/GLM/DeepSeek/Kimi/LM Studio), el motor de templates de Ollama rechaza el mensaje completo con:
 
 ```json
 {"error":"Value looks like object, but can't find closing '}' symbol"}
@@ -555,7 +572,7 @@ Esto rompía el segundo round-trip del loop justo después de haber ejecutado la
 
 Además, `chatCompletionOnce` de Ollama descartaba el body de cualquier error HTTP y solo mostraba el código de estado (`"Error 400"` sin ningún detalle) — corregido para incluir el mensaje real del body, mismo patrón que ya usan `deepseekProvider.js`/`kimiProvider.js`/`lmStudioProvider.js`.
 
-**Al añadir un séptimo proveedor con soporte de `tools`:** exportar su propio `chatCompletionOnce` (o equivalente) con la firma `(messages, {tools, model?}, signal) => Promise<{text, toolCalls}>`, añadirlo al `switch` de `_callChatCompletionOnce` en `providerRouter.js`, y reusar `toOpenAIToolsFormat`/`buildOpenAIToolMessages`/`parseOpenAIToolMessage` si es OpenAI-compatible.
+**Al añadir un octavo proveedor con soporte de `tools`:** exportar su propio `chatCompletionOnce` (o equivalente) con la firma `(messages, {tools, model?}, signal) => Promise<{text, toolCalls}>`, añadirlo al `switch` de `_callChatCompletionOnce` en `providerRouter.js`, y reusar `toOpenAIToolsFormat`/`buildOpenAIToolMessages`/`parseOpenAIToolMessage` si es OpenAI-compatible.
 
 ### 6.5 Cómo agregar un topic de tools nuevo
 
@@ -594,12 +611,12 @@ El resultado de `callChatProviderStreaming`/`_runToolCallingLoop` agrega un camp
 
 Codex (`@openai/codex-sdk`) **no soporta `tools`/function-calling nativo** — verificado leyendo `node_modules/@openai/codex-sdk/dist/index.d.ts`: `TurnOptions` no expone ningún parámetro de tools, solo MCP (fuera de alcance para este mecanismo, evaluado y descartado por ser una integración demasiado grande para este caso de uso). Lo que sí soporta es `outputSchema` en `TurnOptions` (`Thread.run`/`runStreamed`), que fuerza que la respuesta final del turno sea JSON válido contra un JSON Schema dado.
 
-**Enfoque**: en vez del loop de tool-calling interactivo que usan los otros 6 providers (§6.3), Codex hace **UNA sola llamada** por turno:
+**Enfoque**: en vez del loop de tool-calling interactivo que usan los otros 7 providers (§6.3), Codex hace **UNA sola llamada** por turno:
 
 1. `_runCodexTaskAwareChat` (`providerRouter.js`) llama a `executeTool('find_tasks', {}, options.toolContext)` — el MISMO dispatcher que consume la IA en el loop genérico — para fetchear las tareas existentes de antemano. Codex no puede pedirlas en vivo a mitad de turno como sí hacen los otros providers vía `tool_calls`.
 2. `buildCodexTaskInstructions` (`codexTaskBridge.js`) arma las instrucciones con esa lista embebida + el contrato de salida, concatenadas con la conversación formateada (`formatCodexChat(messages)`, reusada tal cual).
 3. `runCodexInMain(prompt, model, reasoningEffort, null, signal, CODEX_TASK_OUTPUT_SCHEMA)` — nótese `onChunk: null` (ver tradeoff abajo) y el 6º parámetro nuevo `outputSchema`, que viaja hasta `electron/services/codexService.js#run()` y de ahí a `thread.runStreamed(prompt, {signal, outputSchema})`.
-4. La respuesta final se parsea como JSON contra `CODEX_TASK_OUTPUT_SCHEMA` (`{reply: string, taskProposal: {action, title?, content?, layer?, id?, status?} | null}`). Si `taskProposal.action` está presente, se llama `executeTool(action, args, options.toolContext)` — **el mismo dispatcher que usan los otros 6 providers** — para reusar toda la validación/sanitización/guarda de seguridad ya construida en `taskTools.js` (allowlist de ids reales, merge parcial, `confirmation_required` siempre para mutaciones) sin duplicar ninguna lógica.
+4. La respuesta final se parsea como JSON contra `CODEX_TASK_OUTPUT_SCHEMA` (`{reply: string, taskProposal: {action, title?, content?, layer?, id?, status?} | null}`). Si `taskProposal.action` está presente, se llama `executeTool(action, args, options.toolContext)` — **el mismo dispatcher que usan los otros 7 providers** — para reusar toda la validación/sanitización/guarda de seguridad ya construida en `taskTools.js` (allowlist de ids reales, merge parcial, `confirmation_required` siempre para mutaciones) sin duplicar ninguna lógica.
 5. Si el resultado de `executeTool` trae `{question, options}` (mismo chequeo genérico agnóstico que usa `_runToolCallingLoop`, ver §6.6), se arma un `pendingAction` con el MISMO shape (`{id, toolName, toolArgs, question, options}`) — reusando el mecanismo de botones/`executeConfirmedAction` ya existente. `ChatInterface.jsx` no necesita ningún cambio: no sabe ni le importa que esta vez el `pendingAction` vino de Codex en vez de un `tool_call` real. `pendingAction.id` usa `result.requestId` (el id de request de Codex, ya único por turno) en vez de un `call.id` de tool-calling, que no existe en este flujo.
 
 **Tradeoff ACEPTADO explícitamente (no es un bug, no intentar "arreglarlo")**: cuando este modo está activo, Codex **pierde el streaming en vivo**. `electron/services/codexService.js#run()` sigue recibiendo eventos incrementales del SDK, pero cuando `outputSchema` está presente se saltea `emitDelta`/`onChunk` para esos deltas (mostrar fragmentos de JSON a medio construir no sería útil) — la respuesta completa aparece de una sola vez al terminar el turno, en vez de ir tecleando como en el resto de las conversaciones (incluido Codex sin tools). `_runCodexTaskAwareChat` llama `onChunk?.(parsed.reply)` una única vez tras parsear.

@@ -13,7 +13,7 @@ import {
 import ParticipantsList from '../../../../components/ParticipantsList/ParticipantsList';
 
 // geminifree se conserva solo para mostrar el nombre de análisis históricos generados antes de unificar Gemini Free/Pro
-const AI_ENGINE_NAMES = { gemini: 'Gemini', geminifree: 'Gemini Free', deepseek: 'DeepSeek', kimi: 'Kimi', openai: 'OpenAI' };
+const AI_ENGINE_NAMES = { gemini: 'Gemini', geminifree: 'Gemini Free', deepseek: 'DeepSeek', kimi: 'Kimi', openai: 'OpenAI', glm: 'GLM' };
 const formatAiEngine = (provider, model) => {
   if (!provider) return null;
   return model ? `${AI_ENGINE_NAMES[provider] || provider}: ${model}` : (AI_ENGINE_NAMES[provider] || provider);

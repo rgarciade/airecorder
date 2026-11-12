@@ -10,6 +10,7 @@ import { checkLMStudioAvailability, getLMStudioModelInfo } from '../../services/
 import { applyTheme } from '../../services/themeService';
 import { useCustomConnections } from '../../hooks/useCustomConnections';
 import { CustomOpenAIProvider, OPENAI_BASE_URL } from '../../services/ai/customOpenAIProvider';
+import useGlmSettings from './hooks/useGlmSettings';
 import { reconcileCodexSelection } from '../../services/ai/codexModelSelection';
 import { fetchModelCatalog, computeWhisperModelOptions } from './whisperModelCatalog';
 
@@ -88,6 +89,18 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
   const [openaiModels, setOpenaiModels] = useState([]);
   const [openaiModelsLoading, setOpenaiModelsLoading] = useState(false);
   const [openaiModelsError, setOpenaiModelsError] = useState('');
+
+  // GLM (Z.AI Coding Plan)
+  const {
+    glmApiKey, setGlmApiKey,
+    glmModel, setGlmModel,
+    glmModels,
+    glmModelsLoading,
+    glmModelsNotice,
+    loadGlmModels,
+    glmEndpointMode, setGlmEndpointMode,
+    glmBaseUrl, setGlmBaseUrl,
+  } = useGlmSettings(t);
 
   const [aiProvider, setAiProvider] = useState('gemini');
   const [codexModel, setCodexModel] = useState('');
@@ -290,6 +303,12 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
         setOpenaiApiKey(savedSettings.openaiApiKey || '');
         setOpenaiModel(savedSettings.openaiModel || '');
 
+        // GLM
+        setGlmApiKey(savedSettings.glmApiKey || '');
+        setGlmModel(savedSettings.glmModel || '');
+        setGlmEndpointMode(savedSettings.glmEndpointMode || 'plan');
+        setGlmBaseUrl(savedSettings.glmBaseUrl || '');
+
         // Custom OpenAI-compatible connections
         setCustomConnections(savedSettings.customConnections || []);
         setEmbeddingProvider(savedSettings.embeddingProvider || '');
@@ -355,6 +374,9 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
       }
       if (savedSettings?.openaiApiKey) {
         loadOpenaiModels(savedSettings.openaiApiKey);
+      }
+      if (savedSettings?.glmApiKey) {
+        loadGlmModels(savedSettings.glmApiKey, savedSettings);
       }
 
       setHasLoadedSettings(true);
@@ -674,6 +696,11 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
         // OpenAI
         openaiApiKey: openaiApiKey,
         openaiModel: openaiModel,
+        // GLM
+        glmApiKey: glmApiKey,
+        glmModel: glmModel,
+        glmEndpointMode: glmEndpointMode,
+        glmBaseUrl: glmBaseUrl,
         // Codex (session is owned by the CLI; no credential is stored)
         codexModel: codexModel,
         codexReasoningEffort: codexReasoningEffort,
@@ -902,6 +929,16 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
     openaiModelsLoading,
     openaiModelsError,
     loadOpenaiModels,
+
+    // GLM
+    glmApiKey, setGlmApiKey,
+    glmModel, setGlmModel,
+    glmModels,
+    glmModelsLoading,
+    glmModelsNotice,
+    loadGlmModels,
+    glmEndpointMode, setGlmEndpointMode,
+    glmBaseUrl, setGlmBaseUrl,
 
     // Provider selection
     aiProvider,
