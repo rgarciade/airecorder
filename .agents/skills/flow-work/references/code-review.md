@@ -12,6 +12,8 @@ Both axes run as **parallel sub-agents** so they don't pollute each other's cont
 
 The issue tracker should have been provided to you. If not, tell the user to run `/flow-setup`.
 
+**From `flow-work`:** the fixed point, the diff command and the spec source (the task and the plan) come in the brief. Skip steps 1 and 2 below and never ask the user for them; start at step 3.
+
 ## Process
 
 ### 1. Pin the fixed point
@@ -79,7 +81,9 @@ The full reports stay in the notes. Show the user one table per axis, under `## 
 
 | # | Level | Where | Finding | Proposed fix |
 |---|---|---|---|---|
-| 1 | must fix | `path:line` | One line | One line |
+| 1 | must fix | `path:line` | One full sentence: what is wrong and what happens if it stays | One line |
+
+Write each finding for a user who has not opened the file: plain words, no reviewer shorthand, and any name from the code explained the first time it appears.
 
 - Order each table by level, **must fix** first, then **optional**.
 - Number the findings once, across both tables: Standards first (1, 2, 3…), then Spec carrying on (4, 5…). The number is the finding's name from here on: in the selector, in the fix brief and in the commit summary.
