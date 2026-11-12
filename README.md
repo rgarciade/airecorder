@@ -187,6 +187,24 @@ ERROR:{"id":"small","code":"network","detail":"…"}
 
 **Caché fijada, no reubicada:** `resourceManager.resolveCacheDir()` (Node) resuelve `HF_HUB_CACHE` → `HF_HOME/hub` → default de `huggingface_hub` (`~/.cache/huggingface/hub` en macOS/Linux) y pasa esa ruta explícita a **todos** los procesos hijo vía `--cache-dir`/`--model_cache_dir`. Los modelos ya descargados por un usuario existente siguen exactamente donde estaban — no hay migración ni copia de caché. `python/audio_sync_analyzer.spec` declara `model_resources`, `requests`, `tqdm`, `filelock`, `fsspec` y `huggingface_hub.utils` en `hiddenimports` para que PyInstaller los incluya en el binario empaquetado.
 
+### Cancelación de eco del micrófono (`echo-cancel`, issue #174)
+
+Cuando se graba con altavoces, la pista del micrófono recoge de nuevo el audio del sistema. Al terminar la grabación, `electron/services/micEcho/micEchoService.js` lanza el subcomando offline:
+
+```bash
+python python/audio_sync_analyzer.py echo-cancel \
+  --mic rec-microphone.webm --ref rec-system.webm --out rec-echo-tmp.webm --ffmpeg <ffmpeg>
+```
+
+- Se despacha al principio de `audio_sync_analyzer.py`, antes de los imports pesados; solo necesita numpy y ffmpeg (`python/echo_cancel_cli.py` + `python/echo_canceller.py` + `python/echo_res.py`, todos en `hiddenimports` del `.spec`).
+- ffmpeg decodifica ambas pistas a mono f32 48 kHz en streaming (memoria acotada). Pasada 1: GCC-PHAT por segmentos de ~20 s (banda 100-6000 Hz) para estimar retardo, deriva de reloj (ajuste lineal, compensada con un remuestreador sinc) y coherencia. Pasada 2: filtro adaptativo por bloques particionado en frecuencia (bloque 1024, ~256 ms) con par foreground/background para el doble habla, arranque en caliente (una pre-pasada sobre los primeros ~20 s de referencia activa para que el primer tramo de audio del sistema ya salga cancelado), seguimiento de la ganancia del eco (AGC del navegador), supresor de eco residual en frecuencia (`echo_res.py`: ganancia por bin tipo Wiener a partir del eco estimado por el filtro, suavizada en tiempo y frecuencia, con suelo de atenuación y protección del habla cercana; cubre el eco no lineal que el filtro lineal no puede predecir) y vuelta local al micrófono (con crossfade) en cualquier bloque que saliera más fuerte que el original (el supresor residual también actúa sobre esos bloques, pero solo atenúa los bins que el modelo ve como eco). Salida en webm/opus 96 kbps.
+- Limitación conocida: con los altavoces y el micrófono integrados del portátil puede quedar un pequeño residuo/solape de eco justo al empezar el audio del sistema (el filtro y el supresor aún no han convergido del todo en esos primeros instantes). El archivo de salida conserva el modo (permisos) de la pista original del micrófono.
+- Salvaguardas: sin eco coherente (`no_echo`), referencia en silencio (`ref_silent`) o ERLE final insuficiente (`low_erle`) ⇒ `applied: false` y **no se escribe `--out`** (la grabación original queda intacta). El archivo resultante conserva el modo (permisos) de la pista original del micrófono. Los umbrales son parámetros con nombre en `DEFAULT_PARAMS`.
+- Orden con la transcripción: `transcriptionManager.processQueue` espera a que termine el trabajo de eco de esa grabación (`micEchoService.waitFor`) y, si un crash dejó solo `-microphone-original.webm`, restaura la pista del micrófono (`recoverMic`) antes de diarizar/transcribir. Un fallo del eco nunca bloquea la transcripción.
+- Contrato: la última línea de stdout es `ECHO_RESULT {json}` (`applied`, `reason`, `delay_ms`, `erle_db`, `drift_ppm`, ...). Ante entradas inválidas sale con código ≠ 0, imprime `ECHO_ERROR <mensaje>` en stderr y no deja `--out`.
+
+**Tests de Python (desarrollo):** `pip install -r requirements-dev.txt` (pytest + numpy) y `npm run test:py` (`pytest python/tests`, con el intérprete de `./venv` si existe; si no, el `python3` del sistema, y avisa si faltan pytest/numpy). Los tests de la CLI se saltan si no hay ffmpeg (`node_modules/ffmpeg-static` o `PATH`).
+
 ### Diarización y Extracción de Embeddings
 
 Cuando la diarización está habilitada (Ajustes → HuggingFace Token), el pipeline ejecuta `diarization_analyzer.py` como paso previo a la transcripción. A partir de la versión `2.0` del schema de salida, el JSON generado tiene el siguiente formato:

@@ -1712,7 +1712,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       return `media://${safePath}`;
     };
 
-    const micFile = localRecording.files.find(f => f.includes('microphone') || f.includes('mic'));
+    // Cleaned track only: skip `-microphone-original` and `-echo-tmp` (#174).
+    const isBackupMic = (f) => /-(original|echo-tmp)\.\w+$/i.test(f);
+    const micFile = localRecording.files.find(f => /-microphone\.\w+$/i.test(f))
+      || localRecording.files.find(f => !isBackupMic(f) && (f.includes('microphone') || f.includes('mic')));
     const sysFile = localRecording.files.find(f => f.includes('system') || f.includes('sys'));
 
     // Fallback if no specific separate files found (e.g. older recordings or single file)

@@ -88,3 +88,14 @@ describe('resources preload bridge', () => {
     expect(removeListenerMock).toHaveBeenCalledWith('resources:progress', wrapped);
   });
 });
+
+describe('mic echo preload bridge (#174, S3)', () => {
+  it('exposes cancelMicEcho through the exact IPC channel', async () => {
+    invoke.mockResolvedValue({ success: true, applied: false, reason: 'no_echo' });
+
+    expect(exposedApi.cancelMicEcho).toEqual(expect.any(Function));
+    await exposedApi.cancelMicEcho('grabacion_1');
+
+    expect(invoke).toHaveBeenCalledWith('cancel-mic-echo', 'grabacion_1');
+  });
+});

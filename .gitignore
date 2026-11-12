@@ -53,3 +53,4 @@ web-docs/.vitepress/cache/
 .engram/manifest.json
 .engram/chunks/5f967ce3.jsonl.gz
 .engram/chunks/02359549.jsonl.gz
+__pycache__/

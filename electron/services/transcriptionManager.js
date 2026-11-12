@@ -5,6 +5,7 @@ const { app } = require('electron');
 const dbService = require('../database/dbService');
 const notificationService = require('./notificationService');
 const resourceManager = require('./resourceManager');
+const { micEchoService } = require('./micEcho/micEchoService');
 const { getSetting } = require('../utils/paths');
 const ffprobeInstaller = require('@ffprobe-installer/ffprobe');
 
@@ -150,6 +151,26 @@ class TranscriptionManager {
     this.notifyUpdate();
 
     try {
+        // The mic track may still be swapped for its echo-cancelled version (#174):
+        // wait for that job so diarization/transcription read the final file.
+        let pending = null;
+        try {
+            pending = dbService.getRecordingById(nextTask.recording_id);
+            if (pending && pending.relative_path) {
+                await micEchoService.waitFor(pending.relative_path);
+            }
+        } catch (echoError) {
+            console.warn('[Manager] Mic echo wait failed, continuing:', echoError.message);
+        }
+        // Crash recovery runs even if the wait failed: never proceed with the mic track missing.
+        if (pending && pending.relative_path) {
+            try {
+                await micEchoService.recoverMic?.(path.join(this.basePath, pending.relative_path), pending.relative_path);
+            } catch (recoverError) {
+                console.warn('[Manager] Mic recovery failed, continuing:', recoverError.message);
+            }
+        }
+
         const { settingsPath } = require('../utils/paths');
         let diarizationFile = null;
         

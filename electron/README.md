@@ -75,6 +75,14 @@ ipcMain.handle('mi-evento', async (event, params) => {
 
 `ipc-handlers/recordings.js` expone `get-recording-name(recordingId)` → `{ success: true, name }` o `{ success: false, error }`. `name` es el `customName` de `metadata.json` (si es un string no vacío) o, si no, el nombre de la carpeta resuelta (`basename`, no el id numérico); rechaza ids vacíos, absolutos, con `..` o cuya ruta resuelta quede fuera de la carpeta de grabaciones (contención). Se usa desde `recordingsService.getRecordingName()` para el título de `queueMeta.name` en `recordingAiService`.
 
+### IPC: `cancel-mic-echo` — cancelación de eco del micrófono (issue #174)
+
+- `window.electronAPI.cancelMicEcho(folderName)` se dispara (sin await) desde `MixedAudioRecorder.handleSeparateRecordingStop` tras guardar ambas pistas y antes de `onStop`.
+- El handler (`ipc-handlers/audio.js`) reserva el trabajo de forma síncrona (`micEchoService.reserve`), resuelve `<recordingsPath>/<folder>` y llama a `micEchoService.cancelMicEcho(dir, folder)`. Devuelve `{ success, applied?, reason?, error? }` y nunca rechaza.
+- `services/micEcho/micEchoService.js` (`createMicEchoService({ runEchoCancel, fs, logger })`): usa `{base}-system.webm` como referencia y lanza el subcomando `echo-cancel --mic --ref --out --ffmpeg` del analizador Python (resolución de binario/ffmpeg en `utils/pythonCommand.js`).
+- Contrato de nombres: `{base}-microphone.webm` (pista limpia si hubo eco), `{base}-microphone-original.webm` (original, solo si se aplicó), `{base}-echo-tmp.webm` (temporal), `analysis/echo_cancellation.json` (informe). Idempotente (la fuente es el original si existe), con recuperación y rollback ante fallos.
+- `transcriptionManager.processQueue` hace `await micEchoService.waitFor(recording.relative_path)` y luego `micEchoService.recoverMic(<carpeta>, base)` antes de diarizar/transcribir; un fallo del eco nunca bloquea la transcripción. `recoverMic` restaura `-microphone.webm` desde `-microphone-original.webm` si un crash dejó solo el original (idempotente, nunca lanza). Dos llamadas concurrentes a `cancelMicEcho` para la misma grabación comparten la misma ejecución (la segunda devuelve la promesa en curso), así que el barrido nunca borra el temporal de una ejecución viva. `get-recording-folders` excluye de `files` los ficheros internos del eco (`-microphone-original`, `-echo-tmp`, `.echo-*.webm`). Al procesar una grabación se borran temporales huérfanos (`.echo-*.webm`, `-echo-tmp.webm`). El timeout del runner Python es `max(5 min, 3x duración del audio)` (30 min si no se puede leer la duración).
+
 ### IPC: `transcribe-recording` — descarte puntual de diarización
 
 `ipc-handlers/transcription.js` expone `transcribe-recording(recordingId, model, options)`, donde `options.skipDiarization` (boolean opcional) marca `recordings.skip_diarization` vía `transcriptionManager.addTask()` antes de encolar la tarea.
