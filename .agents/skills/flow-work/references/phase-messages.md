@@ -93,6 +93,55 @@ A plain "OK" accepts the plan with both assumed answers, and I update the task
 description with the three criteria above. Then I write the tests.
 ```
 
+### A plan message that is too dense
+
+The plan above is clear, but a plan can also bury the user in detail they cannot judge. **Don't write this:**
+
+```
+Plan summary:
+- HTTP client. CsvExporter gains 3 optional parameters: delimiter, a BOM flag
+  and an onProgress callback. Existing callers pass none, so their output does
+  not change (src/services/csvExporter.js:9-21).
+- Storage. Export history goes in a separate exports.json, written only by the
+  main process, over 2 new IPC channels.
+- Tests. 6 seams and 21 scenarios, plus 4 manual checks.
+- Docs: src/services/README.md.
+
+Questions: 1. ... 2. ... 3. ...
+```
+
+What is wrong with it:
+
+- Names of parameters, files and channels fill the message, and the user cannot judge any of them.
+- "6 seams and 21 scenarios" says nothing the user can act on; "what I test and what you check yourself" would.
+- The questions come after the wall of text, although the top line announces them.
+
+**Write this instead:**
+
+```
+#42 Export recordings to CSV · plan ready (4 of 8) · next: tests
+
+I need your OK on the plan and your answers to 3 questions. A plain "OK" accepts my recommendations.
+
+The task adds a button that downloads the list of recordings as a CSV file.
+
+What you will see change:
+1. A "Download CSV" button on the Recordings screen.
+2. The file follows the filters applied to the list.
+3. A history of past exports, kept on this computer.
+
+Question 1. ...
+Question 2. ...
+Question 3. ...
+
+You will have to check by hand: that Excel opens the accents correctly, and the button in light and dark mode.
+Technical detail and the test scenarios: in the plan on the task (link).
+
+Once you answer, I write the tests. Nothing is committed yet.
+```
+
+The files, parameters and channels stay in the plan record, one link away.
+
 ## A review finding
 
 One line per finding, written so the user can decide without opening the file.

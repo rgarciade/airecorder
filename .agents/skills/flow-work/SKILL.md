@@ -7,18 +7,20 @@ description: Develop one task end to end, from any task tracker (GitHub Issues, 
 
 Paths starting with `../` are relative to this skill's folder: they point at sibling skills in the same skills directory.
 
-You are the **orchestrator**. You work **with the user, in the session**: you show what each phase found, ask their questions, and move on only when they agree. This is pair work with the user as the navigator, never a job that runs on its own. Bulky work goes to **role subagents**, so your own context stays small.
+You are the **orchestrator**. You work **with the user, in the session**: you show what each phase found, ask their questions, and move on only when they agree to anything that needs it. This is pair work with the user as the navigator, never a job that runs on its own unless the user chooses autonomous mode (see "Working modes"). Bulky work goes to **role subagents**, so your own context stays small.
 
 ## Hard rules
 
 These override anything more permissive elsewhere, including the user's general git instructions:
 
 - **The user is in the loop at every phase.** End each phase by showing its result in plain words and saying what comes next (see "Phase messages"). Don't chain phases silently. The test gate and autonomous mode follow "Working modes".
+- **No empty stops.** Stop only when the user has something to decide, review or run: an answer, an OK on a result, a choice, a commit command. When the next step is already agreed and there is only one way forward (for example, the test commit is confirmed and implementation comes next), say in one line what starts now and go on. Never ask "shall I continue?" or "reply 'go on' and I start".
 - **Decisions belong to the user.** Anything the issue and the agreed plan don't settle (a design choice, a dependency, a trade-off, a scope question) goes to the user as a question with your recommendation. Never decide it for them.
 - **Never commit on your own.** At each commit point, give the user the exact command and wait. Run it only if the user explicitly tells you to.
 - **Never merge PRs.** The user reviews and merges every PR on the code host.
 - **Never modify approved tests on your own.** After the test gate, the test files are frozen. If a test looks wrong, follow "Changing an approved test": stop, explain why, and change it only after the user's OK.
 - **One writer at a time.** Subagents that edit files run one after another. Read-only subagents (research, review) may run in parallel.
+- **The plan and the description follow the user's answers.** When an answer drops or changes something they state, propose the edit right away, without waiting to be asked (see `references/records.md`).
 - **No worktrees, no child branches beyond the ones in `docs/agents/workflow.md`.**
 - **Ask in one round, and explain what is new.** Gather every open question the phase has and ask the independent ones together, each with your proposed answer first; never one at a time. Explain in plain words anything new or complex before asking about it. The full rule is in `../flow-setup/asking-questions.md`: read it before your first question. After asking, stop and wait.
 
@@ -43,14 +45,7 @@ Each role uses a model **tier**, **strong** or **fast**, and the **Harnesses** s
 
 If the section is missing, every role is a subagent of this harness. If the repo still has the older **Models** section (two profiles that map the tiers to models, and no harnesses table), use it as before: every role is a subagent on the model its profile gives, and if the harness cannot choose a model per subagent, the subagent inherits the session model.
 
-For a role set to another harness:
-
-- Read the manager's own skill or guide before using it, and launch the harness in the current worktree, passing the model and effort from the table (for Orca, `agent launch --agent <harness> --model <model> --effort <level>`; Herdr has no model or effort options of its own, so its guide, printed by `hc --skill`, says how to launch a program in a folder, and the model and effort go as that harness's own command-line options). Never create a worktree or a branch for it.
-- Give it the same brief and the same hand-back contract as a subagent (below), written to stand on its own: it starts with none of this session's context. Add that it must not commit, push or open a PR.
-- Wait for it to finish, then read its note. "One writer at a time" still holds: no other role that edits files starts until it is done.
-- Tell the user in one line which harness and model run the role.
-- If the launch fails, the harness reports that it has no quota left, or the manager is not available, go on to the role's next harness and say so in one line. When none is usable, run the role as a subagent and say so. Never stop the task for this.
-- The split is fixed by the tables: don't spread work across harnesses on your own to even out usage, because the harness gives you no usage figures.
+For a role set to another harness (`<manager>:<harness>` or `<manager>:other`), read `references/other-harnesses.md` before launching it: how to launch it, how it gets its notes without Engram, and what to do when it fails.
 
 Every subagent brief includes:
 
@@ -63,24 +58,27 @@ Every subagent brief includes:
 **Notes.** Keys follow `flow/<repo>/<id>/<phase>`, for example `flow/my-app/42/research`.
 
 - With the Engram MCP server available: save with `mem_save` (topic key = the note key), read with `mem_search` and `mem_get_observation`, update with `mem_update`.
-- Without it: write the note to `.scratch/flow/<id>/<phase>.md` in the repo and pass that path instead. Make sure `.scratch/` is git-ignored.
+- Without it: write the note to `.scratch/flow/<id>/<phase>.md` in the repo and pass that path instead. Make sure `.scratch/` is git-ignored. The closed state note is the exception: it goes to `.flow/memory/<id>.md`, as the **Task memory** setting says (see `references/state-note.md`).
 - **If saving to Engram fails** (the call errors, is blocked, or the note cannot be read back): write that note to `.scratch/flow/<id>/<phase>.md` instead, pass that path in the briefs, and tell the user in one line that the note went to the repo's scratch folder and why. Never go on as if a note had been saved. A subagent that cannot save its note says so in its hand-back and returns the full result in a file under `.scratch/flow/<id>/`.
 
 **The state note.** You, the orchestrator, keep one extra note under `flow/<repo>/<id>/state`: where the task stands, in a few fixed lines. It is what lets the work continue after a break, a new session or a summarised context, without guessing.
 
 ```
-phase: <last phase finished> · next: <phase>
+phase: <last phase finished | parked> · next: <phase>
+done: <one short line per finished phase, kept: what it produced or settled, e.g. "research: 3 places touched, fits one session">
 mode: <semi-autonomous | pair | autonomous>
 profile: <standard | deep>
 branch: <task branch>
+failing before: <none | list or count + note key; tests that already failed before any change>
 approved tests: <commit hash, the manifest path, or "not yet">
 waiting on: <the questions asked and not yet answered, or "nothing">
 decided: <one line per user decision not yet written to the task>
 pending commits: <commit commands given and not yet confirmed, or "none">
 ```
 
-- **Update it, never add another**: at the end of every phase, when the mode or the profile changes, and whenever you stop to wait for the user.
+- **Update it, never add another**: at the end of every phase (adding its line to `done`, never replacing the earlier ones), when the mode or the profile changes, and whenever you stop to wait for the user.
 - **Read it first** when you resume a task, and whenever you are not sure where the task stands (for example after your context was summarised). If it contradicts the branch or the task, trust those, fix the note and tell the user in one line.
+- **Parked** tasks use `phase: parked` (see "Parking or abandoning a task").
 - **Close it** when the PR is opened: it stops being a progress note and becomes the task's memory for later work (see "Close the state note" in Phase 8).
 
 Notes are working memory for this session's subagents. The durable record lives with the task.
@@ -150,6 +148,10 @@ Before your first message to the user, read `references/phase-messages.md`: it s
 - **Everything left out of scope** comes with its reason.
 - **Rewrite, never forward.** A subagent's hand-back is shorthand written for you. Read its note when you need the detail to explain something, then write the message from scratch for the user.
 
+**Keep the plan message light.** The plan message describes what the user will see change, in a few one-line items. File names, function and parameter names, and how the code is split go in the plan record; link to it in one line. Whatever the user does not need in order to say OK stays out of the message.
+
+**Scannable format.** If the `i-have-adhd` skill is installed (flow installs it), read its SKILL.md before your first message and apply its formatting rules to every message you write to the user in this skill: the action first, numbered steps, concrete time estimates, no preamble or recap. Its rules shape the message; they never replace the **Shape** and the **Plain language** rules above, which win where they differ. Don't switch the skill's persistent mode on for the rest of the session.
+
 **Length.** There is no line budget. A message is as long as it needs to be understood at a first reading, and no longer; most fit on one screen. Lists the user approves item by item (where to test and the scenarios, tests with open decisions, review findings) run one line per item. Don't recap earlier phases, don't retell what a subagent did, and don't list what went as expected: the detail lives in the notes, and the user can ask for it.
 
 **Questions.** Ask them as in `../flow-setup/asking-questions.md`: together, each standing on its own, with new or complex topics explained first. Never refer to something the user has not seen in this message.
@@ -160,9 +162,9 @@ The final report (Phase 8) keeps its own shape, and the plain-language rules app
 
 ## Working modes
 
-Every task starts in the **Default working mode** set in the **Agents** section of `docs/agents/workflow.md`, or in **semi-autonomous** when it is not set. Say which mode the task starts in, and what it changes for the user, when you confirm the task in Phase 1. A default of `autonomous` counts as the user's yes only for a task that research finds small and simple: until research says so, and for any other task, work in semi-autonomous and tell the user why.
+Every task starts in the **Default working mode** set in the **Harnesses** section of `docs/agents/workflow.md` (an older **Agents** section is read the same way), or in **semi-autonomous** when it is not set. Say which mode the task starts in, and what it changes for the user, when you confirm the task in Phase 1. A default of `autonomous` counts as the user's yes only for a task that research finds small and simple: until research says so, and for any other task, work in semi-autonomous and tell the user why.
 
-In **semi-autonomous** mode you stop at every phase, but the test gate stops only for the edge cases the plan did not settle, since the user already approved the seams and scenarios (see Phase 5). Changing to a mode that is not the repo's default needs the user's explicit yes:
+In **semi-autonomous** mode you stop at every phase that brings the user something to decide or review (see "No empty stops"), but the test gate stops only for the edge cases the plan did not settle, since the user already approved the seams and scenarios (see Phase 5). Changing to a mode that is not the repo's default needs the user's explicit yes:
 
 - **Pair**: the user reviews every test. Propose it, as one question with your reasons, when the task has loose ends or is very complex: open questions the plan can't close, an impact map that spans several modules, an architectural choice between real alternatives. The usual moment is the end of research, together with the deep profile if that applies (see "Profiles").
 - **Autonomous**: you chain the phases on your own. Suggest it after research when the task is small and simple. When the user says yes, read `references/autonomous-mode.md` and follow it: it lists what you may skip and what you must still stop for.
@@ -190,7 +192,7 @@ Then check its position:
 - **Open blockers**: `open-blockers`. If any blocker is still open, or `pr-status` shows its PR is not merged into the group branch, stop and tell the user which one.
 - **Children**: `list-children`. If the task itself has open children, it is a group. Ask which child to start, and suggest the first one with no open blockers.
 
-Show the user, in a few lines, the task as you understand it (title, what it asks for, parent and blockers) and the branch you will create. Start once they confirm. In the same message, ask whether to assign the issue to them and, unless `move-status` is not used, move it to "in progress" (see "Team visibility").
+Show the user, in a few lines, the task as you understand it (title, what it asks for, parent and blockers) and the branch you will create. If `workflow.md` sets any role to another harness, say in one line which roles will run where (for example "implementation runs in OpenCode through Orca"), so the user's OK on the task also covers those launches. Start once they confirm. In the same message, ask whether to assign the issue to them and, unless `move-status` is not used, move it to "in progress" (see "Team visibility").
 
 ## Phase 2: Branch
 
@@ -201,15 +203,17 @@ Create branches with `create-branch`, so each one is linked to its task:
 - **Child task**: make sure the group branch `feature/<parent-id>-<slug>` exists. If it doesn't, create it from the updated base branch with `create-branch` for the parent task, and push it. Then update the group branch and create `task/<id>-<slug>` from it with `create-branch`.
 - **Standalone task**: update the base branch and create `task/<id>-<slug>` from it with `create-branch`.
 - Creating these branches is part of the flow and needs no extra confirmation once the user has confirmed the task.
-- If the task branch already exists, check it out and continue from where it was: read the state note first (see "The state note"), then check it against this task's plan record, its other notes and its commits. Tell the user in one message where the task stands, what was waiting on them, and what you will do next; continue once they confirm.
+- If the task branch already exists, check it out and continue from where it was: read the state note first (see "The state note"), then check it against this task's plan record, its other notes and its commits. Tell the user in one message where the task stands, what was waiting on them, and what you will do next; continue once they confirm. `phase: parked` means the task was paused on purpose: say why and what was waiting. If the state note is closed and its PR is still open with changes requested (`pr-status`), go to Phase 9.
 
 **Sync Engram in.** If the Engram CLI is available and the repo has a `.engram/` folder, run `engram sync --status`. If it reports chunks that are not imported yet, run `engram sync --import`, then tell the user in one line what was imported. Skip this when **Engram sync** in `docs/agents/workflow.md` is `never`.
 
-Tell the user, in one line, the branch name (now linked to the task) and what was imported from Engram, if anything, then go on to research. The user already confirmed the branch in Phase 1, so there is nothing to wait for here.
+**Baseline run.** Right after the branch exists (not when resuming), before research, run the full suite and the typecheck once (commands in `docs/agents/workflow.md`; skip it if they are `none`). Say in one line that it starts and may take a while. Record the tests that already fail in the state note (`failing before:`, a count or list plus the key of a note holding the details) and pass the list to the research brief. Tell the user in one line if any fail. From now on, "the full suite passes" means "no new failures beyond that list". A pre-existing failure is never fixed or touched by implement or fix subagents unless the plan covers it; the plan may propose it as out of scope or a follow-up. The final report and the summary record mention them.
+
+Tell the user, in one line, the branch name (now linked to the task), what was imported from Engram, if anything, and whether the baseline run found failing tests, then go on to research. The user already confirmed the branch in Phase 1, so there is nothing to wait for here.
 
 ## Phase 3: Research (fast)
 
-Brief a research subagent to read the issue, the parent issue's "Architecture notes" for a child task, the glossary and ADRs from `docs/agents/domain.md`, and the code the task touches. It also looks for the closed state notes of earlier tasks in the same area (`flow/<repo>/*/state`; with Engram, search by the modules and terms the task touches) and reads their decisions, gotchas and open ends. They are leads to check against the code, never facts. It checks the issue's "Preliminary notes" (libraries, connectors, APIs) against the code and the dependencies as they are today, and flags anything that no longer holds. It saves under `flow/<repo>/<id>/research` and returns:
+Brief a research subagent to read the issue, the parent issue's "Architecture notes" for a child task, the glossary and ADRs from `docs/agents/domain.md`, and the code the task touches. It also looks for the closed state notes of earlier tasks in the same area (with Engram, `flow/<repo>/*/state`, searching by the modules and terms the task touches; without it, the files in `.flow/memory/`) and reads their decisions, gotchas and open ends. They are leads to check against the code, never facts. The brief also lists the tests that failed before the task (`failing before`), so the research does not blame them on the change. It checks the issue's "Preliminary notes" (libraries, connectors, APIs) against the code and the dependencies as they are today, and flags anything that no longer holds. It saves under `flow/<repo>/<id>/research` and returns:
 
 - What exists today that the task builds on (as `path:line` links).
 - An **impact map**: for each operation the task hooks into or changes (saving a record, assigning an item, sending an event, a function every caller must go through), every place in the code where that operation happens, found by searching the code for the operation itself, not taken from the issue's list. Each entry has its `path:line` and says whether the task covers it. A place the issue does not mention is an open question, never silently out of scope.
@@ -226,7 +230,7 @@ Show the user the research as a phase message: what the task builds on, the plac
 - **(a) Keep this task small**: trim it to the first slice and create the rest as new issues for later. If this task has a parent, they become siblings under the same parent. If not, they are created as standalone issues that this one blocks.
 - **(b) Turn it into a parent**: this task becomes the parent, the slices become its children (`create-child`) with blocking links (`add-blocker`), and the work continues on a group branch with the first child. Propose adding "Architecture notes" to its description (see `../flow-backlog/SKILL.md`), as an edit the user approves.
 
-Create the issues by following `../to-tickets/SKILL.md` with the overrides in `../flow-backlog/SKILL.md`. For (b), rename the branch to the group pattern if no commits exist yet, otherwise ask the user how to proceed. Then continue with the chosen task.
+Create the issues by following `../to-tickets/SKILL.md` with the overrides in `../flow-backlog/SKILL.md`. For (b), look at the task branch: `create-branch` already created and linked it on the remote, so renaming it locally would leave a stale linked branch there. If it has no commits of its own, create the group branch `feature/<id>-<slug>` with `create-branch` for the parent task from the updated base branch, push it, switch to it, and propose deleting the old task branch locally and on the remote, with the exact commands (for example `git branch -d <old>` and `git push origin --delete <old>`), which run only with the user's OK. If it has commits, ask the user how to proceed. Then continue with the chosen task.
 
 ## Phase 4: Plan (strong)
 
@@ -243,7 +247,7 @@ Brief a plan subagent with the issue and the research key. Point it to `referenc
 - **Docs to touch**: the project documents this task makes stale or genuinely needs (following "Just enough docs" below) (a module's guide, the README, a user guide), each with what changes, or "none". Use the folder and rules in the **Docs** section of `docs/agents/workflow.md`; rules in the project's `AGENTS.md` or `CLAUDE.md` take precedence.
 - **ADR candidates**: the architectural decisions this plan makes (a new dependency, a pattern, a boundary between modules, a data model change), each with one line on why. Only decisions that are hard to reverse, affect more than one module, or were chosen between real alternatives (see `references/adr-template.md`). Most tasks have none. It also flags any conflict with an existing ADR or with the parent's "Architecture notes", which goes to the user as a question.
 
-Bring the plan to the user in **one round**, not two. Show the plan as it stands with the assumed answers: the refined acceptance criteria, where each test calls the code and what it catches, the scenarios, and any manual verification steps. In the same message, ask the questions, assumed answer first (see `../flow-setup/asking-questions.md`), and ask for the OK on the plan. Say that the OK also updates the task description with these criteria, when step 2 below applies, so that edit needs no separate stop. If an answer changes the plan, revise it and show only what changed, then ask again. Ask a question before showing the plan only when the plan cannot be drafted without its answer.
+Bring the plan to the user in **one round**, not two. Show the plan as it stands with the assumed answers: the refined acceptance criteria, where each test calls the code and what it catches, the scenarios, and any manual verification steps. In the same message, ask the questions, assumed answer first (see `../flow-setup/asking-questions.md`), and ask for the OK on the plan. Say that the OK also updates the task description with these criteria, when step 2 below applies, so that edit needs no separate stop. If an answer changes the plan, including by dropping something it had, update the plan yourself in your reply, without waiting to be asked: show only what changed (what now stays out and why, the criteria, scenarios or manual checks that go or change) and ask for the OK again. Never move on to the tests with a plan that differs from the last one the user saw. Ask a question before showing the plan only when the plan cannot be drafted without its answer.
 
 No test is written at a seam the user has not confirmed, and a part is only verified manually if the user agreed it can't be tested. Save the agreed result back to the same note.
 
@@ -266,9 +270,10 @@ Brief a tests subagent with the plan key. It writes only test files, matching th
 **Semi-autonomous mode.** Check the hand-back yourself: every approved scenario has a test at its confirmed seam, and every test belongs to a scenario. A mismatch is an edge case too.
 
 - With edge cases: present only those, in the format below, and wait for the OK on them.
-- Without: don't wait. Record the tests with the `.scratch/flow/<id>/approved-tests/` manifest (see below), then show in one message the number of tests, that each fails for the expected reason and the command to run them. Go on to Phase 6. The test commit comes together with the implementation commit (see Phase 6).
+- Without: don't wait. Show in one message the number of tests, that each fails for the expected reason and the command to run them, and go on to Phase 6.
+- In both cases, record the tests with the `.scratch/flow/<id>/approved-tests/` manifest (see below) at the gate; the user's OK on the edge cases does not commit anything. The `test(...)` commit comes in Phase 6, before the `feat` one. Once the user confirms that commit, its hash becomes the approved-tests reference: save it in the tests note and in the state note's `approved tests` line, and use it for the checks in Phases 6 and 7.
 
-**Pair mode.** Present every test to the user. This message is a long list, one line per test, so shape it for fast scanning: if the `i-have-adhd` skill is installed, read its SKILL.md and apply its formatting rules to this message only; otherwise use the action first, numbered lines, no preamble, no recap.
+**Pair mode.** Present every test to the user. This message is a long list, one line per test, so shape it for fast scanning, with the action first, numbered lines, no preamble and no recap (see "Scannable format" in "Phase messages").
 
 - First line: the action, "Review the tests and reply OK to continue."
 - One numbered line per scenario: what it checks, with a link to the test.
@@ -282,7 +287,7 @@ After the OK, give the commit command, for example:
 git add <test files> && git commit -m "test(<commit-ref>): <summary>" && git push
 ```
 
-This commit is the record of the approved tests. Once the user confirms it is done, save its hash under `flow/<repo>/<id>/tests`. If the user does not want this commit, copy the test files to `.scratch/flow/<id>/approved-tests/` with a `sha256sum` manifest, and use that as the record instead.
+This commit is the record of the approved tests. Once the user confirms it is done, its hash is the approved-tests reference: save it under `flow/<repo>/<id>/tests` and in the state note's `approved tests` line. If the user does not want this commit, copy the test files to `.scratch/flow/<id>/approved-tests/` with a `sha256sum` manifest, and use that as the record instead.
 
 ## Phase 6: Implement (fast)
 
@@ -298,11 +303,11 @@ Then check it yourself:
 
 - **Manual verification**, if the plan has any: run the steps you can run yourself (a command, a build, a config check) and report what you observed; give the user the rest as a short checklist and wait until they confirm each one. A failed step is handled like a failing test.
 - `git diff <approved-tests-commit> -- <test globs>` is empty, using the latest approved-tests reference (or the files match the `.scratch` manifest). If not, stop and tell the user.
-- The full suite and typecheck pass.
+- The full suite and typecheck pass, with no new failures beyond `failing before`.
 
 If the implementation departed from the plan (a step changed, was added or was dropped), propose an edit of the plan record: the affected section updated, plus a line under "Changes to the plan". Apply it once the user approves. If the requirements changed too, propose the description edit as well.
 
-Give the commit command (`feat(<commit-ref>): …`, ending with `&& git push`) and wait, as in the hard rules. If the tests have no commit yet (semi-autonomous mode), give the `test(<commit-ref>): …` command first, adding only the test files, then the `feat` one, so the history still shows the tests before the code.
+Give the commit command (`feat(<commit-ref>): …`, ending with `&& git push`) and wait, as in the hard rules. If the tests have no commit yet (semi-autonomous mode), give the `test(<commit-ref>): …` command first, adding only the test files, then the `feat` one, so the history still shows the tests before the code. Once the user confirms the `test` commit, its hash replaces the manifest as the approved-tests reference (see Phase 5).
 
 ## Phase 7: Review (2 × fast, parallel)
 
@@ -315,9 +320,13 @@ Read `references/code-review.md` and run its two axes as two parallel subagents:
 
 Each saves under `flow/<repo>/<id>/review-standards` or `flow/<repo>/<id>/review-spec`. Show the findings as numbered tables, one per axis, and ask the user which to fix by number, as described in "Aggregate" in `references/code-review.md`. Head each table with what it answers ("Does it follow the project's rules?", "Does it do what the task asks?"), and write each finding so the user can decide without opening the file: what is wrong, and what happens if it stays.
 
-**Review in another harness.** When the `review` role in `docs/agents/workflow.md` is set to another harness, run the two axes through it as in "Who runs each role", with a read-only brief, for an independent second opinion: flow in Claude → review with Codex; flow in Codex or OpenCode → review with Claude. When the section is missing, do the same only if an agent manager is installed and the user's own instructions ask for it. Otherwise, or when the other harness cannot be launched, the harness's own subagents run the review as described above.
+**Review in another harness.** When the `review` role in `docs/agents/workflow.md` is set to another harness, run the two axes through it as in "Who runs each role", with a read-only brief, for an independent second opinion. The harness is the one the table names for `review`, not a fixed pairing; a common choice is flow in Claude with review in Codex, or the other way round. When the section is missing, do the same only if an agent manager is installed and the user's own instructions ask for it. Otherwise, or when the other harness cannot be launched, the harness's own subagents run the review as described above.
 
-If any, brief a fix subagent with those findings. It never touches test files. Re-run the checks from Phase 6, then give the commit command (`fix(<commit-ref>): …` or `refactor(<commit-ref>): …`, ending with `&& git push`). If a fix changes the plan, propose the plan record edit as in Phase 6.
+If any, brief a fix subagent with those findings. It never touches test files. Re-run the checks from Phase 6 (no new failures beyond `failing before`).
+
+**Re-review of the fixes.** Then run one short automatic review, read-only, fast tier, one subagent, over only the fix diff: does each selected finding look resolved, and did the fix introduce a regression or touch something out of scope? If it finds nothing, go on without stopping and tell the user in one line. If it finds something, show it in the same numbered table format and ask which to fix. Run at most one such pass per fix round; don't loop.
+
+Then give the commit command (`fix(<commit-ref>): …` or `refactor(<commit-ref>): …`, ending with `&& git push`). If a fix changes the plan, propose the plan record edit as in Phase 6.
 
 ## Phase 8: Final report and PR
 
@@ -329,6 +338,7 @@ Write the report in this shape:
    - test results, and the manual verification results if any;
    - review findings fixed and left open;
    - any deviation from the plan;
+   - the tests that already failed before the task (`failing before`), if any;
    - the documents created or updated;
    - the ADR candidates, which become ADRs in the next step.
    - propose ticking the met criteria in the description (`edit-description`, needs the user's OK).
@@ -347,6 +357,8 @@ Write the report in this shape:
 
 To export, run `engram sync` from the repo root. It writes this project's memory to `.engram/` as compressed chunks; prompts are excluded. Then give the commit command, for example `git add .engram && git commit -m "chore(<commit-ref>): sync engram memory" && git push`, and wait, as in the hard rules. The export holds every memory of this project, not only this task's notes: remind the user of that the first time.
 
+**Check the base branch.** Before opening the PR, follow `references/base-drift.md`: fetch, and if the target branch has commits the task branch lacks, propose merging it in (`git merge origin/<target>`, with the user's OK; never a rebase), then re-run the Phase 6 checks.
+
 Then open the PR, if the user said yes in the closing round, with `open-pr`:
 
 - `--base`: the group branch for a child task, or the base branch for a standalone task.
@@ -355,29 +367,15 @@ Then open the PR, if the user said yes in the closing round, with `open-pr`:
 
 Then create the summary record on the task, with the PR link, and move the task to "in review" if the user accepted it in the closing round (skip it when `move-status` is not used). The user reviews and merges the PR.
 
-**Close the state note.** Last, rewrite `flow/<repo>/<id>/state` in its closed form. The progress fields are of no use any more; what a later task in this area needs is what was built, where, and what to watch out for. This is a note for agents, so keep it exact and ordered, in this shape:
+**Close the state note.** Last, rewrite `flow/<repo>/<id>/state` in its closed form and, when Engram is not available, save it to the repo as the **Task memory** setting says. Read `references/state-note.md` for the closed form and the rules. It needs no confirmation, except the commit command when Task memory is `repo`: tell the user in one line that the task's memory is saved, and where.
 
-```
-<ref> <title> · closed <YYYY-MM-DD>
-task: <task link> · PR: <PR link> · branch: <task branch>
+## Phase 9: Answering the PR review
 
-does: <what works now, in two or three lines; behaviour, not history>
-where:
-- <path:line>: <entry point | main logic | data | tests>
-decisions:
-- <decision>: <why> (<ADR-NNNN> if it has one)
-gotchas:
-- <what surprised us, or what a later change here must not break>
-open:
-- <review finding left unfixed | follow-up task | part left out, with its reason>
-verify: <the command that runs this task's tests, and any manual step>
-detail: <the keys of this task's other notes>
-```
+When the user says the PR got review comments, or you resume a task whose closed state note links a PR that `pr-status` shows open with changes requested, read `references/pr-review.md` and follow it: read the comments with `pr-comments`, show them as a numbered table, fix what the user picks, check, re-review, and give the commit command. Replies on the PR are drafted for the user and posted only with their OK.
 
-- **Write it from the final code**, not from the plan: check each `path:line` and each decision against what was merged into the branch. Drop anything that did not survive.
-- **About twenty lines.** No retelling of the phases. Omit a section that has nothing to say.
-- It needs no confirmation: tell the user in one line that the task's memory is saved, and where.
-- If the PR review later changes the code, update the same note when the user says the PR is merged.
+## Parking or abandoning a task
+
+When the user says to park, pause, drop or abandon the task, read `references/park-task.md` and follow it. Parking keeps the work for later; abandoning closes it down. Both always stop for the user, in every mode.
 
 ## After the merge
 

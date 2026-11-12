@@ -20,7 +20,9 @@ Apply it with `edit-description` once the user approves.
 
 **The plan record holds the _how_**: a short implementation summary, created with `create-record` at the end of Phase 4. Never create a second plan record: if the plan changes, find it with `find-record` (marker `flow:plan`) and propose an edit with `edit-record`.
 
-**The summary record** is created once, when the PR is opened (Phase 8), with the marker `flow:summary`. If it already exists (for example, the PR was reopened), propose an edit instead.
+**Keep both in step with the user's answers, as soon as they happen.** When an answer at any point after the OK on the plan (a test question, a choice about a review finding, a closing question, a remark in passing) drops, adds or changes something the plan record or the description states, propose the edit in the same message that acknowledges the answer, as one line: what stays out or changes, the plan record's new line under "Changes to the plan", and the description's `## Changes` line when a requirement changed. Don't wait for the end of implementation or for the user to ask. Apply it once they approve; if they say it is not worth recording, drop it.
+
+**The summary record** is created once, when the PR is opened (Phase 8), with the marker `flow:summary`. If it already exists (for example, the PR was reopened), propose an edit instead. The same goes for answering the PR review (Phase 9): update it with an edit that asks, never a new record.
 
 To link the description to the plan record, include `Implementation notes: <record link>` in the next description edit the user approves. Don't edit the description only to add this link.
 
@@ -70,6 +72,7 @@ Summary record template:
 - **Manual verification**: <steps done and by whom, or none>
 - **Deviations from the plan**: <none, or one line each>
 - **Open review findings**: <none, or one line each>
+- **Tests that failed before the task**: <none, or the list or count>
 - **ADRs**: <ADR-NNNN title, or none>
 - **Docs**: <documents created or updated, or none>
 ```

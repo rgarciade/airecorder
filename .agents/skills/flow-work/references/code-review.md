@@ -12,6 +12,8 @@ Both axes run as **parallel sub-agents** so they don't pollute each other's cont
 
 The issue tracker should have been provided to you. If not, tell the user to run `/flow-setup`.
 
+**From `flow-work`:** the fixed point, the diff command and the spec source (the task and the plan) come in the brief. Skip steps 1 and 2 below and never ask the user for them; start at step 3.
+
 ## Process
 
 ### 1. Pin the fixed point

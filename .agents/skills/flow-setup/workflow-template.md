@@ -81,6 +81,12 @@ Shares this project's Engram memory through git, in the `.engram/` folder. `flow
 
 - **Engram sync**: `<ask | always | never>`
 
+## Task memory
+
+Where `flow-work` keeps the closed note of a finished task (what was built, where, decisions, gotchas), which the research phase of later tasks reads. It only matters when Engram is not available: with Engram, the note lives there.
+
+- **Task memory**: `<repo | local>`. `repo` saves it in `.flow/memory/<id>.md` and commits it with the work, so every machine and teammate can read it. `local` saves it in the same place but git-ignores `.flow/memory/`, so it stays on this machine. A missing setting means `local`.
+
 ## Tests
 
 - **Test file globs**: `<glob>`, `<glob>`

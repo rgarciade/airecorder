@@ -11,7 +11,10 @@ In autonomous mode, chain the phases without stopping for routine confirmations:
   - a decision the issue and the plan don't settle, where a wrong guess would cost real rework;
   - a test that looks wrong (see "Changing an approved test"), or a check you cannot make pass;
   - a task that turns out bigger than it looked;
-  - anything that leaves the machine or changes shared state: commits, pushes, status moves, issue edits, the PR.
+  - anything that leaves the machine or changes shared state: commits, pushes, status moves, issue edits, the PR, merging the target branch into the task branch (`references/base-drift.md`), and replies on the PR review (`references/pr-review.md`);
+  - parking or abandoning a task (`references/park-task.md`).
+  - The task branch is the exception to the shared-state stop: the user already confirmed it in Phase 1, so creating it with `create-branch` needs no new stop, even when that also creates it on the remote.
+- **The baseline run still happens** (Phase 2), and its failing tests are in the report.
 - **The state note is still kept.** Update it at the end of every phase, as in pair work: it is what lets the task continue if the session is interrupted.
 - **Tests stay frozen.** With no test gate, record the tests with the `.scratch/flow/<id>/approved-tests/` manifest right after writing them, and check them against it as usual.
 - **Commits come at the end.** Instead of a commit command per phase, give the user the `test`, `feat` and `fix`/`refactor` commands (and `chore` for an Engram export) together with the final report, each ending with `&& git push`.

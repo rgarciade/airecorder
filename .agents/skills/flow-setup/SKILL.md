@@ -51,7 +51,7 @@ Read `../setup-matt-pocock-skills/SKILL.md` and apply only its **Section C** (do
 
 Ask these questions following [asking-questions.md](asking-questions.md) (read it first): the independent ones in a single round, leading each with the value you detected as the recommended answer. Skip any question that exploration already settled beyond doubt, and say what you assumed.
 
-Say in one line what each setting is for when its name does not explain it (harnesses and models, Engram sync, test file globs): the user may be seeing these for the first time.
+Say in one line what each setting is for when its name does not explain it (harnesses and models, Engram sync, task memory, test file globs): the user may be seeing these for the first time.
 
 1. Base branch: the branch every finished feature ends up in (for example `dev`).
 2. Branch naming for groups and tasks. Default: `feature/<id>-<slug>` for a group branch (a parent task) and `task/<id>-<slug>` for a task branch, with `<id>` as the tracker's "id in branch names".
@@ -62,7 +62,8 @@ Say in one line what each setting is for when its name does not explain it (harn
 7. Engram sync: share this project's Engram memory through git in `.engram/`. `ask` (default) asks before each export, `always` exports before every PR, `never` turns it off. Propose `never` if the Engram CLI is not installed.
 8. Status: which states `move-status` uses (in progress, in review, done) and how, recorded in `tracker.md`. `not used` if the user doesn't want status moves.
 9. Docs: the folder for the project's own documentation (default `docs/`, or an existing one you found) and whether `AGENTS.md`, `CLAUDE.md` or `CONTRIBUTING.md` already says which documents to update when code changes. If it does, record where; those rules win. `none` turns the docs step off. If the docs folder already exists, propose adding its reading guide: a `README.md` from [docs-readme-template.md](docs-readme-template.md), or its note merged into an existing index, with the "Contents" list filled from the documents already there. If the folder does not exist yet, don't create it: `flow-work` does so with the first document.
-10. Harnesses and models: see the next section. Ask it after the questions above, as its own round.
+10. Task memory: where the closed note of a finished task is kept when Engram is not available. `repo` saves it in `.flow/memory/` and commits it with the work, so every machine and teammate can read it; `local` keeps it git-ignored on this machine only. It only matters without Engram. Recommend `repo` when Engram is not installed; with Engram, leave `local` and say the setting is not used.
+11. Harnesses and models: see the next section. Ask it after the questions above, as its own round.
 
 ## Harnesses and models
 
@@ -75,6 +76,15 @@ Ask in three short rounds, each depending on the one before:
 3. **Who takes each role** (research, plan, tests, implement, fix, review): an ordered list of harnesses, the first choice and a fallback for when it has no quota left. Recommend the strongest harness for plan and tests, the cheaper one for the rest, and a different harness for review as a second opinion.
 
 Say, once, that the orchestrator is the session the user opens, so it is not set here, and that the split is fixed by role: nothing balances usage across subscriptions on its own. When there is no agent manager, record the one harness running the flow and the same list for every role.
+
+**Permissions for launching other harnesses.** When a role goes to `<manager>:<harness>` and the flow runs in Claude Code, say in a few lines that Claude Code's auto mode may block those launches: it treats starting another agent that runs without per-action approval as unsafe. Show the user what they can add to their own Claude Code settings (user settings, not the repo's), or tell them to add it through `/permissions`:
+
+```json
+"permissions": { "allow": ["Bash(orca orchestration worker-start:*)", "Bash(orca agent launch:*)"] },
+"autoMode": { "allow": ["$defaults", "Launching a flow role (research, plan, tests, implement, fix, review) with `orca orchestration worker-start` or `orca agent launch` in the current worktree is allowed when the repo's docs/agents/workflow.md assigns that role to an orca:<harness> and the user confirmed the flow-work task. The launched agent must not commit, push or open a PR."] }
+```
+
+Adjust the command to the manager (for Herdr, the command its guide gives). Never write it yourself: it is the user's security decision, and Claude Code blocks an agent that changes its own permissions. Allowing it means the launched agent works in the worktree with no one approving each command; say so. Skip this for other harnesses running the flow, or when no role uses a manager.
 
 When the user ran `flow-setup` only to change the harnesses or models, their answers to the three rounds are the confirmation: write the section and show it before and after in the same message, with no further stop to ask for approval. Nothing is committed, so the diff is the review. Write only that section of `workflow.md` and leave `tracker.md`, `domain.md` and the docs `README.md` untouched. The one exception is the `## Agent skills` block (see step 5): if its text differs from the block in this skill's template (for example a repo set up with 0.1 that still says "model tiers" instead of "harnesses and models, working mode"), update it in place in the same step and show it too. Never create the other instructions file. Then give the commit command.
 
@@ -101,10 +111,10 @@ Show the user a draft of every file you will write or edit, including the `## Ag
 
 ### Workflow
 
-Branches, base branch, languages, harnesses and models, working mode, test commands, Engram sync and docs for the flow skills. See `docs/agents/workflow.md`.
+Branches, base branch, languages, harnesses and models, working mode, test commands, Engram sync, task memory and docs for the flow skills. See `docs/agents/workflow.md`.
 ```
 
-If the user chose the task folder alternative, make sure `.flow/` is **not** git-ignored: those records are part of the repo.
+If the user chose the task folder alternative, make sure `.flow/` is **not** git-ignored: those records are part of the repo. For **Task memory**, `repo` needs `.flow/memory/` not git-ignored, and `local` needs it git-ignored.
 
 ## 6. Done
 
