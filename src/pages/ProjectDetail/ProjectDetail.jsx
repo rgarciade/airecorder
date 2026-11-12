@@ -129,6 +129,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
           deepseek: s.deepseekModel,
           kimi: s.kimiModel,
           gemini: s.geminiModel,
+          glm: s.glmModel,
           lmstudio: s.lmStudioRagModel || s.lmStudioModel,
         };
         const currentModel = modelByProvider[provider] || '';
@@ -153,7 +154,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
           // usa el valor configurado manualmente en Ajustes si existe, o un
           // estimado por defecto (mismo criterio que RecordingDetailWithTranscription.jsx).
           ctxLen = s.codexContextLength || 400000;
-        } else if (provider === 'openai') {
+        } else if (provider === 'openai' || provider === 'glm') {
           ctxLen = 128000;
         }
         setMaxContextLength(ctxLen);
@@ -561,6 +562,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       else if (aiProvider === 'deepseek') settingsUpdate.deepseekModel = model;
       else if (aiProvider === 'kimi') settingsUpdate.kimiModel = model;
       else if (aiProvider === 'gemini') settingsUpdate.geminiModel = model;
+      else if (aiProvider === 'glm') settingsUpdate.glmModel = model;
 
       if (Object.keys(settingsUpdate).length > 0) {
         await updateSettings(settingsUpdate);
@@ -1063,7 +1065,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                       <span className={styles.aiBadge}>
                         {(() => {
                           // geminifree se conserva para mostrar el nombre de resúmenes históricos generados antes de unificar Gemini Free/Pro
-                          const names = { gemini: 'Gemini', geminifree: 'Gemini Free', deepseek: 'DeepSeek', kimi: 'Kimi', openai: 'OpenAI' };
+                          const names = { gemini: 'Gemini', geminifree: 'Gemini Free', deepseek: 'DeepSeek', kimi: 'Kimi', openai: 'OpenAI', glm: 'GLM' };
                           const { aiProvider, aiModel } = projectSummary;
                           return aiModel ? `${names[aiProvider] || aiProvider}: ${aiModel}` : (names[aiProvider] || aiProvider);
                         })()}

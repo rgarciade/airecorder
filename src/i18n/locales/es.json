@@ -415,7 +415,18 @@
         "medium": "Medio",
         "high": "Alto",
         "xhigh": "Extra alto"
-      }
+      },
+      "glmName": "GLM",
+      "glmDesc": "GLM de Z.AI (Coding Plan)",
+      "glmEmbeddingNotice": "GLM no ofrece embeddings. Elige otro proveedor de embeddings.",
+      "glmEndpointMode": "Endpoint",
+      "glmEndpointModes": {
+        "plan": "Coding Plan",
+        "general": "API general"
+      },
+      "glmBaseUrl": "URL base personalizada (opcional)",
+      "glmBaseUrlHelp": "Si se rellena, sustituye al endpoint elegido (por ejemplo, un endpoint de bigmodel.cn).",
+      "glmModelsFallback": "No se pudo obtener la lista de modelos de GLM; se muestran modelos predeterminados."
     },
     "buttons": {
       "save": "Guardar Ajustes",
@@ -962,6 +973,10 @@
       "openai": {
         "description": "Modelos GPT de OpenAI. Requiere API key de OpenAI.",
         "apiKeyLabel": "OpenAI API Key"
+      },
+      "glm": {
+        "description": "Modelos GLM de Z.AI (Coding Plan). Requiere API key de Z.AI.",
+        "apiKeyLabel": "Z.AI API Key"
       },
       "gemini": {
         "description": "Modelos Gemini de Google. Requiere API key de Google AI Studio.",

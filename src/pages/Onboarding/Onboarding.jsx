@@ -8,6 +8,7 @@ import { checkLMStudioAvailability, getLMStudioModels } from '../../services/ai/
 import { getGeminiAvailableModels } from '../../services/ai/geminiProvider';
 import { getKimiAvailableModels, getDeepseekAvailableModels } from '../../services/ai/providerRouter';
 import { CustomOpenAIProvider, OPENAI_BASE_URL } from '../../services/ai/customOpenAIProvider';
+import { listGlmModels } from '../../services/ai/glmProvider';
 import { updateSettings } from '../../services/settingsService';
 import { applyTheme } from '../../services/themeService';
 import { reconcileCodexSelection } from '../../services/ai/codexModelSelection';
@@ -65,6 +66,11 @@ export default function Onboarding({ onComplete }) {
   const [openaiModels, setOpenaiModels] = useState([]);
   const [openaiModelsLoading, setOpenaiModelsLoading] = useState(false);
   const [selectedOpenaiModel, setSelectedOpenaiModel] = useState('');
+  // GLM (Z.AI Coding Plan): en el onboarding solo clave + modelo, endpoint 'plan'
+  const [glmApiKey, setGlmApiKey] = useState('');
+  const [glmModels, setGlmModels] = useState([]);
+  const [glmModelsLoading, setGlmModelsLoading] = useState(false);
+  const [selectedGlmModel, setSelectedGlmModel] = useState('');
   const [codexModel, setCodexModel] = useState('');
   const [codexReasoningEffort, setCodexReasoningEffort] = useState('');
   const [codexModels, setCodexModels] = useState([]);
@@ -242,6 +248,24 @@ export default function Onboarding({ onComplete }) {
     }
   };
 
+  const loadGlmModelsOnboarding = async (apiKey) => {
+    if (!apiKey) {
+      setGlmModels([]);
+      return;
+    }
+    setGlmModelsLoading(true);
+    try {
+      // listGlmModels nunca lanza: ante un fallo devuelve los modelos de respaldo
+      const models = await listGlmModels({ glmApiKey: apiKey, glmEndpointMode: 'plan' });
+      setGlmModels(models);
+      if (models.length > 0 && !selectedGlmModel) {
+        setSelectedGlmModel(models[0].name);
+      }
+    } finally {
+      setGlmModelsLoading(false);
+    }
+  };
+
   const loadOpenaiModelsOnboarding = async (apiKey) => {
     if (!apiKey) {
       setOpenaiModels([]);
@@ -353,6 +377,9 @@ export default function Onboarding({ onComplete }) {
         codexReasoningEffort: chatProviderKey === 'codex' ? codexReasoningEffort : undefined,
         openaiApiKey: (chatProviderKey === 'openai' || (embedValid && embedProviderKey === 'openai')) ? openaiApiKey : undefined,
         openaiModel: chatProviderKey === 'openai' ? selectedOpenaiModel : undefined,
+        glmApiKey: chatProviderKey === 'glm' ? glmApiKey : undefined,
+        glmModel: chatProviderKey === 'glm' ? selectedGlmModel : undefined,
+        glmEndpointMode: chatProviderKey === 'glm' ? 'plan' : undefined,
         geminiApiKey: (chatProviderKey === 'gemini' || (embedValid && embedProviderKey === 'gemini')) ? geminiKey : undefined,
         geminiModel: chatProviderKey === 'gemini' ? selectedGeminiModel : undefined,
         kimiApiKey: (chatProviderKey === 'kimi' || (embedValid && embedProviderKey === 'kimi')) ? kimiApiKey : undefined,
@@ -533,6 +560,7 @@ export default function Onboarding({ onComplete }) {
   const getModelName = () => {
     if (chatProviderKey === 'lmstudio') return 'LM Studio';
     if (chatProviderKey === 'openai') return 'OpenAI';
+    if (chatProviderKey === 'glm') return 'GLM';
     if (chatProviderKey === 'gemini') return 'Gemini';
     if (chatProviderKey === 'kimi') return 'Kimi';
     if (chatProviderKey === 'deepseek') return 'DeepSeek';
@@ -558,6 +586,7 @@ export default function Onboarding({ onComplete }) {
     if (type === 'cloud') {
       if (key === 'codex') return !!codexStatus?.connected;
       if (key === 'openai') return !!openaiApiKey.trim();
+      if (key === 'glm') return !!glmApiKey.trim();
       if (key === 'gemini') return !!geminiKey.trim();
       if (key === 'kimi') return !!kimiApiKey.trim();
       if (key === 'deepseek') return !!deepseekApiKey.trim();
@@ -602,6 +631,11 @@ export default function Onboarding({ onComplete }) {
       apiKey: openaiApiKey, setApiKey: setOpenaiApiKey,
       models: openaiModels, modelsLoading: openaiModelsLoading, loadModels: loadOpenaiModelsOnboarding,
       selectedModel: selectedOpenaiModel, setSelectedModel: setSelectedOpenaiModel,
+    },
+    glm: {
+      apiKey: glmApiKey, setApiKey: setGlmApiKey,
+      models: glmModels, modelsLoading: glmModelsLoading, loadModels: loadGlmModelsOnboarding,
+      selectedModel: selectedGlmModel, setSelectedModel: setSelectedGlmModel,
     },
     gemini: {
       apiKey: geminiKey, setApiKey: setGeminiKey,

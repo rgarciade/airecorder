@@ -318,7 +318,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       const provider = settings.aiProvider || 'gemini';
       // Todos los proveedores cloud soportan streaming nativamente (y LM Studio)
       // Ollama depende de la configuración del modelo
-      const cloudProviders = ['gemini', 'openai', 'codex', 'deepseek', 'kimi', 'lmstudio'];
+      const cloudProviders = ['gemini', 'openai', 'glm', 'codex', 'deepseek', 'kimi', 'lmstudio'];
       const modelSupportsStreaming = cloudProviders.includes(provider) 
         ? true 
         : (settings.ollamaModelSupportsStreaming || false);
@@ -357,6 +357,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         kimi: settings.kimiModel,
         gemini: settings.geminiModel,
         openai: settings.openaiModel,
+        glm: settings.glmModel,
         codex: settings.codexModel,
         lmstudio: settings.lmStudioRagModel || settings.lmStudioModel,
       };
@@ -391,7 +392,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         // estimado por defecto (familia GPT-5/Codex, documentado públicamente,
         // no verificable en vivo — mismo criterio que gemini/kimi/deepseek arriba).
         ctxLen = settings.codexContextLength || 400000;
-      } else if (provider === 'openai') {
+      } else if (provider === 'openai' || provider === 'glm') {
         ctxLen = 128000;
       }
       setMaxContextLength(ctxLen);
@@ -690,7 +691,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       // Usar estado local actualizado por el listener (más fiable y rápido)
       const provider = aiProvider;
       // Todos los proveedores cloud usan streaming, Ollama depende de configuración
-      const cloudProviders = ['gemini', 'openai', 'codex', 'deepseek', 'kimi', 'lmstudio'];
+      const cloudProviders = ['gemini', 'openai', 'glm', 'codex', 'deepseek', 'kimi', 'lmstudio'];
       const shouldUseStreaming = cloudProviders.includes(provider) ? true : supportsStreaming;
 
       console.log('🤖 Preparando chat:', {
@@ -1008,6 +1009,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       else if (aiProvider === 'kimi') settingsUpdate.kimiModel = model;
       else if (aiProvider === 'gemini') settingsUpdate.geminiModel = model;
       else if (aiProvider === 'openai') settingsUpdate.openaiModel = model;
+      else if (aiProvider === 'glm') settingsUpdate.glmModel = model;
 
       if (Object.keys(settingsUpdate).length > 0) {
         await updateSettings(settingsUpdate);

@@ -6,6 +6,7 @@ const PROVIDER_LABEL = {
   ollama: 'Ollama (Local)',
   lmstudio: 'LM Studio (Local)',
   openai: 'OpenAI',
+  glm: 'GLM',
   codex: 'Codex (ChatGPT)',
   gemini: 'Gemini',
   kimi: 'Kimi (Moonshot)',

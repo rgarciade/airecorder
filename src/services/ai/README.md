@@ -6,7 +6,7 @@ Este directorio maneja todo el enrutamiento y la generación de contenido a trav
 
 Para evitar atar el código de la interfaz a una API de IA específica, el sistema utiliza un **Patrón de Enrutador** (`providerRouter.js`).
 
-*   **Proveedores disponibles:** Gemini (`geminiProvider.js`, config única — sin distinción Free/Pro), OpenAI (`customOpenAIProvider.js` con `baseUrl` fija `OPENAI_BASE_URL`), Ollama (`ollamaProvider.js`), DeepSeek (`deepseekProvider.js`), Kimi (`kimiProvider.js`), LM Studio (`lmStudioProvider.js`), y conexiones OpenAI-compatible personalizadas (`customOpenAIProvider.js` con `baseUrl` configurable por el usuario).
+*   **Proveedores disponibles:** Gemini (`geminiProvider.js`, config única — sin distinción Free/Pro), OpenAI (`customOpenAIProvider.js` con `baseUrl` fija `OPENAI_BASE_URL`), GLM / Z.AI Coding Plan (`glmProvider.js` sobre `customOpenAIProvider.js`, ver [GLM](#glm-zai-coding-plan)), Ollama (`ollamaProvider.js`), DeepSeek (`deepseekProvider.js`), Kimi (`kimiProvider.js`), LM Studio (`lmStudioProvider.js`), y conexiones OpenAI-compatible personalizadas (`customOpenAIProvider.js` con `baseUrl` configurable por el usuario).
 *   **Flujo:** React llama directamente a las APIs de IA usando las claves guardadas en los `Settings`. `providerRouter.js` selecciona el proveedor activo basado en `settings.aiProvider`. Los valores con prefijo `custom:{id}` se resuelven a partir de `settings.customConnections`.
 *   **Cómo añadir un nuevo proveedor:** Crea un archivo `nuevoProvider.js` con dos tipos de funciones:
     1. `sendToNuevo(textContent, modelOverride, systemPrompt, signal)` — para análisis/resúmenes con system prompt separado.
@@ -15,20 +15,33 @@ Para evitar atar el código de la interfaz a una API de IA específica, el siste
 
 ### Conexiones OpenAI personalizadas
 
-El archivo `customOpenAIProvider.js` expone la clase `CustomOpenAIProvider`, instanciada con `{baseUrl, apiKey, model}`. Implementa los mismos métodos que los proveedores locales:
+El archivo `customOpenAIProvider.js` expone la clase `CustomOpenAIProvider`, instanciada con `{baseUrl, apiKey, model, apiPrefix?, errorLabel?}` (`apiPrefix` por defecto `'/v1'`; `errorLabel` por defecto `'Custom OpenAI'`, aparece como `<label> Error: <status>`). Implementa los mismos métodos que los proveedores locales:
 
 | Método | Uso |
 |--------|-----|
 | `sendMessage(prompt, systemPrompt, signal)` | Análisis / resúmenes |
 | `sendMessageStreaming(prompt, onChunk, systemPrompt, signal)` | Chat streaming con prompt simple |
 | `chatCompletionStreaming(messages, onChunk, signal)` | Chat nativo con historial de mensajes |
-| `listModels()` | Lista modelos desde `GET /v1/models` |
+| `chatCompletionOnce(messages, {tools}, signal)` | Una pasada con `tools` (loop de tool-calling) |
+| `listModels()` | Lista modelos desde `GET <baseUrl><apiPrefix>/models` |
 
 `signal` es un `AbortSignal` opcional (default `null`) para cancelar la petición en curso — ver [Cancelación de la tarea en curso](#cancelación-de-la-tarea-en-curso-abortcontroller).
 
 El router usa `isCustom(provider)` y `resolveCustomConnection(settings, provider)` para detectar el prefijo `custom:` y resolver la conexión. Si el `id` no existe, devuelve un error seguro sin crashear. Los proveedores integrados siguen funcionando sin cambios.
 
 La misma clase `CustomOpenAIProvider` también implementa el proveedor fijo **OpenAI** (`case 'openai'` en `providerRouter.js`): se instancia con `baseUrl: OPENAI_BASE_URL` (constante exportada desde `customOpenAIProvider.js`, `https://api.openai.com`) en vez de una URL configurable por el usuario. Solo pide API Key + modelo, igual que Gemini/DeepSeek/Kimi.
+
+### GLM (Z.AI Coding Plan)
+
+`glmProvider.js` no es un cliente nuevo: reutiliza `CustomOpenAIProvider` con `apiPrefix: ''` (la URL base de Z.AI ya incluye `/v4`) y `errorLabel: 'GLM'`.
+
+*   **Endpoints** (`GLM_ENDPOINTS`): `plan` (por defecto) `https://api.z.ai/api/coding/paas/v4`; `general` `https://api.z.ai/api/paas/v4`. Los paths son `<base>/models` y `<base>/chat/completions`.
+*   **Ajustes:** `glmApiKey`, `glmModel` (vacío por defecto; se elige el primer modelo listado si falta), `glmEndpointMode` (`'plan'` | `'general'`) y `glmBaseUrl` opcional: si no está vacía (tras `trim`, sin `/` final) sustituye al endpoint elegido (p. ej. bigmodel.cn). `resolveGlmBaseUrl(settings)` lo resuelve; `createGlmClient(settings, model)` construye el cliente que usan los cuatro `switch` del router (análisis, streaming, chat streaming y loop de tools).
+*   **Modelos:** `listGlmModels(settings)` consulta `/models`; ante cualquier fallo devuelve `GLM_FALLBACK_MODELS` (`glm-5.2`, `glm-5-turbo`, `glm-4.7`) y la UI muestra un aviso no bloqueante.
+*   **Sin embeddings:** `electron/services/embeddingService.js` avisa (`GLM does not support embeddings, falling back`) y cae a otro proveedor. En la UI se oculta/deshabilita en el rol de embeddings.
+*   **Sin API de cuota/uso:** Z.AI no documenta una API de consumo del plan, por lo que la app no muestra uso. `reasoning_content` se ignora; `stripThinkBlocks` sigue limpiando bloques `<think>`.
+*   **Errores:** `No se ha configurado la GLM API Key en los ajustes.` / `No se ha seleccionado un modelo de GLM.`; `validateProviderConfig` → `Falta configurar la GLM API Key`. Nombre del motor en la cola: `GLM: <modelo>`.
+*   **Contexto:** `getActiveProviderContextWindow` devuelve `null` (cloud, sin chunking); las pantallas de chat asumen 128000 tokens.
 
 ## 2. Los Prompts y Plantillas (`src/prompts/aiPrompts.js`)
 
@@ -141,6 +154,7 @@ se guarda en `ollamaRagModel` / `lmStudioRagModel` — **nunca sobrescribe el Mo
 | **Gemini** | Campo `system_instruction: { parts: [{ text }] }` en el body de `generateContent` |
 | **Ollama** | Campo `system` en el body de `/api/generate` |
 | **DeepSeek** | Mensaje `{ role: 'system', content }` antes del mensaje de usuario |
+| **GLM** | Mensaje `{ role: 'system', content }` antes del mensaje de usuario (vía `CustomOpenAIProvider`) |
 | **Kimi** | Reemplaza el system genérico hardcodeado por el system prompt específico de la tarea |
 | **LM Studio** | Mensaje `{ role: 'system', content }` antes del mensaje de usuario |
 
@@ -535,6 +549,7 @@ Cada proveedor expone una función/método `chatCompletionOnce` (o `sendToGemini
 |-----------|---------|---------------------|------------------------|
 | Gemini | `sendToGeminiChatOnce` (`geminiProvider.js`) | `toGeminiToolsFormat` | Implementado según documentación pública (`functionCall`/`functionResponse`). **No verificado en vivo** contra la API real durante este cambio. |
 | OpenAI + custom | `CustomOpenAIProvider#chatCompletionOnce` (`customOpenAIProvider.js`) | `toOpenAIToolsFormat` | Formato OpenAI estándar, documentado y estable. |
+| GLM (Z.AI) | `CustomOpenAIProvider#chatCompletionOnce` vía `createGlmClient` (`glmProvider.js`) | `toOpenAIToolsFormat` | Z.AI documenta `tools`/`tool_calls` compatible con OpenAI. **No verificado en vivo**. |
 | DeepSeek | `chatCompletionOnce` (`deepseekProvider.js`) | `toOpenAIToolsFormat` | DeepSeek documenta `tools`/`tool_calls` compatible con OpenAI. **No verificado en vivo**. |
 | Kimi (Moonshot) | `chatCompletionOnce` (`kimiProvider.js`) | `toOpenAIToolsFormat` | Moonshot documenta compatibilidad OpenAI. **No verificado en vivo** — si la API rechaza `tools`, el `fetch` falla y ese turno corta con error (no rompe la conversación, pero sí ese intento). |
 | LM Studio | `chatCompletionOnce` (`lmStudioProvider.js`) | `toOpenAIToolsFormat` | Depende enteramente del modelo cargado (best-effort). **No verificado en vivo**. |
