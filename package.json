@@ -159,7 +159,7 @@
     "ffmpeg-static": "^5.2.0",
     "howler": "^2.2.4",
     "i18next": "^25.8.14",
-    "jspdf": "^4.2.0",
+    "jspdf": "^4.2.1",
     "markmap-lib": "^0.18.12",
     "markmap-view": "^0.18.12",
     "node-audiorecorder": "^3.0.0",
