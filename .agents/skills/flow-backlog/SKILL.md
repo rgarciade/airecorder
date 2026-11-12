@@ -20,7 +20,7 @@ Building the backlog is a conversation with the user: you propose, they decide. 
 
 ## 1. Understand what the user wants
 
-Ask until it is clear. For each question, propose the answer you think fits. Ask the questions that don't depend on each other together. If the agent has a question tool with selectable options (for example `AskUserQuestion` in Claude Code), use it: one selector per question, the proposed answer first, and the free-text option left open. Otherwise, use a numbered list, so the user can reply "OK" or correct only some by number. Ask a question alone first when its answer changes the next ones. Suggest the minimum: if something can be left out, say so.
+Ask until it is clear, following `../flow-setup/asking-questions.md` (read it before your first question): gather every open question, ask the independent ones in a single round with your proposed answer first, and explain in plain words anything new or complex before asking about it. Suggest the minimum: if something can be left out, say so.
 
 Then decide which of these it is. If unsure, ask:
 

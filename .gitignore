@@ -35,6 +35,7 @@ devfiles/
 !.agents/skills/flow-work/
 !.agents/skills/setup-matt-pocock-skills/
 !.agents/skills/to-tickets/
+!.agents/skills/i-have-adhd/
 plans/
 python-dist/
 python/build/
