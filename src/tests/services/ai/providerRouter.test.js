@@ -418,6 +418,135 @@ describe('providerRouter tool-calling loop (function-calling nativo)', () => {
 });
 
 // ---------------------------------------------------------------------------
+// GLM (Z.AI Coding Plan) — routed through CustomOpenAIProvider (mocked above)
+// with the resolved Z.AI base URL, no /v1 prefix and the 'GLM' error label.
+// ---------------------------------------------------------------------------
+describe('providerRouter glm provider', () => {
+  const PLAN_BASE_URL = 'https://api.z.ai/api/coding/paas/v4';
+  const TOOLS = [{ name: 'find_tasks', description: 'x', parameters: { type: 'object', properties: {} } }];
+  let router;
+  let CustomOpenAIProviderMock;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    getSettings.mockReset();
+    globalThis.window ||= {};
+    delete globalThis.window.electronAPI;
+
+    router = await import('../../../services/ai/providerRouter.js');
+    ({ CustomOpenAIProvider: CustomOpenAIProviderMock } = await import('../../../services/ai/customOpenAIProvider.js'));
+  });
+
+  it('lists glm as a cloud provider', () => {
+    expect(router.CLOUD_PROVIDERS).toContain('glm');
+  });
+
+  it('callProvider builds a GLM client on the plan endpoint and returns provider/model', async () => {
+    getSettings.mockResolvedValue({ aiProvider: 'glm', glmApiKey: 'glm-key', glmModel: 'glm-5.2' });
+    customProviderSendMessage.mockResolvedValue('glm answer');
+
+    const result = await router.callProvider('prompt', { systemPrompt: 'sys' });
+
+    expect(CustomOpenAIProviderMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: PLAN_BASE_URL,
+        apiPrefix: '',
+        errorLabel: 'GLM',
+        apiKey: 'glm-key',
+        model: 'glm-5.2',
+      })
+    );
+    expect(result).toEqual({ text: 'glm answer', provider: 'glm', model: 'glm-5.2' });
+  });
+
+  it('callProvider prefers options.model over settings.glmModel', async () => {
+    getSettings.mockResolvedValue({ aiProvider: 'glm', glmApiKey: 'glm-key', glmModel: 'glm-5.2' });
+    customProviderSendMessage.mockResolvedValue('ok');
+
+    const result = await router.callProvider('prompt', { model: 'glm-4.7' });
+
+    expect(result.model).toBe('glm-4.7');
+  });
+
+  it('callProviderStreaming streams through the GLM client', async () => {
+    getSettings.mockResolvedValue({ aiProvider: 'glm', glmApiKey: 'glm-key', glmModel: 'glm-5.2' });
+    customProviderSendMessageStreaming.mockResolvedValue('streamed');
+
+    const result = await router.callProviderStreaming('prompt', vi.fn());
+
+    expect(result).toEqual({ text: 'streamed', provider: 'glm', model: 'glm-5.2', streaming: true });
+  });
+
+  it('callChatProviderStreaming streams the chat through the GLM client', async () => {
+    getSettings.mockResolvedValue({ aiProvider: 'glm', glmApiKey: 'glm-key', glmModel: 'glm-5.2' });
+    customProviderChatCompletionStreaming.mockResolvedValue('chat streamed');
+
+    const result = await router.callChatProviderStreaming([{ role: 'user', content: 'hi' }], vi.fn());
+
+    expect(result).toEqual({ text: 'chat streamed', provider: 'glm', model: 'glm-5.2', streaming: true });
+  });
+
+  it('throws the Spanish missing-key error when glmApiKey is empty', async () => {
+    getSettings.mockResolvedValue({ aiProvider: 'glm', glmApiKey: '', glmModel: 'glm-5.2' });
+
+    await expect(router.callProvider('prompt')).rejects.toThrow(
+      'No se ha configurado la GLM API Key en los ajustes.'
+    );
+  });
+
+  it('throws the Spanish missing-model error when no GLM model is selected', async () => {
+    getSettings.mockResolvedValue({ aiProvider: 'glm', glmApiKey: 'glm-key', glmModel: '' });
+
+    await expect(router.callProvider('prompt')).rejects.toThrow('No se ha seleccionado un modelo de GLM.');
+  });
+
+  it('validateProviderConfig reports a missing GLM API key', async () => {
+    getSettings.mockResolvedValue({ aiProvider: 'glm', glmApiKey: '' });
+
+    const result = await router.validateProviderConfig();
+
+    expect(result).toEqual({ valid: false, error: 'Falta configurar la GLM API Key' });
+  });
+
+  it('shows "GLM: <model>" as the queue engine name', async () => {
+    getSettings.mockResolvedValue({ aiProvider: 'glm', glmApiKey: 'glm-key', glmModel: 'glm-5-turbo' });
+    customProviderSendMessage.mockResolvedValue('ok');
+    const { aiQueueService } = await import('../../../services/ai/aiQueueService.js');
+
+    await router.callProvider('prompt');
+
+    expect(aiQueueService.getState().history[0].engine).toBe('GLM: glm-5-turbo');
+  });
+
+  it('shows "GLM" as the queue engine name when no model is set', async () => {
+    getSettings.mockResolvedValue({ aiProvider: 'glm', glmApiKey: 'glm-key', glmModel: '' });
+    const { aiQueueService } = await import('../../../services/ai/aiQueueService.js');
+
+    await router.callProvider('prompt').catch(() => {});
+
+    expect(aiQueueService.getState().history[0].engine).toBe('GLM');
+  });
+
+  it('runs the tool-calling loop for glm through chatCompletionOnce', async () => {
+    getSettings.mockResolvedValue({ aiProvider: 'glm', glmApiKey: 'glm-key', glmModel: 'glm-5.2' });
+    customProviderChatCompletionOnce.mockResolvedValue({ text: 'tool-free answer', toolCalls: null });
+
+    const onChunk = vi.fn();
+    const result = await router.callChatProviderStreaming([{ role: 'user', content: 'hola' }], onChunk, { tools: TOOLS });
+
+    expect(customProviderChatCompletionOnce).toHaveBeenCalledTimes(1);
+    expect(onChunk).toHaveBeenCalledWith('tool-free answer');
+    expect(result).toMatchObject({ text: 'tool-free answer', provider: 'glm', toolCallsExecuted: [] });
+  });
+
+  it('getActiveProviderContextWindow returns null for glm (cloud, no chunking)', async () => {
+    const result = await router.getActiveProviderContextWindow({ aiProvider: 'glm' });
+
+    expect(result).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Codex + options.tools — camino EXCLUSIVO de propuesta única vía `outputSchema`
 // estructurado (`_runCodexTaskAwareChat`, ver codexTaskBridge.js). A diferencia
 // de los otros 6 providers, Codex NO pasa por `_runToolCallingLoop`: reusa

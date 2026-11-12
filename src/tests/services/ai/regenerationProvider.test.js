@@ -23,6 +23,10 @@ describe('regenerationProvider', () => {
     })).toBe(false);
   });
 
+  it('offers GLM as a regeneration provider', () => {
+    expect(REGENERATION_PROVIDER_OPTIONS).toContainEqual(expect.objectContaining({ value: 'glm' }));
+  });
+
   it('checks the Codex session without loading or refreshing its model catalog', async () => {
     const electronAPI = {
       getCodexStatus: vi.fn().mockResolvedValue({ available: true, connected: true }),

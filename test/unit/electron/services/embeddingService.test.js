@@ -188,6 +188,31 @@ describe('embeddingService — custom OpenAI-compatible embeddings', () => {
     });
   });
 
+  describe('detectEmbeddingProvider — GLM guard', () => {
+    it('warns and returns null when embeddingProvider is glm (no embedding API)', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      vi.spyOn(fs, 'readFileSync').mockReturnValue(
+        JSON.stringify({
+          embeddingProvider: 'glm',
+          aiProvider: 'ollama',
+          glmApiKey: 'glm-test',
+        })
+      );
+
+      fetchSpy.mockRejectedValue(new Error('connection refused'));
+
+      const provider = await embeddingService.detectEmbeddingProvider();
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('GLM does not support embeddings, falling back')
+      );
+      expect(provider).toBeNull();
+
+      warnSpy.mockRestore();
+    });
+  });
+
   describe('getEmbeddingModel', () => {
     it('returns settings.embeddingModel for a custom embeddings provider', () => {
       vi.spyOn(fs, 'readFileSync').mockReturnValue(
