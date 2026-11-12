@@ -35,6 +35,10 @@ module.exports.registerRecordingsHandlers = () => {
               file.endsWith('.m4a') || file.endsWith('.ogg') || file.endsWith('.aac') || file.endsWith('.flac')
             );
             
+            // Internal echo-cancellation files (backup original, temporaries) are not user-facing recordings
+            const INTERNAL_ECHO_FILE = /-microphone-original\.\w+$|-echo-tmp\.\w+$|^\.echo-.*\.webm$/;
+            const visibleAudioFiles = audioFiles.filter(file => !INTERNAL_ECHO_FILE.test(file));
+
             // Incluir la carpeta si tiene audio O si tiene transcripción (ej. importación de Teams)
             const hasTranscriptionJson = fs.existsSync(path.join(itemPath, 'analysis', 'transcripcion_combinada.json'));
             if (audioFiles.length > 0 || hasTranscriptionJson) {
@@ -68,7 +72,7 @@ module.exports.registerRecordingsHandlers = () => {
                 path: itemPath,
                 createdAt: dbEntry ? dbEntry.created_at : stats.birthtime.toISOString(),
                 modifiedAt: stats.mtime.toISOString(),
-                files: audioFiles,
+                files: visibleAudioFiles,
                 hasAnalysis: status === 'transcribed' || status === 'analyzed',
                 status: status,
                 duration: dbEntry ? dbEntry.duration : 0,

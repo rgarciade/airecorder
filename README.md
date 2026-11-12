@@ -199,9 +199,10 @@ python python/audio_sync_analyzer.py echo-cancel \
 - Se despacha al principio de `audio_sync_analyzer.py`, antes de los imports pesados; solo necesita numpy y ffmpeg (`python/echo_cancel_cli.py` + `python/echo_canceller.py`, ambos en `hiddenimports` del `.spec`).
 - ffmpeg decodifica ambas pistas a mono f32 48 kHz en streaming (memoria acotada). Pasada 1: GCC-PHAT por segmentos de ~20 s (banda 100-6000 Hz) para estimar retardo, deriva de reloj (ajuste lineal, compensada con un remuestreador sinc) y coherencia. Pasada 2: filtro adaptativo por bloques particionado en frecuencia (bloque 1024, ~256 ms) con par foreground/background para el doble habla, supresión residual suave y vuelta local al micrófono (con crossfade) en cualquier bloque que saliera más fuerte que el original. Salida en webm/opus 96 kbps.
 - Salvaguardas: sin eco coherente (`no_echo`), referencia en silencio (`ref_silent`) o ERLE final insuficiente (`low_erle`) ⇒ `applied: false` y **no se escribe `--out`** (la grabación original queda intacta). Los umbrales son parámetros con nombre en `DEFAULT_PARAMS`.
+- Orden con la transcripción: `transcriptionManager.processQueue` espera a que termine el trabajo de eco de esa grabación (`micEchoService.waitFor`) y, si un crash dejó solo `-microphone-original.webm`, restaura la pista del micrófono (`recoverMic`) antes de diarizar/transcribir. Un fallo del eco nunca bloquea la transcripción.
 - Contrato: la última línea de stdout es `ECHO_RESULT {json}` (`applied`, `reason`, `delay_ms`, `erle_db`, `drift_ppm`, ...). Ante entradas inválidas sale con código ≠ 0, imprime `ECHO_ERROR <mensaje>` en stderr y no deja `--out`.
 
-**Tests de Python (desarrollo):** `pip install -r requirements-dev.txt` (pytest + numpy) y `npm run test:py` (`pytest python/tests`). Los tests de la CLI se saltan si no hay ffmpeg (`node_modules/ffmpeg-static` o `PATH`).
+**Tests de Python (desarrollo):** `pip install -r requirements-dev.txt` (pytest + numpy) y `npm run test:py` (`pytest python/tests`, con el intérprete de `./venv` si existe; si no, el `python3` del sistema, y avisa si faltan pytest/numpy). Los tests de la CLI se saltan si no hay ffmpeg (`node_modules/ffmpeg-static` o `PATH`).
 
 ### Diarización y Extracción de Embeddings
 

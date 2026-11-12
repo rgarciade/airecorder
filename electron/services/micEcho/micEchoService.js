@@ -3,20 +3,62 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 const REPORT_VERSION = 1;
-const DEFAULT_TIMEOUT_MS = 30 * 60 * 1000;
+const FALLBACK_TIMEOUT_MS = 30 * 60 * 1000; // used when the audio duration is unknown
+const MIN_TIMEOUT_MS = 5 * 60 * 1000;
+const TIMEOUT_DURATION_FACTOR = 3;
+const PROBE_TIMEOUT_MS = 15 * 1000;
+const STALE_TMP_PATTERN = /^\.echo-.*\.webm$/;
+
+/** Timeout rule: max(5 min, 3x audio duration); fixed fallback when unknown. */
+function computeTimeoutMs(durationSec) {
+  if (!Number.isFinite(durationSec) || durationSec <= 0) return FALLBACK_TIMEOUT_MS;
+  return Math.max(MIN_TIMEOUT_MS, Math.ceil(durationSec * 1000 * TIMEOUT_DURATION_FACTOR));
+}
+
+/** Reads the duration (seconds) from `ffmpeg -i` stderr; resolves null on any failure. */
+function probeDurationSec(ffmpegPath, filePath) {
+  return new Promise((resolve) => {
+    try {
+      const child = spawn(ffmpegPath || 'ffmpeg', ['-hide_banner', '-i', filePath]);
+      let stderr = '';
+      const timer = setTimeout(() => { child.kill(); resolve(null); }, PROBE_TIMEOUT_MS);
+      child.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
+      child.on('error', () => { clearTimeout(timer); resolve(null); });
+      child.on('close', () => {
+        clearTimeout(timer);
+        const m = /Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/.exec(stderr);
+        resolve(m ? Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]) : null);
+      });
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/** Python emits snake_case; the service works with camelCase. Tolerates both. */
+function normalizeResult(raw) {
+  if (!raw || typeof raw !== 'object') return raw;
+  const { delay_ms: delaySnake, erle_db: erleSnake, ...rest } = raw;
+  return {
+    ...rest,
+    delayMs: rest.delayMs !== undefined ? rest.delayMs : delaySnake,
+    erleDb: rest.erleDb !== undefined ? rest.erleDb : erleSnake,
+  };
+}
 const RESULT_PREFIX = 'ECHO_RESULT ';
 
 /**
  * Default runner: spawns `audio_sync_analyzer echo-cancel` and parses the last
  * `ECHO_RESULT {json}` stdout line. Rejects on non-zero exit, timeout or
- * missing result line.
+ * missing result line. Timeout: max(5 min, 3x audio duration) unless `timeoutMs` is given.
  * Argv contract: echo-cancel --mic <p> --ref <p> --out <p> --ffmpeg <p>
  */
-function runEchoCancelWithPython({ micPath, refPath, outPath, timeoutMs = DEFAULT_TIMEOUT_MS }) {
+async function runEchoCancelWithPython({ micPath, refPath, outPath, timeoutMs }) {
   // Lazy require: keeps the factory importable without Electron.
   const { resolvePythonCommand } = require('../../utils/pythonCommand');
+  const { executable, args, ffmpegPath } = resolvePythonCommand('audio_sync_analyzer');
+  const effectiveTimeoutMs = timeoutMs || computeTimeoutMs(await probeDurationSec(ffmpegPath, micPath));
   return new Promise((resolve, reject) => {
-    const { executable, args, ffmpegPath } = resolvePythonCommand('audio_sync_analyzer');
     const argv = [...args, 'echo-cancel', '--mic', micPath, '--ref', refPath, '--out', outPath];
     if (ffmpegPath) argv.push('--ffmpeg', ffmpegPath);
 
@@ -33,7 +75,7 @@ function runEchoCancelWithPython({ micPath, refPath, outPath, timeoutMs = DEFAUL
     const timer = setTimeout(() => {
       child.kill();
       finish(reject, new Error('echo-cancel timed out'));
-    }, timeoutMs);
+    }, effectiveTimeoutMs);
 
     child.stdout.on('data', (chunk) => { stdout += chunk.toString(); });
     child.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
@@ -49,7 +91,7 @@ function runEchoCancelWithPython({ micPath, refPath, outPath, timeoutMs = DEFAUL
         return;
       }
       try {
-        finish(resolve, JSON.parse(line.slice(RESULT_PREFIX.length)));
+        finish(resolve, normalizeResult(JSON.parse(line.slice(RESULT_PREFIX.length))));
       } catch (error) {
         finish(reject, new Error(`Invalid ECHO_RESULT: ${error.message}`));
       }
@@ -66,7 +108,7 @@ function createMicEchoService({ runEchoCancel, fs = nodeFs, logger = console } =
   function newJob() {
     let resolve;
     const promise = new Promise((res) => { resolve = res; });
-    return { promise, resolve, started: false };
+    return { promise, resolve, started: false, run: null };
   }
 
   /** Registers a pending job synchronously so waitFor() blocks until it runs. */
@@ -106,16 +148,39 @@ function createMicEchoService({ runEchoCancel, fs = nodeFs, logger = console } =
     }
   }
 
-  async function process_(dir, baseName) {
+  /** A crash between renames can leave only the original: put it back. Idempotent, never throws. */
+  async function recoverMic(dir, baseName) {
+    try {
+      const micPath = path.join(dir, `${baseName}-microphone.webm`);
+      const originalPath = path.join(dir, `${baseName}-microphone-original.webm`);
+      if (!(await exists(micPath)) && (await exists(originalPath))) {
+        await fs.promises.rename(originalPath, micPath);
+      }
+    } catch (error) {
+      logger.warn('[MicEcho] Mic recovery failed:', error.message);
+    }
+  }
+
+  /** Removes leftovers of killed runs: `.echo-*.webm` (python mkstemp) and `-echo-tmp.webm`. */
+  async function sweepStaleTemps(dir, baseName) {
+    try {
+      const names = await fs.promises.readdir(dir);
+      await Promise.all(names
+        .filter((n) => STALE_TMP_PATTERN.test(n) || n === `${baseName}-echo-tmp.webm`)
+        .map((n) => remove(path.join(dir, n))));
+    } catch {
+      // best effort
+    }
+  }
+
+  async function processRecording(dir, baseName) {
     const micPath = path.join(dir, `${baseName}-microphone.webm`);
     const originalPath = path.join(dir, `${baseName}-microphone-original.webm`);
     const refPath = path.join(dir, `${baseName}-system.webm`);
     const tmpPath = path.join(dir, `${baseName}-echo-tmp.webm`);
 
-    // Recovery: a crash between renames can leave only the original.
-    if (!(await exists(micPath)) && (await exists(originalPath))) {
-      await fs.promises.rename(originalPath, micPath);
-    }
+    await recoverMic(dir, baseName);
+    await sweepStaleTemps(dir, baseName);
     if (!(await exists(micPath))) return { success: false, error: 'microphone track not found' };
     if (!(await exists(refPath))) return { success: true, applied: false, reason: 'no_reference' };
 
@@ -173,21 +238,27 @@ function createMicEchoService({ runEchoCancel, fs = nodeFs, logger = console } =
       job = newJob();
       jobs.set(baseName, job);
     }
+    // A run for this base is already in flight: join it so the temp sweep never
+    // deletes a live run's files and the work is not duplicated.
+    if (job.started && job.run) return job.run;
     job.started = true;
-    try {
-      return await process_(dir, baseName);
-    } catch (error) {
-      logger.error('[MicEcho] Echo cancellation failed:', error.message);
-      return { success: false, error: error.message || String(error) };
-    } finally {
-      if (jobs.get(baseName) === job) jobs.delete(baseName);
-      job.resolve();
-    }
+    job.run = (async () => {
+      try {
+        return await processRecording(dir, baseName);
+      } catch (error) {
+        logger.error('[MicEcho] Echo cancellation failed:', error.message);
+        return { success: false, error: error.message || String(error) };
+      } finally {
+        if (jobs.get(baseName) === job) jobs.delete(baseName);
+        job.resolve();
+      }
+    })();
+    return job.run;
   }
 
-  return { cancelMicEcho, waitFor, reserve, release };
+  return { cancelMicEcho, waitFor, reserve, release, recoverMic };
 }
 
 const micEchoService = createMicEchoService({ runEchoCancel: runEchoCancelWithPython });
 
-module.exports = { createMicEchoService, micEchoService };
+module.exports = { createMicEchoService, micEchoService, computeTimeoutMs };

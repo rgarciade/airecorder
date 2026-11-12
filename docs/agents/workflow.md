@@ -29,6 +29,7 @@ Settings read by the `flow-backlog` and `flow-work` skills. Edit this file direc
 |---|---|
 | Full test suite | `npm test` |
 | Single test file | `npm test -- {file}` |
+| Python tests | `npm run test:py` |
 | Typecheck | none |
 | Lint | `npm run lint` |
 
@@ -86,7 +87,7 @@ Shares this project's Engram memory through git, in the `.engram/` folder. `flow
 
 ## Tests
 
-- **Test file globs**: `src/tests/**/*.test.js`, `src/tests/**/*.test.jsx`, `test/**/*.test.js`
+- **Test file globs**: `src/tests/**/*.test.js`, `src/tests/**/*.test.jsx`, `test/**/*.test.js`, `python/tests/**/test_*.py`
 - Approved tests are never edited during implementation. The check is `git diff <approved-tests-commit> -- <globs>`, which must be empty.
 
 ## Labels
