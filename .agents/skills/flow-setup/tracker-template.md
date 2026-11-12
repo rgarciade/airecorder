@@ -41,7 +41,8 @@ How this repo's tasks are read, created and changed. `flow-backlog` and `flow-wo
 | `create-branch` | `<command that creates a branch linked to the task, or the naming convention that links it>` | |
 | `closing-reference` | `<text that closes or moves the task when the PR merges, e.g. "Closes #42", "Fixes PROJ-123", or "none: move-status after merge">` | |
 | `open-pr` | `<command on the code host>` | if tasks and code live in different systems, this is the code host's command; with no code host, `none` and the user merges locally |
-| `pr-status` | `<command on the code host>` | is the task's PR open, merged, and into which branch |
+| `pr-status` | `<command on the code host>` | is the task's PR open, merged, and into which branch; also the review decision (changes requested or not) |
+| `pr-comments` | `<command on the code host>` | the review comments on the task's PR, conversation and inline; read-only |
 | `task-url` | `<URL pattern for a task>` | |
 
 ## Alternatives for what the tracker can't do

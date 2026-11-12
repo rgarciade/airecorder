@@ -50,7 +50,30 @@ const mockSettings = {
   kimiModel: 'moonshot-v1',
   setKimiModel: vi.fn(),
   kimiModels: [{ name: 'moonshot-v1', label: 'Moonshot V1', description: 'Moonshot model' }],
+  // GLM (Z.AI Coding Plan)
+  glmApiKey: 'glm-secret',
+  setGlmApiKey: vi.fn(),
+  glmModel: 'glm-5.2',
+  setGlmModel: vi.fn(),
+  glmModels: [
+    { name: 'glm-5.2', label: 'GLM-5.2 model', description: 'Flagship' },
+    { name: 'glm-4.7', label: 'GLM-4.7 model', description: 'Previous' },
+  ],
+  glmModelsLoading: false,
+  loadGlmModels: vi.fn(),
+  glmEndpointMode: 'plan',
+  setGlmEndpointMode: vi.fn(),
+  glmBaseUrl: '',
+  setGlmBaseUrl: vi.fn(),
 };
+
+/** Returns the markup of the GLM card: from its heading to the next provider heading. */
+function glmCardMarkup(html) {
+  const start = html.indexOf('>GLM<');
+  if (start === -1) return '';
+  const next = html.indexOf('<h4', start);
+  return html.slice(start, next === -1 ? html.length : next);
+}
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -183,6 +206,38 @@ describe('CloudProvidersSection — role prop', () => {
       const html = renderToStaticMarkup(<CloudProvidersSection role="embeddings" defaultOpen />);
       expect(html).toContain('moonshot-embedding-v1');
       expect(html).not.toContain('settings.fields.model');
+    });
+  });
+
+  describe('GLM (Z.AI Coding Plan) card', () => {
+    it('in the general role renders the API key, endpoint mode select and model list', () => {
+      mockSettings.aiProvider = 'glm';
+      const html = renderToStaticMarkup(<CloudProvidersSection role="general" defaultOpen />);
+      const card = glmCardMarkup(html);
+
+      expect(card).not.toBe('');
+      expect(card).toContain('value="glm-secret"');
+      expect(card).toContain('value="plan"');
+      expect(card).toContain('value="general"');
+      expect(card).toContain('GLM-5.2 model</option>');
+      expect(card).toContain('GLM-4.7 model</option>');
+    });
+
+    it('in the general role its toggle is checked when glm is the active provider', () => {
+      mockSettings.aiProvider = 'glm';
+      const html = renderToStaticMarkup(<CloudProvidersSection role="general" defaultOpen />);
+
+      expect(glmCardMarkup(html)).toMatch(/type="checkbox"[^>]*checked=""/);
+    });
+
+    it('in the embeddings role shows the card with a disabled toggle and a no-embeddings notice', () => {
+      const html = renderToStaticMarkup(<CloudProvidersSection role="embeddings" defaultOpen />);
+      const card = glmCardMarkup(html);
+
+      expect(card).not.toBe('');
+      expect(card).toMatch(/type="checkbox"[^>]*disabled=""/);
+      expect(card).toContain('settings.providers.glmEmbeddingNotice');
+      expect(card).not.toContain('GLM-5.2 model</option>');
     });
   });
 

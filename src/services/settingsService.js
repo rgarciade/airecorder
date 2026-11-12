@@ -58,6 +58,11 @@ export const getSettings = async () => {
       // OpenAI
       openaiApiKey: '',
       openaiModel: '',
+      // GLM (Z.AI Coding Plan) — glmEndpointMode: 'plan' | 'general'; glmBaseUrl opcional (sobrescribe)
+      glmApiKey: '',
+      glmModel: '',
+      glmEndpointMode: 'plan',
+      glmBaseUrl: '',
       // Codex (suscripción ChatGPT) — sin auto-detección posible (el SDK/CLI de
       // Codex no expone la ventana de contexto por ninguna API), a diferencia de
       // ollamaContextLength/lmStudioContextLength. null = usar el valor estimado
@@ -110,7 +115,7 @@ export const updateSettings = async (newSettings) => {
         window.electronAPI.sentryLogInfo(`Cambio de proveedor IA: de ${currentSettings.aiProvider || 'ninguno'} a ${newSettings.aiProvider}`);
       }
       
-      const modelsToCheck = ['geminiModel', 'deepseekModel', 'kimiModel', 'openaiModel', 'ollamaModel', 'lmStudioModel', 'whisperModel'];
+      const modelsToCheck = ['geminiModel', 'deepseekModel', 'kimiModel', 'openaiModel', 'glmModel', 'ollamaModel', 'lmStudioModel', 'whisperModel'];
       for (const modelKey of modelsToCheck) {
         if (newSettings[modelKey] && currentSettings[modelKey] !== newSettings[modelKey]) {
           window.electronAPI.sentryLogInfo(`Cambio de modelo IA (${modelKey}): de ${currentSettings[modelKey] || 'ninguno'} a ${newSettings[modelKey]}`);

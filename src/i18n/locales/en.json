@@ -415,7 +415,19 @@
         "medium": "Medium",
         "high": "High",
         "xhigh": "Extra high"
-      }
+      },
+      "glmName": "GLM",
+      "glmDesc": "GLM by Z.AI (Coding Plan)",
+      "glmBeta": "GLM is in beta: it has not been tested with a real Z.AI account. If you run into problems, open an issue at https://github.com/rgarciade/airecorder/issues so it can be fixed.",
+      "glmEmbeddingNotice": "GLM does not provide embeddings. Choose another embedding provider.",
+      "glmEndpointMode": "Endpoint",
+      "glmEndpointModes": {
+        "plan": "Coding Plan",
+        "general": "General API"
+      },
+      "glmBaseUrl": "Custom base URL (optional)",
+      "glmBaseUrlHelp": "When set, it replaces the selected endpoint (for example, a bigmodel.cn endpoint).",
+      "glmModelsFallback": "Could not fetch the GLM model list; showing default models."
     },
     "buttons": {
       "save": "Save Settings",
@@ -962,6 +974,10 @@
       "openai": {
         "description": "OpenAI's GPT models. Requires an OpenAI API key.",
         "apiKeyLabel": "OpenAI API Key"
+      },
+      "glm": {
+        "description": "GLM models by Z.AI (Coding Plan). Requires a Z.AI API key.",
+        "apiKeyLabel": "Z.AI API Key"
       },
       "gemini": {
         "description": "Google's Gemini models. Requires a Google AI Studio API key.",

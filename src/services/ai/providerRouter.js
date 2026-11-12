@@ -11,6 +11,7 @@ import { sendToKimi, sendToKimiStreaming, getKimiAvailableModels, chatCompletion
 import { sendToLMStudio, sendToLMStudioStreaming, getLMStudioModels, getLMStudioModelInfo, chatCompletionStreaming as lmStudioChatStreaming, chatCompletionOnce as lmStudioChatOnce } from './lmStudioProvider';
 import { generateContent as ollamaGenerate, generateContentStreaming as ollamaGenerateStreaming, chatCompletionStreaming as ollamaChatStreaming, chatCompletionOnce as ollamaChatOnce, getOllamaModelInfo } from './ollamaProvider';
 import { CustomOpenAIProvider, OPENAI_BASE_URL } from './customOpenAIProvider';
+import { requireGlmClient } from './glmProvider';
 import { aiQueueService, AI_TASK_TYPES } from './aiQueueService';
 import { executeTool } from './tools';
 import { CODEX_TASK_OUTPUT_SCHEMA, formatExistingTasksForCodex, buildCodexTaskInstructions } from './codexTaskBridge';
@@ -31,7 +32,7 @@ const CUSTOM_PROVIDER_PREFIX = 'custom:';
  * fragmentos sin necesidad (bug real, ya corregido). Importá esta constante en
  * vez de declarar el array de nuevo.
  */
-export const CLOUD_PROVIDERS = ['gemini', 'deepseek', 'kimi', 'openai', 'codex'];
+export const CLOUD_PROVIDERS = ['gemini', 'deepseek', 'kimi', 'openai', 'glm', 'codex'];
 const CODEX_REASONING_EFFORTS = new Set(['minimal', 'low', 'medium', 'high', 'xhigh']);
 
 function createCodexRequestId() {
@@ -126,6 +127,10 @@ function _resolveEngineName(settings, provider, options = {}) {
     const model = options?.model || settings.codexModel || '';
     return model ? `Codex: ${model}` : 'Codex (ChatGPT)';
   }
+  if (provider === 'glm') {
+    const model = options?.model || settings.glmModel || '';
+    return model ? `GLM: ${model}` : 'GLM';
+  }
   if (provider === 'openai') {
     const model = options?.model || settings.openaiModel || '';
     return model ? `OpenAI: ${model}` : 'OpenAI';
@@ -191,6 +196,12 @@ async function _runCallProvider(prompt, options, signal) {
       return { text: response || 'Sin respuesta', provider: 'openai', model };
     }
 
+    case 'glm': {
+      const { client, model } = requireGlmClient(settings, options.model);
+      const response = await client.sendMessage(prompt, systemPrompt, signal);
+      return { text: response || 'Sin respuesta', provider: 'glm', model };
+    }
+
     case 'gemini':
     default: {
       if (isCustom(provider)) {
@@ -248,6 +259,13 @@ async function _runCallProviderStreaming(prompt, onChunk, options, signal) {
       const client = new CustomOpenAIProvider({ baseUrl: OPENAI_BASE_URL, apiKey: settings.openaiApiKey, model });
       const fullResponse = await client.sendMessageStreaming(prompt, onChunk, systemPrompt, signal);
       return { text: fullResponse || 'Sin respuesta', provider: 'openai', model, streaming: true };
+    }
+
+    case 'glm': {
+      const { client, model } = requireGlmClient(settings, options.model);
+      console.log(`[callProviderStreaming] Iniciando streaming con GLM modelo: ${model}`);
+      const fullResponse = await client.sendMessageStreaming(prompt, onChunk, systemPrompt, signal);
+      return { text: fullResponse || 'Sin respuesta', provider: 'glm', model, streaming: true };
     }
 
     case 'deepseek': {
@@ -414,6 +432,10 @@ export async function validateProviderConfig() {
         if (!settings.openaiApiKey)
           return { valid: false, error: 'Falta configurar la OpenAI API Key' };
         break;
+      case 'glm':
+        if (!settings.glmApiKey)
+          return { valid: false, error: 'Falta configurar la GLM API Key' };
+        break;
       case 'ollama':
         if (!settings.ollamaModel)
           return { valid: false, error: 'Falta seleccionar un modelo de Ollama' };
@@ -536,6 +558,12 @@ async function _callChatCompletionOnce(messages, options, signal, settings, prov
       const model = options.model || options.ragModel || settings.openaiModel;
       if (!model) throw new Error('No se ha seleccionado un modelo de OpenAI.');
       const client = new CustomOpenAIProvider({ baseUrl: OPENAI_BASE_URL, apiKey: settings.openaiApiKey, model });
+      const result = await client.chatCompletionOnce(messages, { tools }, signal);
+      return { ...result, model };
+    }
+
+    case 'glm': {
+      const { client, model } = requireGlmClient(settings, options.model || options.ragModel);
       const result = await client.chatCompletionOnce(messages, { tools }, signal);
       return { ...result, model };
     }
@@ -826,6 +854,12 @@ async function _runCallChatProviderStreaming(messages, onChunk, options, signal)
       const client = new CustomOpenAIProvider({ baseUrl: OPENAI_BASE_URL, apiKey: settings.openaiApiKey, model });
       const fullResponse = await client.chatCompletionStreaming(messages, onChunk, signal);
       return { text: fullResponse || 'Sin respuesta', provider: 'openai', model, streaming: true };
+    }
+
+    case 'glm': {
+      const { client, model } = requireGlmClient(settings, options.model || options.ragModel);
+      const fullResponse = await client.chatCompletionStreaming(messages, onChunk, signal);
+      return { text: fullResponse || 'Sin respuesta', provider: 'glm', model, streaming: true };
     }
 
     case 'deepseek': {

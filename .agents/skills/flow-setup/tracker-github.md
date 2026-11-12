@@ -43,7 +43,8 @@ Operations marked **asks** always need the user's OK first.
 | `create-branch` | `gh issue develop <id> --name <branch> --base <base> --checkout` | links the branch in the issue's "Development" panel; `<base>` must already exist on the remote, so push a new group branch first |
 | `closing-reference` | `Closes #<id>` in the PR body | GitHub closes the issue when the PR merges into the default branch; for other targets, `move-status` to done after the merge |
 | `open-pr` | `gh pr create --base <target> --title "<title>" --body-file <file>` | |
-| `pr-status` | `gh pr list --head <branch> --state all --json number,state,baseRefName,mergedAt` | is the task's PR open, merged, and into which branch |
+| `pr-status` | `gh pr list --head <branch> --state all --json number,state,baseRefName,mergedAt,reviewDecision` | is the task's PR open, merged, and into which branch; `reviewDecision` is `CHANGES_REQUESTED` when changes are asked |
+| `pr-comments` | `gh pr view <pr> --comments` for the conversation, and `gh api repos/{owner}/{repo}/pulls/<pr>/comments` for the inline comments | read-only |
 | `task-url` | `https://github.com/<owner>/<repo>/issues/<id>` | |
 
 ## Status

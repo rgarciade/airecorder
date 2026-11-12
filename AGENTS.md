@@ -69,4 +69,4 @@ single-context. See `docs/agents/domain.md`.
 
 ### Workflow
 
-Branches, base branch, languages, model tiers, test commands, Engram sync and docs for the flow skills. See `docs/agents/workflow.md`.
+Branches, base branch, languages, harnesses and models, working mode, test commands, Engram sync and docs for the flow skills. See `docs/agents/workflow.md`.

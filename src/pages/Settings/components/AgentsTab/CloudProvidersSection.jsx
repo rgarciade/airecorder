@@ -7,6 +7,7 @@ import {
 import styles from '../../Settings.module.css';
 import AiProviderIcon from '../../../../components/AiProviderIcon/AiProviderIcon';
 import RoleBadge from './RoleBadge';
+import GlmProviderCard from './GlmProviderCard';
 import { useSettings } from '../../SettingsContext';
 import { CLOUD_PROVIDERS } from '../../../../services/ai/providerRouter';
 
@@ -98,6 +99,7 @@ export default function CloudProvidersSection({ role, defaultOpen = false }) {
             activeProvider === 'deepseek' ? t('settings.providers.deepseekName') :
             activeProvider === 'kimi' ? t('settings.providers.kimiName') :
             activeProvider === 'openai' ? t('settings.providers.openaiName') :
+            activeProvider === 'glm' ? t('settings.providers.glmName') :
             activeProvider === 'codex' ? t('settings.providers.codexName') : t('settings.providers.inactive')}
           </span>
           <button
@@ -261,6 +263,9 @@ export default function CloudProvidersSection({ role, defaultOpen = false }) {
           </div>
         )}
       </div>
+
+      {/* GLM (Z.AI Coding Plan) */}
+      <GlmProviderCard role={role} isActive={isProviderActive('glm')} onToggle={() => handleToggle('glm')} />
 
       {/* Gemini */}
       <div className={`${styles.card} ${!isProviderActive('gemini') ? styles.cardDisabled : ''}`} style={{marginTop: '16px'}}>
