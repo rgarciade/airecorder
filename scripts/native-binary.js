@@ -109,10 +109,33 @@ if (
 const cachedBin = path.join(cacheDir, 'better_sqlite3.node');
 const relBin = path.relative(ROOT, SQLITE_BIN);
 
+// Verifica que el binario presente en node_modules realmente cargue en el
+// runtime destino (ABI correcto). Evita cachear/restaurar binarios rotos:
+// electron-rebuild puede "completar" sin compilar si queda un .forge-meta
+// obsoleto, y entonces --save-only cachea el binario equivocado bajo la
+// clave de Electron (causa del ping-pong de ERR_DLOPEN_FAILED de oct 2025).
+function verifyBinary(runtTarget) {
+  const loader = `try { process.dlopen(module, ${JSON.stringify(SQLITE_BIN)}); process.exit(0) } catch { process.exit(1) }`;
+  if (runtTarget === 'electron') {
+    const electronBin = require('electron');
+    execFileSync(electronBin, ['-e', loader], {
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+      stdio: 'ignore',
+    });
+  } else {
+    execFileSync(process.execPath, ['-e', loader], { stdio: 'ignore' });
+  }
+}
+
 function saveToCache() {
+  try {
+    verifyBinary(target);
+  } catch {
+    fail(`el binario en ${relBin} NO carga en "${target}" (ABI incorrecto); no se cachea`);
+  }
   fs.mkdirSync(cacheDir, { recursive: true });
   fs.copyFileSync(SQLITE_BIN, cachedBin);
-  console.log(`[native-binary] Cache guardada: ${path.relative(ROOT, cachedBin)}`);
+  console.log(`[native-binary] Cache guardada: ${path.relative(ROOT, cachedBin)} (ABI verificada en ${target})`);
 }
 
 if (saveOnly) {
@@ -122,8 +145,13 @@ if (saveOnly) {
 
 if (fs.existsSync(cachedBin)) {
   fs.copyFileSync(cachedBin, SQLITE_BIN);
-  console.log(`[native-binary] ${relBin} restaurado desde cache (${path.relative(CACHE_ROOT, cachedBin)}).`);
-  process.exit(0);
+  try {
+    verifyBinary(target);
+    console.log(`[native-binary] ${relBin} restaurado desde cache (${path.relative(CACHE_ROOT, cachedBin)}).`);
+    process.exit(0);
+  } catch {
+    console.warn(`[native-binary] Cache corrupta/obsoleta (${path.relative(CACHE_ROOT, cachedBin)}); recompilando...`);
+  }
 }
 
 try {
