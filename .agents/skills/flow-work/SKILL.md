@@ -1,6 +1,6 @@
 ---
 name: flow-work
-description: Develop one task end to end, from any task tracker (GitHub Issues, GitLab, Jira, Linear, local files…), as an orchestrator with role subagents - research, plan, tests first with a user approval gate, implementation, two-axis review, PR. Takes a task id, or creates the task from the current conversation and starts right away. Never commits on its own. Use when the user runs /flow-work, or asks to pick up, start or develop a task.
+description: Develop one task end to end, from any task tracker (GitHub Issues, GitLab, Jira, Linear, local files…), as an orchestrator with role subagents - research, plan, tests first with a user approval gate, implementation, two-axis review, PR. Takes a task id, or creates the task from the current conversation and starts right away. Resumes a task already started from where it was left, using its state note. Never commits on its own. Use when the user runs /flow-work, or asks to pick up, start, develop, resume or continue a task, or where a named task was left.
 ---
 
 # flow-work
@@ -71,13 +71,15 @@ profile: <standard | deep>
 branch: <task branch>
 failing before: <none | list or count + note key; tests that already failed before any change>
 approved tests: <commit hash, the manifest path, or "not yet">
+running: <role @ where it runs (subagent | orca:<harness> | …), started <HH:MM>; or "none">
 waiting on: <the questions asked and not yet answered, or "nothing">
 decided: <one line per user decision not yet written to the task>
 pending commits: <commit commands given and not yet confirmed, or "none">
 ```
 
 - **Update it, never add another**: at the end of every phase (adding its line to `done`, never replacing the earlier ones), when the mode or the profile changes, and whenever you stop to wait for the user.
-- **Read it first** when you resume a task, and whenever you are not sure where the task stands (for example after your context was summarised). If it contradicts the branch or the task, trust those, fix the note and tell the user in one line.
+- **Set `running:` right before launching a role**, and set it back to `none` as soon as its hand-back (or `worker_done`) is in. A `running:` line other than `none` found later means that role's session or terminal closed before it finished.
+- **Read it first** when you resume a task, and whenever you are not sure where the task stands (for example after your context was summarised). Find it and check it as `references/task-state.md` says: always in both places, Engram and `.scratch/flow/<id>/state.md`. If the note contradicts the branch or the task, trust those, fix the note and tell the user in one line.
 - **Parked** tasks use `phase: parked` (see "Parking or abandoning a task").
 - **Close it** when the PR is opened: it stops being a progress note and becomes the task's memory for later work (see "Close the state note" in Phase 8).
 
@@ -179,18 +181,21 @@ Approved tests change only through the procedure in `references/approved-test-ch
 
 1. Read `docs/agents/workflow.md`. If it does not exist, tell the user and ask, in one line, whether to run `flow-setup` now. If yes, read `../flow-setup/SKILL.md`, follow it, then come back here. If no, stop. If a field this skill needs is missing, ask only for that field.
 2. Read the tracker file (`docs/agents/tracker.md`, or the shared path in `workflow.md`). If only an old `docs/agents/issue-tracker.md` exists, offer to run `flow-setup` to convert it.
-3. Run `git status`. If there are uncommitted changes that are not part of this task, stop and ask the user what to do with them.
+3. Run `git status`. If there are uncommitted changes that are not part of this task, stop and ask the user what to do with them. When resuming (the task branch is checked out, or the task has a state note), changes on the task branch are part of the task: don't stop here, Phase 2 handles them.
 
 ## Phase 1: The task
 
 - **Task id given** (`#42`, `PROJ-123` or a URL): read it with `view-task`. State its title back to the user. If it is assigned to someone else, or its status is already "in progress" or later, or a branch for it already exists on the remote with someone else's commits, tell the user and ask whether to continue before doing anything else: someone may already be on it.
-- **No id**: the task comes from the current conversation. Draft it with the template in `../flow-backlog/SKILL.md`, show it, and create it with `create-task` once the user approves. Then continue with that id.
+- **No id, and the conversation describes work to do**: the task comes from the conversation. Draft it with the template in `../flow-backlog/SKILL.md`, show it, and create it with `create-task` once the user approves. Then continue with that id.
+- **No id, and nothing in the conversation to make a task from** (for example a fresh session after the terminals closed): read `../flow-status/SKILL.md`, do its steps 2 and 3 (read only), and show its step 4 table without the continue commands or its closing "Then stop". Then ask, as one question, which task to resume, recommending the one that needs the user first, or whether to start a new one. Continue with the chosen task as if its id had been given. If it is checked out in another worktree, tell the user to open the agent there and run `/flow-work <ref>`, and stop. When the conversation does describe work, the case above wins.
 
 Then check its position:
 
 - **Parent**: `get-parent`.
 - **Open blockers**: `open-blockers`. If any blocker is still open, or `pr-status` shows its PR is not merged into the group branch, stop and tell the user which one.
 - **Children**: `list-children`. If the task itself has open children, it is a group. Ask which child to start, and suggest the first one with no open blockers.
+
+**Resuming.** If the task branch already exists or the task has a state note, this is a resume, not a new start: never go back to research or re-ask what the note settled. Read the task with `view-task`, skip the task-start message below (confirmation, assignment and status questions), and go straight to the resume step in Phase 2, whose single message replaces it.
 
 Show the user, in a few lines, the task as you understand it (title, what it asks for, parent and blockers) and the branch you will create. If `workflow.md` sets any role to another harness, say in one line which roles will run where (for example "implementation runs in OpenCode through Orca"), so the user's OK on the task also covers those launches. Start once they confirm. In the same message, ask whether to assign the issue to them and, unless `move-status` is not used, move it to "in progress" (see "Team visibility").
 
@@ -203,7 +208,9 @@ Create branches with `create-branch`, so each one is linked to its task:
 - **Child task**: make sure the group branch `feature/<parent-id>-<slug>` exists. If it doesn't, create it from the updated base branch with `create-branch` for the parent task, and push it. Then update the group branch and create `task/<id>-<slug>` from it with `create-branch`.
 - **Standalone task**: update the base branch and create `task/<id>-<slug>` from it with `create-branch`.
 - Creating these branches is part of the flow and needs no extra confirmation once the user has confirmed the task.
-- If the task branch already exists, check it out and continue from where it was: read the state note first (see "The state note"), then check it against this task's plan record, its other notes and its commits. Tell the user in one message where the task stands, what was waiting on them, and what you will do next; continue once they confirm. `phase: parked` means the task was paused on purpose: say why and what was waiting. If the state note is closed and its PR is still open with changes requested (`pr-status`), go to Phase 9.
+- If the task branch already exists, check it out and continue from where it was: read the task's state with `references/task-state.md` (the same steps `flow-status` uses), then check it against this task's plan record, its other notes and its commits. Fix any contradiction it found in the note, as "The state note" says. Tell the user in one message where the task stands, what was waiting on them, and what you will do next; continue once they confirm. `phase: parked` means the task was paused on purpose: say why and what was waiting. Uncommitted changes on the task branch belong to the task: list them in that message.
+  - If the state note is closed and its PR is still open with changes requested (`pr-status`), go to Phase 9. A closed note has no `running:` line.
+  - **A role that did not finish** (`running:` is not `none`): if it ran in another harness through an agent manager, first check with that manager's guide whether the worker is still running; if it is, wait for it as `references/other-harnesses.md` says and never launch a second writer. Otherwise, look for the role's result note (Engram under `flow/<repo>/<id>/<phase>`, or `.scratch/flow/<id>/<phase>.md`): if it is complete, use it and go on. If not, show the user what the role left (`git status` and a short summary of the diff) and propose, as one question: relaunch the role on top of those changes (recommended when they fit the plan), or set them aside and relaunch it from the last commit. Setting them aside is a command the user runs, given with its exact text: `git stash push -u -m "flow-<id>-<role>-leftover"`. Set `running:` back to `none` once it is settled.
 
 **Sync Engram in.** If the Engram CLI is available and the repo has a `.engram/` folder, run `engram sync --status`. If it reports chunks that are not imported yet, run `engram sync --import`, then tell the user in one line what was imported. Skip this when **Engram sync** in `docs/agents/workflow.md` is `never`.
 

@@ -24,7 +24,7 @@ When the manager is Orca and `orca skills get orchestration` returns its guide, 
   Pass `--effort` only when the table gives one. Don't pass `--keep-open`.
 - Tell the user in one line that the role is running and that Orca will report when it is done. Then **end your turn**. Orca wakes you; never poll it or run a watch script.
 - When Orca wakes you:
-  - `worker_done`: read the note file, check it is complete, and go on. The worker closes on its own; follow any `next` the receipt or `worker-list` gives.
+  - `worker_done`: read the note file, check it is complete, set the state note's `running:` to `none`, and go on. The worker closes on its own; follow any `next` the receipt or `worker-list` gives.
   - A `question` from the worker: answer it with `orchestration reply` only when the task, the plan or the user's answers settle it. Otherwise ask the user first.
   - An `escalation` with `stopReason` (it stopped without `worker_done`): tell the user what happened and propose retrying on the same harness, the next harness, or a subagent.
 - If `worker-start` fails, don't rerun it: read `failedStage`, follow the guide's recovery reference, and if it still can't start, use the fallback below or the role's next harness, and say so in one line.
@@ -38,7 +38,7 @@ When Orca orchestration is not available (an older Orca, or another manager such
 - Wait in a loop with the manager's wait command and a timeout (for Orca, `terminal wait --terminal <handle> --for tui-idle --timeout-ms 600000 --json`). Don't end your turn while it runs, unless your harness re-invokes you when a background command finishes.
 - Each time it goes idle, read its screen (for Orca, `terminal read --terminal <handle> --screen --json`). With the done line and the note file present, it is finished. Idle without the done line means it is waiting for something (a question, a permission prompt, an error): bring it to the user, never answer it yourself.
 - After about 45 minutes with no done line, tell the user what you see on its screen and ask whether to keep waiting.
-- When it is done, read its note, then close only its own terminal (for Orca, `terminal close --terminal <handle> --json`; never `--all`) and tell the user in one line.
+- When it is done, read its note, set the state note's `running:` to `none`, then close only its own terminal (for Orca, `terminal close --terminal <handle> --json`; never `--all`) and tell the user in one line.
 - Herdr: use the wait, read and close commands its guide gives. If it has no way to wait for idle, check every minute whether the note file exists and ends with the done line.
 
 ## In both cases

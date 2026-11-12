@@ -9,7 +9,7 @@ Ask which one it is if it is not clear: **park** (come back later) or **abandon*
 1. **Lose nothing.** Show `git status`. If there are uncommitted changes, propose one of these and let the user choose:
    - a WIP commit: `git add -A && git commit -m "chore(<commit-ref>): wip, parked" && git push`
    - a stash: `git stash push -u -m "flow-<id>-parked"`; note its hash in the state note, and restore it later with `git stash apply <hash>`.
-2. **Rewrite the state note** with `phase: parked`, and say why it was parked, what comes next, and what was waiting (questions, pending commits). Keep the other fields.
+2. **Rewrite the state note** with `phase: parked`, and say why it was parked, what comes next, and what was waiting (questions, pending commits). Keep the other fields. Park only with no role running: if one is, wait for its result (or stop it through its manager, with the user's OK) and set `running: none` first.
 3. **Propose, as separate questions that each need an OK**: moving the status back (`move-status`, for example to "to do"), and keeping the assignment so the team knows who has it.
 4. Tell the user in one line how to resume: `/flow-work <ref>`. The "task branch already exists" path in Phase 2 reads `phase: parked`.
 
