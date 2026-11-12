@@ -10,7 +10,7 @@ import { checkLMStudioAvailability, getLMStudioModelInfo } from '../../services/
 import { applyTheme } from '../../services/themeService';
 import { useCustomConnections } from '../../hooks/useCustomConnections';
 import { CustomOpenAIProvider, OPENAI_BASE_URL } from '../../services/ai/customOpenAIProvider';
-import { listGlmModels, GLM_FALLBACK_MODELS } from '../../services/ai/glmProvider';
+import useGlmSettings from './hooks/useGlmSettings';
 import { reconcileCodexSelection } from '../../services/ai/codexModelSelection';
 import { fetchModelCatalog, computeWhisperModelOptions } from './whisperModelCatalog';
 
@@ -91,13 +91,16 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
   const [openaiModelsError, setOpenaiModelsError] = useState('');
 
   // GLM (Z.AI Coding Plan)
-  const [glmApiKey, setGlmApiKey] = useState('');
-  const [glmModel, setGlmModel] = useState('');
-  const [glmModels, setGlmModels] = useState([]);
-  const [glmModelsLoading, setGlmModelsLoading] = useState(false);
-  const [glmModelsNotice, setGlmModelsNotice] = useState('');
-  const [glmEndpointMode, setGlmEndpointMode] = useState('plan');
-  const [glmBaseUrl, setGlmBaseUrl] = useState('');
+  const {
+    glmApiKey, setGlmApiKey,
+    glmModel, setGlmModel,
+    glmModels,
+    glmModelsLoading,
+    glmModelsNotice,
+    loadGlmModels,
+    glmEndpointMode, setGlmEndpointMode,
+    glmBaseUrl, setGlmBaseUrl,
+  } = useGlmSettings(t);
 
   const [aiProvider, setAiProvider] = useState('gemini');
   const [codexModel, setCodexModel] = useState('');
@@ -528,40 +531,6 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
       setOpenaiModels([]);
     } finally {
       setOpenaiModelsLoading(false);
-    }
-  };
-
-  /**
-   * Carga los modelos de GLM. Si /models falla, `listGlmModels` devuelve los modelos
-   * de respaldo y se muestra un aviso no bloqueante.
-   * @param {string} apiKey
-   * @param {{glmEndpointMode?: string, glmBaseUrl?: string}} [overrides] - Ajustes de endpoint
-   *   (por defecto, el estado actual del contexto).
-   */
-  const loadGlmModels = async (apiKey, overrides = {}) => {
-    if (!apiKey) {
-      setGlmModels([]);
-      setGlmModelsNotice('');
-      return;
-    }
-
-    setGlmModelsLoading(true);
-    setGlmModelsNotice('');
-
-    try {
-      const models = await listGlmModels({
-        glmApiKey: apiKey,
-        glmEndpointMode: overrides.glmEndpointMode ?? glmEndpointMode,
-        glmBaseUrl: overrides.glmBaseUrl ?? glmBaseUrl,
-      });
-      setGlmModels(models);
-      setGlmModelsNotice(models === GLM_FALLBACK_MODELS ? t('settings.providers.glmModelsFallback') : '');
-      setGlmModel((current) => {
-        const currentModelExists = models.some(m => m.name === current);
-        return currentModelExists || models.length === 0 ? current : models[0].name;
-      });
-    } finally {
-      setGlmModelsLoading(false);
     }
   };
 

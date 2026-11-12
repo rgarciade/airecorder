@@ -8,7 +8,7 @@ import { checkLMStudioAvailability, getLMStudioModels } from '../../services/ai/
 import { getGeminiAvailableModels } from '../../services/ai/geminiProvider';
 import { getKimiAvailableModels, getDeepseekAvailableModels } from '../../services/ai/providerRouter';
 import { CustomOpenAIProvider, OPENAI_BASE_URL } from '../../services/ai/customOpenAIProvider';
-import { listGlmModels } from '../../services/ai/glmProvider';
+import useGlmOnboarding from './useGlmOnboarding';
 import { updateSettings } from '../../services/settingsService';
 import { applyTheme } from '../../services/themeService';
 import { reconcileCodexSelection } from '../../services/ai/codexModelSelection';
@@ -67,10 +67,13 @@ export default function Onboarding({ onComplete }) {
   const [openaiModelsLoading, setOpenaiModelsLoading] = useState(false);
   const [selectedOpenaiModel, setSelectedOpenaiModel] = useState('');
   // GLM (Z.AI Coding Plan): en el onboarding solo clave + modelo, endpoint 'plan'
-  const [glmApiKey, setGlmApiKey] = useState('');
-  const [glmModels, setGlmModels] = useState([]);
-  const [glmModelsLoading, setGlmModelsLoading] = useState(false);
-  const [selectedGlmModel, setSelectedGlmModel] = useState('');
+  const {
+    glmApiKey, setGlmApiKey,
+    glmModels,
+    glmModelsLoading,
+    selectedGlmModel, setSelectedGlmModel,
+    loadGlmModelsOnboarding,
+  } = useGlmOnboarding();
   const [codexModel, setCodexModel] = useState('');
   const [codexReasoningEffort, setCodexReasoningEffort] = useState('');
   const [codexModels, setCodexModels] = useState([]);
@@ -245,24 +248,6 @@ export default function Onboarding({ onComplete }) {
       setGeminiModels([]);
     } finally {
       setGeminiModelsLoading(false);
-    }
-  };
-
-  const loadGlmModelsOnboarding = async (apiKey) => {
-    if (!apiKey) {
-      setGlmModels([]);
-      return;
-    }
-    setGlmModelsLoading(true);
-    try {
-      // listGlmModels nunca lanza: ante un fallo devuelve los modelos de respaldo
-      const models = await listGlmModels({ glmApiKey: apiKey, glmEndpointMode: 'plan' });
-      setGlmModels(models);
-      if (models.length > 0 && !selectedGlmModel) {
-        setSelectedGlmModel(models[0].name);
-      }
-    } finally {
-      setGlmModelsLoading(false);
     }
   };
 

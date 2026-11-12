@@ -11,7 +11,7 @@ import { sendToKimi, sendToKimiStreaming, getKimiAvailableModels, chatCompletion
 import { sendToLMStudio, sendToLMStudioStreaming, getLMStudioModels, getLMStudioModelInfo, chatCompletionStreaming as lmStudioChatStreaming, chatCompletionOnce as lmStudioChatOnce } from './lmStudioProvider';
 import { generateContent as ollamaGenerate, generateContentStreaming as ollamaGenerateStreaming, chatCompletionStreaming as ollamaChatStreaming, chatCompletionOnce as ollamaChatOnce, getOllamaModelInfo } from './ollamaProvider';
 import { CustomOpenAIProvider, OPENAI_BASE_URL } from './customOpenAIProvider';
-import { createGlmClient } from './glmProvider';
+import { requireGlmClient } from './glmProvider';
 import { aiQueueService, AI_TASK_TYPES } from './aiQueueService';
 import { executeTool } from './tools';
 import { CODEX_TASK_OUTPUT_SCHEMA, formatExistingTasksForCodex, buildCodexTaskInstructions } from './codexTaskBridge';
@@ -197,10 +197,7 @@ async function _runCallProvider(prompt, options, signal) {
     }
 
     case 'glm': {
-      if (!settings.glmApiKey) throw new Error('No se ha configurado la GLM API Key en los ajustes.');
-      const model = options.model || settings.glmModel;
-      if (!model) throw new Error('No se ha seleccionado un modelo de GLM.');
-      const client = createGlmClient(settings, model);
+      const { client, model } = requireGlmClient(settings, options.model);
       const response = await client.sendMessage(prompt, systemPrompt, signal);
       return { text: response || 'Sin respuesta', provider: 'glm', model };
     }
@@ -265,11 +262,8 @@ async function _runCallProviderStreaming(prompt, onChunk, options, signal) {
     }
 
     case 'glm': {
-      if (!settings.glmApiKey) throw new Error('No se ha configurado la GLM API Key en los ajustes.');
-      const model = options.model || settings.glmModel;
-      if (!model) throw new Error('No se ha seleccionado un modelo de GLM.');
+      const { client, model } = requireGlmClient(settings, options.model);
       console.log(`[callProviderStreaming] Iniciando streaming con GLM modelo: ${model}`);
-      const client = createGlmClient(settings, model);
       const fullResponse = await client.sendMessageStreaming(prompt, onChunk, systemPrompt, signal);
       return { text: fullResponse || 'Sin respuesta', provider: 'glm', model, streaming: true };
     }
@@ -569,10 +563,7 @@ async function _callChatCompletionOnce(messages, options, signal, settings, prov
     }
 
     case 'glm': {
-      if (!settings.glmApiKey) throw new Error('No se ha configurado la GLM API Key en los ajustes.');
-      const model = options.model || options.ragModel || settings.glmModel;
-      if (!model) throw new Error('No se ha seleccionado un modelo de GLM.');
-      const client = createGlmClient(settings, model);
+      const { client, model } = requireGlmClient(settings, options.model || options.ragModel);
       const result = await client.chatCompletionOnce(messages, { tools }, signal);
       return { ...result, model };
     }
@@ -866,10 +857,7 @@ async function _runCallChatProviderStreaming(messages, onChunk, options, signal)
     }
 
     case 'glm': {
-      if (!settings.glmApiKey) throw new Error('No se ha configurado la GLM API Key en los ajustes.');
-      const model = options.model || options.ragModel || settings.glmModel;
-      if (!model) throw new Error('No se ha seleccionado un modelo de GLM.');
-      const client = createGlmClient(settings, model);
+      const { client, model } = requireGlmClient(settings, options.model || options.ragModel);
       const fullResponse = await client.chatCompletionStreaming(messages, onChunk, signal);
       return { text: fullResponse || 'Sin respuesta', provider: 'glm', model, streaming: true };
     }

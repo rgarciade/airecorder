@@ -99,7 +99,7 @@ async function detectEmbeddingProvider() {
 
   // ── GLM guard: no soportado para embeddings ─────────────────────────────────
   if (activeProvider === 'glm') {
-    console.warn('[EmbeddingService] GLM does not support embeddings, falling back');
+    console.warn('[EmbeddingService] GLM no soporta embeddings, se usa el siguiente proveedor');
   }
 
   // ── Proveedores cloud: no requieren servidor local ──────────────────────────

@@ -36,15 +36,37 @@ export function createGlmClient(settings = {}, model = '') {
 }
 
 /**
+ * Lista los modelos de GLM indicando si se usó la lista de respaldo.
+ * Nunca lanza: ante cualquier fallo devuelve los modelos de respaldo.
+ * @returns {Promise<{models: Array<{name:string, label:string, description:string}>, isFallback: boolean}>}
+ */
+export async function fetchGlmModels(settings = {}) {
+  try {
+    const models = await createGlmClient(settings).listModels();
+    return models.length ? { models, isFallback: false } : { models: GLM_FALLBACK_MODELS, isFallback: true };
+  } catch (error) {
+    console.warn('[glmProvider] No se pudo obtener la lista de modelos, usando respaldo:', error.message);
+    return { models: GLM_FALLBACK_MODELS, isFallback: true };
+  }
+}
+
+/**
  * Lista los modelos de GLM; ante cualquier fallo devuelve los modelos de respaldo.
  * @returns {Promise<Array<{name:string, label:string, description:string}>>}
  */
 export async function listGlmModels(settings = {}) {
-  try {
-    const models = await createGlmClient(settings).listModels();
-    return models.length ? models : GLM_FALLBACK_MODELS;
-  } catch (error) {
-    console.warn('[glmProvider] No se pudo obtener la lista de modelos, usando respaldo:', error.message);
-    return GLM_FALLBACK_MODELS;
-  }
+  return (await fetchGlmModels(settings)).models;
+}
+
+/**
+ * Valida la clave y resuelve el modelo y el cliente de GLM para una llamada.
+ * @param {object} settings
+ * @param {string} [modelOverride] - Modelo explícito (si no, `settings.glmModel`).
+ * @returns {{client: CustomOpenAIProvider, model: string}}
+ */
+export function requireGlmClient(settings = {}, modelOverride) {
+  if (!settings.glmApiKey) throw new Error('No se ha configurado la GLM API Key en los ajustes.');
+  const model = modelOverride || settings.glmModel;
+  if (!model) throw new Error('No se ha seleccionado un modelo de GLM.');
+  return { client: createGlmClient(settings, model), model };
 }

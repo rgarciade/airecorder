@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { MdVisibility, MdVisibilityOff, MdRefresh } from 'react-icons/md';
 import styles from '../../Settings.module.css';
 import AiProviderIcon from '../../../../components/AiProviderIcon/AiProviderIcon';
 import RoleBadge from './RoleBadge';
 import { useSettings } from '../../SettingsContext';
+import { GLM_ENDPOINTS } from '../../../../services/ai/glmProvider';
 
 const GLM_ENDPOINT_MODES = ['plan', 'general'];
 
@@ -26,6 +27,9 @@ export default function GlmProviderCard({ role, isActive, onToggle }) {
     glmEndpointMode, setGlmEndpointMode,
     glmBaseUrl, setGlmBaseUrl,
   } = useSettings();
+
+  const keyTimeoutRef = useRef(null);
+  useEffect(() => () => clearTimeout(keyTimeoutRef.current), []);
 
   const isEmbeddingsRole = role === 'embeddings';
 
@@ -70,8 +74,8 @@ export default function GlmProviderCard({ role, isActive, onToggle }) {
                   const newKey = e.target.value;
                   setGlmApiKey(newKey);
                   if (newKey && newKey.length > 10) {
-                    clearTimeout(window.glmKeyTimeout);
-                    window.glmKeyTimeout = setTimeout(() => {
+                    clearTimeout(keyTimeoutRef.current);
+                    keyTimeoutRef.current = setTimeout(() => {
                       loadGlmModels(newKey);
                     }, 1000);
                   }
@@ -108,7 +112,7 @@ export default function GlmProviderCard({ role, isActive, onToggle }) {
             <input
               type="text"
               className={styles.input}
-              placeholder="https://api.z.ai/api/coding/paas/v4"
+              placeholder={GLM_ENDPOINTS.plan}
               value={glmBaseUrl}
               onChange={(e) => setGlmBaseUrl(e.target.value)}
               onBlur={() => glmApiKey && loadGlmModels(glmApiKey)}
