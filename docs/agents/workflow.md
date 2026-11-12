@@ -85,6 +85,12 @@ Shares this project's Engram memory through git, in the `.engram/` folder. `flow
 
 - **Engram sync**: `never` (`.engram/` is git-ignored on purpose)
 
+## Task memory
+
+Where the closed note of a finished task is kept when Engram is not available.
+
+- **Task memory**: `repo` (`.flow/memory/<id>.md` is committed with the task's work, so every machine and agent can read it; `.flow/memory/` must not be git-ignored)
+
 ## Tests
 
 - **Test file globs**: `src/tests/**/*.test.js`, `src/tests/**/*.test.jsx`, `test/**/*.test.js`, `python/tests/**/test_*.py`
