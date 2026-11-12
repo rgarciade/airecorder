@@ -205,7 +205,7 @@ describe('embeddingService — custom OpenAI-compatible embeddings', () => {
       const provider = await embeddingService.detectEmbeddingProvider();
 
       expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('GLM does not support embeddings, falling back')
+        expect.stringContaining('GLM no soporta embeddings, se usa el siguiente proveedor')
       );
       expect(provider).toBeNull();
 
