@@ -33,6 +33,8 @@ La misma clase `CustomOpenAIProvider` también implementa el proveedor fijo **Op
 
 ### GLM (Z.AI Coding Plan)
 
+> **Beta:** se implementó con tests y sin probarlo con una cuenta real de Z.AI. La UI (`settings.providers.glmBeta`) y la guía pública avisan al usuario y le piden abrir una incidencia si algo falla.
+
 `glmProvider.js` no es un cliente nuevo: reutiliza `CustomOpenAIProvider` con `apiPrefix: ''` (la URL base de Z.AI ya incluye `/v4`) y `errorLabel: 'GLM'`.
 
 *   **Endpoints** (`GLM_ENDPOINTS`): `plan` (por defecto) `https://api.z.ai/api/coding/paas/v4`; `general` `https://api.z.ai/api/paas/v4`. Los paths son `<base>/models` y `<base>/chat/completions`.

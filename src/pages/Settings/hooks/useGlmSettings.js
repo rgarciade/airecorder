@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { fetchGlmModels, GLM_FALLBACK_MODELS } from '../../../services/ai/glmProvider';
 
 /**
@@ -8,11 +8,17 @@ import { fetchGlmModels, GLM_FALLBACK_MODELS } from '../../../services/ai/glmPro
 export default function useGlmSettings(t) {
   const [glmApiKey, setGlmApiKey] = useState('');
   const [glmModel, setGlmModel] = useState('');
-  const [glmModels, setGlmModels] = useState([]);
+  const [glmModels, setGlmModels] = useState(GLM_FALLBACK_MODELS);
   const [glmModelsLoading, setGlmModelsLoading] = useState(false);
   const [glmModelsNotice, setGlmModelsNotice] = useState('');
   const [glmEndpointMode, setGlmEndpointMode] = useState('plan');
   const [glmBaseUrl, setGlmBaseUrl] = useState('');
+
+  // Sin lista real (p. ej. sin clave) el selector muestra los modelos de respaldo; si no hay
+  // ninguno elegido, se elige el primero para que el valor mostrado y el guardado coincidan.
+  useEffect(() => {
+    if (!glmModel && glmModels.length > 0) setGlmModel(glmModels[0].name);
+  }, [glmModel, glmModels]);
 
   /**
    * Carga los modelos de GLM. Si /models falla, `fetchGlmModels` devuelve los modelos
@@ -23,7 +29,7 @@ export default function useGlmSettings(t) {
    */
   const loadGlmModels = async (apiKey, overrides = {}) => {
     if (!apiKey) {
-      setGlmModels([]);
+      setGlmModels(GLM_FALLBACK_MODELS);
       setGlmModelsNotice('');
       return;
     }

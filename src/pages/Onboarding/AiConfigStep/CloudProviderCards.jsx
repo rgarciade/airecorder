@@ -160,7 +160,7 @@ export default function CloudProviderCards({ t, activeAiRole, aiProvider, setAiP
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 dark:text-content-primary">GLM</h3>
-                <p className="text-slate-400 dark:text-content-secondary text-xs">Z.AI</p>
+                <p className="text-slate-400 dark:text-content-secondary text-xs">Z.AI · Beta</p>
               </div>
             </div>
             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all mt-[5px]

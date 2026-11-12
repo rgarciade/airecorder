@@ -418,6 +418,7 @@
       },
       "glmName": "GLM",
       "glmDesc": "GLM by Z.AI (Coding Plan)",
+      "glmBeta": "GLM is in beta: it has not been tested with a real Z.AI account. If you run into problems, open an issue at https://github.com/rgarciade/airecorder/issues so it can be fixed.",
       "glmEmbeddingNotice": "GLM does not provide embeddings. Choose another embedding provider.",
       "glmEndpointMode": "Endpoint",
       "glmEndpointModes": {

@@ -29,6 +29,10 @@ Antes existían "Gemini Free" y "Gemini Pro" como proveedores separados. Ahora e
 Si estás en la pestaña **Embeddings** de Ajustes, la card de DeepSeek no aparece y la de GLM aparece deshabilitada — no tienen un modelo de embedding disponible. Úsalos solo para General.
 :::
 
+::: warning ⚠️ GLM está en beta
+GLM no se ha podido probar con una cuenta real de Z.AI. Si encuentras problemas, abre una incidencia en [GitHub](https://github.com/rgarciade/airecorder/issues) para que se pueda corregir.
+:::
+
 ::: tip 💡 GLM: Coding Plan o API general
 GLM tiene dos modos de acceso: el **Coding Plan** de Z.AI (por defecto) y la **API general**. Elige el que corresponda a tu suscripción en el selector de la card.
 :::

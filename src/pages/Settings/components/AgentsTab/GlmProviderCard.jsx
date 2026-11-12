@@ -58,6 +58,8 @@ export default function GlmProviderCard({ role, isActive, onToggle }) {
         </label>
       </div>
 
+      <p className={styles.helpText}>{t('settings.providers.glmBeta')}</p>
+
       {isEmbeddingsRole ? (
         <p className={styles.helpText}>{t('settings.providers.glmEmbeddingNotice')}</p>
       ) : (

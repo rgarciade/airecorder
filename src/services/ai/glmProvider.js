@@ -1,5 +1,9 @@
 // Proveedor GLM (Z.AI Coding Plan). API compatible con OpenAI, reutiliza
 // CustomOpenAIProvider con apiPrefix '' (la URL base de Z.AI ya incluye /v4).
+//
+// BETA: se implementó con tests, pero sin probarlo contra una cuenta real de Z.AI (ids de modelo,
+// streaming y cuota del plan sin verificar en vivo). El aviso al usuario está en
+// `settings.providers.glmBeta` y en la guía pública cloud-ai.md.
 
 import { CustomOpenAIProvider } from './customOpenAIProvider';
 

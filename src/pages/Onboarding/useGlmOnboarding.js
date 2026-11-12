@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { listGlmModels } from '../../services/ai/glmProvider';
+import { useEffect, useState } from 'react';
+import { listGlmModels, GLM_FALLBACK_MODELS } from '../../services/ai/glmProvider';
 
 /**
  * Estado de GLM (Z.AI Coding Plan) en el onboarding: solo clave + modelo, endpoint 'plan'.
@@ -7,13 +7,18 @@ import { listGlmModels } from '../../services/ai/glmProvider';
  */
 export default function useGlmOnboarding() {
   const [glmApiKey, setGlmApiKey] = useState('');
-  const [glmModels, setGlmModels] = useState([]);
+  const [glmModels, setGlmModels] = useState(GLM_FALLBACK_MODELS);
   const [glmModelsLoading, setGlmModelsLoading] = useState(false);
   const [selectedGlmModel, setSelectedGlmModel] = useState('');
 
+  // Sin clave se ofrecen los modelos de respaldo y se preselecciona el primero.
+  useEffect(() => {
+    if (!selectedGlmModel && glmModels.length > 0) setSelectedGlmModel(glmModels[0].name);
+  }, [selectedGlmModel, glmModels]);
+
   const loadGlmModelsOnboarding = async (apiKey) => {
     if (!apiKey) {
-      setGlmModels([]);
+      setGlmModels(GLM_FALLBACK_MODELS);
       return;
     }
     setGlmModelsLoading(true);
