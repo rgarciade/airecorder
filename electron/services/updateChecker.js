@@ -2,6 +2,7 @@ const { app, dialog, shell, BrowserWindow } = require('electron');
 const https = require('https');
 const fs = require('fs');
 const { settingsPath } = require('../utils/paths');
+const { writeSettingsFileAtomic } = require('../utils/settingsWriter');
 const { formatReleaseNotes } = require('../utils/releaseNotes');
 
 const GITHUB_OWNER = 'rgarciade';
@@ -40,14 +41,13 @@ class UpdateChecker {
   }
 
   _ignoreVersion(version) {
-    try {
-      const settings = this._getSettings();
-      settings.ignoredUpdateVersion = version;
-      fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
-      console.log(`[UpdateChecker] Versión ${version} ignorada.`);
-    } catch (error) {
-      console.error('[UpdateChecker] Error guardando versión ignorada:', error);
-    }
+    const settings = this._getSettings();
+    settings.ignoredUpdateVersion = version;
+    // Escritura atómica + serializada (ver utils/settingsWriter.js). Es
+    // fire-and-forget: solo registra la preferencia del usuario.
+    writeSettingsFileAtomic(settingsPath, JSON.stringify(settings, null, 2))
+      .then(() => console.log(`[UpdateChecker] Versión ${version} ignorada.`))
+      .catch((error) => console.error('[UpdateChecker] Error guardando versión ignorada:', error));
   }
 
   async checkForUpdates(silent = true, manualCheck = false) {

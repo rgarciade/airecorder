@@ -404,6 +404,10 @@ const lang = await window.electronAPI.getSystemLanguage(); // 'es' | 'en'
 
 Este handler se utiliza en `App.jsx` → `loadAppSettings()` cuando es la primera vez que se abre la app (`isFirstRun === true`) para aplicar el idioma del SO automáticamente y guardarlo en `settings.uiLanguage`.
 
+### Escritura de settings.json: `utils/settingsWriter.js`
+
+Todos los escritores de `settings.json` (handler `save-settings`, la persistencia de migraciones de `load-settings`, `change-db-path` y `UpdateChecker._ignoreVersion`) pasan por `writeSettingsFileAtomic(settingsPath, data)`: escritura a un `.tmp` de **nombre único** + rename atómico, encoladas en una **cola serializada** (la segunda escritura espera a que termine la primera; un fallo no envenena la cola). Antes cada writer usaba un `.tmp` de nombre fijo y dos guardados concurrentes se robaban el rename mutuamente, provocando `ENOENT` en el segundo y settings perdidos. Las lecturas NO pasan por la cola: en POSIX el rename es atómico, así que un lector concurrente ve el archivo viejo o el nuevo, nunca a medias. Tests: `test/unit/electron/utils/settingsWriter.test.js`.
+
 ### Migración de settings.json: `load-settings` (`ipc-handlers/settings.js`)
 
 `aiProvider`/`embeddingProvider` ya no distinguen `'geminifree'` de `'gemini'` (una sola configuración de Gemini, sin tier free/pro separado). El handler `load-settings` es el **único punto de normalización**: al leer `settings.json`, `migrateGeminiFreeTier(settings)` reescribe `'geminifree'` → `'gemini'` y rescata `geminiApiKey`/`geminiModel` desde los campos legacy `geminiFreeApiKey`/`geminiFreeModel` si el campo nuevo está vacío. Si hubo cambios, persiste el archivo migrado antes de devolver `{ success, settings }`. Como todo el resto de la app (renderer vía `getSettings()`, y el propio proceso principal en `embeddingService.js`) lee `settings.json` después de este primer `load-settings`, no hace falta duplicar la migración en ningún otro sitio.

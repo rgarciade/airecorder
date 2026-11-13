@@ -4,6 +4,7 @@ const path = require('path');
 const os = require('os');
 const notificationService = require('../services/notificationService');
 const { settingsPath, DEFAULT_BASE_RECORDER_PATH } = require('../utils/paths');
+const { writeSettingsFileAtomic } = require('../utils/settingsWriter');
 const dbService = require('../database/dbService');
 const { migrateGeminiFreeTier, migrateCustomChatModelField, migrateWhisperModelAlias } = require('../utils/settingsMigrations');
 
@@ -27,12 +28,9 @@ module.exports.registerSettingsHandlers = () => {
   // Manejador para guardar configuración
   ipcMain.handle('save-settings', async (event, settings) => {
     try {
-      const dir = path.dirname(settingsPath);
-      await fs.promises.mkdir(dir, { recursive: true });
-
-      const tmpPath = settingsPath + '.tmp';
-      await fs.promises.writeFile(tmpPath, JSON.stringify(settings, null, 2));
-      await fs.promises.rename(tmpPath, settingsPath);
+      // Escritura atómica + serializada (ver utils/settingsWriter.js): dos
+      // guardados concurrentes ya no se roban el rename del .tmp (ENOENT).
+      await writeSettingsFileAtomic(settingsPath, JSON.stringify(settings, null, 2));
       notificationService.updateSettings(settings); // Actualizar servicio en vivo
       
       // Actualizar la ruta base del transcriptionManager al vuelo
@@ -62,9 +60,7 @@ module.exports.registerSettingsHandlers = () => {
         ].some(Boolean);
 
         if (needsPersist) {
-          const tmpPath = settingsPath + '.tmp';
-          await fs.promises.writeFile(tmpPath, JSON.stringify(settings, null, 2));
-          await fs.promises.rename(tmpPath, settingsPath);
+          await writeSettingsFileAtomic(settingsPath, JSON.stringify(settings, null, 2));
         }
 
         return { success: true, settings };
@@ -127,11 +123,7 @@ module.exports.registerSettingsHandlers = () => {
         } catch (_) { /* settings.json ilegible: se parte de ajustes vacíos */ }
       }
       settings.databasePath = newPath;
-      const settingsDir = path.dirname(settingsPath);
-      fs.mkdirSync(settingsDir, { recursive: true });
-      const tmpPath = settingsPath + '.tmp';
-      fs.writeFileSync(tmpPath, JSON.stringify(settings, null, 2));
-      fs.renameSync(tmpPath, settingsPath);
+      await writeSettingsFileAtomic(settingsPath, JSON.stringify(settings, null, 2));
 
       // Actualizar flag de fallback — ya no usamos fallback
       global.usingFallbackDb = false;
