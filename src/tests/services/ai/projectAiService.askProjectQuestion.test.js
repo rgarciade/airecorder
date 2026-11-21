@@ -168,4 +168,35 @@ describe('askProjectQuestion() — presupuesto de contexto', () => {
     expect(providerOptions).not.toHaveProperty('contextTokenLimit');
     expect(providerOptions.model).toBe('m');
   });
+
+  it('D6: options.tools cuentan como parte fija (menos chunks) y se reenvían al proveedor sin contextTokenLimit', async () => {
+    const ids = Array.from({ length: 30 }, (_, i) => `r${i}`);
+    electronAPI.searchProject.mockResolvedValue({
+      success: true,
+      results: ids.map((id) => resultWithChunks(id, 5)),
+    });
+    // ~8000 caracteres de definiciones (~2000 tokens): no cabe en el tope inferior ni superior del presupuesto
+    const tools = Array.from({ length: 10 }, (_, i) => ({
+      type: 'function',
+      function: {
+        name: `tool_${i}`,
+        description: 'd'.repeat(700),
+        parameters: { type: 'object', properties: { query: { type: 'string' } } },
+      },
+    }));
+
+    const withoutTools = await projectAiService.askProjectQuestion(
+      'p1', 'q', ids, {}, [], 'auto', { contextTokenLimit: 8000, model: 'm' }
+    );
+    const withTools = await projectAiService.askProjectQuestion(
+      'p1', 'q', ids, {}, [], 'auto', { contextTokenLimit: 8000, model: 'm', tools }
+    );
+
+    expect(withTools.contextInfo.chunksUsed).toBeLessThan(withoutTools.contextInfo.chunksUsed);
+    expect(withTools.contextInfo.chunksUsed).toBeGreaterThanOrEqual(3);
+
+    const providerOptions = callChatProviderStreaming.mock.calls.at(-1)[2];
+    expect(providerOptions.tools).toBe(tools);
+    expect(providerOptions).not.toHaveProperty('contextTokenLimit');
+  });
 });

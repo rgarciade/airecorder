@@ -89,6 +89,22 @@ describe('runSearch (/buscar)', () => {
     expect(entries[2].contenido).toBe('Respuesta de proyecto.');
   });
 
+  it('scope project: forwards the given contextTokenLimit to generateAiResponse and never forwards tools', async () => {
+    const ctx = makeCtx({
+      scope: 'project', projectId: 'p1', chatId: 'c1', ragRecordingId: undefined,
+      model: 'm', contextTokenLimit: 32768,
+    });
+    generateAiResponse.mockResolvedValue({ text: 'ok' });
+
+    await runSearch(ctx, 'pregunta');
+
+    expect(generateAiResponse).toHaveBeenCalledTimes(1);
+    const options = generateAiResponse.mock.calls[0][5];
+    expect(options.contextTokenLimit).toBe(32768);
+    expect(options.model).toBe('m');
+    expect(options).not.toHaveProperty('tools');
+  });
+
   it('guard (scope project): missing chatId returns noTarget without calling the service', async () => {
     const ctx = makeCtx({ scope: 'project', projectId: 'p1', chatId: undefined, ragRecordingId: undefined });
 
