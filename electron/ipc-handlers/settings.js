@@ -8,6 +8,23 @@ const dbService = require('../database/dbService');
 const { migrateGeminiFreeTier, migrateCustomChatModelField } = require('../utils/settingsMigrations');
 
 module.exports.registerSettingsHandlers = () => {
+  // Serializa las escrituras: varios IPC pueden guardar configuración a la vez.
+  // Un único `.tmp` compartido permitía que una llamada lo renombrase antes de
+  // que otra llegara a su propio rename, produciendo ENOENT.
+  let settingsWriteChain = Promise.resolve();
+  const persistSettings = (settings) => {
+    const write = settingsWriteChain.then(async () => {
+      const dir = path.dirname(settingsPath);
+      await fs.promises.mkdir(dir, { recursive: true });
+
+      const tmpPath = `${settingsPath}.${process.pid}.${Date.now()}.tmp`;
+      await fs.promises.writeFile(tmpPath, JSON.stringify(settings, null, 2));
+      await fs.promises.rename(tmpPath, settingsPath);
+    });
+
+    settingsWriteChain = write.catch(() => {});
+    return write;
+  };
 
   // Detectar idioma del sistema operativo
   ipcMain.handle('get-system-language', () => {
@@ -27,12 +44,7 @@ module.exports.registerSettingsHandlers = () => {
   // Manejador para guardar configuración
   ipcMain.handle('save-settings', async (event, settings) => {
     try {
-      const dir = path.dirname(settingsPath);
-      await fs.promises.mkdir(dir, { recursive: true });
-
-      const tmpPath = settingsPath + '.tmp';
-      await fs.promises.writeFile(tmpPath, JSON.stringify(settings, null, 2));
-      await fs.promises.rename(tmpPath, settingsPath);
+      await persistSettings(settings);
       notificationService.updateSettings(settings); // Actualizar servicio en vivo
       
       // Actualizar la ruta base del transcriptionManager al vuelo
@@ -61,9 +73,7 @@ module.exports.registerSettingsHandlers = () => {
         ].some(Boolean);
 
         if (needsPersist) {
-          const tmpPath = settingsPath + '.tmp';
-          await fs.promises.writeFile(tmpPath, JSON.stringify(settings, null, 2));
-          await fs.promises.rename(tmpPath, settingsPath);
+          await persistSettings(settings);
         }
 
         return { success: true, settings };
@@ -126,11 +136,7 @@ module.exports.registerSettingsHandlers = () => {
         } catch (_) {}
       }
       settings.databasePath = newPath;
-      const settingsDir = path.dirname(settingsPath);
-      fs.mkdirSync(settingsDir, { recursive: true });
-      const tmpPath = settingsPath + '.tmp';
-      fs.writeFileSync(tmpPath, JSON.stringify(settings, null, 2));
-      fs.renameSync(tmpPath, settingsPath);
+      await persistSettings(settings);
 
       // Actualizar flag de fallback — ya no usamos fallback
       global.usingFallbackDb = false;
