@@ -429,6 +429,14 @@ El orquestador frontend de este flujo es `src/services/noteTemplateService.js`, 
 5. **Llamada al provider** → Se usa `callProvider()` (modo análisis) con el prompt construido + el system prompt del experto.
 6. **Parseo y guardado** → El contenido se parsea desde JSON a Markdown y se guarda en `recording_notes` via IPC `templates:saveNote`.
 
+### Ejecución en segundo plano (no bloqueante)
+
+La generación **no bloquea la UI**. `src/services/noteGenerationStore.js` (singleton fuera de React) lanza `generateFromTemplate` con `queueMeta = { type: AI_TASK_TYPES.NOTE, ref: 'note:<recordingId>' }`, de modo que la tarea aparece en la cola de IA (`AiQueue`) y se puede cancelar desde allí. El estado por grabación (`idle | generating | error`, `completedCount`) vive en el store, así que **sobrevive a la navegación**: el hook `useNoteGeneration(recordingId)` lo expone a `RecordingDetailWithTranscription`, que muestra `NoteGenerationIndicator` (píldora flotante con "Cancelar"; errores descartables, sin `alert`) y recarga la pestaña Notas (`notesTabRefresh`) cuando `completedCount` cambia. Al volver a una grabación cuya nota terminó mientras estabas fuera, `NotesTab` carga las notas al montarse.
+
+- `aiQueueService.enqueue` acepta `meta.ref` (referencia opaca del llamador) para localizar la tarea y cancelarla (`noteGenerationStore.cancel`).
+- `generateFromTemplate` acepta `signal` (AbortSignal): si se aborta antes del proveedor o mientras corría, lanza un error `cancelled` y **no guarda la nota**.
+- Una sola generación a la vez por grabación (un segundo `start` se ignora mientras hay una en curso).
+
 ### Prompt Builder (`src/prompts/common/templatePrompts.js`)
 
 Construye prompts dinámicos basados en la estructura de la plantilla:

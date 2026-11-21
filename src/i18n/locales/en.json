@@ -1203,6 +1203,13 @@
     }
   },
   "templates": {
+    "noteGeneration": {
+      "generating": "Generating note…",
+      "generatingHint": "You can keep using the app; the note will show up in the Notes tab.",
+      "cancel": "Cancel",
+      "error": "Could not generate the note: {{message}}",
+      "dismiss": "Dismiss"
+    },
     "modal": {
       "title": "Generate notes from template",
       "useButton": "Use",

@@ -51,6 +51,7 @@ export const AI_TASK_TYPES = {
   CHAT: 'chat',
   GENERAL: 'general',
   ESQUEMA: 'esquema',
+  NOTE: 'note',
 };
 
 class AiQueueService {
@@ -134,6 +135,8 @@ class AiQueueService {
         hidden: meta.hidden || false,
         groupId: meta.groupId || null,
         groupName: meta.groupName || null,
+        // Referencia opaca del llamador (p. ej. `note:<recordingId>`) para localizar y cancelar su tarea
+        ref: meta.ref || null,
         overrideStartedAt: meta.overrideStartedAt || null,
         startedAt: null,
         completedAt: null,
