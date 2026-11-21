@@ -26,6 +26,7 @@
     "tokens": "tokens",
     "fullMode": "Full summary",
     "indexing": "Preparing context...",
+    "indexingQueue": "Indexing recording {{current}}/{{total}}: {{title}}",
     "skipped": "Context unavailable · transcript too short",
     "ready": "Context ready",
     "auto": "Auto",
@@ -36,6 +37,16 @@
     "nearLimitTooltip": "The context is approaching the model's configured limit",
     "compactAction": "Compact",
     "compacting": "Compacting...",
+    "sourceBadge": {
+      "rag": "RAG",
+      "summary": "Summary",
+      "unavailable": "No data",
+      "excluded": "Not relevant",
+      "ragTooltip": "Indexed chunks (RAG) from this recording were used",
+      "summaryTooltip": "RAG unavailable for this recording: its summary was used",
+      "unavailableTooltip": "Neither RAG nor summary available for this recording",
+      "excludedTooltip": "This recording was searched, but its chunks were not relevant enough for this question"
+    },
     "tooltips": {
       "projectAuto": "Splits the context across all recordings. Faster.",
       "projectDetailed": "Searches more chunks per recording. More complete answers.",

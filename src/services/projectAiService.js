@@ -10,7 +10,8 @@ import { projectAnalysisSystemPrompt, chatSystemPrompt } from '../prompts/aiProm
 import { projectRagSystemPrompt, mapHistoryToMessages } from '../prompts/ragPrompts';
 import { getSettings } from './settingsService';
 import { buildSystemPrompt, FEATURE_TYPES } from './ai/promptBuilder';
-import { buildContextInfo } from './chat/chatTokens';
+import { buildContextInfo, estimateTextTokens, estimateHistoryTokens } from './chat/chatTokens';
+import { RESPONSE_RESERVE_TOKENS, computeChunkTokenBudget, selectChunksWithinBudget } from './ai/projectContextBudget';
 
 class ProjectAiService {
   constructor() {
@@ -356,38 +357,98 @@ class ProjectAiService {
    */
   async askProjectQuestion(projectId, question, recordingIds = [], recordingTitles = {}, chatHistory = [], ragMode = 'auto', options = {}, onChunk = null) {
     try {
-      const topKPerRecording = ragMode === 'detallado'
-        ? 10
-        : Math.max(3, Math.floor(20 / Math.max(1, recordingIds.length)));
+      // contextTokenLimit solo sirve para calcular el presupuesto: no se reenvía al proveedor
+      const { contextTokenLimit, ...providerOptions } = options;
 
-      // 1. Intentar RAG en todas las grabaciones del contexto
-      const allChunks = [];
+      // 1. Búsqueda RAG unificada (un solo embedding de la query para todas las grabaciones).
+      // Las grabaciones sin chunks (no indexadas o error de búsqueda) quedan marcadas
+      // para fallback individual a su resumen JSON (nunca se pierde contenido en silencio)
+      const candidateTopK = ragMode === 'detallado' ? 12 : 5;
+      const candidateChunks = [];
+      const fallbackRecIds = [];
       if (recordingIds.length > 0) {
+        let resultsById = new Map();
+        try {
+          const response = await window.electronAPI.searchProject(recordingIds, question, candidateTopK);
+          if (response?.success) {
+            resultsById = new Map((response.results || []).map(r => [r.recordingId, r]));
+          }
+        } catch {
+          // Error global de búsqueda: todas las grabaciones se compensan con su resumen
+        }
         for (const recId of recordingIds) {
-          try {
-            const result = await window.electronAPI.searchRecording(recId, question, topKPerRecording);
-            const chunks = result?.success ? result.chunks : [];
-            if (chunks && chunks.length > 0) {
-              const title = recordingTitles[recId] || `Grabación ${recId}`;
-              chunks.forEach(chunk => {
-                allChunks.push({ ...chunk, recordingTitle: title, recordingId: recId });
-              });
-            }
-          } catch {
-            // Grabación no indexada o error: ignorar silenciosamente
+          const result = resultsById.get(recId);
+          if (result?.success && result.chunks?.length > 0) {
+            const title = recordingTitles[recId] || `Grabación ${recId}`;
+            result.chunks.forEach(chunk => {
+              candidateChunks.push({ ...chunk, recordingTitle: title, recordingId: recId });
+            });
+          } else {
+            fallbackRecIds.push(recId);
           }
         }
       }
 
-      // 2a. Modo RAG V2 — system prompt con chunks + historial completo nativo
-      if (allChunks.length > 0) {
-        console.log(`[ProjectAI V2] RAG: ${allChunks.length} chunks de ${recordingIds.length} grabaciones`);
+      // Modo usado por cada grabación en esta respuesta: 'rag' | 'summary' | 'unavailable' | 'excluded'
+      const perRecordingMode = {};
+      recordingIds.forEach(recId => {
+        perRecordingMode[recId] = fallbackRecIds.includes(recId) ? 'summary' : 'rag';
+      });
 
-        // Inject schemas from all recordings as additional context
-        const schemasBlock = await this._buildSchemasContext(recordingIds, recordingTitles);
+      // Bloque de resúmenes JSON SOLO para las grabaciones sin chunks RAG (fallback por grabación)
+      let summaryFallbackBlock = '';
+      if (fallbackRecIds.length > 0) {
+        const parts = [];
+        for (const recId of fallbackRecIds) {
+          try {
+            const summaryResult = await window.electronAPI.getAiSummary(recId);
+            if (summaryResult.success && summaryResult.summary) {
+              const title = recordingTitles[recId] || `Grabación ${recId}`;
+              parts.push(`- ${title} (id:${recId}):\n${JSON.stringify(summaryResult.summary)}`);
+            } else {
+              perRecordingMode[recId] = 'unavailable';
+            }
+          } catch {
+            perRecordingMode[recId] = 'unavailable';
+          }
+        }
+        if (parts.length > 0) {
+          summaryFallbackBlock = `\n\n--- RESÚMENES DE REUNIONES SIN RAG DISPONIBLE ---\n${parts.join('\n\n')}\n--- FIN RESÚMENES ---\n`;
+        }
+      }
+
+      // 2a. Modo RAG V2 — system prompt con chunks + historial completo nativo
+      if (candidateChunks.length > 0) {
+        const candidateRecIds = [...new Set(candidateChunks.map(c => c.recordingId))];
+
+        // Esquemas: solo de grabaciones con chunks candidatos. Se cuentan como parte fija del
+        // presupuesto; si tras la selección alguna queda excluida, se reconstruyen solo con las incluidas.
+        let schemasBlock = await this._buildSchemasContext(candidateRecIds, recordingTitles);
+
+        const baseSystem = await buildSystemPrompt(FEATURE_TYPES.CHAT, projectRagSystemPrompt([], options.extraContext || ''));
+        const fixedTokens =
+          estimateTextTokens(baseSystem) +
+          estimateTextTokens(schemasBlock) +
+          estimateTextTokens(summaryFallbackBlock) +
+          estimateHistoryTokens(chatHistory) +
+          estimateTextTokens(question) +
+          RESPONSE_RESERVE_TOKENS; // hueco para la respuesta del modelo
+        const tokenBudget = computeChunkTokenBudget({ contextTokenLimit, fixedTokens, ragMode });
+        const { selected: allChunks, includedRecordingIds } = selectChunksWithinBudget(candidateChunks, { tokenBudget });
+
+        // Con chunks candidatos pero ninguno seleccionado: grabación excluida (sin resumen)
+        candidateRecIds.forEach(recId => {
+          if (!includedRecordingIds.includes(recId)) perRecordingMode[recId] = 'excluded';
+        });
+        if (includedRecordingIds.length < candidateRecIds.length) {
+          schemasBlock = await this._buildSchemasContext(includedRecordingIds, recordingTitles);
+        }
+
+        console.log(`[ProjectAI V2] RAG: ${allChunks.length}/${candidateChunks.length} chunks (presupuesto ${tokenBudget} tokens) de ${includedRecordingIds.length}/${recordingIds.length} grabaciones`);
 
         let systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, projectRagSystemPrompt(allChunks, options.extraContext || ''));
         if (schemasBlock) systemContent += `\n\n${schemasBlock}`;
+        if (summaryFallbackBlock) systemContent += `\n\n${summaryFallbackBlock}`;
         const historyMessages = mapHistoryToMessages(chatHistory);
         const messages = [
           { role: 'system', content: systemContent },
@@ -395,13 +456,13 @@ class ProjectAiService {
           { role: 'user', content: question },
         ];
 
-        const contextInfo = buildContextInfo({ mode: 'rag', systemContent, history: chatHistory, chunksUsed: allChunks.length });
+        const contextInfo = { ...buildContextInfo({ mode: 'rag', systemContent, history: chatHistory, chunksUsed: allChunks.length }), perRecordingMode };
         let answer = '';
         const response = await callChatProviderStreaming(messages, (chunk) => {
           answer += chunk;
           if (onChunk) onChunk(chunk);
         }, {
-          ...options,
+          ...providerOptions,
           queueMeta: { name: 'Chat del proyecto', type: AI_TASK_TYPES.CHAT },
         });
 
@@ -416,16 +477,10 @@ class ProjectAiService {
       const analysis = await this._ensureAnalysis(projectId);
       let contextText = `Información General del Proyecto:\n${analysis.resumen_breve}\n\n`;
 
-      if (recordingIds.length > 0) {
-        contextText += 'Contexto específico de grabaciones seleccionadas:\n';
-        for (const recId of recordingIds) {
-          const summaryResult = await window.electronAPI.getAiSummary(recId);
-          if (summaryResult.success && summaryResult.summary) {
-            contextText += `- Grabación ${recId}:\n${JSON.stringify(summaryResult.summary)}\n\n`;
-          }
-        }
+      if (summaryFallbackBlock) {
+        contextText += summaryFallbackBlock;
       }
-      
+
       if (options.extraContext) {
         contextText += `\n\n--- DOCUMENTOS ADJUNTOS ---${options.extraContext}\n--- FIN DOCUMENTOS ADJUNTOS ---\n`;
       }
@@ -438,13 +493,13 @@ class ProjectAiService {
         { role: 'user', content: question },
       ];
 
-      const contextInfo = buildContextInfo({ mode: 'full', systemContent, history: chatHistory });
+      const contextInfo = { ...buildContextInfo({ mode: 'full', systemContent, history: chatHistory }), perRecordingMode };
       let answer = '';
       const response = await callChatProviderStreaming(messages, (chunk) => {
         answer += chunk;
         if (onChunk) onChunk(chunk);
       }, {
-        ...options,
+        ...providerOptions,
         queueMeta: { name: 'Chat del proyecto', type: AI_TASK_TYPES.CHAT },
       });
 

@@ -698,6 +698,8 @@
 .chatContextItem {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   padding-bottom: 4px;
 }
 
@@ -709,6 +711,41 @@
   font-size: 11px;
   font-weight: 500;
   color: var(--color-text-secondary);
+}
+
+/* Badge de modo usado por grabación en la última respuesta (RAG / Resumen / Sin datos) */
+.chatContextItemBadge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Coincide con .dotActive de ContextBar (RAG) */
+.badgeRag {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+/* Coincide con .dotFull de ContextBar (modo completo/resumen) */
+.badgeSummary {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-tertiary);
+}
+
+/* Se buscó en la grabación pero sus fragmentos no fueron lo bastante relevantes */
+.badgeExcluded {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+}
+
+/* Ni RAG ni resumen disponibles para esta grabación */
+.badgeUnavailable {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 /* Header del contexto del chat (acordeón + botón re-indexar) */
