@@ -21,4 +21,25 @@ describe('aiQueueService.enqueue — meta.signal', () => {
     ac.abort();
     await expect(p).rejects.toMatchObject({ cancelled: true });
   });
+
+  it('cancels a pending task (behind a running one) when its signal aborts', async () => {
+    let release;
+    const running = aiQueueService.enqueue(() => new Promise((r) => { release = r; }), {});
+    const ac = new AbortController();
+    const fn = vi.fn().mockResolvedValue({ text: 'x' });
+    const pending = aiQueueService.enqueue(fn, { signal: ac.signal });
+    ac.abort();
+    await expect(pending).rejects.toMatchObject({ cancelled: true });
+    release({ text: 'done' });
+    await running;
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it('aborting after the task finished is a harmless no-op', async () => {
+    const ac = new AbortController();
+    await aiQueueService.enqueue(async () => ({ text: 'ok' }), { signal: ac.signal });
+    const before = aiQueueService.getState().history.length;
+    ac.abort();
+    expect(aiQueueService.getState().history.length).toBe(before);
+  });
 });

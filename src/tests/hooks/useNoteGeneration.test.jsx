@@ -30,6 +30,7 @@ describe('useNoteGeneration', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    harnessLang = undefined;
     noteGenerationStore.reset();
   });
   afterEach(() => { root?.unmount(); container?.remove(); });
@@ -51,7 +52,7 @@ describe('useNoteGeneration', () => {
     expect(api.completedCount).toBe(1);
   });
 
-  it('start/cancel/dismissError delegate to the store for this recording', async () => {
+  it('start surfaces the error and dismissError clears it', async () => {
     generateFromTemplate.mockRejectedValue(new Error('boom'));
     await mount(2);
     await act(async () => { await api.start('a'); });
@@ -89,5 +90,17 @@ describe('useNoteGeneration', () => {
     await mount(1);
     await act(async () => { await api.start('a'); });
     expect(generateFromTemplate.mock.calls[0][0]).toMatchObject({ lang: 'en' });
+  });
+
+  it('cancel aborts the running generation and leaves no error', async () => {
+    generateFromTemplate.mockImplementation(({ signal }) => new Promise((_, rej) => {
+      signal.addEventListener('abort', () => rej(Object.assign(new Error('x'), { cancelled: true })));
+    }));
+    await mount(4);
+    await act(async () => { api.start('a'); });
+    expect(api.isGenerating).toBe(true);
+    await act(async () => { api.cancel(); });
+    expect(api.isGenerating).toBe(false);
+    expect(api.error).toBeNull();
   });
 });
