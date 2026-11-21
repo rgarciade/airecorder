@@ -59,8 +59,9 @@ cd airecorder
 # 2. Install Node dependencies
 npm install
 
-# 3. Rebuild native modules for Electron
-npm rebuild better-sqlite3 --runtime=electron --target=31.7.7 --dist-url=https://electronjs.org/headers --build-from-source
+# 3. Native modules (better-sqlite3) are compiled for Electron automatically
+#    by the `postinstall` hook. If you ever need to redo it manually:
+#    npm run rebuild
 
 # 4. Install Python dependencies
 pip install -r requirements.txt
@@ -148,12 +149,61 @@ python python/audio_sync_analyzer.py \
   --basename <recording-folder-name> \
   --base_dir <path-to-recordings> \
   --model small \
+  --model_cache_dir <hf-hub-cache-dir> \
   --threads 4
 ```
 
 **ffmpeg/ffprobe bundled (`--ffmpeg` / `--ffprobe`):** in the packaged app, the manager passes explicit paths to the bundled `ffmpeg-static` and `@ffprobe-installer/ffprobe` binaries. These live in **different** directories, and pydub probes audio via a bare `ffprobe` resolved from `PATH` (it ignores `AudioSegment.ffprobe`). The analyzer therefore prepends **both** binaries' directories to `PATH`. This is required because a GUI launch (Finder/Dock/Spotlight) does not inherit a shell `PATH`, so without it audio decoding fails with `[Errno 2] No such file or directory: 'ffprobe'` and no transcript is produced.
 
 > Nota: se reemplazó `ffprobe-static` (sin mantenimiento desde 2020) por `@ffprobe-installer/ffprobe` porque el primero empaquetaba el mismo binario x86_64 tanto en `bin/darwin/x64` como en `bin/darwin/arm64`, generando el aviso "Fin de compatibilidad con apps para Intel" en macOS Apple Silicon (issue #125). `@ffprobe-installer/ffprobe` resuelve el binario nativo correcto según `os.arch()` en tiempo de instalación.
+
+### Descarga explícita de modelos Whisper (`model_resources.py`, issue #149)
+
+Desde el issue #149, la app **nunca descarga un modelo Whisper de forma implícita**. `--model` es un argumento **obligatorio** de `audio_sync_analyzer.py` (sin default a nivel de módulo) y `WHISPER_MODEL` lo fija siempre Node (`electron/services/resourceManager.js`) — nunca un fallback silencioso de Python. `load_whisper_model()` carga el modelo con `WhisperModel(WHISPER_MODEL, download_root=args.model_cache_dir, local_files_only=True)`: si el modelo no está ya en `args.model_cache_dir`, falla fuerte con `ERROR:MODEL_NOT_INSTALLED::<model>` y código de salida distinto de cero, en vez de descargarlo en caliente durante una transcripción. Esta es la capa 3 (autoritativa real) del escaneo en tres capas documentado en `design.md` del change `onboarding-whisper-downloads`.
+
+La descarga en sí vive en un módulo **separado y aislado**, `python/model_resources.py` — nunca se acopla a la lógica de transcripción. `audio_sync_analyzer.py` hace un *dispatch* temprano para el subcomando `resources`, insertado justo después de `multiprocessing.freeze_support()` y **antes** de los imports pesados (`matplotlib`, `librosa`, `faster_whisper`, ~1.5–3s):
+
+```python
+if len(sys.argv) > 1 and sys.argv[1] == "resources":
+    from model_resources import main as resources_main
+    sys.exit(resources_main(sys.argv[2:]))
+```
+
+Esto evita crear un segundo binario PyInstaller (el pipeline de build solo empaqueta un `.spec`/`python-bin`) sin pagar el costo de los imports pesados cuando solo se necesita escanear/descargar/borrar un modelo.
+
+```bash
+python python/model_resources.py scan     --cache-dir <hf-hub-cache-dir>
+python python/model_resources.py download --model small --cache-dir <hf-hub-cache-dir>
+python python/model_resources.py delete   --model small --cache-dir <hf-hub-cache-dir>
+```
+
+`model_resources.py` solo importa `huggingface_hub`, `json`, `os`, `sys`, `argparse` y, defensivamente, `faster_whisper.utils` (para reutilizar su mapa oficial `_MODELS` id→repoId, con un diccionario de respaldo local si esa API interna cambia). `download` usa `huggingface_hub.snapshot_download` con un `tqdm_class` propio que emite progreso real por stdout; `delete` usa `scan_cache_dir().delete_revisions().execute()` (maneja `blobs`/`refs`/`snapshots` correctamente — un `rm -rf` dejaría blobs huérfanos compartidos entre revisiones). Protocolo de salida, una línea = un JSON con prefijo (extiende el patrón `PROGRESS:\d+` que ya usa `transcriptionManager.js` para la transcripción):
+
+```
+PROGRESS:{"id":"small","received":123456,"total":486000000}
+DONE:{"id":"small","path":"/…/snapshots/<sha>","bytes":486000000}
+ERROR:{"id":"small","code":"network","detail":"…"}
+```
+
+**Caché fijada, no reubicada:** `resourceManager.resolveCacheDir()` (Node) resuelve `HF_HUB_CACHE` → `HF_HOME/hub` → default de `huggingface_hub` (`~/.cache/huggingface/hub` en macOS/Linux) y pasa esa ruta explícita a **todos** los procesos hijo vía `--cache-dir`/`--model_cache_dir`. Los modelos ya descargados por un usuario existente siguen exactamente donde estaban — no hay migración ni copia de caché. `python/audio_sync_analyzer.spec` declara `model_resources`, `requests`, `tqdm`, `filelock`, `fsspec` y `huggingface_hub.utils` en `hiddenimports` para que PyInstaller los incluya en el binario empaquetado.
+
+### Cancelación de eco del micrófono (`echo-cancel`, issue #174)
+
+Cuando se graba con altavoces, la pista del micrófono recoge de nuevo el audio del sistema. Al terminar la grabación, `electron/services/micEcho/micEchoService.js` lanza el subcomando offline:
+
+```bash
+python python/audio_sync_analyzer.py echo-cancel \
+  --mic rec-microphone.webm --ref rec-system.webm --out rec-echo-tmp.webm --ffmpeg <ffmpeg>
+```
+
+- Se despacha al principio de `audio_sync_analyzer.py`, antes de los imports pesados; solo necesita numpy y ffmpeg (`python/echo_cancel_cli.py` + `python/echo_canceller.py` + `python/echo_res.py`, todos en `hiddenimports` del `.spec`).
+- ffmpeg decodifica ambas pistas a mono f32 48 kHz en streaming (memoria acotada). Pasada 1: GCC-PHAT por segmentos de ~20 s (banda 100-6000 Hz) para estimar retardo, deriva de reloj (ajuste lineal, compensada con un remuestreador sinc) y coherencia. Pasada 2: filtro adaptativo por bloques particionado en frecuencia (bloque 1024, ~256 ms) con par foreground/background para el doble habla, arranque en caliente (una pre-pasada sobre los primeros ~20 s de referencia activa para que el primer tramo de audio del sistema ya salga cancelado), seguimiento de la ganancia del eco (AGC del navegador), supresor de eco residual en frecuencia (`echo_res.py`: ganancia por bin tipo Wiener a partir del eco estimado por el filtro, suavizada en tiempo y frecuencia, con suelo de atenuación y protección del habla cercana; cubre el eco no lineal que el filtro lineal no puede predecir) y vuelta local al micrófono (con crossfade) en cualquier bloque que saliera más fuerte que el original (el supresor residual también actúa sobre esos bloques, pero solo atenúa los bins que el modelo ve como eco). Salida en webm/opus 96 kbps.
+- Limitación conocida: con los altavoces y el micrófono integrados del portátil puede quedar un pequeño residuo/solape de eco justo al empezar el audio del sistema (el filtro y el supresor aún no han convergido del todo en esos primeros instantes). El archivo de salida conserva el modo (permisos) de la pista original del micrófono.
+- Salvaguardas: sin eco coherente (`no_echo`), referencia en silencio (`ref_silent`) o ERLE final insuficiente (`low_erle`) ⇒ `applied: false` y **no se escribe `--out`** (la grabación original queda intacta). El archivo resultante conserva el modo (permisos) de la pista original del micrófono. Los umbrales son parámetros con nombre en `DEFAULT_PARAMS`.
+- Orden con la transcripción: `transcriptionManager.processQueue` espera a que termine el trabajo de eco de esa grabación (`micEchoService.waitFor`) y, si un crash dejó solo `-microphone-original.webm`, restaura la pista del micrófono (`recoverMic`) antes de diarizar/transcribir. Un fallo del eco nunca bloquea la transcripción.
+- Contrato: la última línea de stdout es `ECHO_RESULT {json}` (`applied`, `reason`, `delay_ms`, `erle_db`, `drift_ppm`, ...). Ante entradas inválidas sale con código ≠ 0, imprime `ECHO_ERROR <mensaje>` en stderr y no deja `--out`.
+
+**Tests de Python (desarrollo):** `pip install -r requirements-dev.txt` (pytest + numpy) y `npm run test:py` (`pytest python/tests`, con el intérprete de `./venv` si existe; si no, el `python3` del sistema, y avisa si faltan pytest/numpy). Los tests de la CLI se saltan si no hay ffmpeg (`node_modules/ffmpeg-static` o `PATH`).
 
 ### Diarización y Extracción de Embeddings
 

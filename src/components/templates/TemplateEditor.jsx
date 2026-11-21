@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { MdClose, MdAdd, MdRemove, MdVisibility, MdSave, MdCancel } from 'react-icons/md';
 import styles from './TemplateEditor.module.css';
 

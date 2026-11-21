@@ -458,6 +458,12 @@ class ProjectAiService {
 
         const contextInfo = { ...buildContextInfo({ mode: 'rag', systemContent, history: chatHistory, chunksUsed: allChunks.length }), perRecordingMode };
         let answer = '';
+        // `options.tools`/`options.toolContext` (function-calling nativo, ver
+        // tools/index.js) viajan a través de `options` — solo los agrega el call
+        // site real de la conversación normal (`ProjectDetail.jsx#handleSendMessage`,
+        // vía `sessionOptions`). `/buscar` (searchCommand.js) reutiliza esta MISMA
+        // función pero arma su propio `{model}` sin tools, así que nunca los recibe
+        // — no hay que (ni hay que evitar) tocar nada acá para eso.
         const response = await callChatProviderStreaming(messages, (chunk) => {
           answer += chunk;
           if (onChunk) onChunk(chunk);
@@ -468,7 +474,8 @@ class ProjectAiService {
 
         return {
           text: response.text || answer || 'No he podido generar una respuesta en este momento.',
-          contextInfo
+          contextInfo,
+          pendingAction: response.pendingAction,
         };
       }
 
@@ -495,6 +502,7 @@ class ProjectAiService {
 
       const contextInfo = { ...buildContextInfo({ mode: 'full', systemContent, history: chatHistory }), perRecordingMode };
       let answer = '';
+      // Ver nota equivalente en el modo RAG arriba sobre `options.tools`/`toolContext`.
       const response = await callChatProviderStreaming(messages, (chunk) => {
         answer += chunk;
         if (onChunk) onChunk(chunk);
@@ -505,7 +513,8 @@ class ProjectAiService {
 
       return {
         text: response.text || answer || 'No he podido generar una respuesta en este momento.',
-        contextInfo
+        contextInfo,
+        pendingAction: response.pendingAction,
       };
     } catch (error) {
       if (error.cancelled) throw error;

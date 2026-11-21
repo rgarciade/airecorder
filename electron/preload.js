@@ -41,6 +41,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveSystemAudio: (audioData, fileName) => ipcRenderer.invoke('save-system-audio', audioData, fileName),
   
   // Nueva función para guardar audios por separado en carpetas
+  cancelMicEcho: (folderName) => ipcRenderer.invoke('cancel-mic-echo', folderName),
   saveSeparateAudio: (audioData, folderName, fileName, duration = 0) => ipcRenderer.invoke('save-separate-audio', audioData, folderName, fileName, duration),
 
   // NUEVAS FUNCIONES para gestión de grabaciones
@@ -86,6 +87,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Obtener transcripción en texto plano de una grabación específica
   getTranscriptionTxt: (recordingId) => ipcRenderer.invoke('get-transcription-txt', recordingId),
+
+  // Nombre de la grabación (customName o nombre de carpeta) para la cola de IA
+  getRecordingName: (recordingId) => ipcRenderer.invoke('get-recording-name', recordingId),
 
   // Guardar y leer resumen de Gemini
   saveAiSummary: (recordingId, summaryJson) => ipcRenderer.invoke('save-ai-summary', recordingId, summaryJson),
@@ -409,5 +413,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveNote: (data) => ipcRenderer.invoke('templates:saveNote', data),
     updateNote: (id, content) => ipcRenderer.invoke('templates:updateNote', id, content),
     deleteNote: (id) => ipcRenderer.invoke('templates:deleteNote', id)
+  },
+
+  // ── Inventario y descargas de modelos Whisper (resources:*) ──────────────────
+  resources: {
+    list: () => ipcRenderer.invoke('resources:list'),
+    refresh: () => ipcRenderer.invoke('resources:refresh'),
+    checkSpace: (id) => ipcRenderer.invoke('resources:check-space', id),
+    download: (id) => ipcRenderer.invoke('resources:download', id),
+    cancel: (id) => ipcRenderer.invoke('resources:cancel', id),
+    retry: (id) => ipcRenderer.invoke('resources:retry', id),
+    remove: (id) => ipcRenderer.invoke('resources:delete', id),
+    getQueue: () => ipcRenderer.invoke('resources:get-queue'),
+    onProgress: (listener) => {
+      const wrapped = (_event, payload) => listener(payload);
+      ipcRenderer.on('resources:progress', wrapped);
+      return () => ipcRenderer.removeListener('resources:progress', wrapped);
+    }
   }
 });

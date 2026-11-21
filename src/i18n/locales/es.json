@@ -67,7 +67,77 @@
       "tooShort": "El historial es demasiado corto para compactar.",
       "empty": "La IA no devolvió un resumen válido. Inténtalo de nuevo.",
       "error": "No se pudo compactar el chat. Inténtalo de nuevo."
+    },
+    "clear": {
+      "label": "Vaciar",
+      "description": "Borra todo el historial de este chat",
+      "argsPlaceholder": "Pulsa Enter para vaciar el chat",
+      "running": "Vaciando…",
+      "error": "No se pudo vaciar el chat. Inténtalo de nuevo."
+    },
+    "help": {
+      "label": "Ayuda",
+      "description": "Muestra la lista de comandos disponibles",
+      "argsPlaceholder": "Pulsa Enter para ver la ayuda",
+      "running": "Cargando ayuda…",
+      "header": "🛟 **Comandos disponibles**",
+      "error": "No se pudo mostrar la ayuda. Inténtalo de nuevo."
+    },
+    "resumen": {
+      "label": "Resumen",
+      "description": "Genera un resumen de toda la conversación sin borrar nada",
+      "argsPlaceholder": "Instrucciones opcionales, ej: céntrate en las decisiones",
+      "running": "Resumiendo…",
+      "summaryHeader": "Resumen de la conversación",
+      "tooShort": "El historial es demasiado corto para generar un resumen.",
+      "empty": "La IA no devolvió un resumen válido. Inténtalo de nuevo.",
+      "error": "No se pudo generar el resumen. Inténtalo de nuevo."
+    },
+    "tareas": {
+      "label": "Tareas",
+      "description": "Extrae tareas de la conversación y las guarda",
+      "argsPlaceholder": "Instrucciones opcionales, ej: céntrate en el backend",
+      "running": "Extrayendo tareas…",
+      "tooShort": "La conversación es demasiado corta para extraer tareas.",
+      "summaryHeader": "{{count}} tarea(s) añadida(s)",
+      "updatedHeader": "{{count}} tarea(s) actualizada(s)",
+      "deletedHeader": "{{count}} tarea(s) eliminada(s)",
+      "discardedNotice": "Se ignoraron {{count}} cambio(s) propuesto(s) por la IA sobre tareas existentes: para actualizar o borrar tareas ya creadas hace falta indicar instrucciones explícitas en /tareas.",
+      "none": "No se encontraron tareas claras en esta conversación.",
+      "noTarget": "No se pudo determinar dónde guardar las tareas.",
+      "error": "No se pudieron extraer las tareas. Inténtalo de nuevo."
+    },
+    "nota": {
+      "label": "Nota",
+      "description": "Genera una nota en Markdown a partir de la conversación",
+      "argsPlaceholder": "Instrucciones opcionales, ej: céntrate en las conclusiones",
+      "running": "Generando nota…",
+      "tooShort": "La conversación es demasiado corta para generar una nota.",
+      "summaryHeader": "Nota generada y guardada",
+      "empty": "La IA no devolvió contenido válido para la nota. Inténtalo de nuevo.",
+      "noTarget": "No se pudo determinar en qué grabación guardar la nota.",
+      "projectUnsupported": "/nota no está disponible en el chat de proyecto (las notas solo se guardan por grabación).",
+      "error": "No se pudo generar la nota. Inténtalo de nuevo."
+    },
+    "buscar": {
+      "label": "Buscar",
+      "description": "Busca una respuesta puntual forzando modo RAG detallado",
+      "argsPlaceholder": "Escribe tu pregunta, ej: /buscar ¿qué se decidió sobre el presupuesto?",
+      "running": "Buscando…",
+      "emptyQuery": "Escribe una pregunta después de /buscar.",
+      "noTarget": "No se pudo determinar dónde buscar.",
+      "notIndexed": "Esta grabación aún no está indexada para búsqueda. Espera a que termine de indexarse e inténtalo de nuevo.",
+      "noResults": "No se encontraron fragmentos relevantes para esa pregunta.",
+      "error": "No se pudo completar la búsqueda. Inténtalo de nuevo."
     }
+  },
+  "chatPendingAction": {
+    "cancelled": "Cancelado, no se realizó ningún cambio.",
+    "created": "✅ Tarea creada: {{title}}",
+    "updated": "🔄 Tarea actualizada: {{title}}",
+    "deleted": "🗑️ Tarea eliminada: {{title}}",
+    "error": "No se pudo completar la acción.",
+    "chosen": "Elegiste: {{option}}"
   },
   "modelInfo": {
     "title": "Modelos recomendados",
@@ -106,6 +176,7 @@
     "micNotFound": "⚠️ No se encontró ningún micrófono.\n\nPor favor, conecta un micrófono e intenta de nuevo.",
     "errorStartingRecording": "No se pudo iniciar la grabación: {{error}}",
     "errorTranscribing": "Error iniciando transcripción: {{error}}",
+    "noModelInstalledConfirm": "⚠️ No tienes ningún modelo Whisper instalado para transcribir con tu configuración actual.\n\nPor favor, descarga un modelo en Ajustes → Transcripción → Modelos y descargas.\n\n¿Quieres ir a Ajustes ahora?",
     "errorImporting": "Error importando la transcripción: {{error}}",
     "errorImportingAudio": "Error importando audio: {{error}}",
     "errorImportingConversation": "Error al importar la conversación",
@@ -178,6 +249,12 @@
     "extraInstructionsPlaceholder": "Ej: Reunión de planificación del sprint con el equipo frontend. Foco en decisiones técnicas y asignación de tareas...",
     "discardDiarization": "Descartar diarización (identificación de hablantes) en esta reunión"
   },
+  "downloadIndicator": {
+    "title": "Descargas de modelos",
+    "activeLabel": "{{model}} · {{percent}}%",
+    "errorLabel": "{{count}} descarga(s) con error",
+    "summary": "{{done}} de {{total}} descargas"
+  },
   "settings": {
     "title": "Ajustes de AIRecorder",
     "subtitle": "Configuración",
@@ -240,6 +317,7 @@
       "recentMeetings": "Cuántas grabaciones recientes se muestran en los highlights del resumen de proyecto.",
       "microphone": "Selecciona el dispositivo de entrada para tus grabaciones.",
       "whisperModel": "Elige el modelo por defecto para nuevas transcripciones. Los modelos pequeños son más rápidos pero menos precisos.",
+      "whisperModelNoneInstalled": "No tienes ningún modelo Whisper instalado. Descarga uno en la sección \"Modelos y descargas\" de abajo antes de transcribir.",
       "cpuThreads": "Más hilos aumentan la velocidad de transcripción pero consumen más recursos del ordenador.",
       "ragModel": "Modelo específico para responder consultas RAG (ej: deepseek-r1). Dejar vacío para usar el modelo principal.",
       "generalModel": "Modelo utilizado para resúmenes, análisis y tareas de procesamiento.",
@@ -248,7 +326,8 @@
       "databasePath": "Cambia dónde se guarda la base de datos. Se recomienda usar la ruta por defecto.",
       "contextLengthInput": "Deja vacío para detectarlo automáticamente en cada generación, o introduce el valor manualmente.",
       "contextLengthOllama": "Encuéntralo ejecutando: ollama show <modelo> --verbose (campo num_ctx)",
-      "contextLengthLmStudio": "Encuéntralo en LM Studio, en la sección \"My Models\" → opciones avanzadas del modelo cargado."
+      "contextLengthLmStudio": "Encuéntralo en LM Studio, en la sección \"My Models\" → opciones avanzadas del modelo cargado.",
+      "contextLengthCodex": "Codex no expone este dato por ninguna API — deja vacío para usar un valor estimado por defecto, o indica el límite real de tu modelo si lo conoces."
     },
     "themes": {
       "system": "Sistema (por defecto)",
@@ -266,7 +345,48 @@
       "base": "Base",
       "small": "Small (Recomendado)",
       "medium": "Medium",
-      "large": "Large (Preciso)"
+      "large": "Large (Preciso)",
+      "large-v3": "Large v3 (Preciso)",
+      "notInstalledSuffix": "{{model}} (no instalado — ir a Ajustes)"
+    },
+    "diskSpace": {
+      "loading": "Calculando espacio en disco…",
+      "unavailable": "Espacio en disco no disponible",
+      "freeOfTotal": "{{free}} libres de {{total}}"
+    },
+    "modelsSection": {
+      "title": "Modelos y descargas",
+      "loadError": "No se pudo cargar el listado de modelos. Comprobá tu conexión o intentá de nuevo.",
+      "states": {
+        "notInstalled": "No descargado",
+        "queued": "En cola",
+        "downloading": "Descargando",
+        "installed": "Listo",
+        "deleting": "Eliminando…",
+        "error": "Falló"
+      },
+      "errors": {
+        "insufficientSpace": "Espacio insuficiente",
+        "network": "Error de conexión",
+        "cancelled": "Cancelado",
+        "unknown": "Error desconocido"
+      },
+      "confirm": {
+        "downloadTitle": "Descargar modelo",
+        "purpose": "Se descargará el modelo \"{{model}}\" para transcripción con Whisper.",
+        "size": "Tamaño de la descarga: {{size}}",
+        "free": "Espacio libre actual: {{free}}",
+        "remaining": "Espacio libre estimado tras la descarga: {{remaining}}",
+        "insufficientSpace": "No hay espacio suficiente para descargar este modelo (libre: {{free}}, requerido: {{required}}).",
+        "spaceUnavailable": "No pudimos verificar el espacio libre en disco (tamaño de la descarga: {{required}}). ¿Querés continuar de todos modos?",
+        "deleteTitle": "Eliminar modelo",
+        "freedSpace": "Se liberará aproximadamente {{size}} de espacio en disco.",
+        "deleteError": "No se pudo eliminar el modelo. Intentá de nuevo. (Código: {{error}})"
+      },
+      "deleteGuard": {
+        "defaultModel": "No se puede eliminar: es el modelo por defecto configurado en Ajustes. Elegí otro modelo por defecto antes de eliminarlo.",
+        "inQueue": "No se puede eliminar: hay transcripciones pendientes o en curso que usan este modelo."
+      }
     },
     "providers": {
       "ollamaActive": "Ollama Activo",
@@ -306,7 +426,19 @@
         "medium": "Medio",
         "high": "Alto",
         "xhigh": "Extra alto"
-      }
+      },
+      "glmName": "GLM",
+      "glmDesc": "GLM de Z.AI (Coding Plan)",
+      "glmBeta": "GLM está en beta: no se ha podido probar con una cuenta real de Z.AI. Si encuentras problemas, abre una incidencia en https://github.com/rgarciade/airecorder/issues para que se pueda corregir.",
+      "glmEmbeddingNotice": "GLM no ofrece embeddings. Elige otro proveedor de embeddings.",
+      "glmEndpointMode": "Endpoint",
+      "glmEndpointModes": {
+        "plan": "Coding Plan",
+        "general": "API general"
+      },
+      "glmBaseUrl": "URL base personalizada (opcional)",
+      "glmBaseUrlHelp": "Si se rellena, sustituye al endpoint elegido (por ejemplo, un endpoint de bigmodel.cn).",
+      "glmModelsFallback": "No se pudo obtener la lista de modelos de GLM; se muestran modelos predeterminados."
     },
     "buttons": {
       "save": "Guardar Ajustes",
@@ -324,7 +456,10 @@
       "checking": "Comprobando...",
       "cancel": "Cancelar",
       "detect": "Detectar",
-      "inUse": "usados"
+      "inUse": "usados",
+      "retry": "Reintentar",
+      "delete": "Eliminar",
+      "continueAnyway": "Continuar de todos modos"
     },
     "messages": {
       "saveSuccess": "Ajustes guardados con éxito",
@@ -763,6 +898,7 @@
     "steps": {
       "welcome": "Bienvenido a AIRecorder",
       "aiInfo": "Conoce la IA Local",
+      "model": "Modelo de Transcripción",
       "ai": "Configuración de IA",
       "permissions": "Permisos del Sistema",
       "preferences": "Preferencias",
@@ -850,6 +986,10 @@
         "description": "Modelos GPT de OpenAI. Requiere API key de OpenAI.",
         "apiKeyLabel": "OpenAI API Key"
       },
+      "glm": {
+        "description": "Modelos GLM de Z.AI (Coding Plan). Requiere API key de Z.AI.",
+        "apiKeyLabel": "Z.AI API Key"
+      },
       "gemini": {
         "description": "Modelos Gemini de Google. Requiere API key de Google AI Studio.",
         "apiKeyLabel": "Google AI API Key"
@@ -907,6 +1047,14 @@
       "changeBtn": "Cambiar",
       "nextBtn": "Siguiente paso",
       "optional": "Opcional"
+    },
+    "model": {
+      "title": "Modelo de transcripción",
+      "subtitle": "Elige el modelo de Whisper que usará AIRecorder para transcribir tus grabaciones. Podés descargarlo ahora o más tarde desde Ajustes — el onboarding no espera a que termine.",
+      "loading": "Cargando catálogo de modelos…",
+      "loadError": "No se pudo cargar el catálogo de modelos. Podés continuar y descargarlo más tarde desde Ajustes.",
+      "downloadBtn": "Descargar",
+      "nextBtn": "Siguiente paso"
     },
     "footer": {
       "back": "Atrás"

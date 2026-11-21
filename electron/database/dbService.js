@@ -434,7 +434,7 @@ class DbService {
   // ── Note Templates ──────────────────────────────────────────────────────────
 
   // Returns ALL templates (for settings UI)
-  listTemplates(...args) {
+  listTemplates() {
     if (!this.db) return [];
     try {
       return this.db.prepare(templateQueries.LIST_TEMPLATES).all();
@@ -445,7 +445,7 @@ class DbService {
   }
 
   // Returns only enabled templates (for note creation selector)
-  listEnabledTemplates(...args) {
+  listEnabledTemplates() {
     if (!this.db) return [];
     try {
       return this.db.prepare(templateQueries.LIST_ENABLED_TEMPLATES).all();

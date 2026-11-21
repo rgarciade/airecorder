@@ -5,10 +5,10 @@ on:
     branches:
       - main
     paths:
-      - 'docs/vp-src/**'
-      - 'docs/.vitepress/**'
-      - 'docs/sitemap.xml'
-      - 'docs/*.html'
+      - 'web-docs/vp-src/**'
+      - 'web-docs/.vitepress/**'
+      - 'web-docs/sitemap.xml'
+      - 'web-docs/*.html'
   workflow_dispatch:
 
 permissions:
@@ -34,19 +34,19 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-        working-directory: docs
+        working-directory: web-docs
 
       - name: Build VitePress docs
         run: npx vitepress build .
-        working-directory: docs
+        working-directory: web-docs
 
       - name: Remove node_modules before upload
-        run: rm -rf docs/node_modules
+        run: rm -rf web-docs/node_modules
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs
+          path: web-docs
 
   deploy:
     needs: build

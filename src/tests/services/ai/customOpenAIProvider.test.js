@@ -98,4 +98,75 @@ describe('customOpenAIProvider', () => {
 
     await expect(provider.sendMessage('x')).rejects.toThrow(/Custom OpenAI Error: 401.*bad key/);
   });
+
+  describe('apiPrefix and errorLabel options', () => {
+    it('posts to `${baseUrl}/chat/completions` when apiPrefix is empty', async () => {
+      const provider = new CustomOpenAIProvider({
+        baseUrl: 'https://api.z.ai/api/coding/paas/v4',
+        apiKey: 'glm-key',
+        model: 'glm-5.2',
+        apiPrefix: '',
+      });
+
+      await provider.sendMessage('hi');
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://api.z.ai/api/coding/paas/v4/chat/completions',
+        expect.any(Object)
+      );
+    });
+
+    it('lists models from `${baseUrl}/models` when apiPrefix is empty', async () => {
+      fetchSpy.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ data: [{ id: 'glm-5.2' }] }),
+      });
+      const provider = new CustomOpenAIProvider({
+        baseUrl: 'https://api.z.ai/api/coding/paas/v4',
+        apiKey: 'glm-key',
+        model: 'glm-5.2',
+        apiPrefix: '',
+      });
+
+      await provider.listModels();
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://api.z.ai/api/coding/paas/v4/models',
+        expect.any(Object)
+      );
+    });
+
+    it('keeps the /v1 prefix when no apiPrefix is given', async () => {
+      const provider = new CustomOpenAIProvider({
+        baseUrl: 'https://api.example.com',
+        apiKey: 'k',
+        model: 'm',
+      });
+
+      await provider.sendMessage('hi');
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://api.example.com/v1/chat/completions',
+        expect.any(Object)
+      );
+    });
+
+    it('uses errorLabel in the error text', async () => {
+      fetchSpy.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({ error: { message: 'invalid api key' } }),
+      });
+      const provider = new CustomOpenAIProvider({
+        baseUrl: 'https://api.z.ai/api/coding/paas/v4',
+        apiKey: 'bad',
+        model: 'glm-5.2',
+        apiPrefix: '',
+        errorLabel: 'GLM',
+      });
+
+      await expect(provider.sendMessage('x')).rejects.toThrow('GLM Error: 401 — invalid api key');
+    });
+  });
 });

@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { startRecording } from '../../store/recordingSlice';
 import { MixedAudioRecorder, getSystemMicrophones } from '../../services/audioService';
 import { getSettings } from '../../services/settingsService';
+import { resolveTranscribableModel } from '../../utils/resolveTranscribableModel';
 import recordingsService from '../../services/recordingsService';
 import recordingAiService from '../../services/recordingAiService';
 import { callProvider, validateProviderConfig } from '../../services/ai/providerRouter';
@@ -15,7 +16,7 @@ import NewSessionCard from './components/NewSessionCard';
 import StatsRow from './components/StatsRow';
 import RecordingCard from '../../components/RecordingCard/RecordingCard';
 
-export default function Home({ onSettings, onProjects, onRecordingStart, onRecordingSelect, onNavigateToProject, refreshTrigger }) {
+export default function Home({ onSettings, onProjects, onRecordingStart, onRecordingSelect, refreshTrigger }) {
   const { t } = useTranslation();
   const dispatch = useDispatch();
   const { isRecording } = useSelector((state) => state.recording);
@@ -23,7 +24,7 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
   const [recordings, setRecordings] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [, setError] = useState(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
   
   // Pagination
@@ -239,13 +240,24 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
 
   const handleTranscribe = async (recordingId) => {
     try {
-      const settings = await getSettings();
-      const defaultModel = settings.whisperModel || 'small';
-      
-      const result = await window.electronAPI.transcribeRecording(recordingId, defaultModel);
-      
+      // INV6 (design.md — "Fuente única para los 4 selectores"): Home no
+      // tiene selector propio, resuelve `settings.whisperModel` de forma
+      // implícita — si ese modelo no está instalado, bloquea ANTES de
+      // encolar (mismo criterio que ya aplica `transcriptionManager` en el
+      // backend, PR1) y ofrece ir a Ajustes en vez de encolar una tarea que
+      // el backend rechazaría de todos modos.
+      const { modelId, installed } = await resolveTranscribableModel({ getSettings });
+      if (!installed) {
+        if (window.confirm(t('home.noModelInstalledConfirm'))) {
+          onSettings?.('general', 'models-and-downloads-section');
+        }
+        return;
+      }
+
+      const result = await window.electronAPI.transcribeRecording(recordingId, modelId);
+
       if (result.success) {
-        loadRecordings(); 
+        loadRecordings();
       } else {
         alert(t('home.errorTranscribing', { error: result.error }));
       }
@@ -473,10 +485,16 @@ export default function Home({ onSettings, onProjects, onRecordingStart, onRecor
         }
       }
 
-      // Iniciar transcripción automáticamente
-      const settings = await getSettings();
-      const defaultModel = settings.whisperModel || 'small';
-      await window.electronAPI.transcribeRecording(recordingId || recordingPath, defaultModel);
+      // Iniciar transcripción automáticamente — INV6: solo si el modelo
+      // resuelto está instalado (ver `handleTranscribe` más arriba). Si no
+      // lo está, se omite el encolado (no se bloquea el resto del flujo de
+      // importación: renombrado/selección de la grabación ya ocurrieron).
+      const { modelId, installed } = await resolveTranscribableModel({ getSettings });
+      if (installed) {
+        await window.electronAPI.transcribeRecording(recordingId || recordingPath, modelId);
+      } else if (window.confirm(t('home.noModelInstalledConfirm'))) {
+        onSettings?.('general', 'models-and-downloads-section');
+      }
 
       const list = await loadRecordings();
       if (onRecordingSelect) {

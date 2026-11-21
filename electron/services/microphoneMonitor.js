@@ -64,7 +64,7 @@ class MicrophoneMonitor extends EventEmitter {
         { timeout: 30000 },
         (err, _stdout, stderr) => {
           this._compiling = false;
-          try { fs.unlinkSync(tmpSrc); } catch {}
+          try { fs.unlinkSync(tmpSrc); } catch { /* el fichero temporal puede no existir */ }
           if (err) {
             console.error('[MicrophoneMonitor] Error compilación:', stderr || err.message);
             reject(new Error(stderr || err.message));

@@ -10,7 +10,7 @@ describe('CodexLoginControls', () => {
   let root; let container;
   afterEach(() => { root?.unmount(); container?.remove(); delete window.electronAPI; });
   it('renders structured progress, cancels by requestId, resolves success and cleans listener', async () => {
-    let listener; let resolve; const unsubscribe = vi.fn(); const start = vi.fn(id => new Promise(r => { resolve = r; }));
+    let listener; let resolve; const unsubscribe = vi.fn(); const start = vi.fn(_id => new Promise(r => { resolve = r; }));
     window.electronAPI = { startCodexLogin: start, cancelCodexLogin: vi.fn(), onCodexLoginProgress: fn => { listener = fn; return unsubscribe; } };
     container = document.createElement('div'); document.body.append(container); root = createRoot(container);
     await act(async () => root.render(<CodexLoginControls t={t} onStatus={vi.fn()} />));

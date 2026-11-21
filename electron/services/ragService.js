@@ -4,6 +4,7 @@ const path = require("path");
 const embeddingService = require("./embeddingService");
 const { resolveSpeakersInText } = require("./speakerResolver");
 const dbService = require("../database/dbService");
+const { getRecordingsPath } = require("../utils/paths");
 
 // Umbral: transcripciones menores a este valor no usan RAG
 const MIN_TEXT_LENGTH_FOR_RAG = 8000; // ~2000 tokens

@@ -40,7 +40,7 @@ Valida que la respuesta tenga formato semver (`X.Y.Z`). Si el usuario pasa la ve
 Sigue exactamente el flujo de la skill `release-notes` a partir del Paso 2 (ya tienes la versión, no hace falta pedirla de nuevo):
 
 1. Lee commits con `git log $(git tag --sort=-version:refname | head -1)..HEAD --oneline --no-merges`
-2. Lee `src/data/whatsNew.json` y `docs/changelog.html` como referencia de estructura
+2. Lee `src/data/whatsNew.json` y `web-docs/changelog.html` como referencia de estructura
 3. Agrupa cambios por tipo (feat/fix/etc.), omite chore/ci/test
 4. **Propón los cambios al usuario** y espera su confirmación antes de escribir:
    ```
@@ -55,7 +55,7 @@ Sigue exactamente el flujo de la skill `release-notes` a partir del Paso 2 (ya t
 
    ¿Quieres ajustar algo antes de continuar?
    ```
-5. Tras confirmación: actualiza `src/data/whatsNew.json` y añade el entry en `docs/changelog.html`
+5. Tras confirmación: actualiza `src/data/whatsNew.json` y añade el entry en `web-docs/changelog.html`
 
 ---
 
@@ -84,7 +84,7 @@ Muestra un resumen de todo lo que se hará y pide confirmación explícita:
 
 Archivos actualizados:
   ✅ src/data/whatsNew.json
-  ✅ docs/changelog.html
+  ✅ web-docs/changelog.html
   ✅ package.json → "version": "X.Y.Z"
 
 A continuación se ejecutará (verificación local, no es el release final):
@@ -187,7 +187,7 @@ PRÓXIMOS PASOS (manuales):
   1. Revisa el DMG local y prueba la app
 
   2. Commit de los cambios:
-       git add package.json src/data/whatsNew.json docs/changelog.html
+       git add package.json src/data/whatsNew.json web-docs/changelog.html
        git commit -m "chore: release vX.Y.Z"
 
   3. Crea el tag anotado (usa el mensaje generado arriba):

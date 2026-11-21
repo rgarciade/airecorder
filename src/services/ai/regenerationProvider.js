@@ -1,6 +1,7 @@
 export const REGENERATION_PROVIDER_OPTIONS = [
   { value: 'gemini', label: 'Gemini (Google)' },
   { value: 'openai', label: 'OpenAI' },
+  { value: 'glm', label: 'GLM (Z.AI)' },
   { value: 'codex', label: 'Codex (ChatGPT subscription)' },
   { value: 'deepseek', label: 'DeepSeek' },
   { value: 'kimi', label: 'Kimi (Moonshot)' },

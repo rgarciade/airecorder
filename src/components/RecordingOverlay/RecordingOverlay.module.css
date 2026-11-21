@@ -7,6 +7,17 @@
 
 }
 
+/* Modificador (design.md D9): cuando el overlay convive con el bocadillo
+   global de descargas dentro de `<BottomLeftStack>` (`column-reverse`),
+   neutraliza el posicionamiento propio para participar del layout flex
+   compartido en vez de superponerse. */
+.inStack {
+  position: static;
+  bottom: auto;
+  left: auto;
+  z-index: auto;
+}
+
 .container {
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-status-blocked-border);

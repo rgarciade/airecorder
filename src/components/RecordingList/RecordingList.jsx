@@ -111,6 +111,7 @@ export default function RecordingList({ onRecordingSelect, onNavigateToProject }
         }
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- durations se escribe desde este mismo efecto; añadirlo lo relanzaría tras cada duración resuelta
   }, [recordings]);
 
   const loadRecordings = async () => {
@@ -133,15 +134,6 @@ export default function RecordingList({ onRecordingSelect, onNavigateToProject }
       setError('Error al cargar las grabaciones');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDownload = async (e, recording) => {
-    e.stopPropagation();
-    try {
-      await recordingsService.downloadRecording(recording.id);
-    } catch (err) {
-      alert('Error al descargar la grabación');
     }
   };
 

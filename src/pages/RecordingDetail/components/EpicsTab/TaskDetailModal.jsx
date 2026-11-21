@@ -48,6 +48,7 @@ export default function TaskDetailModal({
     if (getComments) {
       getComments(task.id).then(setComments);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- carga de comentarios por tarea; getComments llega del padre y no es estable
   }, [task.id]);
 
   const handleSave = () => {

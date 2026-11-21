@@ -4,6 +4,8 @@ const fs = require('fs');
 const { app } = require('electron');
 const dbService = require('../database/dbService');
 const notificationService = require('./notificationService');
+const resourceManager = require('./resourceManager');
+const { micEchoService } = require('./micEcho/micEchoService');
 const { getSetting } = require('../utils/paths');
 const ffprobeInstaller = require('@ffprobe-installer/ffprobe');
 
@@ -99,11 +101,22 @@ class TranscriptionManager {
         return { success: false, error: 'Already queued' };
     }
 
+    // Bloqueo pre-spawn (D8, INV6, DL1): el modelo activo lo decide siempre
+    // resourceManager, nunca un fallback silencioso de Python. Si el modelo
+    // resuelto (explícito o default de settings) no está instalado, la tarea
+    // NO se encola — se bloquea con un error accionable para que la UI
+    // redirija a Ajustes → Modelos y descargas en lugar de fallar después.
+    const model = options.model || getSetting('whisperModel', 'small');
+    if (!resourceManager.isInstalled(model)) {
+        console.warn(`[Manager] Modelo "${model}" no está instalado. Bloqueando encolado para recording ${numericId}.`);
+        return { success: false, error: 'MODEL_NOT_INSTALLED', model };
+    }
+
     if (typeof options.skipDiarization === 'boolean') {
         dbService.setSkipDiarization(numericId, options.skipDiarization);
     }
 
-    const taskId = dbService.enqueueTask(numericId, options.model);
+    const taskId = dbService.enqueueTask(numericId, model);
     console.log(`[Manager] Tarea encolada con taskId=${taskId}`);
     this.notifyUpdate();
     this.processQueue();
@@ -138,6 +151,26 @@ class TranscriptionManager {
     this.notifyUpdate();
 
     try {
+        // The mic track may still be swapped for its echo-cancelled version (#174):
+        // wait for that job so diarization/transcription read the final file.
+        let pending = null;
+        try {
+            pending = dbService.getRecordingById(nextTask.recording_id);
+            if (pending && pending.relative_path) {
+                await micEchoService.waitFor(pending.relative_path);
+            }
+        } catch (echoError) {
+            console.warn('[Manager] Mic echo wait failed, continuing:', echoError.message);
+        }
+        // Crash recovery runs even if the wait failed: never proceed with the mic track missing.
+        if (pending && pending.relative_path) {
+            try {
+                await micEchoService.recoverMic?.(path.join(this.basePath, pending.relative_path), pending.relative_path);
+            } catch (recoverError) {
+                console.warn('[Manager] Mic recovery failed, continuing:', recoverError.message);
+            }
+        }
+
         const { settingsPath } = require('../utils/paths');
         let diarizationFile = null;
         
@@ -305,7 +338,25 @@ runTranscriptionProcess(task, diarizationFile, onProgress) {
 
         const args = [...execArgs, '--basename', folderName];
         if (this.basePath) args.push('--base_dir', this.basePath);
-        if (task.model) args.push('--model', task.model);
+
+        // Regresión de filas legacy (`transcription_queue.model = NULL` de
+        // instalaciones previas a este cambio): antes, Python caía a un
+        // default ('small') porque `--model` tenía `default="small"` en el
+        // parser. Ahora `--model` es `required=True` (correcto para tareas
+        // NUEVAS, que ya resuelven el modelo en el gate de `addTask`), así
+        // que acá resolvemos el mismo fallback ANTES de spawnear — mismo
+        // mecanismo que usa `addTask()` — en vez de mandarle a Python un
+        // `--model` faltante y que reviente con un crash de argparse.
+        const resolvedModel = task.model || getSetting('whisperModel', 'small');
+        if (!resourceManager.isInstalled(resolvedModel)) {
+            reject(new Error(`MODEL_NOT_INSTALLED::${resolvedModel}`));
+            return;
+        }
+        args.push('--model', resolvedModel);
+        // D2: misma resolución de caché que usa resourceManager para
+        // descargar — nunca reubica la caché, solo la fija explícita.
+        const modelCacheDir = resourceManager.getSnapshot().cacheDir || resourceManager.resolveCacheDir();
+        if (modelCacheDir) args.push('--model_cache_dir', modelCacheDir);
         if (ffmpegPath && fs.existsSync(ffmpegPath)) args.push('--ffmpeg', ffmpegPath);
         if (ffprobePath && fs.existsSync(ffprobePath)) args.push('--ffprobe', ffprobePath);
         if (diarizationFile) args.push('--diarization_file', diarizationFile);
@@ -316,7 +367,9 @@ runTranscriptionProcess(task, diarizationFile, onProgress) {
                 const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
                 if (settings.cpuThreads) args.push('--threads', settings.cpuThreads.toString());
             }
-        } catch (e) {}
+        } catch (e) {
+            console.warn('[Manager] No se pudo leer cpuThreads de la configuración:', e.message);
+        }
 
         const spawnEnv = { ...process.env, PYTHONUNBUFFERED: '1', PYTHONIOENCODING: 'utf-8' };
         if (ffmpegPath && fs.existsSync(ffmpegPath)) {
@@ -356,7 +409,7 @@ runTranscriptionProcess(task, diarizationFile, onProgress) {
             if (code === 0) {
                 dbService.updateStatus(folderName, 'transcribed');
                 dbService.updateRagStatus(folderName, null);
-                if (task.model) dbService.updateTranscriptionModel(folderName, task.model);
+                dbService.updateTranscriptionModel(folderName, resolvedModel);
                 this.updateDurationIfNeeded(folderName);
                 notificationService.show('Transcripción Completada', `La transcripción de "${folderName}" ha finalizado.`);
                 if (getSetting('autoAnalyze', true) !== false && this.onAutoAnalyzeCallback) {

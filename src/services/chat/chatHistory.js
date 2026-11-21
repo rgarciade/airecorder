@@ -35,6 +35,13 @@ export function normalizeChatHistory(history) {
         contenido: item.contenido,
         fecha: item.fecha,
         adjuntos: item.adjuntos || [],
+        // Reenviamos `pendingAction` tal cual si el mensaje lo trae (ver
+        // providerRouter.js#_runToolCallingLoop) — sin este passthrough, este
+        // mismo objeto literal lo descartaría silenciosamente antes de llegar a
+        // ChatInterface.jsx, que es quien lo lee para renderizar los botones de
+        // confirmación. No aplica a los casos 2/3 (pares pregunta/respuesta
+        // legacy): un `pendingAction` solo existe en mensajes individuales V2.
+        ...(item.pendingAction !== undefined ? { pendingAction: item.pendingAction } : {}),
       }];
     }
 
@@ -52,6 +59,14 @@ export function normalizeChatHistory(history) {
         tipo: 'asistente',
         contenido: item.respuesta,
         fecha: item.fecha,
+        // Mismo passthrough que el Caso 1 (ver comentario de arriba) — sin esto, un
+        // `pendingAction` persistido junto a un par pregunta/respuesta (ver
+        // RecordingDetailWithTranscription.jsx#handleAskQuestion) se perdería al
+        // recargar el historial desde disco, y los botones de confirmación
+        // desaparecerían tras cualquier recarga (bug real: la suscripción a
+        // chatPendingService recarga el historial justo después de crear el
+        // mensaje, y sin este fix pisaba la versión con pendingAction).
+        ...(item.pendingAction !== undefined ? { pendingAction: item.pendingAction } : {}),
       });
     }
     return msgs;

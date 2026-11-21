@@ -97,7 +97,7 @@ const AiConfigStep = ({
           <>
             <CloudProviderCards
               t={t} activeAiRole={activeAiRole} aiProvider={aiProvider} setAiProvider={setAiProvider}
-              openai={ctx.openai} gemini={ctx.gemini} kimi={ctx.kimi} deepseek={ctx.deepseek}
+              openai={ctx.openai} glm={ctx.glm} gemini={ctx.gemini} kimi={ctx.kimi} deepseek={ctx.deepseek}
             />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-4">
               <CustomConnectionCard

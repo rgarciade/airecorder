@@ -37,6 +37,17 @@ a = Analysis(
         'av',
         'tokenizers',
         'huggingface_hub',
+        # Gestion de descargas de modelos (model_resources.py, dispatch "resources")
+        'model_resources',
+        # Offline mic echo cancellation (dispatch "echo-cancel", #174)
+        'echo_canceller',
+        'echo_res',
+        'echo_cancel_cli',
+        'requests',
+        'tqdm',
+        'filelock',
+        'fsspec',
+        'huggingface_hub.utils',
         # Audio
         'librosa',
         'librosa.util',

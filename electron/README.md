@@ -71,6 +71,18 @@ ipcMain.handle('mi-evento', async (event, params) => {
 *   **Puente Seguro:** `preload.js` expone de forma segura (Context Bridge) las funciones necesarias al renderizador, mapeándolas con `ipcRenderer.invoke()`.
 *   **Backend al React:** El backend puede enviar eventos no solicitados (como actualizaciones de estado de transcripción) utilizando `win.webContents.send('evento-nombre', datos)`. El frontend debe tener listeners (ej. `window.electronAPI.onQueueUpdate()`).
 
+### IPC: `get-recording-name` — nombre en la cola de IA
+
+`ipc-handlers/recordings.js` expone `get-recording-name(recordingId)` → `{ success: true, name }` o `{ success: false, error }`. `name` es el `customName` de `metadata.json` (si es un string no vacío) o, si no, el nombre de la carpeta resuelta (`basename`, no el id numérico); rechaza ids vacíos, absolutos, con `..` o cuya ruta resuelta quede fuera de la carpeta de grabaciones (contención). Se usa desde `recordingsService.getRecordingName()` para el título de `queueMeta.name` en `recordingAiService`.
+
+### IPC: `cancel-mic-echo` — cancelación de eco del micrófono (issue #174)
+
+- `window.electronAPI.cancelMicEcho(folderName)` se dispara (sin await) desde `MixedAudioRecorder.handleSeparateRecordingStop` tras guardar ambas pistas y antes de `onStop`.
+- El handler (`ipc-handlers/audio.js`) reserva el trabajo de forma síncrona (`micEchoService.reserve`), resuelve `<recordingsPath>/<folder>` y llama a `micEchoService.cancelMicEcho(dir, folder)`. Devuelve `{ success, applied?, reason?, error? }` y nunca rechaza.
+- `services/micEcho/micEchoService.js` (`createMicEchoService({ runEchoCancel, fs, logger })`): usa `{base}-system.webm` como referencia y lanza el subcomando `echo-cancel --mic --ref --out --ffmpeg` del analizador Python (resolución de binario/ffmpeg en `utils/pythonCommand.js`).
+- Contrato de nombres: `{base}-microphone.webm` (pista limpia si hubo eco), `{base}-microphone-original.webm` (original, solo si se aplicó), `{base}-echo-tmp.webm` (temporal), `analysis/echo_cancellation.json` (informe). Idempotente (la fuente es el original si existe), con recuperación y rollback ante fallos.
+- `transcriptionManager.processQueue` hace `await micEchoService.waitFor(recording.relative_path)` y luego `micEchoService.recoverMic(<carpeta>, base)` antes de diarizar/transcribir; un fallo del eco nunca bloquea la transcripción. `recoverMic` restaura `-microphone.webm` desde `-microphone-original.webm` si un crash dejó solo el original (idempotente, nunca lanza). Dos llamadas concurrentes a `cancelMicEcho` para la misma grabación comparten la misma ejecución (la segunda devuelve la promesa en curso), así que el barrido nunca borra el temporal de una ejecución viva. `get-recording-folders` excluye de `files` los ficheros internos del eco (`-microphone-original`, `-echo-tmp`, `.echo-*.webm`). Al procesar una grabación se borran temporales huérfanos (`.echo-*.webm`, `-echo-tmp.webm`). El timeout del runner Python es `max(5 min, 3x duración del audio)` (30 min si no se puede leer la duración).
+
 ### IPC: `transcribe-recording` — descarte puntual de diarización
 
 `ipc-handlers/transcription.js` expone `transcribe-recording(recordingId, model, options)`, donde `options.skipDiarization` (boolean opcional) marca `recordings.skip_diarization` vía `transcriptionManager.addTask()` antes de encolar la tarea.
@@ -168,6 +180,37 @@ window.electronAPI.wiki = {
   generateStarterPage(projectId, options),
 }
 ```
+
+### IPC: Inventario y descargas de modelos Whisper (`resources:*`)
+
+`electron/services/resourceManager.js` es la única fuente de verdad en runtime del inventario de modelos Whisper, la cola de descargas y el chequeo de espacio en disco. No persiste nada en BD/JSON (se deriva del filesystem en cada escaneo, ver `electron/services/resources/hfCacheScanner.js` y el catálogo estático `electron/services/resources/modelCatalog.js`); lo único persistente sigue siendo `settings.whisperModel`. Los handlers viven en `electron/ipc-handlers/resources.js` (`registerResourcesHandlers(ipcMain)`) y todos devuelven `{ ok, ... }` sin lanzar.
+
+| Canal IPC | Payload | Respuesta |
+|-----------|---------|-----------|
+| `resources:list` | — | `Snapshot` (estado cacheado, sin forzar rescan) |
+| `resources:refresh` | — | `Snapshot` (fuerza un rescan de disco + espacio) |
+| `resources:check-space` | `id` | `{ ok, sufficient, freeBytes, totalBytes, requiredBytes, estimatedBytes, remainingAfterBytes }` |
+| `resources:download` | `id` | `{ ok }` \| `{ ok: false, error }` — encola; no espera a que termine |
+| `resources:cancel` | `id` | `{ ok }` \| `{ ok: false, error: 'not-found' }` |
+| `resources:delete` | `id` | `{ ok, freedBytes }` \| `{ ok: false, reason: 'default-model'\|'in-queue' }` \| `{ ok: false, error }` |
+| `resources:get-queue` | — | `Snapshot` (pull inicial, patrón `useQueueManager`) |
+
+`Snapshot = { ok, cacheDir, freeBytes, totalBytes, items: ResourceItem[], queue: DownloadEntry[], active: DownloadEntry|null }`. `items[].state` es uno de `'not-installed'|'queued'|'downloading'|'installed'|'error'`.
+
+Métodos expuestos en `preload.js` bajo `window.electronAPI.resources`:
+
+```js
+window.electronAPI.resources = {
+  list(), refresh(), checkSpace(id), download(id), cancel(id), remove(id), getQueue(),
+  onProgress(listener) // suscribe a 'resources:progress'; devuelve función de unsubscribe
+}
+```
+
+**Broadcast de progreso:** `resourceManager.setUpdateCallback(...)` (registrado en `main.js` junto a `queue-update`) envía el `Snapshot` completo (no un delta) por el evento `resources:progress` a todas las ventanas, con throttle de 250ms para no saturar el IPC durante descargas de varios GB.
+
+**Descarga (Node orquesta, Python ejecuta):** `resourceManager` spawnea `audio_sync_analyzer resources download --model <id> --cache-dir <cacheDir>` (mismo binario que la transcripción — el dispatch de `resources` vive dentro de `python/model_resources.py` e intercepta la ejecución antes de los imports pesados, ver `README.md` raíz) y parsea su stdout línea a línea (`PROGRESS:{json}` / `DONE:{json}` / `ERROR:{json}`, extiende el patrón `PROGRESS:\d+` ya usado en `transcriptionManager.js`). Cancelar una descarga activa manda `SIGTERM` y, si sigue viva a los 3s, `SIGKILL`; al cerrar el proceso se barren los `blobs/*.incomplete` del repo y se re-escanea. El borrado (`resources:delete`) se bloquea si el modelo es el `whisperModel` default de Ajustes o si tiene una tarea `pending`/`processing` en `transcription_queue`.
+
+**Bloqueo pre-spawn en transcripción:** `transcriptionManager.addTask()` resuelve el modelo efectivo (`options.model` o `settings.whisperModel` por defecto) y llama `resourceManager.isInstalled(model)` ANTES de encolar. Si no está instalado, la tarea se rechaza con `{ success: false, error: 'MODEL_NOT_INSTALLED', model }` sin tocar la BD — nunca se encola para fallar después dentro del proceso Python.
 
 ### Bundle budget (NFR-WIKI-004)
 
@@ -284,6 +327,13 @@ Al ser una transacción, o se aplican los tres pasos o ninguno — nunca queda e
 El sistema guarda metadatos en la base de datos (ID, duración, estados), pero el contenido pesado (archivos WAV, archivos JSON de los resúmenes de IA, transcripciones txt) reside en el sistema de archivos (Filesystem).
 *   *Importante:* El ID de la grabación (`recordingId`) en la base de datos es numérico. En el disco, las carpetas de las grabaciones usan strings (`relative_path`). La función `getFolderPathFromId()` se utiliza para traducir el ID numérico a la ruta correcta en disco.
 
+### `metadata.json` de grabación (`utils/recordingMetadata.js`)
+Cada carpeta de grabación puede tener un `metadata.json` con campos informativos:
+*   `customName`: nombre personalizado (lo escribe `rename-recording`).
+*   `projectName`: nombre del proyecto al que pertenece la grabación, o `null` si no tiene.
+
+**SQLite es la fuente de verdad**; `metadata.json` es solo un reflejo para quien lea la carpeta sin la app. `updateRecordingMetadata(folderPath, patch)` hace un merge superficial (conserva el resto de claves), no crea la carpeta si no existe y parte de `{}` si el archivo falta o está corrupto. Mantienen `projectName` sincronizado: `add-recording-to-project`, `remove-recording-from-project`, `update-project`, `delete-project` (este lee los ids antes de borrar por el `ON DELETE CASCADE`) y la sincronización OAuth de chats/proyectos (`sync-chat-integrations`, `sync-project-integrations`) al vincular grabaciones nuevas. La lógica vive en `services/projectRecordingMetadata.js`. Un fallo al escribir metadata se registra en consola y nunca cambia el resultado IPC.
+
 ## 4. Monitor de Micrófono del Sistema (`services/microphoneMonitor.js`)
 
 Detecta cuándo otro proceso del sistema activa el micrófono y notifica al usuario para que pueda iniciar una grabación.
@@ -368,9 +418,15 @@ const lang = await window.electronAPI.getSystemLanguage(); // 'es' | 'en'
 
 Este handler se utiliza en `App.jsx` → `loadAppSettings()` cuando es la primera vez que se abre la app (`isFirstRun === true`) para aplicar el idioma del SO automáticamente y guardarlo en `settings.uiLanguage`.
 
+### Escritura de settings.json: `utils/settingsWriter.js`
+
+Todos los escritores de `settings.json` (handler `save-settings`, la persistencia de migraciones de `load-settings`, `change-db-path` y `UpdateChecker._ignoreVersion`) pasan por `writeSettingsFileAtomic(settingsPath, data)`: escritura a un `.tmp` de **nombre único** + rename atómico, encoladas en una **cola serializada** (la segunda escritura espera a que termine la primera; un fallo no envenena la cola). Antes cada writer usaba un `.tmp` de nombre fijo y dos guardados concurrentes se robaban el rename mutuamente, provocando `ENOENT` en el segundo y settings perdidos. Las lecturas NO pasan por la cola: en POSIX el rename es atómico, así que un lector concurrente ve el archivo viejo o el nuevo, nunca a medias. Tests: `test/unit/electron/utils/settingsWriter.test.js`.
+
 ### Migración de settings.json: `load-settings` (`ipc-handlers/settings.js`)
 
 `aiProvider`/`embeddingProvider` ya no distinguen `'geminifree'` de `'gemini'` (una sola configuración de Gemini, sin tier free/pro separado). El handler `load-settings` es el **único punto de normalización**: al leer `settings.json`, `migrateGeminiFreeTier(settings)` reescribe `'geminifree'` → `'gemini'` y rescata `geminiApiKey`/`geminiModel` desde los campos legacy `geminiFreeApiKey`/`geminiFreeModel` si el campo nuevo está vacío. Si hubo cambios, persiste el archivo migrado antes de devolver `{ success, settings }`. Como todo el resto de la app (renderer vía `getSettings()`, y el propio proceso principal en `embeddingService.js`) lee `settings.json` después de este primer `load-settings`, no hace falta duplicar la migración en ningún otro sitio.
+
+En el mismo `load-settings` también corre `migrateWhisperModelAlias(settings)`: remapea silenciosamente `whisperModel: 'large'` → `'large-v3'` (issue #149). Es un renombrado puro sin re-descarga — `faster_whisper` ya mapea `"large"` al mismo repo de Hugging Face que `"large-v3"`, así que el modelo ya descargado sigue en la misma carpeta de caché. Ambas migraciones (`migrateGeminiFreeTier`, `migrateWhisperModelAlias`) y `migrateCustomChatModelField` viven en `electron/utils/settingsMigrations.js`, sin dependencias de Electron, para poder testearlas de forma aislada (`test/unit/electron/utils/settingsMigrations.test.js`).
 
 ## Almacenamiento Configurable
 

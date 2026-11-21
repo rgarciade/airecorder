@@ -97,6 +97,11 @@ async function detectEmbeddingProvider() {
     // No retornar — continuar con detección de proveedores locales como fallback
   }
 
+  // ── GLM guard: no soportado para embeddings ─────────────────────────────────
+  if (activeProvider === 'glm') {
+    console.warn('[EmbeddingService] GLM no soporta embeddings, se usa el siguiente proveedor');
+  }
+
   // ── Proveedores cloud: no requieren servidor local ──────────────────────────
   if (activeProvider === 'gemini' && settings.geminiApiKey) {
     console.log('[EmbeddingService] Usando Gemini para embeddings');

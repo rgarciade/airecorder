@@ -1,6 +1,5 @@
 const { ipcMain, dialog } = require('electron');
 const fs = require('fs');
-const path = require('path');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel } = require('docx');
 const { jsPDF } = require('jspdf');
 
@@ -161,22 +160,6 @@ function renderMarkdownToPdf(doc, text, margin, maxWidth, startY, pageHeight) {
       doc.addPage();
       y = margin;
     }
-  };
-
-  // Renderiza una línea con segmentos bold/italic/normal usando jsPDF
-  const renderInlineLine = (segments, x, lineY, lineHeight) => {
-    let cursorX = x;
-    segments.forEach(seg => {
-      if (!seg.text) return;
-      const fontStyle = seg.bold && seg.italic ? 'bolditalic'
-        : seg.bold ? 'bold'
-        : seg.italic ? 'italic'
-        : 'normal';
-      doc.setFont('helvetica', fontStyle);
-      doc.text(seg.text, cursorX, lineY);
-      cursorX += doc.getTextWidth(seg.text);
-    });
-    doc.setFont('helvetica', 'normal'); // reset
   };
 
   // Renderiza texto con posibles negritas/cursivas, haciendo word-wrap
@@ -409,7 +392,7 @@ function registerExportHandlers() {
           const margin = 20;
           const maxWidth = 170;
 
-          y = renderMarkdownToPdf(doc, contentMd, margin, maxWidth, y, pageHeight);
+          renderMarkdownToPdf(doc, contentMd, margin, maxWidth, y, pageHeight);
 
           const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
           fs.writeFileSync(filePath, pdfBuffer);

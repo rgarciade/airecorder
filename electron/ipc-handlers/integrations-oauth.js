@@ -21,6 +21,7 @@ const { getRecordingsPath } = require('../utils/paths');
 const { buildTranscriptionTxt, buildTranscriptionJson, assignRelativeTimestamps } = require('../integrations/chatSyncUtils');
 const googleChat = require('../integrations/googleChatSyncService');
 const teams = require('../integrations/teamsSyncService');
+const { syncRecordingProjectName } = require('../services/projectRecordingMetadata');
 
 // ── Constantes ─────────────────────────────────────────────────────────────────
 const REDIRECT_URI_GOOGLE = 'airecorder://google-chat-callback';
@@ -284,7 +285,7 @@ module.exports.registerIntegrationsOAuthHandlers = () => {
 
         if (!recordingFolderPath) {
           const platformPrefix = connection.platform === 'google-chat' ? 'gchat' : 'teams_sync';
-          const safeName = (integration.channel_name || 'channel').replace(/[^a-zA-Z0-9_\-]/g, '_').slice(0, 40);
+          const safeName = (integration.channel_name || 'channel').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
           const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
           const folderName = `${platformPrefix}_${safeName}_${ts}`;
           recordingFolderPath = path.join(recordingsDir, folderName);
@@ -297,7 +298,10 @@ module.exports.registerIntegrationsOAuthHandlers = () => {
           const dbResult = dbService.saveRecording(folderName, 0, 'transcribed', new Date().toISOString(), transcriptionModel);
           if (!dbResult.success) throw new Error('Error guardando grabación en BD');
           recordingId = dbResult.id;
-          if (projectId) dbService.addRecordingToProject(projectId, recordingId);
+          if (projectId) {
+            dbService.addRecordingToProject(projectId, recordingId);
+            await syncRecordingProjectName(recordingId);
+          }
         }
 
         const analysisDir = path.join(recordingFolderPath, 'analysis');
@@ -382,7 +386,7 @@ module.exports.registerIntegrationsOAuthHandlers = () => {
         if (!recordingFolderPath) {
           // Primera sync: crear carpeta de grabación
           const platformPrefix = connection.platform === 'google-chat' ? 'gchat' : 'teams_sync';
-          const safeName = (integration.channel_name || 'channel').replace(/[^a-zA-Z0-9_\-]/g, '_').slice(0, 40);
+          const safeName = (integration.channel_name || 'channel').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
           const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
           const folderName = `${platformPrefix}_${safeName}_${ts}`;
           recordingFolderPath = path.join(recordingsDir, folderName);
@@ -401,6 +405,7 @@ module.exports.registerIntegrationsOAuthHandlers = () => {
 
           // Vincular al proyecto
           dbService.addRecordingToProject(projectId, recordingId);
+          await syncRecordingProjectName(recordingId);
         }
 
         const analysisDir = path.join(recordingFolderPath, 'analysis');

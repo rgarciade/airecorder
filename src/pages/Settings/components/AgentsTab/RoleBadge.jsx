@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- getRoleBadge es la lógica pura del badge y se mantiene junto al componente */
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 

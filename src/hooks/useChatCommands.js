@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
-import { compactChatHistory } from '../services/chat/chatCompactService';
+import { CHAT_COMMAND_HANDLERS } from '../services/chat/commands';
+import { findChatCommand } from '../services/chat/chatCommands';
 
 /**
  * Router de comandos de chat + persistencia inyectada por el padre.
@@ -8,16 +9,39 @@ import { compactChatHistory } from '../services/chat/chatCompactService';
  * `getHistory` / `replaceHistory`. Mantiene delgados los dos componentes
  * de página que lo usan.
  *
+ * Toda la lógica de ejecución vive en `services/chat/commands/*Command.js`
+ * (mapeada por nombre en `CHAT_COMMAND_HANDLERS`) — este hook solo arma el
+ * `ctx` común una vez y centraliza el guard de re-entrancy (isBusy/setBusy),
+ * que cubre por igual el input de texto (`/compact`, `/resumen`, ...) y
+ * puntos de entrada directos como el botón "Compactar" de `ContextBar`
+ * (que llama a `runCommand('compact')` sin pasar por la validación de
+ * `ChatInterface`).
+ *
+ * EXCEPCIÓN — comandos `runsInBackground` (`/tareas`, `/nota`, ver
+ * `chatCommands.js`): el guard de re-entrancy inicial (`isBusy`) sigue
+ * aplicando, pero su propia ejecución NO pasa por `setBusy(true)` ni se
+ * espera — `runCommand` devuelve `{success:true, background:true}` de
+ * inmediato mientras el comando sigue corriendo en la cola de IA
+ * (`aiQueueService`). Ver `BackgroundTaskIndicator` para el indicador visual.
+ *
  * @param {Object} params
  * @param {'recording'|'project'} params.scope
- * @param {string} params.lang - Idioma de la UI, para el prompt de compactado
+ * @param {string} params.lang - Idioma de la UI, para los prompts de IA
  * @param {string} [params.model] - Override de modelo (sessionModel)
  * @param {() => Array} params.getHistory - Devuelve el historial actual (formato interno)
  * @param {(entries: Array) => Promise<void>} params.replaceHistory - Persiste (atómico) + actualiza estado local
  * @param {boolean} params.isBusy - true si ya hay una petición de chat/comando en curso
  * @param {(busy: boolean) => void} params.setBusy
- * @param {(result: Object, entries: Array) => void} [params.onCompacted] - Para recalcular contextInfo al instante
+ * @param {(result: Object, entries: Array) => void} [params.onCompacted] - Para recalcular contextInfo al instante (usado por /compact)
  * @param {Function} params.t - i18next t()
+ * @param {number|string} [params.recordingId] - Scope 'recording': ID numérico en SQLite
+ *   (dbId) — usado por /tareas y /nota para persistir en `task_suggestions`/`recording_notes`.
+ * @param {string} [params.ragRecordingId] - Scope 'recording': ID basado en carpeta
+ *   (`recording.id`) — usado por /buscar para `ragService` (RAG opera sobre el
+ *   archivo de transcripción, no sobre la fila de la base de datos).
+ * @param {string} [params.projectId] - Scope 'project': usado por /tareas y /buscar.
+ * @param {string} [params.chatId] - Scope 'project': chat activo, usado por /buscar
+ *   (`projectChatService.generateAiResponse`).
  * @returns {{ runCommand: (name: string, args?: string) => Promise<{success: boolean, error?: string, cancelled?: boolean}> }}
  */
 export function useChatCommands({
@@ -30,69 +54,71 @@ export function useChatCommands({
   setBusy,
   onCompacted,
   t,
+  recordingId,
+  ragRecordingId,
+  projectId,
+  chatId,
 }) {
-  const runCompact = useCallback(async (args) => {
-    // Guardia de re-entrancy: el botón "Compactar" de ContextBar llama a runCommand
-    // directamente, sin pasar por la validación de ChatInterface — hay que
-    // comprobar isBusy aquí también.
+  const runCommand = useCallback(async (name, args) => {
+    // Guardia de re-entrancy centralizada: cubre tanto el input de texto (que ya
+    // valida antes de llamar) como puntos de entrada directos (botón "Compactar"
+    // de ContextBar) que llaman a runCommand sin pasar por esa validación previa.
     if (isBusy) {
       return { success: false, error: t('chatCommands.busy') };
     }
 
+    const handler = CHAT_COMMAND_HANDLERS[name];
+    if (!handler) {
+      return { success: false, error: t('chatCommands.unknown') };
+    }
+
+    const ctx = {
+      scope,
+      lang,
+      model,
+      getHistory,
+      replaceHistory,
+      t,
+      onCompacted,
+      recordingId,
+      ragRecordingId,
+      projectId,
+      chatId,
+    };
+
+    // Comandos marcados `runsInBackground` (/tareas, /nota — ver chatCommands.js) NO
+    // bloquean el chat: no seteamos `setBusy(true)` ni esperamos su promesa. Ya aparecen
+    // en el Monitor de Procesos vía `aiQueueService` (queueMeta en tasksCommand.js /
+    // noteCommand.js) y persisten su propio resultado (éxito o error real) directamente
+    // en el historial del chat — nadie más espera este valor de retorno para mostrarlo.
+    const command = findChatCommand(name);
+    if (command?.runsInBackground) {
+      handler(ctx, args).catch((err) => {
+        // Red de seguridad: el contrato de runFn es "nunca rechaza", pero como aquí nadie
+        // hace await de esta promesa, un rechazo no capturado quedaría como unhandled
+        // rejection silencioso en vez de loggearse.
+        console.error(`[useChatCommands] Error inesperado ejecutando /${name} en background:`, err);
+      });
+      return { success: true, background: true };
+    }
+
     setBusy(true);
     try {
-      const history = getHistory();
-      const result = await compactChatHistory({
-        history,
-        instructions: args || '',
-        lang,
-        scope,
-        model,
-      });
-
-      const header = `📋 **${t('chatCommands.compact.summaryHeader', { count: result.compactedCount })}**\n\n`;
-      const entries = [
-        {
-          id: `compact_${Date.now()}`,
-          tipo: 'asistente',
-          contenido: header + result.summary,
-          fecha: new Date().toISOString(),
-          chatVersion: 2,
-        },
-        ...result.keptHistory,
-      ];
-
-      // Solo tocamos disco/SQLite una vez que tenemos un resumen validado.
-      await replaceHistory(entries);
-      onCompacted?.(result, entries);
-      return { success: true };
+      return await handler(ctx, args);
     } catch (err) {
-      if (err.cancelled) {
-        // Cancelado desde el Monitor de Procesos: sin error visible y SIN tocar el historial
-        // (compactChatHistory no llegó a resolver, así que replaceHistory nunca se llamó).
-        return { success: true, cancelled: true };
-      }
-      if (err.code === 'HISTORY_TOO_SHORT') {
-        return { success: false, error: t('chatCommands.compact.tooShort') };
-      }
-      if (err.code === 'EMPTY_SUMMARY') {
-        return { success: false, error: t('chatCommands.compact.empty') };
-      }
-      console.error('[useChatCommands] Error en /compact:', err);
-      return { success: false, error: t('chatCommands.compact.error') };
+      // Red de seguridad: el contrato de runFn es "nunca rechaza", pero si algún
+      // comando futuro olvida su propio try/catch, esto evita que runCommand
+      // rechace la promesa hacia ChatInterface/ContextBar.
+      if (err?.cancelled) return { success: true, cancelled: true };
+      console.error(`[useChatCommands] Error inesperado ejecutando /${name}:`, err);
+      return { success: false, error: t('chatCommands.unknown') };
     } finally {
       setBusy(false);
     }
-  }, [isBusy, setBusy, getHistory, replaceHistory, lang, scope, model, onCompacted, t]);
-
-  const runCommand = useCallback(async (name, args) => {
-    switch (name) {
-      case 'compact':
-        return runCompact(args);
-      default:
-        return { success: false, error: t('chatCommands.unknown') };
-    }
-  }, [runCompact, t]);
+  }, [
+    isBusy, setBusy, scope, lang, model, getHistory, replaceHistory, t,
+    onCompacted, recordingId, ragRecordingId, projectId, chatId,
+  ]);
 
   return { runCommand };
 }

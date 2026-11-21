@@ -8,6 +8,7 @@ import { checkLMStudioAvailability, getLMStudioModels } from '../../services/ai/
 import { getGeminiAvailableModels } from '../../services/ai/geminiProvider';
 import { getKimiAvailableModels, getDeepseekAvailableModels } from '../../services/ai/providerRouter';
 import { CustomOpenAIProvider, OPENAI_BASE_URL } from '../../services/ai/customOpenAIProvider';
+import useGlmOnboarding from './useGlmOnboarding';
 import { updateSettings } from '../../services/settingsService';
 import { applyTheme } from '../../services/themeService';
 import { reconcileCodexSelection } from '../../services/ai/codexModelSelection';
@@ -16,15 +17,9 @@ import ReadyStep from './ReadyStep';
 import AiConfigStep from './AiConfigStep';
 import PreferencesStep from './PreferencesStep';
 import LocalAiInfoStep from './LocalAiInfoStep';
-
-const STEPS = [
-  { id: 'welcome' },
-  { id: 'aiInfo' },
-  { id: 'ai' },
-  { id: 'permissions' },
-  { id: 'preferences' },
-  { id: 'finish' },
-];
+import ModelStep from './ModelStep';
+import { useOnboardingModelPersistence } from './useOnboardingModelPersistence';
+import { STEPS } from './onboardingSteps';
 
 export default function Onboarding({ onComplete }) {
   const { t } = useTranslation();
@@ -71,6 +66,14 @@ export default function Onboarding({ onComplete }) {
   const [openaiModels, setOpenaiModels] = useState([]);
   const [openaiModelsLoading, setOpenaiModelsLoading] = useState(false);
   const [selectedOpenaiModel, setSelectedOpenaiModel] = useState('');
+  // GLM (Z.AI Coding Plan): en el onboarding solo clave + modelo, endpoint 'plan'
+  const {
+    glmApiKey, setGlmApiKey,
+    glmModels,
+    glmModelsLoading,
+    selectedGlmModel, setSelectedGlmModel,
+    loadGlmModelsOnboarding,
+  } = useGlmOnboarding();
   const [codexModel, setCodexModel] = useState('');
   const [codexReasoningEffort, setCodexReasoningEffort] = useState('');
   const [codexModels, setCodexModels] = useState([]);
@@ -102,9 +105,13 @@ export default function Onboarding({ onComplete }) {
   const [selectedCustomGeneralModel, setSelectedCustomGeneralModel] = useState('');
   const [selectedCustomEmbedModel, setSelectedCustomEmbedModel] = useState('');
 
-  const [isSaving, setIsSaving] = useState(false);
+  const [, setIsSaving] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState('system');
   const [appVersion, setAppVersion] = useState('');
+
+  // Tracking de persistencia ONB4 elevado desde `useModelDownloadStep.js`
+  // (BLOCKER, fix post-review PR3) — ver JSDoc de `useOnboardingModelPersistence.js`.
+  const { trackDownload } = useOnboardingModelPersistence();
 
   useEffect(() => {
     checkPermissions();
@@ -117,6 +124,7 @@ export default function Onboarding({ onComplete }) {
   useEffect(() => {
     if (codexStatus?.connected && !codexModelsLoaded.current) loadCodexModelsOnboarding();
     if (!codexStatus?.connected) codexModelsLoaded.current = false;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- solo debe reaccionar al cambio de conexión de Codex; el loader se redefine en cada render
   }, [codexStatus?.connected]);
 
   const checkPermissions = async () => {
@@ -354,6 +362,9 @@ export default function Onboarding({ onComplete }) {
         codexReasoningEffort: chatProviderKey === 'codex' ? codexReasoningEffort : undefined,
         openaiApiKey: (chatProviderKey === 'openai' || (embedValid && embedProviderKey === 'openai')) ? openaiApiKey : undefined,
         openaiModel: chatProviderKey === 'openai' ? selectedOpenaiModel : undefined,
+        glmApiKey: chatProviderKey === 'glm' ? glmApiKey : undefined,
+        glmModel: chatProviderKey === 'glm' ? selectedGlmModel : undefined,
+        glmEndpointMode: chatProviderKey === 'glm' ? 'plan' : undefined,
         geminiApiKey: (chatProviderKey === 'gemini' || (embedValid && embedProviderKey === 'gemini')) ? geminiKey : undefined,
         geminiModel: chatProviderKey === 'gemini' ? selectedGeminiModel : undefined,
         kimiApiKey: (chatProviderKey === 'kimi' || (embedValid && embedProviderKey === 'kimi')) ? kimiApiKey : undefined,
@@ -488,6 +499,7 @@ export default function Onboarding({ onComplete }) {
           const labels = [
             t('onboarding.steps.welcome'),
             t('onboarding.steps.aiInfo'),
+            t('onboarding.steps.model'),
             t('onboarding.steps.ai'),
             t('onboarding.steps.permissions'),
             t('onboarding.steps.preferences'),
@@ -533,6 +545,7 @@ export default function Onboarding({ onComplete }) {
   const getModelName = () => {
     if (chatProviderKey === 'lmstudio') return 'LM Studio';
     if (chatProviderKey === 'openai') return 'OpenAI';
+    if (chatProviderKey === 'glm') return 'GLM';
     if (chatProviderKey === 'gemini') return 'Gemini';
     if (chatProviderKey === 'kimi') return 'Kimi';
     if (chatProviderKey === 'deepseek') return 'DeepSeek';
@@ -558,6 +571,7 @@ export default function Onboarding({ onComplete }) {
     if (type === 'cloud') {
       if (key === 'codex') return !!codexStatus?.connected;
       if (key === 'openai') return !!openaiApiKey.trim();
+      if (key === 'glm') return !!glmApiKey.trim();
       if (key === 'gemini') return !!geminiKey.trim();
       if (key === 'kimi') return !!kimiApiKey.trim();
       if (key === 'deepseek') return !!deepseekApiKey.trim();
@@ -602,6 +616,11 @@ export default function Onboarding({ onComplete }) {
       apiKey: openaiApiKey, setApiKey: setOpenaiApiKey,
       models: openaiModels, modelsLoading: openaiModelsLoading, loadModels: loadOpenaiModelsOnboarding,
       selectedModel: selectedOpenaiModel, setSelectedModel: setSelectedOpenaiModel,
+    },
+    glm: {
+      apiKey: glmApiKey, setApiKey: setGlmApiKey,
+      models: glmModels, modelsLoading: glmModelsLoading, loadModels: loadGlmModelsOnboarding,
+      selectedModel: selectedGlmModel, setSelectedModel: setSelectedGlmModel,
     },
     gemini: {
       apiKey: geminiKey, setApiKey: setGeminiKey,
@@ -649,6 +668,19 @@ export default function Onboarding({ onComplete }) {
   if (currentStep === 2) return (
     <>
       {renderLangSelector()}
+      <ModelStep
+        t={t}
+        onBack={handleBack}
+        onNext={handleNext}
+        StepProgressComponent={renderStepProgress()}
+        onDownloadStart={trackDownload}
+      />
+    </>
+  );
+
+  if (currentStep === 3) return (
+    <>
+      {renderLangSelector()}
       <AiConfigStep
         t={t}
         activeAiRole={activeAiRole}
@@ -666,7 +698,7 @@ export default function Onboarding({ onComplete }) {
     </>
   );
 
-  if (currentStep === 3) return (
+  if (currentStep === 4) return (
     <>
       {renderLangSelector()}
       <PermissionsStep
@@ -684,7 +716,7 @@ export default function Onboarding({ onComplete }) {
     </>
   );
 
-  if (currentStep === 4) return (
+  if (currentStep === 5) return (
     <>
       {renderLangSelector()}
       <PreferencesStep
@@ -702,7 +734,7 @@ export default function Onboarding({ onComplete }) {
     </>
   );
 
-  if (currentStep === 5) return (
+  if (currentStep === 6) return (
     <>
       {renderLangSelector()}
       <ReadyStep

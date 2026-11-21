@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +28,7 @@ import ChannelPickerModal from '../../components/ChannelPickerModal/ChannelPicke
 import WikiTab from './components/WikiTab/WikiTab';
 import { useChatCommands } from '../../hooks/useChatCommands';
 import { estimateHistoryTokens } from '../../services/chat/chatTokens';
+import { ALL_TOOLS, executeConfirmedAction } from '../../services/ai/tools';
 
 const DEEPSEEK_CHAT_MODELS = [
   { value: 'deepseek-chat', label: 'DeepSeek Chat' },
@@ -77,7 +78,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
 
   // Estados para adjuntos del proyecto
   const [projectAttachments, setProjectAttachments] = useState([]);
-  const [activeAttachments, setActiveAttachments] = useState([]);
+  const [, setActiveAttachments] = useState([]);
 
   // Estados para RAG de proyecto
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -109,11 +110,8 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
 
   // Estados para canales vinculados por chat
   const [showChannelPicker, setShowChannelPicker] = useState(false);
-  const [chatIntegrations, setChatIntegrations] = useState([]);
-  const [syncingChannelId, setSyncingChannelId] = useState(null);
+  const [, setChatIntegrations] = useState([]);
   const [oauthSettings, setOauthSettings] = useState({});
-  const [expandedChannelIds, setExpandedChannelIds] = useState(new Set());
-  const [channelMessages, setChannelMessages] = useState({}); // { [integrationId]: [{ text, speaker }] }
 
   const wikiPageCount = useSelector((state) => {
     if (!project?.id) return 0;
@@ -138,6 +136,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
           deepseek: s.deepseekModel,
           kimi: s.kimiModel,
           gemini: s.geminiModel,
+          glm: s.glmModel,
           lmstudio: s.lmStudioRagModel || s.lmStudioModel,
         };
         const currentModel = modelByProvider[provider] || '';
@@ -157,6 +156,13 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
           ctxLen = 32000;
         } else if (provider === 'deepseek') {
           ctxLen = 64000;
+        } else if (provider === 'codex') {
+          // Codex no expone la ventana de contexto por ninguna API (SDK ni CLI) —
+          // usa el valor configurado manualmente en Ajustes si existe, o un
+          // estimado por defecto (mismo criterio que RecordingDetailWithTranscription.jsx).
+          ctxLen = s.codexContextLength || 400000;
+        } else if (provider === 'openai' || provider === 'glm') {
+          ctxLen = 128000;
         }
         setMaxContextLength(ctxLen);
 
@@ -192,28 +198,101 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
         console.error('Error cargando configuración de IA en ProjectDetail:', e);
       }
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- configuración de IA cargada una sola vez al montar; sessionModel no debe relanzarla
   }, []);
+
+  // Loaders del proyecto: dependen solo del id del proyecto, así que son estables entre renders
+  const loadProjectData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [summary, members, highlights, details, recordings, duration, tasks] = await Promise.all([
+        projectAiService.getProjectSummary(project.id),
+        projectAiService.getProjectMembers(project.id),
+        projectAiService.getProjectHighlights(project.id),
+        projectAiService.getProjectDetails(project.id),
+        projectAiService.getProjectRecordingSummaries(project.id),
+        projectsService.getProjectTotalDuration(project.id),
+        recordingsService.getProjectTaskSuggestions(project.id)
+      ]);
+
+      // Cargar adjuntos de todas las grabaciones del proyecto
+      let allAttachments = [];
+      if (recordings && recordings.length > 0) {
+        const attachmentsPromises = recordings.map(async (rec) => {
+          const atts = await getAttachments(rec.id);
+          return atts.map(a => ({ ...a, recordingId: rec.id, recordingName: rec.title }));
+        });
+        const nestedAtts = await Promise.all(attachmentsPromises);
+        allAttachments = nestedAtts.flat();
+      }
+
+      setProjectSummary(summary);
+      setProjectMembers(members);
+      setProjectHighlights(highlights);
+      setProjectDetails(details);
+      setRecordingSummaries(recordings);
+      setProjectDuration(duration);
+      setProjectTasks(tasks || []);
+      setProjectAttachments(allAttachments);
+    } catch (error) {
+      console.error('Error cargando datos del proyecto:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [project?.id]);
+
+  const loadProjectChats = useCallback(async () => {
+    try {
+      const chatsList = await projectChatService.getProjectChats(project.id);
+      setChats(chatsList);
+
+      // Seleccionar el primer chat como activo
+      if (chatsList.length > 0) {
+        setActiveChatId(chatsList[0].id);
+      }
+    } catch (error) {
+      console.error('Error cargando chats del proyecto:', error);
+    }
+  }, [project?.id]);
+
+  const loadChatHistory = useCallback(async (chatId) => {
+    try {
+      const history = await projectChatService.getProjectChatHistory(project.id, chatId);
+      setChatHistory(history);
+    } catch (error) {
+      console.error('Error cargando historial del chat:', error);
+    }
+  }, [project?.id]);
+
+  const loadProjectTasks = useCallback(async () => {
+    try {
+      const tasks = await recordingsService.getProjectTaskSuggestions(project.id);
+      setProjectTasks(tasks || []);
+    } catch (error) {
+      console.error('Error cargando tareas del proyecto:', error);
+    }
+  }, [project?.id]);
 
   // Cargar datos del proyecto al montar
   useEffect(() => {
     if (project) {
       loadProjectData();
     }
-  }, [project]);
+  }, [project, loadProjectData]);
 
   // Cargar chats del proyecto
   useEffect(() => {
     if (project) {
       loadProjectChats();
     }
-  }, [project]);
+  }, [project, loadProjectChats]);
 
   // Cargar historial del chat activo
   useEffect(() => {
     if (activeChatId && project) {
       loadChatHistory(activeChatId);
     }
-  }, [activeChatId, project]);
+  }, [activeChatId, project, loadChatHistory]);
 
   // Suscripción a chatPendingService para restaurar estado de carga tras navegación
   useEffect(() => {
@@ -235,7 +314,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     });
 
     return () => unsubscribe();
-  }, [activeChatId]);
+  }, [activeChatId, loadChatHistory]);
 
   // Auto-indexar grabaciones del chat activo cuando cambia el chat seleccionado.
   // Las grabaciones aún no indexadas se procesan de una en una (no en paralelo) para poder
@@ -301,6 +380,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
 
       setRagIndexingProgress(null);
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- auto-indexado RAG solo al cambiar chat/contexto; ragStatuses se actualiza dentro del efecto y relanzaría la indexación
   }, [activeChatId, chats, recordingSummaries]);
 
   // Cargar adjuntos del contexto del chat activo
@@ -354,14 +434,13 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   }, []);
 
   // --- HANDLERS ---
-  const loadProjectTasks = async () => {
-    try {
-      const tasks = await recordingsService.getProjectTaskSuggestions(project.id);
-      setProjectTasks(tasks || []);
-    } catch (error) {
-      console.error('Error cargando tareas del proyecto:', error);
+  // Refresca tareas al entrar a la pestaña: pueden haberse creado vía `/tareas` en el
+  // chat de proyecto (persiste directo a SQLite, sin pasar por setProjectTasks).
+  useEffect(() => {
+    if (activeTab === 'tasks' && project?.id) {
+      loadProjectTasks();
     }
-  };
+  }, [activeTab, project?.id, loadProjectTasks]);
 
   const handleUpdateProjectTask = async (updatedTask) => {
     const saved = await recordingsService.updateTaskSuggestion(
@@ -404,68 +483,6 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
         .map(t => updatesMap[t.id] !== undefined ? { ...t, sort_order: updatesMap[t.id] } : t)
         .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
     );
-  };
-
-  const loadProjectData = async () => {
-    setIsLoading(true);
-    try {
-      const [summary, members, highlights, details, recordings, duration, tasks] = await Promise.all([
-        projectAiService.getProjectSummary(project.id),
-        projectAiService.getProjectMembers(project.id),
-        projectAiService.getProjectHighlights(project.id),
-        projectAiService.getProjectDetails(project.id),
-        projectAiService.getProjectRecordingSummaries(project.id),
-        projectsService.getProjectTotalDuration(project.id),
-        recordingsService.getProjectTaskSuggestions(project.id)
-      ]);
-
-      // Cargar adjuntos de todas las grabaciones del proyecto
-      let allAttachments = [];
-      if (recordings && recordings.length > 0) {
-        const attachmentsPromises = recordings.map(async (rec) => {
-          const atts = await getAttachments(rec.id);
-          return atts.map(a => ({ ...a, recordingId: rec.id, recordingName: rec.title }));
-        });
-        const nestedAtts = await Promise.all(attachmentsPromises);
-        allAttachments = nestedAtts.flat();
-      }
-
-      setProjectSummary(summary);
-      setProjectMembers(members);
-      setProjectHighlights(highlights);
-      setProjectDetails(details);
-      setRecordingSummaries(recordings);
-      setProjectDuration(duration);
-      setProjectTasks(tasks || []);
-      setProjectAttachments(allAttachments);
-    } catch (error) {
-      console.error('Error cargando datos del proyecto:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadProjectChats = async () => {
-    try {
-      const chatsList = await projectChatService.getProjectChats(project.id);
-      setChats(chatsList);
-
-      // Seleccionar el primer chat como activo
-      if (chatsList.length > 0) {
-        setActiveChatId(chatsList[0].id);
-      }
-    } catch (error) {
-      console.error('Error cargando chats del proyecto:', error);
-    }
-  };
-
-  const loadChatHistory = async (chatId) => {
-    try {
-      const history = await projectChatService.getProjectChatHistory(project.id, chatId);
-      setChatHistory(history);
-    } catch (error) {
-      console.error('Error cargando historial del chat:', error);
-    }
   };
 
   const handleChatSelect = (chatId) => {
@@ -588,6 +605,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       else if (aiProvider === 'deepseek') settingsUpdate.deepseekModel = model;
       else if (aiProvider === 'kimi') settingsUpdate.kimiModel = model;
       else if (aiProvider === 'gemini') settingsUpdate.geminiModel = model;
+      else if (aiProvider === 'glm') settingsUpdate.glmModel = model;
 
       if (Object.keys(settingsUpdate).length > 0) {
         await updateSettings(settingsUpdate);
@@ -649,6 +667,11 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     setBusy: setIsSendingMessage,
     onCompacted: handleChatCompacted,
     t,
+    // /tareas persiste en task_suggestions vía createProjectTask.
+    projectId: project.id,
+    // /buscar delega en projectChatService.generateAiResponse, que necesita el chat
+    // activo para resolver sus recordingIds/recordingTitles internamente.
+    chatId: activeChatId,
   });
 
   const handleCompactChat = async () => {
@@ -751,16 +774,22 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
         }
       }
 
-      const sessionOptions = { 
+      const sessionOptions = {
         model: sessionModel || undefined,
         images: attachmentImages.length > 0 ? attachmentImages : undefined,
         extraContext: extraContext || undefined,
-        contextTokenLimit: maxContextLength
+        contextTokenLimit: maxContextLength,
+        // Function-calling nativo sobre tareas — SOLO en la conversación normal del
+        // chat de proyecto (handleSendMessage). `/buscar` (searchCommand.js) arma su
+        // propio `{model}` para `generateAiResponse`, así que nunca pasa por acá — ver
+        // src/services/ai/tools/index.js y README.md.
+        tools: ALL_TOOLS,
+        toolContext: { scope: 'project', projectId: project.id },
       };
       
       let streamingAnswer = '';
 
-      const { text: aiResponse, contextInfo } = await projectChatService.generateAiResponse(
+      const { text: aiResponse, contextInfo, pendingAction } = await projectChatService.generateAiResponse(
         project.id, trimmedMessage, activeChatId, chatHistory, ragMode, sessionOptions,
         (chunk) => {
           streamingAnswer += chunk;
@@ -779,15 +808,44 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
       );
       setLastContextInfo(contextInfo || null);
 
+      // Si el modelo disparó una acción pendiente sin escribir texto propio (ej. llamó
+      // directo a create_task, que SIEMPRE propone — ver taskTools.js), `aiResponse`
+      // viene vacío — usamos la `question` de la acción pendiente para que la burbuja
+      // nunca quede vacía (mismo bug real ya corregido en
+      // RecordingDetailWithTranscription.jsx).
+      const contenido = aiResponse || pendingAction?.question || 'No answer generated.';
+
       // 4. Guardar respuesta de la IA en DB
+      // LIMITACIÓN CONOCIDA: la tabla `messages` de proyecto (SQLite) tiene columnas
+      // fijas (id/type/content/created_at) — no hay dónde persistir `pendingAction`,
+      // a diferencia del historial de grabación (JSON plano en disco, admite campos
+      // arbitrarios). `saveProjectChatMessage` solo persiste `tipo`/`contenido`.
       await projectChatService.saveProjectChatMessage(project.id, activeChatId, {
         tipo: 'asistente',
-        contenido: aiResponse,
+        contenido,
         chatVersion: 2,
       });
 
       // 5. Recargar historial real para sincronizar IDs y fechas (reemplaza el mensaje de streaming)
       await loadChatHistory(activeChatId);
+
+      // 6. Si la IA disparó una acción pendiente de confirmación (create/update/delete_task,
+      // que SIEMPRE proponen, o ask_user — ver providerRouter.js#_runToolCallingLoop), la
+      // adjuntamos EN MEMORIA al último mensaje recién recargado, para que ChatInterface
+      // renderice los botones. No sobrevive a un reload real del historial (limitación de
+      // arriba) — mientras el chat sigue montado en esta sesión, funciona igual que en
+      // RecordingDetail.
+      if (pendingAction) {
+        setChatHistory(prev => {
+          if (prev.length === 0) return prev;
+          const lastIdx = prev.length - 1;
+          const last = prev[lastIdx];
+          if (last.tipo !== 'asistente') return prev;
+          const updated = [...prev];
+          updated[lastIdx] = { ...last, pendingAction: { ...pendingAction, resolved: false } };
+          return updated;
+        });
+      }
 
       chatPendingService.clearPending(pendingKey);
     } catch (error) {
@@ -802,6 +860,66 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     } finally {
       setIsSendingMessage(false);
     }
+  };
+
+  // Resuelve un click sobre los botones de una `pendingAction` (ver nota de
+  // limitación en handleSendMessage: el `pendingAction`/`resolved` de este chat
+  // vive SOLO en memoria, nunca en SQLite). Ejecución ESTRUCTURALMENTE
+  // separada de la IA vía executeConfirmedAction — la IA nunca puede alcanzar
+  // este dispatcher (ver docstring de taskTools.js), solo el click handler de
+  // la UI, salvo el caso `ask_user` (que no muta nada).
+  //
+  // Busca por `pendingAction.id` (id de tool_call, ver providerRouter.js), no por
+  // el `id` del mensaje — mismo contrato que RecordingDetailWithTranscription.jsx
+  // (ChatInterface.jsx ahora pasa siempre `message.pendingAction.id`, nunca
+  // `message.id`, para que ambas páginas funcionen igual sin importar la forma
+  // de almacenamiento de cada una).
+  const handleResolvePendingAction = async (pendingActionId, optionIndex) => {
+    const target = chatHistory.find(m => m.pendingAction?.id === pendingActionId);
+    if (!target?.pendingAction) return;
+
+    const { toolName, toolArgs, options } = target.pendingAction;
+    const isAffirmative = optionIndex === 0; // primera opción = afirmativa/proceder, cualquier otra = cancelar
+
+    setChatHistory(prev => prev.map(m => m.pendingAction?.id === pendingActionId
+      ? { ...m, pendingAction: { ...m.pendingAction, resolved: true, resolution: options[optionIndex] } }
+      : m
+    ));
+
+    if (toolName === 'ask_user') {
+      // No hay mutación que ejecutar — la elección del usuario se re-inyecta como
+      // su propio mensaje para que la conversación siga con naturalidad.
+      await handleSendMessage(options[optionIndex]);
+      return;
+    }
+
+    if (!isAffirmative) {
+      const saved = await projectChatService.saveProjectChatMessage(project.id, activeChatId, {
+        tipo: 'asistente',
+        contenido: t('chatPendingAction.cancelled'),
+        chatVersion: 2,
+      });
+      if (saved) setChatHistory(prev => [...prev, { ...saved, chatVersion: 2 }]);
+      return;
+    }
+
+    const toolContext = { scope: 'project', projectId: project.id };
+    // `toolArgs` acá ya es el `proposed`/`task` YA RESUELTO (ver
+    // providerRouter.js#_runToolCallingLoop) — no hace falta agregar
+    // `confirm:true`, ese campo ya no existe en el schema ni en el contrato.
+    const result = await executeConfirmedAction(toolName, toolArgs, toolContext);
+    const outcomeText =
+      result?.status === 'created' ? t('chatPendingAction.created', { title: result.task?.title }) :
+      result?.status === 'updated' ? t('chatPendingAction.updated', { title: result.task?.title }) :
+      result?.status === 'deleted' ? t('chatPendingAction.deleted', { title: result.task?.title }) :
+      t('chatPendingAction.error');
+
+    const saved = await projectChatService.saveProjectChatMessage(project.id, activeChatId, {
+      tipo: 'asistente',
+      contenido: outcomeText,
+      chatVersion: 2,
+    });
+    if (saved) setChatHistory(prev => [...prev, { ...saved, chatVersion: 2 }]);
   };
 
   const formatDuration = (seconds) => {
@@ -839,46 +957,6 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     setChatIntegrations(list || []);
   };
 
-  // Sincronizar un canal concreto
-  const handleSyncChannel = async (integration) => {
-    setSyncingChannelId(integration.id);
-    try {
-      await window.electronAPI.syncChatIntegrations({ chatId: activeChatId, projectId: project.id, settings: oauthSettings });
-      const list = await window.electronAPI.getChatIntegrations(activeChatId);
-      setChatIntegrations(list || []);
-    } finally {
-      setSyncingChannelId(null);
-    }
-  };
-
-  // Desvincular un canal
-  const handleUnlinkChannel = async (integrationId) => {
-    if (!window.confirm('¿Desvincular este canal?')) return;
-    await window.electronAPI.unlinkChannelFromChat(integrationId);
-    setChatIntegrations(prev => prev.filter(i => i.id !== integrationId));
-  };
-
-  // Expandir/colapsar vista de mensajes de un canal
-  const toggleChannelMessages = async (integration) => {
-    const id = integration.id;
-    const next = new Set(expandedChannelIds);
-    if (next.has(id)) {
-      next.delete(id);
-      setExpandedChannelIds(next);
-      return;
-    }
-    next.add(id);
-    setExpandedChannelIds(next);
-
-    // Cargar mensajes si tiene una grabación asociada
-    if (integration.recording_id && !channelMessages[id]) {
-      try {
-        const txt = await window.electronAPI.getTranscriptionTxt(integration.recording_id);
-        setChannelMessages(prev => ({ ...prev, [id]: txt || '' }));
-      } catch { /* ignore */ }
-    }
-  };
-
   const activeChat = chats.find(c => c.id === activeChatId);
 
   // Cómputo agregado del estado RAG para el chat activo
@@ -888,7 +966,6 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const someRagIndexed = activeChatRecordingIds.some(id => ragStatuses[id] === true);
   const totalRagChunksCount = activeChatRecordingIds.reduce((s, id) => s + (ragTotalChunks[id] || 0), 0);
   const aggregateRagIndexed = isAnyIndexing ? false : (allRagKnown ? (someRagIndexed ? true : 'skipped') : null);
-  const activeChatAttachments = projectAttachments.filter(a => activeChatRecordingIds.includes(a.recordingId));
 
   return (
     <div className={styles.container}>
@@ -1032,7 +1109,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                       <span className={styles.aiBadge}>
                         {(() => {
                           // geminifree se conserva para mostrar el nombre de resúmenes históricos generados antes de unificar Gemini Free/Pro
-                          const names = { gemini: 'Gemini', geminifree: 'Gemini Free', deepseek: 'DeepSeek', kimi: 'Kimi', openai: 'OpenAI' };
+                          const names = { gemini: 'Gemini', geminifree: 'Gemini Free', deepseek: 'DeepSeek', kimi: 'Kimi', openai: 'OpenAI', glm: 'GLM' };
                           const { aiProvider, aiModel } = projectSummary;
                           return aiModel ? `${names[aiProvider] || aiProvider}: ${aiModel}` : (names[aiProvider] || aiProvider);
                         })()}
@@ -1175,6 +1252,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                   chatHistory={chatHistory}
                   onSendMessage={handleSendMessage}
                   onCommand={runCommand}
+                  onResolvePendingAction={handleResolvePendingAction}
                   isLoading={isSendingMessage || isAnyIndexing}
                   placeholder={isAnyIndexing ? 'Indexando grabaciones...' : 'Haz una pregunta sobre el proyecto...'}
                   title={activeChat ? `Chat: ${activeChat.nombre}` : "Chat del Proyecto"}
@@ -1263,7 +1341,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
               )}
             </div>
 
-            {/* Canales vinculados al chat */}
+            {/* Canales vinculados al chat (desactivado; los handlers de sync/unlink/mensajes se eliminaron, ver historial de git) */}
             {/*
             {activeChatId && chatIntegrations.length > 0 && (
               <div className={styles.chatContextInfo}>

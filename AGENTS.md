@@ -20,6 +20,9 @@ Este archivo contiene el contexto crítico general y las reglas de comportamient
 | **Build Frontend** | `npm run build` |
 | **Build macOS DMG** | `npm run electron:build` |
 | **Rebuild Native Modules** | `npm run rebuild` |
+| **Lint (ESLint 9)** | `npm run lint` |
+
+El lint no admite avisos (`--max-warnings 0` en `package.json`): cualquier warning o error hace fallar `npm run lint`. Si una regla no aplica en un punto concreto, usa `eslint-disable` con el motivo (`-- razón`).
 
 ## 3. Arquitectura Basada en Componentes (Lee antes de actuar)
 
@@ -53,3 +56,17 @@ Las IAs tienen la obligación estricta de mantener el contexto de la aplicación
 | `src/services/ai/providerRouter.js`, `src/services/ai/*` | `src/services/ai/README.md` (Sección Proveedores de IA) |
 | `src/prompts/aiPrompts.js` | `src/services/ai/README.md` (Sección Prompts y Formatos) |
 | `electron/transcriptionManager.js`, `python/audio_sync_analyzer.py` | `README.md` (raíz) (Sección Pipeline de Transcripción) |
+
+## Agent skills
+
+### Task tracker
+
+GitHub Issues (PRs on GitHub too). How every task operation is done: see `docs/agents/tracker.md`.
+
+### Domain docs
+
+single-context. See `docs/agents/domain.md`.
+
+### Workflow
+
+Branches, base branch, languages, harnesses and models, working mode, test commands, Engram sync and docs for the flow skills. See `docs/agents/workflow.md`.

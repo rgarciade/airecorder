@@ -1,6 +1,7 @@
 // Servicio para interactuar con la API de Gemini de Google
 
 import { getSettings } from '../settingsService';
+import { toGeminiToolsFormat } from './tools';
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
@@ -427,5 +428,128 @@ export async function sendToGeminiChatStreaming(messages, onChunk, images = [], 
       }
       throw error;
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Chat de una sola pasada (sin streaming) con function-calling nativo — EXCLUSIVO
+// para el loop de tool-calling de `providerRouter.js` (ver taskFunctions.js).
+// ---------------------------------------------------------------------------
+
+/**
+ * Convierte el array de mensajes "genérico" del loop de tool-calling (ver
+ * `providerRouter.js`) al formato nativo `contents` de Gemini. Adicionalmente a
+ * los roles habituales (system/user/assistant), reconoce:
+ * - `{role:'assistant', toolCalls:[{name, arguments}]}` → turno `model` con una
+ *   parte `functionCall` por cada tool call.
+ * - `{role:'tool', name, content}` → turno con una parte `functionResponse`.
+ *   NOTA (no verificado en vivo): la documentación pública de Gemini envía el
+ *   resultado de una función como una parte `functionResponse` dentro de un
+ *   turno con `role: 'user'` (Gemini no tiene un role `tool` propio) — se
+ *   implementa así por ser lo documentado, pero no se probó contra la API real
+ *   durante este cambio.
+ */
+function toGeminiContents(conversationMsgs, images = []) {
+  return conversationMsgs.map((m, idx) => {
+    if (m.role === 'assistant' && Array.isArray(m.toolCalls) && m.toolCalls.length > 0) {
+      return {
+        role: 'model',
+        parts: m.toolCalls.map((call) => ({
+          functionCall: {
+            name: call.name,
+            args: call.arguments && typeof call.arguments === 'object' ? call.arguments : {},
+          },
+        })),
+      };
+    }
+    if (m.role === 'tool') {
+      let responseObj = {};
+      try {
+        responseObj = m.content ? JSON.parse(m.content) : {};
+      } catch {
+        responseObj = { result: m.content };
+      }
+      return {
+        role: 'user',
+        parts: [{ functionResponse: { name: m.name, response: responseObj } }],
+      };
+    }
+
+    const geminiRole = m.role === 'assistant' ? 'model' : 'user';
+    if (idx === conversationMsgs.length - 1 && m.role === 'user' && images && images.length > 0) {
+      const parts = [{ text: m.content || '' }];
+      images.forEach((img) => {
+        parts.push({ inline_data: { mime_type: img.mimeType, data: img.base64 } });
+      });
+      return { role: geminiRole, parts };
+    }
+    return { role: geminiRole, parts: [{ text: m.content || '' }] };
+  });
+}
+
+/**
+ * Chat de una sola pasada (sin streaming) con soporte de function-calling nativo
+ * de Gemini. Usado EXCLUSIVAMENTE por el loop de detección de tool calls en
+ * `providerRouter.js` — nunca directamente por la UI.
+ *
+ * @param {Array} messages - Array de mensajes (formato genérico, ver arriba)
+ * @param {{tools?: Array}} [options] - `tools` es el catálogo agnóstico de `taskFunctions.js`
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<{text: string, toolCalls: Array<{id?:string, name:string, arguments:Object}>|null}>}
+ */
+export async function sendToGeminiChatOnce(messages, options = {}, signal = null) {
+  const settings = await getSettings();
+  const GEMINI_API_KEY = settings.geminiApiKey;
+  const geminiModel = settings.geminiModel || 'gemini-2.0-flash';
+
+  if (!GEMINI_API_KEY) {
+    throw new Error('No se ha configurado la Gemini API Key en los ajustes.');
+  }
+
+  const systemMsg = messages.find((m) => m.role === 'system');
+  const conversationMsgs = messages.filter((m) => m.role !== 'system');
+  const contents = toGeminiContents(conversationMsgs, options.images || []);
+
+  const body = {
+    contents,
+    ...(systemMsg ? { system_instruction: { parts: [{ text: systemMsg.content }] } } : {}),
+    ...(options.tools?.length ? { tools: toGeminiToolsFormat(options.tools) } : {}),
+  };
+
+  try {
+    const apiUrl = getGeminiUrl(geminiModel, false);
+    console.log(`[Gemini Chat Once] Usando modelo: ${geminiModel}`);
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-goog-api-key': GEMINI_API_KEY },
+      body: JSON.stringify(body),
+      signal,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Error en la API de Gemini: ${response.status} ${errorData.error?.message || ''}`);
+    }
+
+    const data = await response.json();
+    const parts = data?.candidates?.[0]?.content?.parts || [];
+
+    const toolCalls = parts
+      .filter((part) => part.functionCall)
+      .map((part, idx) => ({
+        id: `gemini-call-${idx}`,
+        name: part.functionCall.name,
+        arguments: part.functionCall.args || {},
+      }));
+
+    const text = parts.map((part) => part.text || '').join('');
+
+    return { text, toolCalls: toolCalls.length > 0 ? toolCalls : null };
+  } catch (error) {
+    if (!(error?.cancelled || error?.name === 'AbortError')) {
+      console.error('Error en sendToGeminiChatOnce:', error);
+    }
+    throw error;
   }
 }

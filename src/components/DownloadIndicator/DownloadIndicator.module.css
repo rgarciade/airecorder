@@ -1,0 +1,134 @@
+.indicator {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-secondary);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  color: var(--color-text-primary);
+}
+
+.collapsed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 9999px;
+  padding: 6px 8px 6px 14px;
+  min-width: auto;
+  max-width: 260px;
+  height: 40px;
+  cursor: pointer;
+}
+
+.icon {
+  color: var(--color-primary-hover);
+  flex-shrink: 0;
+}
+
+.label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: auto;
+}
+
+.closeBtn,
+.iconBtn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.closeBtn:hover,
+.iconBtn:hover {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+.expanded {
+  border-radius: 20px;
+  padding: 16px;
+  width: 320px;
+  cursor: pointer;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.title {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.summary {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  margin: 0 0 10px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--color-border-subtle);
+  font-size: 0.8125rem;
+}
+
+.rowName {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.rowPercent {
+  margin-left: auto;
+  color: var(--color-text-secondary);
+  font-family: monospace;
+}
+
+.rowError {
+  margin-left: auto;
+  color: var(--color-danger);
+}
+
+.retryBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.retryBtn:hover {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}

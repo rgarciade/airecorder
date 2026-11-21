@@ -40,6 +40,12 @@ export const getSettings = async () => {
       language: 'es',
       uiLanguage: 'es',
       microphone: '',
+      // Whisper (issue #149) — default explícito requerido por el
+      // hardening "solo instalados" de los 4 selectores (INV6, PR4): los
+      // puntos que resuelven el modelo implícitamente (Home.jsx,
+      // RecordingOverlay.jsx) necesitan un id concreto para poder consultar
+      // el inventario antes de encolar, no `undefined`.
+      whisperModel: 'small',
       // Gemini
       geminiApiKey: '',
       geminiModel: 'gemini-2.0-flash',
@@ -52,6 +58,16 @@ export const getSettings = async () => {
       // OpenAI
       openaiApiKey: '',
       openaiModel: '',
+      // GLM (Z.AI Coding Plan) — glmEndpointMode: 'plan' | 'general'; glmBaseUrl opcional (sobrescribe)
+      glmApiKey: '',
+      glmModel: '',
+      glmEndpointMode: 'plan',
+      glmBaseUrl: '',
+      // Codex (suscripción ChatGPT) — sin auto-detección posible (el SDK/CLI de
+      // Codex no expone la ventana de contexto por ninguna API), a diferencia de
+      // ollamaContextLength/lmStudioContextLength. null = usar el valor estimado
+      // hardcodeado por defecto (ver RecordingDetailWithTranscription.jsx/ProjectDetail.jsx).
+      codexContextLength: null,
       // Ollama
       ollamaModel: '',
       ollamaRagModel: '', // Modelo de CHAT específico para RAG (ej: deepseek-r1)
@@ -99,7 +115,7 @@ export const updateSettings = async (newSettings) => {
         window.electronAPI.sentryLogInfo(`Cambio de proveedor IA: de ${currentSettings.aiProvider || 'ninguno'} a ${newSettings.aiProvider}`);
       }
       
-      const modelsToCheck = ['geminiModel', 'deepseekModel', 'kimiModel', 'openaiModel', 'ollamaModel', 'lmStudioModel', 'whisperModel'];
+      const modelsToCheck = ['geminiModel', 'deepseekModel', 'kimiModel', 'openaiModel', 'glmModel', 'ollamaModel', 'lmStudioModel', 'whisperModel'];
       for (const modelKey of modelsToCheck) {
         if (newSettings[modelKey] && currentSettings[modelKey] !== newSettings[modelKey]) {
           window.electronAPI.sentryLogInfo(`Cambio de modelo IA (${modelKey}): de ${currentSettings[modelKey] || 'ninguno'} a ${newSettings[modelKey]}`);

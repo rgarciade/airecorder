@@ -40,6 +40,7 @@
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import { createRequire } from 'node:module';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -144,6 +145,10 @@ beforeAll(() => {
     loaded: true,
     exports: pathsMock,
   };
+
+  // Preload the real helper so it is in require.cache before beforeEach spies
+  // fs.readFileSync (Node's CJS loader reads module source with it).
+  nodeRequire('../../../../electron/utils/recordingMetadata.js');
 });
 
 afterAll(() => {
@@ -811,6 +816,198 @@ describe('get-recording-by-id', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────
+// get-recording-name — title shown in the AI queue: metadata.json customName
+// or, failing that, the folder name. Never throws; rejects path traversal.
+// ─────────────────────────────────────────────────────────────────────────
+
+describe('get-recording-name', () => {
+  const baseDir = '/fake/recordings';
+
+  // The handler may read metadata.json sync or async: serve the same content
+  // through both so the tests do not depend on that choice.
+  function serveMetadata(content) {
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockImplementation((p) => {
+      if (String(p).endsWith('metadata.json')) {
+        if (content instanceof Error) throw content;
+        return content;
+      }
+      throw new Error('ENOENT');
+    });
+    fs.promises.readFile.mockImplementation(async (p) => {
+      if (String(p).endsWith('metadata.json')) {
+        if (content instanceof Error) throw content;
+        return content;
+      }
+      throw new Error('ENOENT');
+    });
+  }
+
+  function expectNoFileRead() {
+    expect(fs.readFileSync).not.toHaveBeenCalled();
+    expect(fs.promises.readFile).not.toHaveBeenCalled();
+  }
+
+  it('returns the customName from metadata.json', async () => {
+    serveMetadata(JSON.stringify({ customName: 'Reunión semanal' }));
+
+    const result = await handlers['get-recording-name']({}, 'rec-1');
+
+    expect(result).toEqual({ success: true, name: 'Reunión semanal' });
+  });
+
+  it('returns the folder name when metadata.json has no customName', async () => {
+    serveMetadata(JSON.stringify({ other: 1 }));
+
+    const result = await handlers['get-recording-name']({}, 'rec-1');
+
+    expect(result).toEqual({ success: true, name: 'folder-rec-1' });
+  });
+
+  it.each([
+    ['empty string', ''],
+    ['whitespace only', '   '],
+    ['number', 42],
+    ['object', { a: 1 }],
+    ['null', null],
+  ])('returns the folder name when customName is %s', async (_label, customName) => {
+    serveMetadata(JSON.stringify({ customName }));
+
+    const result = await handlers['get-recording-name']({}, 'rec-1');
+
+    expect(result).toEqual({ success: true, name: 'folder-rec-1' });
+  });
+
+  it('returns the folder name when metadata.json is missing', async () => {
+    const enoent = Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
+    serveMetadata(enoent);
+
+    const result = await handlers['get-recording-name']({}, 'rec-1');
+
+    expect(result).toEqual({ success: true, name: 'folder-rec-1' });
+  });
+
+  it('returns the folder name when metadata.json is corrupt JSON', async () => {
+    serveMetadata('{not json');
+
+    const result = await handlers['get-recording-name']({}, 'rec-1');
+
+    expect(result).toEqual({ success: true, name: 'folder-rec-1' });
+  });
+
+  it.each([
+    ['an array', '[1,2]'],
+    ['null', 'null'],
+    ['a string', '"hello"'],
+  ])('returns the folder name when metadata.json is %s', async (_label, content) => {
+    serveMetadata(content);
+
+    const result = await handlers['get-recording-name']({}, 'rec-1');
+
+    expect(result).toEqual({ success: true, name: 'folder-rec-1' });
+  });
+
+  it('returns success with the folder name for an unknown folder', async () => {
+    fs.existsSync.mockReturnValue(false);
+
+    const result = await handlers['get-recording-name']({}, 'does-not-exist');
+
+    expect(result).toEqual({ success: true, name: 'folder-does-not-exist' });
+  });
+
+  it.each([
+    ['parent traversal', '../outside'],
+    ['nested traversal', 'a/../../outside'],
+    ['absolute path', '/etc'],
+  ])('rejects %s without reading any file', async (_label, id) => {
+    pathsMock.getFolderPathFromId.mockImplementation(async (value) => value);
+    serveMetadata(JSON.stringify({ customName: 'Leaked' }));
+
+    const result = await handlers['get-recording-name']({}, id);
+
+    expect(result.success).toBe(false);
+    expect(typeof result.error).toBe('string');
+    expectNoFileRead();
+  });
+
+  it.each([
+    ['empty string', ''],
+    ['undefined', undefined],
+  ])('rejects an empty id (%s) without reading any file', async (_label, id) => {
+    serveMetadata(JSON.stringify({ customName: 'Leaked' }));
+
+    const result = await handlers['get-recording-name']({}, id);
+
+    expect(result.success).toBe(false);
+    expectNoFileRead();
+  });
+
+  it('resolves a numeric id through getFolderPathFromId', async () => {
+    pathsMock.getFolderPathFromId.mockImplementation(async () => 'real-folder');
+    fs.existsSync.mockReturnValue(true);
+    const read = async (p) => {
+      if (String(p) === path.join(baseDir, 'real-folder', 'metadata.json')) {
+        return JSON.stringify({ customName: 'Desde BD' });
+      }
+      throw new Error('ENOENT');
+    };
+    fs.promises.readFile.mockImplementation(read);
+    fs.readFileSync.mockImplementation((p) => {
+      if (String(p) === path.join(baseDir, 'real-folder', 'metadata.json')) {
+        return JSON.stringify({ customName: 'Desde BD' });
+      }
+      throw new Error('ENOENT');
+    });
+
+    const result = await handlers['get-recording-name']({}, 7);
+
+    expect(pathsMock.getFolderPathFromId).toHaveBeenCalledWith(7);
+    expect(result).toEqual({ success: true, name: 'Desde BD' });
+  });
+
+  it('falls back to the resolved folder name, not the id, for a numeric id without customName', async () => {
+    pathsMock.getFolderPathFromId.mockImplementation(async () => 'real-folder');
+    serveMetadata(JSON.stringify({ other: 1 }));
+
+    const result = await handlers['get-recording-name']({}, 7);
+
+    expect(result).toEqual({ success: true, name: 'real-folder' });
+  });
+
+  it('falls back to the basename when the resolved folder is nested', async () => {
+    pathsMock.getFolderPathFromId.mockImplementation(async () => 'project/real-folder');
+    serveMetadata(JSON.stringify({}));
+
+    const result = await handlers['get-recording-name']({}, 7);
+
+    expect(result).toEqual({ success: true, name: 'real-folder' });
+  });
+
+  it.each([
+    ['a sibling dir sharing the base prefix', '/fake/recordings-evil/x'],
+    ['a path escaping through the base', '/fake/recordings/../outside'],
+    ['the base directory itself outside via parent', '/fake'],
+  ])('rejects %s resolved outside the recordings base without reading any file', async (_label, resolved) => {
+    pathsMock.getFolderPathFromId.mockImplementation(async () => resolved);
+    serveMetadata(JSON.stringify({ customName: 'Leaked' }));
+
+    const result = await handlers['get-recording-name']({}, 7);
+
+    expect(result.success).toBe(false);
+    expect(typeof result.error).toBe('string');
+    expectNoFileRead();
+  });
+
+  it('returns success:false when getRecordingsPath rejects', async () => {
+    pathsMock.getRecordingsPath.mockRejectedValue(new Error('no recordings dir'));
+
+    const result = await handlers['get-recording-name']({}, 'rec-1');
+
+    expect(result).toEqual({ success: false, error: 'no recordings dir' });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
 // rename-recording — el handler con más pasos secuenciales: sanitiza,
 // detecta colisión, renombra carpeta + archivos internos + BD + metadata.
 // ─────────────────────────────────────────────────────────────────────────
@@ -821,7 +1018,13 @@ describe('rename-recording', () => {
   const oldPath = path.join(baseDir, oldFolder);
 
   function setup({ existsOverrides = {}, dbEntry = null, internalFiles = [], metadataContent } = {}) {
+    // Stateful: once the folder has been renamed, its new path exists on disk.
+    let movedTo = null;
+    fs.promises.rename.mockImplementation(async (from, to) => {
+      if (from === oldPath) movedTo = to;
+    });
     fs.existsSync.mockImplementation((p) => {
+      if (movedTo !== null && p === movedTo) return true;
       if (p in existsOverrides) return existsOverrides[p];
       return false;
     });
@@ -941,6 +1144,31 @@ describe('rename-recording', () => {
 
     const written = JSON.parse(fs.promises.writeFile.mock.calls.find((c) => c[0].endsWith('metadata.json'))[1]);
     expect(written).toEqual({ customName: 'Nuevo Nombre' });
+  });
+
+  it('keeps projectName and sets the new customName in metadata.json (real fs)', async () => {
+    vi.restoreAllMocks();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rename-recording-test-'));
+    try {
+      fs.mkdirSync(path.join(tmpDir, oldFolder));
+      fs.writeFileSync(
+        path.join(tmpDir, oldFolder, 'metadata.json'),
+        JSON.stringify({ customName: 'Old name', projectName: 'Project A' })
+      );
+      pathsMock.getRecordingsPath.mockResolvedValue(tmpDir);
+      dbServiceMock.getRecording.mockReturnValue(null);
+
+      const result = await handlers['rename-recording']({}, 1, 'Nuevo Nombre');
+
+      expect(result).toEqual({ success: true, folderName: 'Nuevo Nombre' });
+      const written = JSON.parse(fs.readFileSync(path.join(tmpDir, 'Nuevo Nombre', 'metadata.json'), 'utf8'));
+      expect(written).toEqual({ customName: 'Nuevo Nombre', projectName: 'Project A' });
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 
   it('fs.promises.rename falla → capturado, success:false', async () => {

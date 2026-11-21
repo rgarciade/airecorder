@@ -140,7 +140,7 @@ export default function SpeakerLabel({
       setIsSaving(false);
       setIsEditing(false);
     }
-  }, [dispatch, ephemeralId, speakerId, embedding, recordingId, allSpeakers]);
+  }, [dispatch, ephemeralId, speakerId, embedding, recordingId]);
 
   const handleBlur = (e) => {
     // No cerrar si el foco se mueve a la lista de sugerencias

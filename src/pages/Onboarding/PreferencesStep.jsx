@@ -130,6 +130,7 @@ const PreferencesStep = ({
               </div>
             </div>
             <div className="flex gap-2">
+              {/* eslint-disable-next-line no-unused-vars -- Icon se usa como componente JSX; sin eslint-plugin-react el lint no lo detecta */}
               {THEME_OPTIONS.map(({ value, Icon, labelKey }) => (
                 <button
                   key={value}

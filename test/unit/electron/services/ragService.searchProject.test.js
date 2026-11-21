@@ -17,11 +17,15 @@ const embeddingServicePath = nodeRequire.resolve('../../../../electron/services/
 const speakerResolverPath = nodeRequire.resolve('../../../../electron/services/speakerResolver.js');
 const dbServicePath = nodeRequire.resolve('../../../../electron/database/dbService.js');
 const lancedbPath = nodeRequire.resolve('@lancedb/lancedb');
+// ragService.js requiere ../utils/paths a nivel de módulo, y paths.js llama a
+// app.getPath() al cargarse: sin este mock el import falla fuera de Electron.
+const pathsUtilPath = nodeRequire.resolve('../../../../electron/utils/paths.js');
 
 let originalEmbeddingServiceEntry;
 let originalSpeakerResolverEntry;
 let originalDbServiceEntry;
 let originalLancedbEntry;
+let originalPathsUtilEntry;
 
 const embeddingServiceMock = {
   detectEmbeddingProvider: vi.fn(),
@@ -46,6 +50,10 @@ const dbServiceMock = {
 const lancedbMock = {
   connect: vi.fn(),
   Index: { fts: vi.fn(() => ({ type: 'fts' })) },
+};
+
+const pathsUtilMock = {
+  getRecordingsPath: vi.fn(),
 };
 
 beforeAll(() => {
@@ -80,6 +88,14 @@ beforeAll(() => {
     loaded: true,
     exports: lancedbMock,
   };
+
+  originalPathsUtilEntry = nodeRequire.cache[pathsUtilPath];
+  nodeRequire.cache[pathsUtilPath] = {
+    id: pathsUtilPath,
+    filename: pathsUtilPath,
+    loaded: true,
+    exports: pathsUtilMock,
+  };
 });
 
 afterAll(() => {
@@ -94,6 +110,9 @@ afterAll(() => {
 
   if (originalLancedbEntry) nodeRequire.cache[lancedbPath] = originalLancedbEntry;
   else delete nodeRequire.cache[lancedbPath];
+
+  if (originalPathsUtilEntry) nodeRequire.cache[pathsUtilPath] = originalPathsUtilEntry;
+  else delete nodeRequire.cache[pathsUtilPath];
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────

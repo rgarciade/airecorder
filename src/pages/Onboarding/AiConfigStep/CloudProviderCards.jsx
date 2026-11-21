@@ -52,7 +52,7 @@ function ModelPicker({ t, activeAiRole, ring, models, modelsLoading, apiKey, sel
   );
 }
 
-export default function CloudProviderCards({ t, activeAiRole, aiProvider, setAiProvider, codex, openai, gemini, kimi, deepseek }) {
+export default function CloudProviderCards({ t, activeAiRole, aiProvider, setAiProvider, codex, openai, glm, gemini, kimi, deepseek }) {
   return (
     <div className="flex flex-col gap-5 mb-4">
 
@@ -143,6 +143,57 @@ export default function CloudProviderCards({ t, activeAiRole, aiProvider, setAiP
             </div>
           )}
         </div>
+
+        {/* GLM (Z.AI Coding Plan) — no soporta embeddings, se oculta en ese rol */}
+        {activeAiRole !== 'embeddings' && (
+        <div
+          className={`relative bg-white dark:bg-surface-secondary border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col
+            ${aiProvider === 'glm'
+              ? 'border-blue-500 bg-blue-50/20 ring-1 ring-blue-500/20'
+              : 'border-slate-200 dark:border-edge-primary hover:border-blue-400 hover:shadow-lg'}`}
+          onClick={() => setAiProvider('glm')}
+        >
+          <div className="flex justify-between items-start mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+                <AiProviderIcon provider="glm" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-content-primary">GLM</h3>
+                <p className="text-slate-400 dark:text-content-secondary text-xs">Z.AI · Beta</p>
+              </div>
+            </div>
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all mt-[5px]
+              ${aiProvider === 'glm' ? 'border-blue-500 bg-blue-500' : 'border-slate-300 dark:border-edge-primary'}`}>
+              <div className={`w-2 h-2 rounded-full bg-white transition-transform ${aiProvider === 'glm' ? 'scale-100' : 'scale-0'}`}></div>
+            </div>
+          </div>
+
+          <p className="text-slate-500 dark:text-content-secondary text-sm leading-relaxed mb-4">{t('onboarding.ai.glm.description')}</p>
+
+          {aiProvider === 'glm' && (
+            <div className="mt-auto pt-4 border-t border-slate-100 dark:border-edge-primary" onClick={(e) => e.stopPropagation()}>
+              <label className="block text-xs font-bold text-slate-600 dark:text-content-secondary mb-2 uppercase tracking-wide">
+                {t('onboarding.ai.glm.apiKeyLabel')}
+              </label>
+              <input
+                type="password"
+                className="w-full p-2.5 border border-slate-300 dark:border-edge-primary rounded-lg text-sm bg-slate-50 dark:bg-surface-tertiary text-slate-700 dark:text-content-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={glm.apiKey}
+                onChange={(e) => glm.setApiKey(e.target.value)}
+                placeholder={t('onboarding.ai.apiKeyPlaceholder')}
+              />
+              <ModelPicker
+                t={t} activeAiRole={activeAiRole}
+                ring={{ text: 'text-blue-600', focus: 'focus:ring-blue-500' }}
+                models={glm.models} modelsLoading={glm.modelsLoading} apiKey={glm.apiKey}
+                selectedModel={glm.selectedModel} setSelectedModel={glm.setSelectedModel}
+                loadModels={glm.loadModels} fixedEmbeddingModel=""
+              />
+            </div>
+          )}
+        </div>
+        )}
 
         {/* Gemini */}
         <div

@@ -161,7 +161,6 @@ export default function SpeakerSuggestions({
   return (
     <div className={styles.container}>
       {/* Audio oculto compartido para todos los fragmentos */}
-      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <audio ref={audioRef} preload="none" />
 
       <div className={styles.header}>

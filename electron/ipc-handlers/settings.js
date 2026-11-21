@@ -4,27 +4,11 @@ const path = require('path');
 const os = require('os');
 const notificationService = require('../services/notificationService');
 const { settingsPath, DEFAULT_BASE_RECORDER_PATH } = require('../utils/paths');
+const { writeSettingsFileAtomic } = require('../utils/settingsWriter');
 const dbService = require('../database/dbService');
-const { migrateGeminiFreeTier, migrateCustomChatModelField } = require('../utils/settingsMigrations');
+const { migrateGeminiFreeTier, migrateCustomChatModelField, migrateWhisperModelAlias } = require('../utils/settingsMigrations');
 
 module.exports.registerSettingsHandlers = () => {
-  // Serializa las escrituras: varios IPC pueden guardar configuración a la vez.
-  // Un único `.tmp` compartido permitía que una llamada lo renombrase antes de
-  // que otra llegara a su propio rename, produciendo ENOENT.
-  let settingsWriteChain = Promise.resolve();
-  const persistSettings = (settings) => {
-    const write = settingsWriteChain.then(async () => {
-      const dir = path.dirname(settingsPath);
-      await fs.promises.mkdir(dir, { recursive: true });
-
-      const tmpPath = `${settingsPath}.${process.pid}.${Date.now()}.tmp`;
-      await fs.promises.writeFile(tmpPath, JSON.stringify(settings, null, 2));
-      await fs.promises.rename(tmpPath, settingsPath);
-    });
-
-    settingsWriteChain = write.catch(() => {});
-    return write;
-  };
 
   // Detectar idioma del sistema operativo
   ipcMain.handle('get-system-language', () => {
@@ -44,7 +28,9 @@ module.exports.registerSettingsHandlers = () => {
   // Manejador para guardar configuración
   ipcMain.handle('save-settings', async (event, settings) => {
     try {
-      await persistSettings(settings);
+      // Escritura atómica + serializada (ver utils/settingsWriter.js): dos
+      // guardados concurrentes ya no se roban el rename del .tmp (ENOENT).
+      await writeSettingsFileAtomic(settingsPath, JSON.stringify(settings, null, 2));
       notificationService.updateSettings(settings); // Actualizar servicio en vivo
       
       // Actualizar la ruta base del transcriptionManager al vuelo
@@ -70,10 +56,11 @@ module.exports.registerSettingsHandlers = () => {
         const needsPersist = [
           migrateGeminiFreeTier(settings),
           migrateCustomChatModelField(settings),
+          migrateWhisperModelAlias(settings),
         ].some(Boolean);
 
         if (needsPersist) {
-          await persistSettings(settings);
+          await writeSettingsFileAtomic(settingsPath, JSON.stringify(settings, null, 2));
         }
 
         return { success: true, settings };
@@ -84,7 +71,7 @@ module.exports.registerSettingsHandlers = () => {
       try {
         fs.renameSync(settingsPath, settingsPath + '.corrupt.bak');
         console.warn('[Settings] settings.json corrupto — renombrado a .corrupt.bak para regenerar');
-      } catch {}
+      } catch { /* si no se puede renombrar, se devuelve igualmente el error original */ }
       return { success: false, error: error.message };
     }
   });
@@ -133,10 +120,10 @@ module.exports.registerSettingsHandlers = () => {
       if (fs.existsSync(settingsPath)) {
         try {
           settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-        } catch (_) {}
+        } catch (_) { /* settings.json ilegible: se parte de ajustes vacíos */ }
       }
       settings.databasePath = newPath;
-      await persistSettings(settings);
+      await writeSettingsFileAtomic(settingsPath, JSON.stringify(settings, null, 2));
 
       // Actualizar flag de fallback — ya no usamos fallback
       global.usingFallbackDb = false;
@@ -176,3 +163,4 @@ module.exports.registerSettingsHandlers = () => {
 // Exportadas para tests unitarios de las migraciones de settings.json
 module.exports.migrateGeminiFreeTier = migrateGeminiFreeTier;
 module.exports.migrateCustomChatModelField = migrateCustomChatModelField;
+module.exports.migrateWhisperModelAlias = migrateWhisperModelAlias;

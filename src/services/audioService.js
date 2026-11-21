@@ -498,8 +498,6 @@ class MixedAudioRecorder {
       
       // Configurar callback personalizado para sistema
       if (this.systemRecorder.mediaRecorder) {
-        const originalOnStop = this.systemRecorder.mediaRecorder.onstop;
-        
         this.systemRecorder.mediaRecorder.onstop = () => {
           console.log('Grabación del sistema completada');
           if (this.systemRecorder.audioChunks.length > 0) {
@@ -660,7 +658,18 @@ class MixedAudioRecorder {
       };
 
       console.log('Grabación dual completada:', recordingData);
-      
+
+      // Fire-and-forget: offline echo cancellation of the mic track (#174).
+      // Must be requested before onStop so the job exists before auto-transcription.
+      try {
+        const echoRequest = window.electronAPI?.cancelMicEcho?.(folderName);
+        Promise.resolve(echoRequest).catch((echoError) => {
+          console.warn('No se pudo solicitar la cancelación de eco:', echoError);
+        });
+      } catch (echoError) {
+        console.warn('No se pudo solicitar la cancelación de eco:', echoError);
+      }
+
       if (this.onStopCallback) {
         this.onStopCallback(recordingData);
       }

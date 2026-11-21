@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const dbService = require('../database/dbService');
 const { PROJECTS_PATH } = require('../utils/paths');
+const { readOrDefault, syncProjectName, syncRecordingProjectName } = require('../services/projectRecordingMetadata');
 
 module.exports.registerProjectsHandlers = () => {
 
@@ -41,6 +42,7 @@ module.exports.registerProjectsHandlers = () => {
         projectData.description,
         projectData.members
       );
+      await syncProjectName(readOrDefault(() => dbService.getProjectRecordingIds(projectId), []), project.name);
       return { success: true, project };
     } catch (error) {
       console.error('Error actualizando proyecto:', error);
@@ -51,7 +53,10 @@ module.exports.registerProjectsHandlers = () => {
   // Eliminar un proyecto
   ipcMain.handle('delete-project', async (event, projectId) => {
     try {
+      // Leer los ids ANTES de borrar: ON DELETE CASCADE los elimina
+      const recordingIds = readOrDefault(() => dbService.getProjectRecordingIds(projectId), []);
       dbService.deleteProject(projectId);
+      await syncProjectName(recordingIds, null);
       return { success: true };
     } catch (error) {
       console.error('Error eliminando proyecto:', error);
@@ -63,6 +68,7 @@ module.exports.registerProjectsHandlers = () => {
   ipcMain.handle('add-recording-to-project', async (event, projectId, recordingId) => {
     try {
       dbService.addRecordingToProject(projectId, recordingId);
+      await syncRecordingProjectName(recordingId);
       return { success: true };
     } catch (error) {
       console.error('Error agregando grabación al proyecto:', error);
@@ -74,6 +80,7 @@ module.exports.registerProjectsHandlers = () => {
   ipcMain.handle('remove-recording-from-project', async (event, projectId, recordingId) => {
     try {
       dbService.removeRecordingFromProject(projectId, recordingId);
+      await syncRecordingProjectName(recordingId);
       return { success: true };
     } catch (error) {
       console.error('Error eliminando grabación del proyecto:', error);

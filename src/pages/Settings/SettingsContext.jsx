@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- el módulo exporta el hook useSettings junto al Provider (patrón estándar de contexto); separarlo rompería los imports existentes */
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSystemMicrophones } from '../../services/audioService';
@@ -9,28 +10,16 @@ import { checkLMStudioAvailability, getLMStudioModelInfo } from '../../services/
 import { applyTheme } from '../../services/themeService';
 import { useCustomConnections } from '../../hooks/useCustomConnections';
 import { CustomOpenAIProvider, OPENAI_BASE_URL } from '../../services/ai/customOpenAIProvider';
+import useGlmSettings from './hooks/useGlmSettings';
 import { reconcileCodexSelection } from '../../services/ai/codexModelSelection';
+import { fetchModelCatalog, computeWhisperModelOptions } from './whisperModelCatalog';
 
-export const mockLanguages = [
-  { value: 'es', label: 'Español' },
-  { value: 'en', label: 'English' },
-  { value: 'fr', label: 'Français' },
-];
-
-export const fontSizes = [
-  { value: 'small', label: 'Pequeño' },
-  { value: 'medium', label: 'Mediano' },
-  { value: 'large', label: 'Grande' },
-  { value: 'xlarge', label: 'Muy Grande' },
-];
-
-export const whisperModels = [
-  { value: 'tiny', label: 'Tiny (Muy Rápido)' },
-  { value: 'base', label: 'Base' },
-  { value: 'small', label: 'Small (Recomendado)' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'large', label: 'Large (Preciso)' },
-];
+// `whisperModels` ya NO es una lista estática hardcodeada (INV1/INV6): se
+// deriva en runtime del catálogo obtenido vía IPC `resources.list()` — ver
+// `modelCatalog`/`loadModelCatalog` más abajo y `whisperModelCatalog.js`.
+// Se expone únicamente como valor de contexto (`useSettings().whisperModels`),
+// no como export estático del módulo, porque su contenido depende del
+// inventario real de modelos instalados/catalogados en cada instalación.
 
 const SettingsContext = createContext(null);
 
@@ -60,6 +49,10 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
   const [hfToken, setHfToken] = useState('');
   const [speakerSimilarityThreshold, setSpeakerSimilarityThreshold] = useState(0.85);
   const [whisperModel, setWhisperModel] = useState('small');
+  // Catálogo dinámico de modelos Whisper (INV1/INV6) — obtenido vía IPC
+  // `resources.list()`, no una lista estática. Fuente para `ModelsSection`
+  // y para las opciones derivadas de `whisperModels` (ver `value` más abajo).
+  const [modelCatalog, setModelCatalog] = useState([]);
   const [cpuThreads, setCpuThreads] = useState(4);
   const [maxCpuThreads, setMaxCpuThreads] = useState(4);
   const [microphones, setMicrophones] = useState([]);
@@ -97,6 +90,18 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
   const [openaiModelsLoading, setOpenaiModelsLoading] = useState(false);
   const [openaiModelsError, setOpenaiModelsError] = useState('');
 
+  // GLM (Z.AI Coding Plan)
+  const {
+    glmApiKey, setGlmApiKey,
+    glmModel, setGlmModel,
+    glmModels,
+    glmModelsLoading,
+    glmModelsNotice,
+    loadGlmModels,
+    glmEndpointMode, setGlmEndpointMode,
+    glmBaseUrl, setGlmBaseUrl,
+  } = useGlmSettings(t);
+
   const [aiProvider, setAiProvider] = useState('gemini');
   const [codexModel, setCodexModel] = useState('');
   const [codexReasoningEffort, setCodexReasoningEffort] = useState('');
@@ -130,6 +135,10 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
   // Context length guardado en settings (persiste, se usa para evitar llamadas a API)
   const [ollamaContextLengthSaved, setOllamaContextLengthSaved] = useState('');
   const [lmStudioContextLengthSaved, setLmStudioContextLengthSaved] = useState('');
+  // Codex: sin auto-detección posible (el SDK/CLI no expone este dato por ninguna
+  // API) — a diferencia de ollama/lmStudio, este campo es SOLO manual, sin botón
+  // "detectar" ni estado de éxito/error asociado.
+  const [codexContextLengthSaved, setCodexContextLengthSaved] = useState('');
   // Estado de detección automática del context length
   const [ollamaCtxStatus, setOllamaCtxStatus] = useState(null); // null | 'success' | 'error'
   const [lmStudioCtxStatus, setLmStudioCtxStatus] = useState(null); // null | 'success' | 'error'
@@ -202,7 +211,29 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
     window.electronAPI?.getAppVersion?.().then(r => {
       if (r?.success) setAppVersion(r.version);
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- carga inicial una sola vez al montar; loadSettings se redefine en cada render
   }, []);
+
+  /** Refresca el catálogo dinámico de modelos Whisper vía IPC (INV1/INV6). */
+  const loadModelCatalog = useCallback(async () => {
+    const items = await fetchModelCatalog(window.electronAPI);
+    setModelCatalog(items);
+    return items;
+  }, []);
+
+  // Se suscribe a `resources.onProgress()` (mismo snapshot completo que
+  // consume `ModelsSection`) para mantener `modelCatalog`/`whisperModels`
+  // al día mientras el usuario descarga o borra un modelo desde Ajustes →
+  // Modelos y descargas: sin esto, el selector "Tamaño del Modelo Whisper"
+  // de TranscriptionSection quedaba mostrando el catálogo del momento en
+  // que se cargaron los ajustes, y recién se veía actualizado saliendo y
+  // volviendo a entrar a Ajustes (remount de este provider).
+  useEffect(() => {
+    const unsubscribe = window.electronAPI?.resources?.onProgress?.(() => {
+      loadModelCatalog();
+    });
+    return () => unsubscribe?.();
+  }, [loadModelCatalog]);
 
   const loadSettings = async () => {
     try {
@@ -210,6 +241,14 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
       // Load microphones
       const systemMicrophones = await getSystemMicrophones();
       setMicrophones(systemMicrophones);
+
+      // Load dynamic Whisper model catalog (replaces the old hardcoded list).
+      // MUST be awaited (like getSystemMicrophones() above) — firing it
+      // without await let loadSettings() finish (isLoading -> false) before
+      // the catalog resolved, so `whisperModels`/`modelCatalog` could remain
+      // empty even after settings were reported as "loaded" (BLOCKER,
+      // fix post-review PR2).
+      await loadModelCatalog();
 
       // Load mic permission status
       if (window.electronAPI?.getMicrophonePermission) {
@@ -264,6 +303,12 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
         setOpenaiApiKey(savedSettings.openaiApiKey || '');
         setOpenaiModel(savedSettings.openaiModel || '');
 
+        // GLM
+        setGlmApiKey(savedSettings.glmApiKey || '');
+        setGlmModel(savedSettings.glmModel || '');
+        setGlmEndpointMode(savedSettings.glmEndpointMode || 'plan');
+        setGlmBaseUrl(savedSettings.glmBaseUrl || '');
+
         // Custom OpenAI-compatible connections
         setCustomConnections(savedSettings.customConnections || []);
         setEmbeddingProvider(savedSettings.embeddingProvider || '');
@@ -281,6 +326,9 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
 
         // Ollama context length guardado
         setOllamaContextLengthSaved(savedSettings.ollamaContextLength ? String(savedSettings.ollamaContextLength) : '');
+
+        // Codex context length guardado (manual únicamente, sin auto-detección)
+        setCodexContextLengthSaved(savedSettings.codexContextLength ? String(savedSettings.codexContextLength) : '');
 
         setAiProvider(savedSettings.aiProvider || 'ollama');
         setCodexModel(savedSettings.codexModel || '');
@@ -326,6 +374,9 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
       }
       if (savedSettings?.openaiApiKey) {
         loadOpenaiModels(savedSettings.openaiApiKey);
+      }
+      if (savedSettings?.glmApiKey) {
+        loadGlmModels(savedSettings.glmApiKey, savedSettings);
       }
 
       setHasLoadedSettings(true);
@@ -645,9 +696,15 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
         // OpenAI
         openaiApiKey: openaiApiKey,
         openaiModel: openaiModel,
+        // GLM
+        glmApiKey: glmApiKey,
+        glmModel: glmModel,
+        glmEndpointMode: glmEndpointMode,
+        glmBaseUrl: glmBaseUrl,
         // Codex (session is owned by the CLI; no credential is stored)
         codexModel: codexModel,
         codexReasoningEffort: codexReasoningEffort,
+        codexContextLength: codexContextLengthSaved ? parseInt(codexContextLengthSaved) : null,
         // LM Studio
         lmStudioHost: lmStudioHost,
         lmStudioModel: lmStudioModel,
@@ -797,6 +854,10 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
     // Transcription
     selectedLanguage, setSelectedLanguage,
     whisperModel, setWhisperModel,
+    // Catálogo dinámico de modelos Whisper (INV1/INV6) — ver whisperModelCatalog.js
+    modelCatalog,
+    loadModelCatalog,
+    whisperModels: computeWhisperModelOptions(modelCatalog, t),
     cpuThreads, setCpuThreads,
     maxCpuThreads,
     autoTranscribe, setAutoTranscribe,
@@ -869,10 +930,21 @@ export function SettingsProvider({ children, onSettingsSaved, initialActiveTab }
     openaiModelsError,
     loadOpenaiModels,
 
+    // GLM
+    glmApiKey, setGlmApiKey,
+    glmModel, setGlmModel,
+    glmModels,
+    glmModelsLoading,
+    glmModelsNotice,
+    loadGlmModels,
+    glmEndpointMode, setGlmEndpointMode,
+    glmBaseUrl, setGlmBaseUrl,
+
     // Provider selection
     aiProvider,
     codexModel, setCodexModel,
     codexReasoningEffort, setCodexReasoningEffort,
+    codexContextLengthSaved, setCodexContextLengthSaved,
     codexModels,
     codexModelsLoading,
     codexModelsError,

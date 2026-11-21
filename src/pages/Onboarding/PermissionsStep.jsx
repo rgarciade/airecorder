@@ -5,10 +5,8 @@ import OnboardingFooter from './OnboardingFooter';
 const PermissionsStep = ({
   t,
   micStatus,
-  systemAudioStatus,
   notificationStatus,
   onRequestMic,
-  onRequestSystemAudio,
   onToggleNotifications,
   onBack,
   onNext,

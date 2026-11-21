@@ -1,7 +1,6 @@
 const dbService = require('./electron/database/dbService');
 const path = require('path');
 const fs = require('fs');
-const { app } = require('electron');
 
 // Mock app.getPath for dbService init if needed, but we can pass absolute path
 // We need to know where the DB is.

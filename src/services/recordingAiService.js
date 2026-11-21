@@ -6,7 +6,7 @@
 import appSessionService from './appSessionService';
 import recordingsService from './recordingsService';
 import { getSettings } from './settingsService';
-import { callProvider, getActiveProviderContextWindow } from './ai/providerRouter';
+import { callProvider, getActiveProviderContextWindow, CLOUD_PROVIDERS } from './ai/providerRouter';
 import { AI_TASK_TYPES } from './ai/aiQueueService';
 import { cleanAiResponse, normalizeAiSummaryText, parseJsonArray, parseJsonObject } from '../utils/aiResponseParser';
 import { detailedSummaryPrompt, shortSummaryPrompt, keyPointsPrompt, participantsPrompt, participantsPromptSuffix, taskSuggestionsPrompt, taskSuggestionsPromptSuffix, taskImprovementSystemPrompt, taskImprovementUserContent, consolidateSummaryPrompt } from '../prompts/aiPrompts';
@@ -239,7 +239,11 @@ class RecordingAiService {
       ? { ...settings, aiProvider: providerOverrides.providerOverride }
       : settings;
 
-    const isCloudProvider = ['gemini', 'deepseek', 'kimi'].includes(effectiveSettings.aiProvider);
+    // Única fuente de verdad — ver CLOUD_PROVIDERS en providerRouter.js. Antes esta
+    // lista estaba duplicada acá y se desincronizó (bug real: Codex/OpenAI quedaron
+    // afuera cuando se agregaron como providers, tratando a Codex como un modelo
+    // local de 4096 tokens y partiendo transcripciones normales en ~10 fragmentos).
+    const isCloudProvider = CLOUD_PROVIDERS.includes(effectiveSettings.aiProvider);
     if (isCloudProvider) {
       return Number.MAX_SAFE_INTEGER; // Los proveedores cloud no necesitan chunking/truncado
     }
@@ -545,19 +549,19 @@ class RecordingAiService {
           console.warn('Parsing JSON de participantes falló, intentando fallback regex...');
           const cleanResponseForFallback = cleanAiResponse(participantsResponse.text);
           const lines = cleanResponseForFallback.split('\n');
-          const listRegex = /^[\*\-\+]\s+([^\(:\n]+)(?:[\(:\s]+([^\)\n]+)\)?)?/;
+          const listRegex = /^[*\-+]\s+([^(:\n]+)(?:[(:\s]+([^)\n]+)\)?)?/;
 
           const fallbackParticipants = [];
 
           for (const line of lines) {
             const trimmedLine = line.trim();
-            if (trimmedLine.match(/^[\*\-]?\s*(Personajes|Participantes|Speakers|Nombres):/i)) continue;
+            if (trimmedLine.match(/^[*-]?\s*(Personajes|Participantes|Speakers|Nombres):/i)) continue;
 
             const match = trimmedLine.match(listRegex);
             if (match) {
               const name = match[1].trim();
               let role = match[2] ? match[2].trim() : 'Participante';
-              role = role.replace(/[\)\:]$/, '');
+              role = role.replace(/[):]$/, '');
 
               if (name.length > 1 && !name.toLowerCase().includes("ninguno")) {
                 fallbackParticipants.push({ name, role });
@@ -727,7 +731,6 @@ class RecordingAiService {
    */
   async improveTask(recordingId, task, userInstructions = '') {
     try {
-      const recName = await this._getRecordingName(recordingId);
       // Obtener contexto (preferiblemente resumen detallado)
       let contextText = await recordingsService.getTranscriptionTxt(recordingId);
       try {
@@ -908,8 +911,8 @@ class RecordingAiService {
    */
   async _getRecordingName(recordingId) {
     try {
-      const rec = await recordingsService.getRecordingById(recordingId);
-      return rec?.name || recordingId;
+      const name = await recordingsService.getRecordingName(recordingId);
+      return name || recordingId;
     } catch {
       return recordingId;
     }

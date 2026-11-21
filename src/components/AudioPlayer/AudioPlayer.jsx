@@ -132,6 +132,7 @@ const AudioPlayer = forwardRef(({
       if (sysHowl.current) sysHowl.current.unload();
       stopProgressLoop();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- efecto de carga: añadir las deps recargaría el audio (Howl); startProgressLoop y mute se leen en el momento de la carga
   }, [micAudioUrl, sysAudioUrl]);
 
   // Handle Mute Changes

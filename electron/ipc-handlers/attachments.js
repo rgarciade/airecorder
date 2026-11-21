@@ -2,7 +2,7 @@ const { ipcMain, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { getRecordingsPath, getFolderPathFromId } = require('../utils/paths');
-const { SUPPORTED_EXTENSIONS, getAttachmentType, resolveFilename } = require('../utils/fileUtils');
+const { SUPPORTED_EXTENSIONS, IMAGE_EXTENSIONS, TEXT_EXTENSIONS, PDF_EXTENSIONS, EXCEL_EXTENSIONS, getAttachmentType, resolveFilename } = require('../utils/fileUtils');
 
 async function getAttachmentsDir(recordingId) {
   const recordingsBase = await getRecordingsPath();
@@ -281,6 +281,8 @@ function getMimeType(filename) {
     '.pdf': 'application/pdf',
     '.txt': 'text/plain',
     '.md': 'text/markdown',
+    '.yaml': 'text/yaml',
+    '.yml': 'text/yaml',
     '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     '.xls': 'application/vnd.ms-excel'
   };

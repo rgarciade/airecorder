@@ -29,9 +29,8 @@ import styles from './MergeSpeakersModal.module.css';
  * @param {boolean}   props.isOpen        - Controla visibilidad del modal.
  * @param {Function}  props.onClose       - Callback para cerrar el modal.
  * @param {string[]}  props.ephemeralIds  - Lista de ephemeralIds disponibles en la sesión.
- * @param {number}    [props.recordingId] - ID de la grabación activa.
  */
-export default function MergeSpeakersModal({ isOpen, onClose, ephemeralIds = [], recordingId }) {
+export default function MergeSpeakersModal({ isOpen, onClose, ephemeralIds = [] }) {
   const dispatch = useDispatch();
   const speakersMap = useSelector(selectSpeakersMap);
   const allSpeakers = useSelector(selectAllSpeakers);

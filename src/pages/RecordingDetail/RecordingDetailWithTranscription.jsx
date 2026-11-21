@@ -3,13 +3,14 @@ import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { selectSpeakersMap } from '../../store/slices/speakersSlice';
 import recordingsService from '../../services/recordingsService';
-import projectsService from '../../services/projectsService';
-import { getSettings, updateSettings, addSettingsListener, removeSettingsListener } from '../../services/settingsService';
+import { getSettings, updateSettings, addSettingsListener } from '../../services/settingsService';
+import { buildSelectableModelOptions, isModelInstalled, hasAnyInstalledModel } from '../../utils/whisperModelGuard.js';
 import { getAvailableModels, checkModelSupportsStreaming, getOllamaModelInfo } from '../../services/ai/ollamaProvider';
 import { getLMStudioModels } from '../../services/ai/lmStudioProvider';
 // generateWithContext y generateWithContextStreaming se mantienen para el análisis (resúmenes, etc.)
 // El chat de grabaciones usa callChatProviderStreaming directamente.
-import { callProvider, callProviderStreaming, callChatProviderStreaming, isCustom } from '../../services/ai/providerRouter';
+import { callChatProviderStreaming } from '../../services/ai/providerRouter';
+import { ALL_TOOLS, executeConfirmedAction } from '../../services/ai/tools';
 import { chatSystemPrompt } from '../../prompts/aiPrompts';
 import { ragSystemPrompt, mapHistoryToMessages } from '../../prompts/ragPrompts';
 import { buildSystemPrompt, FEATURE_TYPES } from '../../services/ai/promptBuilder';
@@ -58,14 +59,6 @@ import {
   MdAutoAwesome
 } from 'react-icons/md';
 
-const whisperModels = [
-  { value: 'tiny', label: 'Tiny (Fastest)' },
-  { value: 'base', label: 'Base' },
-  { value: 'small', label: 'Small (Recommended)' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'large', label: 'Large (Precise)' },
-];
-
 const DEEPSEEK_CHAT_MODELS = [
   { value: 'deepseek-chat', label: 'DeepSeek Chat' },
   { value: 'deepseek-reasoner', label: 'DeepSeek Reasoner' },
@@ -93,7 +86,6 @@ function parseTimestampToSeconds(ts) {
 
 export default function RecordingDetailWithTranscription({ recording, onBack, onNavigateToProject, onNavigateToSettings }) {
   const { t } = useTranslation();
-  const persistentRecordingId = recording?.dbId ?? recording?.id ?? null;
 
   // ── Redux: mapa de hablantes con ediciones del usuario ──
   const reduxSpeakersMap = useSelector(selectSpeakersMap);
@@ -119,6 +111,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   // Tasks State
   const [tasks, setTasks] = useState([]);
   const [isGeneratingTasks, setIsGeneratingTasks] = useState(false);
+  const [notesCount, setNotesCount] = useState(0);
   const [improvingTaskId, setImprovingTaskId] = useState(null);
   const [newTaskIds, setNewTaskIds] = useState(new Set());
 
@@ -181,7 +174,13 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   // Re-transcribe Modal
   const [showTranscribeModal, setShowTranscribeModal] = useState(false);
   const [selectedWhisperModel, setSelectedWhisperModel] = useState('small');
-  
+  // Catálogo dinámico de modelos Whisper (INV6, PR4 hardening) — reemplaza
+  // el array hardcodeado sin i18n que vivía antes a nivel de módulo. Data
+  // fetching propio (patrón `ModelsSection.jsx`/`ModelStep.jsx`, D10),
+  // refrescado cada vez que se abre el modal de re-transcripción para no
+  // mostrar un inventario stale (`handleReTranscribeClick`).
+  const [whisperModelItems, setWhisperModelItems] = useState([]);
+
   // Actions dropdown
   const [showActionsMenu, setShowActionsMenu] = useState(false);
   const actionsMenuRef = useRef(null);
@@ -288,6 +287,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         setSelectedLmStudioModel(settings.lmStudioModel || '');
       }
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- carga por grabación; añadir chatContextMode/currentRecordingDbId relanzaría la carga del chat
   }, [recording]);
 
   // Suscripción a chatPendingService para restaurar estado de carga tras navegación
@@ -318,7 +318,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       const provider = settings.aiProvider || 'gemini';
       // Todos los proveedores cloud soportan streaming nativamente (y LM Studio)
       // Ollama depende de la configuración del modelo
-      const cloudProviders = ['gemini', 'openai', 'codex', 'deepseek', 'kimi', 'lmstudio'];
+      const cloudProviders = ['gemini', 'openai', 'glm', 'codex', 'deepseek', 'kimi', 'lmstudio'];
       const modelSupportsStreaming = cloudProviders.includes(provider) 
         ? true 
         : (settings.ollamaModelSupportsStreaming || false);
@@ -357,6 +357,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         kimi: settings.kimiModel,
         gemini: settings.geminiModel,
         openai: settings.openaiModel,
+        glm: settings.glmModel,
         codex: settings.codexModel,
         lmstudio: settings.lmStudioRagModel || settings.lmStudioModel,
       };
@@ -385,6 +386,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         ctxLen = 32000;
       } else if (provider === 'deepseek') {
         ctxLen = 64000;
+      } else if (provider === 'codex') {
+        // Codex no expone la ventana de contexto por ninguna API (SDK ni CLI) —
+        // usa el valor configurado manualmente en Ajustes si existe, o un
+        // estimado por defecto (familia GPT-5/Codex, documentado públicamente,
+        // no verificable en vivo — mismo criterio que gemini/kimi/deepseek arriba).
+        ctxLen = settings.codexContextLength || 400000;
+      } else if (provider === 'openai' || provider === 'glm') {
+        ctxLen = 128000;
       }
       setMaxContextLength(ctxLen);
     };
@@ -399,6 +408,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     return () => {
       unsubscribe();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- verificación del modelo solo al cambiar la selección; sessionModel relanzaría la verificación
   }, []);
 
   // 2. Fetch models when provider changes (Ollama o LM Studio)
@@ -424,6 +434,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         })
         .catch(err => console.error("Error fetching LM Studio models:", err));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- los modelos seleccionados no deben relanzar la carga del catálogo
   }, [aiProvider]);
 
   // 3. Load or Generate Summaries & Participants
@@ -558,8 +569,28 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       }
     };
     loadOrGenerate();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- el efecto no debe relanzar la generación de IA al cambiar isGeneratingAi/currentRecordingDbId
   }, [recording]);
 
+  // Refresca tareas al entrar a la pestaña: `tasks` puede quedar desactualizado si se
+  // crearon vía `/tareas` en el chat (persiste directo a SQLite, sin pasar por setTasks).
+  useEffect(() => {
+    if (activeTab !== 'tasks' || !currentRecordingDbId) return;
+    recordingsService.getTaskSuggestions(currentRecordingDbId)
+      .then((savedTasks) => setTasks(savedTasks || []))
+      .catch((err) => console.error('Error refrescando tareas:', err));
+  }, [activeTab, currentRecordingDbId]);
+
+  // Conteo de notas para el badge de la pestaña "Notas" (independiente del estado interno
+  // de NotesTab, que gestiona su propia lista). Se refresca al montar, al entrar a la
+  // pestaña (cubre notas creadas vía `/nota` en el chat) y cuando `notesTabRefresh` avisa
+  // que se generó una nota desde plantilla.
+  useEffect(() => {
+    if (!currentRecordingDbId || !window.electronAPI?.templates?.getNotesForRecording) return;
+    window.electronAPI.templates.getNotesForRecording(currentRecordingDbId)
+      .then((notesList) => setNotesCount((notesList || []).length))
+      .catch((err) => console.error('Error refrescando conteo de notas:', err));
+  }, [currentRecordingDbId, activeTab, notesTabRefresh]);
 
   // --- HANDLERS ---
 
@@ -660,7 +691,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       // Usar estado local actualizado por el listener (más fiable y rápido)
       const provider = aiProvider;
       // Todos los proveedores cloud usan streaming, Ollama depende de configuración
-      const cloudProviders = ['gemini', 'openai', 'codex', 'deepseek', 'kimi', 'lmstudio'];
+      const cloudProviders = ['gemini', 'openai', 'glm', 'codex', 'deepseek', 'kimi', 'lmstudio'];
       const shouldUseStreaming = cloudProviders.includes(provider) ? true : supportsStreaming;
 
       console.log('🤖 Preparando chat:', {
@@ -692,6 +723,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       }
 
       let answer = '';
+      // Acción pendiente de confirmación por botones (create/update/delete_task,
+      // que SIEMPRE proponen y nunca ejecutan solas, o ask_user) — ver
+      // providerRouter.js#_runToolCallingLoop. Se
+      // captura fuera de las ramas RAG/clásica (mismo criterio que `answer`) porque
+      // `response` es local a cada bloque `if`/`else`.
+      let toolPendingAction = null;
 
       if (useRag) {
         // --- MODO RAG V2: array de mensajes nativo con system prompt ---
@@ -724,7 +761,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         const ragOptions = {
           ...(activeRagModel ? { ragModel: activeRagModel } : { model: sessionModel || undefined }),
           ...(attachmentImages.length > 0 ? { images: attachmentImages } : {}),
-          queueMeta: { name: 'Chat RAG' }
+          queueMeta: { name: 'Chat RAG' },
+          // Function-calling nativo sobre tareas — SOLO en la conversación normal del
+          // chat (nunca en comandos internos como /tareas, /buscar, /compact). Ver
+          // src/services/ai/tools/index.js y README.md.
+          tools: ALL_TOOLS,
+          toolContext: { scope: 'recording', recordingId: currentRecordingDbId },
         };
 
         console.log('🤖 [RAG V2] Enviando array de mensajes:', {
@@ -739,7 +781,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           setStreamingMessage(answer);
         }, ragOptions);
         console.log('✅ [RAG V2] Respuesta recibida:', { provider: response.provider, model: response.model });
-        answer = response.text || answer || 'No answer generated.';
+        // OJO: NO coercionar acá al fallback 'No answer generated.' — cuando el modelo
+        // dispara una acción pendiente (ej. create_task, que SIEMPRE propone) sin escribir
+        // texto propio, `response.text` viene vacío ('') y hay que dejar que la burbuja
+        // use `toolPendingAction.question` más abajo. Coercionar acá lo pisaría antes de
+        // llegar a esa lógica (bug real: siempre mostraba "No answer generated." aunque
+        // hubiera una pregunta de confirmación real esperando).
+        answer = response.text || answer || '';
+        toolPendingAction = response.pendingAction || null;
 
       } else {
         // --- MODO CLÁSICO V2: system prompt con transcripción + historial nativo ---
@@ -771,7 +820,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         const classicOptions = {
           model: sessionModel || undefined,
           ...(attachmentImages.length > 0 ? { images: attachmentImages } : {}),
-          queueMeta: { name: 'Chat Grabación' }
+          queueMeta: { name: 'Chat Grabación' },
+          // Function-calling nativo sobre tareas — ver nota equivalente en ragOptions.
+          tools: ALL_TOOLS,
+          toolContext: { scope: 'recording', recordingId: currentRecordingDbId },
         };
 
         console.log('🚀 Iniciando chat clásico en modo STREAMING (V2)', {
@@ -782,25 +834,53 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           answer += chunk;
           setStreamingMessage(answer);
         }, classicOptions);
-        answer = response.text || answer || 'No answer generated.';
+        // OJO: NO coercionar acá al fallback 'No answer generated.' — cuando el modelo
+        // dispara una acción pendiente (ej. create_task, que SIEMPRE propone) sin escribir
+        // texto propio, `response.text` viene vacío ('') y hay que dejar que la burbuja
+        // use `toolPendingAction.question` más abajo. Coercionar acá lo pisaría antes de
+        // llegar a esa lógica (bug real: siempre mostraba "No answer generated." aunque
+        // hubiera una pregunta de confirmación real esperando).
+        answer = response.text || answer || '';
+        toolPendingAction = response.pendingAction || null;
       }
 
       setStreamingMessage('');
+
+      // Único punto que decide el texto final visible: si el modelo escribió algo,
+      // eso. Si no, pero hay una acción pendiente (ej. llamó a create_task, que SIEMPRE
+      // propone), usamos su `question` para que la burbuja nunca quede vacía. Recién si
+      // NINGUNA de las dos existe, es un caso genuino de "no answer".
+      const contenido = answer || toolPendingAction?.question || 'No answer generated.';
 
       // Crear el mensaje de la IA con la respuesta completa (V2)
       const aiMessage = {
         id: `ai_${tempId}`,
         tipo: 'asistente',
-        contenido: answer,
+        contenido,
         fecha: new Date().toISOString(),
         chatVersion: 2,
+        ...(toolPendingAction ? { pendingAction: { ...toolPendingAction, resolved: false } } : {}),
       };
 
       // Añadir mensaje de la IA al historial
       setQaHistory(prev => [...prev, aiMessage]);
 
-      // Actualizar la entrada en disco (reemplazar respuesta null por la real)
-      const qa = { tipo: 'usuario', pregunta: questionText, adjuntos: attachmentsToUse, respuesta: answer, fecha: new Date().toISOString(), chatVersion: 2 };
+      // Actualizar la entrada en disco (reemplazar respuesta null por la real).
+      // BUG REAL: `chatPendingService.clearPending` (más abajo) dispara una suscripción
+      // (~línea 296) que recarga TODO el historial desde disco vía `getQuestionHistory`
+      // y reemplaza `qaHistory` en memoria — si `pendingAction` no viajara también acá,
+      // esa recarga (que puede llegar antes o después de este `setQaHistory`) pisaría el
+      // mensaje recién creado con la versión persistida SIN `pendingAction`, y los
+      // botones de confirmación nunca llegarían a verse.
+      const qa = {
+        tipo: 'usuario',
+        pregunta: questionText,
+        adjuntos: attachmentsToUse,
+        respuesta: contenido,
+        fecha: new Date().toISOString(),
+        chatVersion: 2,
+        ...(toolPendingAction ? { pendingAction: { ...toolPendingAction, resolved: false } } : {}),
+      };
       await recordingsService.updateLastQuestionHistory(recording.id, qa);
 
       // Limpiar petición pendiente
@@ -929,6 +1009,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       else if (aiProvider === 'kimi') settingsUpdate.kimiModel = model;
       else if (aiProvider === 'gemini') settingsUpdate.geminiModel = model;
       else if (aiProvider === 'openai') settingsUpdate.openaiModel = model;
+      else if (aiProvider === 'glm') settingsUpdate.glmModel = model;
 
       if (Object.keys(settingsUpdate).length > 0) {
         await updateSettings(settingsUpdate);
@@ -980,6 +1061,78 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     setQaHistory(entries);
   };
 
+  // Resuelve un click sobre los botones de una `pendingAction` (ver
+  // providerRouter.js#_runToolCallingLoop + ChatInterface.jsx). Ejecución
+  // ESTRUCTURALMENTE separada de la IA vía executeConfirmedAction — la IA
+  // nunca puede alcanzar este dispatcher (ver docstring de taskTools.js), solo
+  // el click handler de la UI, y solo para el caso `ask_user` no hay mutación
+  // que ejecutar (no muta nada, ver abajo).
+  //
+  // Opera sobre `qaHistory` (no la versión normalizada) buscando por
+  // `pendingAction.id` (el id de tool_call, asignado en providerRouter.js — ver
+  // comentario ahí) — NUNCA por el id del mensaje/entrada. BUG REAL corregido:
+  // antes buscaba `m.id === messageId`, pero `pendingAction` ahora sobrevive
+  // tanto en un mensaje individual (con `id` propio) COMO en un par
+  // pregunta/respuesta recargado desde disco (que no tiene `id` propio — a
+  // `normalizeChatHistory` le toca inventarle uno sintético `a_N`/`u_N` SOLO
+  // para el render, que nunca existe en el dato crudo de `qaHistory`). Buscar
+  // por `m.id` nunca encontraba nada para una entrada tipo par ya recargada
+  // (la recarga la dispara la suscripción a `chatPendingService`, que corre casi
+  // enseguida) — el click no hacía nada. `pendingAction.id` en cambio viaja
+  // idéntico en ambos formatos (ver `qa.pendingAction` en `handleAskQuestion` y
+  // el passthrough en `chatHistory.js`), así que este lookup funciona sin
+  // importar qué forma tenga la entrada en este momento.
+  const handleResolvePendingAction = async (pendingActionId, optionIndex) => {
+    const entries = qaHistory.map(m => m.pendingAction?.id === pendingActionId
+      ? { ...m, pendingAction: { ...m.pendingAction, resolved: true, resolution: m.pendingAction.options[optionIndex] } }
+      : m
+    );
+    await handleReplaceChatHistory(entries);
+
+    const target = entries.find(m => m.pendingAction?.id === pendingActionId);
+    if (!target?.pendingAction) return;
+    const { toolName, toolArgs, options } = target.pendingAction;
+    const isAffirmative = optionIndex === 0; // primera opción = afirmativa/proceder, cualquier otra = cancelar
+
+    if (toolName === 'ask_user') {
+      // No hay mutación que ejecutar — la elección del usuario se re-inyecta como
+      // su propio mensaje para que la conversación siga con naturalidad.
+      await handleAskQuestion(options[optionIndex]);
+      return;
+    }
+
+    if (!isAffirmative) {
+      const cancelEntry = {
+        id: `cancel_${Date.now()}`,
+        tipo: 'asistente',
+        contenido: t('chatPendingAction.cancelled'),
+        fecha: new Date().toISOString(),
+        chatVersion: 2,
+      };
+      await handleReplaceChatHistory([...entries, cancelEntry]);
+      return;
+    }
+
+    const toolContext = { scope: 'recording', recordingId: currentRecordingDbId };
+    // `toolArgs` acá ya es el `proposed`/`task` YA RESUELTO (ver
+    // providerRouter.js#_runToolCallingLoop) — no hace falta agregar
+    // `confirm:true`, ese campo ya no existe en el schema ni en el contrato.
+    const result = await executeConfirmedAction(toolName, toolArgs, toolContext);
+    const outcomeText =
+      result?.status === 'created' ? t('chatPendingAction.created', { title: result.task?.title }) :
+      result?.status === 'updated' ? t('chatPendingAction.updated', { title: result.task?.title }) :
+      result?.status === 'deleted' ? t('chatPendingAction.deleted', { title: result.task?.title }) :
+      t('chatPendingAction.error');
+    const outcomeEntry = {
+      id: `outcome_${Date.now()}`,
+      tipo: 'asistente',
+      contenido: outcomeText,
+      fecha: new Date().toISOString(),
+      chatVersion: 2,
+    };
+    await handleReplaceChatHistory([...entries, outcomeEntry]);
+  };
+
   const handleChatCompacted = (result, entries) => {
     // Solo el historial cambió — recalculamos historyTokens sobre el contextInfo
     // existente para que la barra baje al instante, sin esperar al siguiente mensaje.
@@ -1001,6 +1154,13 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     setBusy: setQuestionLoading,
     onCompacted: handleChatCompacted,
     t,
+    // /tareas y /nota persisten en SQLite (task_suggestions, recording_notes) — necesitan
+    // el ID numérico de la base de datos, no el ID de carpeta.
+    recordingId: currentRecordingDbId,
+    // /buscar usa ragService, que opera sobre el archivo de transcripción (identificado por
+    // el ID de carpeta, recording.id) — NO el ID numérico de la base de datos. Son dos
+    // espacios de identificadores distintos en esta app (ver recordingsService.getRecordings).
+    ragRecordingId: recording.id,
   });
 
   const handleCompactChat = async () => {
@@ -1129,6 +1289,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         provider: aiProvider,
         settings: savedSettings,
       });
+      // El modelo elegido en el modal (Local Model / LM Studio Model) prevalece
+      // sobre el guardado en Ajustes — este último es solo el valor inicial.
+      if (aiProvider === 'ollama' && selectedOllamaModel) providerOverrides.model = selectedOllamaModel;
+      if (aiProvider === 'lmstudio' && selectedLmStudioModel) providerOverrides.model = selectedLmStudioModel;
 
       // Leer contenido de adjuntos seleccionados para la regeneración
       let regenerateDocContext = '';
@@ -1402,6 +1566,21 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   };
 
   const handleReTranscribeClick = () => {
+    // INV6 (PR4 hardening): refresca el inventario cada vez que se abre el
+    // modal (D10 — mismo criterio que `DiskSpaceIndicator`/`ModelsSection`),
+    // para no ofrecer un catálogo stale. Si el modelo actualmente
+    // seleccionado ya no está instalado (o nunca lo estuvo), se cambia
+    // automáticamente al primer modelo instalado disponible.
+    Promise.resolve(window.electronAPI?.resources?.list?.())
+      .then((snapshot) => {
+        const items = snapshot?.ok ? (snapshot.items || []) : [];
+        setWhisperModelItems(items);
+        if (!isModelInstalled(items, selectedWhisperModel)) {
+          const firstInstalled = items.find((item) => item.state === 'installed');
+          if (firstInstalled) setSelectedWhisperModel(firstInstalled.id);
+        }
+      })
+      .catch(() => setWhisperModelItems([]));
     setShowTranscribeModal(true);
   };
 
@@ -1425,6 +1604,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   };
 
   const handleConfirmReTranscribe = async () => {
+    // Defensa en profundidad (INV6): el botón ya queda deshabilitado si el
+    // modelo seleccionado no está instalado, pero esto evita encolar si de
+    // todos modos se llega a llamar (p. ej. estado stale).
+    if (!isModelInstalled(whisperModelItems, selectedWhisperModel)) return;
     setShowTranscribeModal(false);
     try {
       const result = await recordingsService.transcribeRecording(recording.dbId || recording.id, selectedWhisperModel);
@@ -1529,7 +1712,10 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       return `media://${safePath}`;
     };
 
-    const micFile = localRecording.files.find(f => f.includes('microphone') || f.includes('mic'));
+    // Cleaned track only: skip `-microphone-original` and `-echo-tmp` (#174).
+    const isBackupMic = (f) => /-(original|echo-tmp)\.\w+$/i.test(f);
+    const micFile = localRecording.files.find(f => /-microphone\.\w+$/i.test(f))
+      || localRecording.files.find(f => !isBackupMic(f) && (f.includes('microphone') || f.includes('mic')));
     const sysFile = localRecording.files.find(f => f.includes('system') || f.includes('sys'));
 
     // Fallback if no specific separate files found (e.g. older recordings or single file)
@@ -1789,7 +1975,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
           className={`${styles.tabButton} ${activeTab === 'notes' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('notes')}
         >
-          Notas
+          Notas{notesCount > 0 ? ` (${notesCount})` : ''}
         </button>
       </nav>
 
@@ -1838,6 +2024,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
               chatHistory: convertChatHistory(),
               onSendMessage: handleAskQuestion,
               onCommand: runCommand,
+              onResolvePendingAction: handleResolvePendingAction,
               isLoading: questionLoading || ragIndexed === false,
               placeholder: ragIndexed === false ? 'Indexando transcripción...' : undefined,
               title: "AI Assistant",
@@ -1930,6 +2117,40 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
                   customConnections={customConnections}
                 />
 
+                {aiProvider === 'ollama' && (
+                  <>
+                    <label className={styles.modalLabel}>Local Model</label>
+                    <select
+                      className={styles.select}
+                      value={selectedOllamaModel}
+                      onChange={(e) => setSelectedOllamaModel(e.target.value)}
+                    >
+                      <option value="" disabled>Select a model...</option>
+                      {ollamaModels.map(model => (
+                        <option key={model} value={model}>{model}</option>
+                      ))}
+                    </select>
+                  </>
+                )}
+
+                {aiProvider === 'lmstudio' && (
+                  <>
+                    <label className={styles.modalLabel}>LM Studio Model</label>
+                    <select
+                      className={styles.select}
+                      value={selectedLmStudioModel}
+                      onChange={(e) => setSelectedLmStudioModel(e.target.value)}
+                    >
+                      <option value="" disabled>Select a model...</option>
+                      {lmStudioModels.length > 0
+                        ? lmStudioModels.map(model => (
+                            <option key={model} value={model}>{model}</option>
+                          ))
+                        : <option value="" disabled>LM Studio no disponible o sin modelos</option>
+                      }
+                    </select>
+                  </>
+                )}
               </div>
 
               {/* Options Section */}
@@ -2050,49 +2271,77 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
       )}
 
       {/* Re-transcribe Modal */}
-      {showTranscribeModal && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <h3 className={styles.modalTitle}>Re-generate Transcription</h3>
-            <p className={styles.modalText}>
-              Choose the Whisper model size. This will overwrite the current transcription.
-            </p>
-            
-            <div className={styles.modalForm}>
-              <div className={styles.modalSection}>
-                <label className={styles.modalLabel}>Whisper Model</label>
-                <select 
-                  className={styles.select}
-                  value={selectedWhisperModel}
-                  onChange={(e) => setSelectedWhisperModel(e.target.value)}
+      {showTranscribeModal && (() => {
+        // INV6 (PR4 hardening): opciones derivadas del inventario dinámico
+        // (`whisperModelItems`, refrescado en `handleReTranscribeClick`) en
+        // vez del catálogo hardcodeado sin i18n que vivía antes a nivel de
+        // módulo. Los modelos no instalados quedan atenuados (`disabled`);
+        // el `onChange` solo actualiza el estado local — nunca dispara una
+        // descarga (auditado, ver Fase 4.9-4.10 de tasks.md).
+        const whisperModelOptions = buildSelectableModelOptions(whisperModelItems, t);
+        const noWhisperModelInstalled = !hasAnyInstalledModel(whisperModelItems);
+        const selectedInstalled = isModelInstalled(whisperModelItems, selectedWhisperModel);
+
+        return (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modalContent}>
+              <h3 className={styles.modalTitle}>Re-generate Transcription</h3>
+              <p className={styles.modalText}>
+                Choose the Whisper model size. This will overwrite the current transcription.
+              </p>
+
+              <div className={styles.modalForm}>
+                <div className={styles.modalSection}>
+                  <label className={styles.modalLabel}>Whisper Model</label>
+                  <select
+                    className={styles.select}
+                    data-testid="retranscribe-model-select"
+                    value={selectedWhisperModel}
+                    onChange={(e) => setSelectedWhisperModel(e.target.value)}
+                  >
+                    {whisperModelOptions.map(model => (
+                      <option key={model.value} value={model.value} disabled={model.disabled}>{model.label}</option>
+                    ))}
+                  </select>
+                  <p className={styles.helpText}>
+                    Smaller models are faster, larger models are more precise.
+                  </p>
+                  {noWhisperModelInstalled && (
+                    <p
+                      className={styles.helpText}
+                      data-testid="retranscribe-no-model-cta"
+                      style={{ color: 'var(--color-warning)', cursor: 'pointer', textDecoration: 'underline' }}
+                      onClick={() => {
+                        setShowTranscribeModal(false);
+                        onNavigateToSettings?.('general', 'models-and-downloads-section');
+                      }}
+                    >
+                      {t('settings.helpText.whisperModelNoneInstalled')}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.modalButtons}>
+                <button
+                  className={styles.cancelModalBtn}
+                  onClick={() => setShowTranscribeModal(false)}
                 >
-                  {whisperModels.map(model => (
-                    <option key={model.value} value={model.value}>{model.label}</option>
-                  ))}
-                </select>
-                <p className={styles.helpText}>
-                  Smaller models are faster, larger models are more precise.
-                </p>
+                  Cancel
+                </button>
+                <button
+                  className={styles.confirmModalBtn}
+                  data-testid="retranscribe-start-btn"
+                  disabled={!selectedInstalled}
+                  onClick={handleConfirmReTranscribe}
+                >
+                  Start Transcription
+                </button>
               </div>
             </div>
-
-            <div className={styles.modalButtons}>
-              <button 
-                className={styles.cancelModalBtn} 
-                onClick={() => setShowTranscribeModal(false)}
-              >
-                Cancel
-              </button>
-              <button 
-                className={styles.confirmModalBtn} 
-                onClick={handleConfirmReTranscribe}
-              >
-                Start Transcription
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
       {/* Chat Context Mode Confirm Modal */}
       {showChatModeConfirm && (
         <div className={styles.modalOverlay}>

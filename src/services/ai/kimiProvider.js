@@ -1,6 +1,8 @@
 // Servicio para interactuar con la API de Kimi (Moonshot AI)
 
 import { getSettings } from '../settingsService';
+import { toOpenAIToolsFormat } from './tools';
+import { buildOpenAIToolMessages, parseOpenAIToolMessage } from './openAIToolChat';
 
 const KIMI_API_BASE = 'https://api.moonshot.ai/v1';
 
@@ -301,5 +303,57 @@ export async function chatCompletionStreaming(messages, onChunk, modelOverride =
       }
       throw error;
     }
+  }
+}
+
+/**
+ * Chat de una sola pasada (sin streaming) con soporte de `tools`. Usado
+ * EXCLUSIVAMENTE por el loop de tool-calling de `providerRouter.js`.
+ * Moonshot documenta compatibilidad con el formato `tools`/`tool_calls` de
+ * OpenAI en su API — NO verificado en vivo durante esta implementación. Si
+ * Moonshot llegase a rechazar el campo `tools`, el `fetch` fallará y el loop de
+ * `providerRouter.js` lo captura como error del provider (no rompe la
+ * conversación, pero SÍ corta ese turno — ver guarda defensiva documentada en
+ * README).
+ *
+ * @param {Array} messages - Mensajes en formato genérico (ver `openAIToolChat.js`)
+ * @param {{tools?: Array, model?: string}} [options]
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<{text: string, toolCalls: Array|null}>}
+ */
+export async function chatCompletionOnce(messages, options = {}, signal = null) {
+  const settings = await getSettings();
+  const apiKey = settings.kimiApiKey;
+  const model = options.model || settings.kimiModel || 'kimi-k2';
+
+  if (!apiKey) throw new Error('No se ha configurado la Kimi API Key en los ajustes.');
+
+  const body = {
+    model,
+    messages: buildOpenAIToolMessages(messages),
+    stream: false,
+    ...(options.tools?.length ? { tools: toOpenAIToolsFormat(options.tools) } : {}),
+  };
+
+  try {
+    const response = await fetch(`${KIMI_API_BASE}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify(body),
+      signal,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Error en la API de Kimi: ${response.status} ${errorData.error?.message || ''}`);
+    }
+
+    const data = await response.json();
+    return parseOpenAIToolMessage(data.choices?.[0]?.message || {});
+  } catch (error) {
+    if (!(error?.cancelled || error?.name === 'AbortError')) {
+      console.error('Error en chatCompletionOnce de Kimi:', error);
+    }
+    throw error;
   }
 }

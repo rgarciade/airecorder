@@ -49,11 +49,13 @@ const embeddingServicePath = nodeRequire.resolve('../../../../electron/services/
 const speakerResolverPath = nodeRequire.resolve('../../../../electron/services/speakerResolver.js');
 const dbServicePath = nodeRequire.resolve('../../../../electron/database/dbService.js');
 const lancedbPath = nodeRequire.resolve('@lancedb/lancedb');
+const pathsUtilPath = nodeRequire.resolve('../../../../electron/utils/paths.js');
 
 let originalEmbeddingServiceEntry;
 let originalSpeakerResolverEntry;
 let originalDbServiceEntry;
 let originalLancedbEntry;
+let originalPathsUtilEntry;
 
 const embeddingServiceMock = {
   detectEmbeddingProvider: vi.fn(),
@@ -71,6 +73,10 @@ const speakerResolverMock = {
 const dbServiceMock = {
   getRecording: vi.fn(),
   getAllRecordings: vi.fn(),
+};
+
+const pathsUtilMock = {
+  getRecordingsPath: vi.fn(),
 };
 
 // `lancedb.connect` es sustituido por cada test según lo que necesite; el
@@ -112,6 +118,14 @@ beforeAll(() => {
     loaded: true,
     exports: lancedbMock,
   };
+
+  originalPathsUtilEntry = nodeRequire.cache[pathsUtilPath];
+  nodeRequire.cache[pathsUtilPath] = {
+    id: pathsUtilPath,
+    filename: pathsUtilPath,
+    loaded: true,
+    exports: pathsUtilMock,
+  };
 });
 
 afterAll(() => {
@@ -126,6 +140,9 @@ afterAll(() => {
 
   if (originalLancedbEntry) nodeRequire.cache[lancedbPath] = originalLancedbEntry;
   else delete nodeRequire.cache[lancedbPath];
+
+  if (originalPathsUtilEntry) nodeRequire.cache[pathsUtilPath] = originalPathsUtilEntry;
+  else delete nodeRequire.cache[pathsUtilPath];
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -186,6 +203,7 @@ beforeEach(async () => {
   Object.values(dbServiceMock).forEach((v) => {
     if (typeof v?.mockReset === 'function') v.mockReset();
   });
+  pathsUtilMock.getRecordingsPath.mockReset();
   lancedbMock.connect.mockReset();
   lancedbMock.Index.fts.mockClear();
 
@@ -913,6 +931,52 @@ describe('searchRecording()', () => {
     expect(result[0].score).toBeGreaterThan(result[1].score);
   });
 
+  test('chunk que sólo aparece en la búsqueda keyword (FTS) se devuelve con score 0.8', async () => {
+    const recordingPath = uniqueRecordingPath('search-fts-only');
+    const vectordbPath = `${recordingPath}/analysis/vectordb`;
+    vi.spyOn(fs, 'existsSync').mockImplementation((p) => p === vectordbPath);
+    embeddingServiceMock.detectEmbeddingProvider.mockResolvedValue({ provider: 'ollama' });
+    embeddingServiceMock.embed.mockResolvedValue([0.1, 0.2]);
+
+    const table = makeFakeTable({
+      vectorRows: [],
+      ftsRows: [
+        { chunk_id: 7, text: 't7', text_display: 'd7', start_time: 5, end_time: 15, speakers: 'Ana' },
+      ],
+    });
+    lancedbMock.connect.mockResolvedValue(makeFakeConnection({ table }));
+
+    const result = await ragService.searchRecording(recordingPath, 'query', 10);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].chunkId).toBe(7);
+    expect(result[0].score).toBe(0.8);
+  });
+
+  test('chunk presente en vectorial y en FTS multiplica su score por 1.5', async () => {
+    const recordingPath = uniqueRecordingPath('search-fts-boost');
+    const vectordbPath = `${recordingPath}/analysis/vectordb`;
+    vi.spyOn(fs, 'existsSync').mockImplementation((p) => p === vectordbPath);
+    embeddingServiceMock.detectEmbeddingProvider.mockResolvedValue({ provider: 'ollama' });
+    embeddingServiceMock.embed.mockResolvedValue([0.1, 0.2]);
+
+    // _distance 1 → score vectorial 0.5; con boost → 0.75
+    const table = makeFakeTable({
+      vectorRows: [
+        { chunk_id: 3, text: 't3', text_display: 'd3', start_time: 0, end_time: 10, speakers: 'Ana', _distance: 1 },
+      ],
+      ftsRows: [
+        { chunk_id: 3, text: 't3', text_display: 'd3', start_time: 0, end_time: 10, speakers: 'Ana' },
+      ],
+    });
+    lancedbMock.connect.mockResolvedValue(makeFakeConnection({ table }));
+
+    const result = await ragService.searchRecording(recordingPath, 'query', 10);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].score).toBeCloseTo(0.75, 5);
+  });
+
   test('table.openTable falla en el primer intento y funciona en el retry tras invalidar caché', async () => {
     const recordingPath = uniqueRecordingPath('search-retry-opentable');
     const vectordbPath = `${recordingPath}/analysis/vectordb`;
@@ -1058,29 +1122,19 @@ describe('reindexAllRecordings()', () => {
     expect(result.total).toBe(0);
   });
 
-  /**
-   * BUG genuino detectado (no corregido, sólo documentado y caracterizado):
-   *
-   * reindexAllRecordings() (línea 608) llama a `getRecordingsPath()` cuando
-   * no se pasa `baseOutputDir` en options — pero esa función NUNCA se
-   * importa/requiere en ragService.js. Está definida y exportada en
-   * `electron/utils/paths.js`, pero ragService.js no tiene
-   * `const { getRecordingsPath } = require('../utils/paths')` ni nada
-   * equivalente (el archivo sólo requiere fs, path, embeddingService,
-   * speakerResolver y dbService a nivel de módulo — ver cabecera de este
-   * archivo de test). El resultado es un `ReferenceError: getRecordingsPath
-   * is not defined` en tiempo de ejecución, sin ningún try/catch que lo
-   * intercepte — la promesa devuelta por reindexAllRecordings() se rechaza
-   * con ese error en vez de devolver el objeto de resultado estructurado
-   * `{ reindexed, total, ... }` que el resto de la función promete.
-   * Cualquier caller que invoque `reindexAllRecordings()` SIN
-   * `baseOutputDir` (el uso "normal" en producción — `baseOutputDir` está
-   * pensado como override para tests) rompe inmediatamente.
-   */
-  test('BUG: sin baseOutputDir, reindexAllRecordings() lanza ReferenceError porque getRecordingsPath no está importada en ragService.js', async () => {
-    embeddingServiceMock.detectEmbeddingProvider.mockResolvedValue({ provider: 'ollama' });
-    dbServiceMock.getAllRecordings.mockReturnValue([]);
+  test('sin baseOutputDir, reindexAllRecordings() usa getRecordingsPath() de utils/paths y devuelve el resultado estructurado', async () => {
+    pathsUtilMock.getRecordingsPath.mockResolvedValue('/fake/default-recordings');
+    embeddingServiceMock.detectEmbeddingProvider.mockResolvedValue({ provider: 'ollama', model: 'nomic-embed-text' });
+    dbServiceMock.getAllRecordings.mockReturnValue([{ relative_path: 'rec1' }]);
+    vi.spyOn(fs, 'existsSync').mockImplementation((p) => p === '/fake/default-recordings/rec1/analysis/vectordb');
+    vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
+    const indexFn = vi.fn().mockResolvedValue({ indexed: true, skippedRag: false, totalChunks: 1 });
 
-    await expect(ragService.reindexAllRecordings({})).rejects.toThrow(/getRecordingsPath is not defined/);
+    const result = await ragService.reindexAllRecordings({ indexFn });
+
+    expect(pathsUtilMock.getRecordingsPath).toHaveBeenCalledTimes(1);
+    expect(indexFn).toHaveBeenCalledWith('/fake/default-recordings/rec1');
+    expect(result.reindexed).toBe(1);
+    expect(result.total).toBe(1);
   });
 });
