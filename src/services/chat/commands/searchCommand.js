@@ -82,7 +82,7 @@ async function _runRecordingSearch(ctx, query) {
 }
 
 async function _runProjectSearch(ctx, query) {
-  const { projectId, chatId, getHistory, replaceHistory, model, t } = ctx;
+  const { projectId, chatId, getHistory, replaceHistory, model, contextTokenLimit, t } = ctx;
 
   if (!projectId || !chatId) {
     return { success: false, error: t('chatCommands.buscar.noTarget') };
@@ -95,7 +95,10 @@ async function _runProjectSearch(ctx, query) {
     chatId,
     history,
     'detallado', // fuerza topK generoso — bypasea el toggle Auto/Detallado del chat
-    { model },
+    // Sin `tools` (deliberado: /buscar es una consulta RAG puntual y ligera). El
+    // `contextTokenLimit` sí viaja para que el presupuesto de chunks derive del
+    // tamaño real de la ventana del modelo y no del default de 8000.
+    { model, contextTokenLimit },
     () => {}
   );
   const answer = result?.text || '';

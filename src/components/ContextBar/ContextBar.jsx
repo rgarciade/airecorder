@@ -88,7 +88,7 @@ const TogglesGroup = ({ chatContextMode, onChatContextModeChange, ragMode, onRag
   );
 };
 
-const ContextBar = ({ contextInfo, maxContextLength = 8000, ragIndexed, ragTotalChunks = 0, ragMode, onRagModeChange, isProject = false, chatContextMode, onChatContextModeChange, onCompact, compacting = false }) => {
+const ContextBar = ({ contextInfo, maxContextLength = 8000, ragIndexed, ragTotalChunks = 0, ragMode, onRagModeChange, isProject = false, chatContextMode, onChatContextModeChange, onCompact, compacting = false, indexingProgress = null }) => {
   const { t } = useTranslation();
 
   // Modo activo: RAG usado en el último mensaje
@@ -119,12 +119,20 @@ const ContextBar = ({ contextInfo, maxContextLength = 8000, ragIndexed, ragTotal
     );
   }
 
-  // Indexando en background
+  // Indexando en background (indexingProgress detalla grabación + posición cuando la cola es secuencial)
   if (ragIndexed === false) {
     return (
       <div className={styles.container}>
         <span className={`${styles.dot} ${styles.dotIndexing}`} />
-        <span className={`${styles.label} ${styles.labelMuted}`}>{t('contextBar.indexing')}</span>
+        <span className={`${styles.label} ${styles.labelMuted}`}>
+          {indexingProgress
+            ? t('contextBar.indexingQueue', {
+                current: indexingProgress.current,
+                total: indexingProgress.total,
+                title: indexingProgress.title,
+              })
+            : t('contextBar.indexing')}
+        </span>
       </div>
     );
   }

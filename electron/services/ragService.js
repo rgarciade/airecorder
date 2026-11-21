@@ -5,6 +5,13 @@ const embeddingService = require("./embeddingService");
 const { resolveSpeakersInText } = require("./speakerResolver");
 const dbService = require("../database/dbService");
 const { getRecordingsPath } = require("../utils/paths");
+// Constante compartida main ↔ renderer (electron/utils): el texto exacto del error
+// sistémico se define UNA sola vez — la cola de auto-indexado del chat de
+// proyecto compara contra esta misma constante, sin copias que se puedan
+// desincronizar. Vive dentro de electron/ (no en src/) porque el empaquetado
+// sólo distribuye dist/ + electron-dist/ (copia literal de electron/): un
+// require a src/ no existiría en la app empaquetada y tumbaría ragService.
+const { NO_EMBEDDING_PROVIDER_ERROR } = require("../utils/ragErrors.json");
 
 // Umbral: transcripciones menores a este valor no usan RAG
 const MIN_TEXT_LENGTH_FOR_RAG = 8000; // ~2000 tokens
@@ -247,7 +254,7 @@ async function indexRecording(recordingPath) {
       indexed: false,
       skippedRag: false,
       totalChunks: 0,
-      error: "No hay provider de embeddings disponible",
+      error: NO_EMBEDDING_PROVIDER_ERROR,
     };
   }
 
@@ -354,11 +361,13 @@ async function indexRecording(recordingPath) {
 }
 
 /**
- * Busca chunks relevantes para una query
+ * Busca chunks relevantes para una query (una grabación).
+ * Detecta provider, reindexa si cambió el modelo de embeddings, embebe la query
+ * y delega en `searchWithVector`.
  * @param {string} recordingPath
  * @param {string} query
  * @param {number} topK
- * @returns {Promise<Array<{ chunkId: number, text: string, textDisplay: string, startTime: number, endTime: number, speakers: string, score: number }>>}
+ * @returns {Promise<Array<{ chunkId: number, text: string, textDisplay: string, startTime: number, endTime: number, speakers: string, score: number, keywordOnly?: boolean }>>}
  */
 async function searchRecording(recordingPath, query, topK = 10) {
   const vectordbPath = path.join(recordingPath, "analysis", "vectordb");
@@ -371,10 +380,27 @@ async function searchRecording(recordingPath, query, topK = 10) {
   // Detectar provider
   const provider = await embeddingService.detectEmbeddingProvider();
   if (!provider) {
-    throw new Error("No hay provider de embeddings disponible para búsqueda");
+    throw new Error(`${NO_EMBEDDING_PROVIDER_ERROR} para búsqueda`);
   }
 
   // Verificar si el modelo de embeddings cambió desde la indexación
+  const reindexOk = await reindexIfModelChanged(recordingPath, vectordbPath, provider);
+  if (!reindexOk) return [];
+
+  // Generar embedding de la query
+  console.log(
+    `[RAG] Buscando: "${query.substring(0, 100)}${query.length > 100 ? "..." : ""}" (topK=${topK})`,
+  );
+  const queryVector = await embeddingService.embed(query, provider);
+
+  return searchWithVector(recordingPath, query, topK, { provider, queryVector });
+}
+
+/**
+ * Reindexa la grabación si el modelo de embeddings con que se indexó difiere del actual.
+ * @returns {Promise<boolean>} false si la reindexación falló (la búsqueda debe devolver [])
+ */
+async function reindexIfModelChanged(recordingPath, vectordbPath, provider) {
   const currentModelId = getEmbeddingModelId(provider);
   const metadata = readIndexMetadata(vectordbPath);
   if (metadata && metadata.embeddingModel && metadata.embeddingModel !== currentModelId) {
@@ -384,20 +410,27 @@ async function searchRecording(recordingPath, query, topK = 10) {
     const reindexResult = await indexRecording(recordingPath);
     if (!reindexResult.indexed) {
       console.error('[RAG] Re-indexación falló:', reindexResult.error);
-      return [];
+      return false;
     }
     console.log(`[RAG] Re-indexación completada (${reindexResult.totalChunks} chunks). Continuando búsqueda...`);
   }
+  return true;
+}
 
-  // Generar embedding de la query
-  console.log(
-    `[RAG] Buscando: "${query.substring(0, 100)}${query.length > 100 ? "..." : ""}" (topK=${topK})`,
-  );
-  const queryVector = await embeddingService.embed(query, provider);
+/**
+ * Búsqueda híbrida (vectorial + FTS) con un provider y un vector de query ya calculados.
+ * Un error de dimensiones reindexa y reentra aquí mismo (sin volver a embeber la query).
+ */
+async function searchWithVector(recordingPath, query, topK, { provider, queryVector }) {
+  const vectordbPath = path.join(recordingPath, "analysis", "vectordb");
+  if (!fs.existsSync(vectordbPath)) {
+    return [];
+  }
+  const metadata = readIndexMetadata(vectordbPath);
 
   // Buscar en LanceDB (con retry tras invalidar caché si falla)
   let vectorRows;
-  let table;
+  let table; // fuera del bucle: la búsqueda FTS posterior también la usa
   for (let attempt = 0; attempt < 2; attempt++) {
     const db = await getConnection(vectordbPath);
 
@@ -430,7 +463,7 @@ async function searchRecording(recordingPath, query, topK = 10) {
         if (reindexResult.indexed) {
           console.log(`[RAG] Re-indexación completada. Reintentando búsqueda...`);
           // Reintentar la búsqueda recursivamente tras re-indexar
-          return searchRecording(recordingPath, query, topK);
+          return searchWithVector(recordingPath, query, topK, { provider, queryVector });
         }
         console.error('[RAG] Re-indexación falló:', reindexResult.error);
         return [];
@@ -492,6 +525,7 @@ async function searchRecording(recordingPath, query, topK = 10) {
           endTime: row.end_time,
           speakers: row.speakers,
           score: 0.8,
+          keywordOnly: true,
         });
       }
     }
@@ -536,6 +570,58 @@ async function searchRecording(recordingPath, query, topK = 10) {
   });
 
   return finalResults;
+}
+
+/**
+ * Busca en varias grabaciones de un proyecto con UN solo provider y UN solo embedding de la query.
+ * Las grabaciones indexadas con otro modelo se reindexan en secuencia antes de buscar; el resto
+ * de búsquedas corre en paralelo y está aislado (un fallo no afecta a las demás).
+ * @param {Array<{ recordingId: string, recordingPath: string }>} recordings
+ * @param {string} query
+ * @param {number} topKPerRecording
+ * @returns {Promise<Array<{ recordingId: string, success: boolean, chunks: Array, error?: string }>>} mismo orden que la entrada
+ */
+async function searchProject(recordings, query, topKPerRecording = 5) {
+  const failAll = (message) =>
+    recordings.map((r) => ({ recordingId: r.recordingId, success: false, chunks: [], error: message }));
+
+  let provider;
+  let queryVector;
+  try {
+    provider = await embeddingService.detectEmbeddingProvider();
+    if (!provider) return failAll(NO_EMBEDDING_PROVIDER_ERROR);
+    queryVector = await embeddingService.embed(query, provider);
+  } catch (error) {
+    return failAll(error.message || 'Error generando el embedding de la consulta');
+  }
+
+  // Reindexación secuencial (evita saturar el provider de embeddings)
+  const reindexFailed = new Set();
+  for (const rec of recordings) {
+    const vectordbPath = path.join(rec.recordingPath, "analysis", "vectordb");
+    if (!fs.existsSync(vectordbPath)) continue;
+    try {
+      const ok = await reindexIfModelChanged(rec.recordingPath, vectordbPath, provider);
+      if (!ok) reindexFailed.add(rec.recordingId);
+    } catch (error) {
+      console.error(`[RAG] Error reindexando ${rec.recordingId}:`, error.message);
+      reindexFailed.add(rec.recordingId);
+    }
+  }
+
+  const settled = await Promise.allSettled(
+    recordings.map((rec) =>
+      reindexFailed.has(rec.recordingId)
+        ? Promise.resolve([])
+        : searchWithVector(rec.recordingPath, query, topKPerRecording, { provider, queryVector }),
+    ),
+  );
+
+  return settled.map((res, i) => {
+    const recordingId = recordings[i].recordingId;
+    if (res.status === 'fulfilled') return { recordingId, success: true, chunks: res.value };
+    return { recordingId, success: false, chunks: [], error: res.reason?.message || String(res.reason) };
+  });
 }
 
 /**
@@ -616,7 +702,7 @@ async function reindexAllRecordings({
       total: 0,
       lastEmbeddingModelId: null,
       results: [],
-      error: 'No hay provider de embeddings disponible',
+      error: NO_EMBEDDING_PROVIDER_ERROR,
     };
   }
 
@@ -649,6 +735,7 @@ module.exports = {
   createChunks,
   indexRecording,
   searchRecording,
+  searchProject,
   getStatus,
   deleteIndex,
   reindexAllRecordings,

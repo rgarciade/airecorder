@@ -16,7 +16,6 @@ import EpicsTab from '../RecordingDetail/components/EpicsTab/EpicsTab';
 import ProjectKanbanBoard from './components/ProjectKanbanBoard/ProjectKanbanBoard';
 import ProjectAttachmentsTab from './components/ProjectAttachmentsTab/ProjectAttachmentsTab';
 import { MdArrowBack, MdRefresh, MdFormatListBulleted, MdGridView } from 'react-icons/md';
-import ragService from '../../services/ragService';
 import ContextBar from '../../components/ContextBar/ContextBar';
 import { getSettings, updateSettings } from '../../services/settingsService';
 import { getAvailableModels, checkModelSupportsStreaming } from '../../services/ai/ollamaProvider';
@@ -26,7 +25,9 @@ import chatPendingService from '../../services/chatPendingService';
 import { getAttachments } from '../../services/attachmentsService';
 import ChannelPickerModal from '../../components/ChannelPickerModal/ChannelPickerModal';
 import WikiTab from './components/WikiTab/WikiTab';
+import RecordingModeBadge from './components/RecordingModeBadge/RecordingModeBadge';
 import { useChatCommands } from '../../hooks/useChatCommands';
+import { useRagAutoIndexQueue } from '../../hooks/useRagAutoIndexQueue';
 import { estimateHistoryTokens } from '../../services/chat/chatTokens';
 import { ALL_TOOLS, executeConfirmedAction } from '../../services/ai/tools';
 
@@ -76,11 +77,18 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
 
   // Estados para RAG de proyecto
   const [isRegenerating, setIsRegenerating] = useState(false);
-  const [ragStatuses, setRagStatuses] = useState({}); // { [recId]: null|false|true|'skipped' }
-  const [ragTotalChunks, setRagTotalChunks] = useState({}); // { [recId]: number }
   const [lastContextInfo, setLastContextInfo] = useState(null);
   const [maxContextLength, setMaxContextLength] = useState(8000);
   const [ragMode, setRagMode] = useState('auto'); // 'auto' | 'detallado'
+
+  // Cola secuencial de auto-indexado RAG del chat activo (estado + efecto + guardas).
+  // Extraída a hook para no engordar la página: ver src/hooks/useRagAutoIndexQueue.js.
+  const {
+    ragStatuses,
+    ragTotalChunks,
+    ragIndexingProgress,
+    reindexAll: reindexRagQueue,
+  } = useRagAutoIndexQueue({ activeChatId, chats, recordingSummaries });
 
   // Estados para adjuntos del contexto del chat
   const [projectContextAttachments, setProjectContextAttachments] = useState([]);
@@ -308,37 +316,6 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
 
     return () => unsubscribe();
   }, [activeChatId, loadChatHistory]);
-
-  // Auto-indexar grabaciones del chat activo cuando cambia el chat seleccionado
-  useEffect(() => {
-    if (!activeChatId) return;
-    const chat = chats.find(c => c.id === activeChatId);
-    if (!chat?.contexto?.length) return;
-
-    chat.contexto.forEach(async (recId) => {
-      if (ragStatuses[recId] !== undefined) return;
-
-      const statusResult = await ragService.getStatus(recId);
-      if (statusResult.indexed) {
-        setRagStatuses(prev => ({ ...prev, [recId]: true }));
-        setRagTotalChunks(prev => ({ ...prev, [recId]: statusResult.totalChunks || 0 }));
-        return;
-      }
-
-      // No indexado: lanzar indexación
-      setRagStatuses(prev => ({ ...prev, [recId]: false }));
-      const result = await ragService.indexRecording(recId);
-      if (result.skippedRag) {
-        setRagStatuses(prev => ({ ...prev, [recId]: 'skipped' }));
-      } else if (result.indexed) {
-        setRagStatuses(prev => ({ ...prev, [recId]: true }));
-        setRagTotalChunks(prev => ({ ...prev, [recId]: result.totalChunks || 0 }));
-      } else {
-        setRagStatuses(prev => ({ ...prev, [recId]: null }));
-      }
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- auto-indexado RAG solo al cambiar chat/contexto; ragStatuses se actualiza dentro del efecto y relanzaría la indexación
-  }, [activeChatId, chats]);
 
   // Cargar adjuntos del contexto del chat activo
   useEffect(() => {
@@ -629,6 +606,9 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     // /buscar delega en projectChatService.generateAiResponse, que necesita el chat
     // activo para resolver sus recordingIds/recordingTitles internamente.
     chatId: activeChatId,
+    // Ventana de contexto del modelo activo: /buscar la necesita para el presupuesto
+    // de chunks (sin ella el presupuesto asume siempre 8000 tokens).
+    contextTokenLimit: maxContextLength,
   });
 
   const handleCompactChat = async () => {
@@ -650,25 +630,10 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const handleReIndexRAG = async () => {
     const chat = chats.find(c => c.id === activeChatId);
     if (!chat?.contexto?.length) return;
-    const recordingIds = chat.contexto;
-
-    // Marcar todas como indexando
-    const indexingState = {};
-    recordingIds.forEach(id => { indexingState[id] = false; });
-    setRagStatuses(prev => ({ ...prev, ...indexingState }));
-
-    for (const recId of recordingIds) {
-      await ragService.deleteIndex(recId);
-      const result = await ragService.indexRecording(recId);
-      if (result.skippedRag) {
-        setRagStatuses(prev => ({ ...prev, [recId]: 'skipped' }));
-      } else if (result.indexed) {
-        setRagStatuses(prev => ({ ...prev, [recId]: true }));
-        setRagTotalChunks(prev => ({ ...prev, [recId]: result.totalChunks || 0 }));
-      } else {
-        setRagStatuses(prev => ({ ...prev, [recId]: null }));
-      }
-    }
+    // Misma cola del hook que el auto-indexado: progreso en ContextBar y corte
+    // en el error sistémico (sin provider de embeddings). Borra cada índice antes
+    // de reindexar para forzar el proceso completo.
+    await reindexRagQueue(chat.contexto);
   };
 
   const handleProjectAttachmentsChange = (newAttachments) => {
@@ -735,6 +700,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
         model: sessionModel || undefined,
         images: attachmentImages.length > 0 ? attachmentImages : undefined,
         extraContext: extraContext || undefined,
+        contextTokenLimit: maxContextLength,
         // Function-calling nativo sobre tareas — SOLO en la conversación normal del
         // chat de proyecto (handleSendMessage). `/buscar` (searchCommand.js) arma su
         // propio `{model}` para `generateAiResponse`, así que nunca pasa por acá — ver
@@ -1200,6 +1166,7 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                   isProject={true}
                   onCompact={handleCompactChat}
                   compacting={isSendingMessage}
+                  indexingProgress={ragIndexingProgress}
                 />
               )}
               <div className={styles.chatInterfaceWrapper}>
@@ -1272,10 +1239,11 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                       {activeChat.contexto.map(recId => {
                         const recording = recordingSummaries.find(r => r.id === recId);
                         if (!recording) return null;
-                        
+
                         return (
                           <div key={recId} className={styles.chatContextItem}>
                             <span className={styles.chatContextItemName}>• {recording.title || `Grabación ${recId}`}</span>
+                            <RecordingModeBadge mode={lastContextInfo?.perRecordingMode?.[recId]} />
                           </div>
                         );
                       })}

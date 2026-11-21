@@ -26,6 +26,7 @@
     "tokens": "tokens",
     "fullMode": "Resumen completo",
     "indexing": "Preparando contexto...",
+    "indexingQueue": "Indexando grabación {{current}}/{{total}}: {{title}}",
     "skipped": "Contexto no disponible · transcripción muy corta",
     "ready": "Contexto listo",
     "auto": "Auto",
@@ -36,6 +37,16 @@
     "nearLimitTooltip": "El contexto se acerca al límite configurado del modelo",
     "compactAction": "Compactar",
     "compacting": "Compactando...",
+    "sourceBadge": {
+      "rag": "RAG",
+      "summary": "Resumen",
+      "unavailable": "Sin datos",
+      "excluded": "Sin relevancia",
+      "ragTooltip": "Se usaron fragmentos indexados (RAG) de esta grabación",
+      "summaryTooltip": "RAG no disponible para esta grabación: se usó su resumen",
+      "unavailableTooltip": "RAG y resumen no disponibles para esta grabación",
+      "excludedTooltip": "Se buscó en esta grabación, pero sus fragmentos no eran lo bastante relevantes para esta pregunta"
+    },
     "tooltips": {
       "projectAuto": "Reparte el contexto entre todas las grabaciones. Más rápido.",
       "projectDetailed": "Busca más fragmentos por grabación. Respuestas más completas.",
