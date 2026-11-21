@@ -7,7 +7,7 @@
  * error o el contador de notas terminadas (que dispara la recarga de la pestaña Notas).
  */
 
-import { aiQueueService, AI_TASK_TYPES } from './ai/aiQueueService';
+import { AI_TASK_TYPES } from './ai/aiQueueService';
 import { generateFromTemplate } from './noteTemplateService';
 
 const IDLE = Object.freeze({ status: 'idle', error: null, templateSlug: null, completedCount: 0 });
@@ -71,14 +71,11 @@ class NoteGenerationStore {
     }
   }
 
-  /** Cancela la generación en curso (aborta la señal y cancela la tarea en la cola de IA). */
+  /** Cancela la generación en curso: aborta la señal, que también cancela la tarea en la cola de IA. */
   cancel(recordingId) {
     const controller = this._controllers.get(recordingId);
     if (!controller) return false;
-    controller.abort();
-    const { current, queue } = aiQueueService.getState();
-    const task = [current, ...queue].find((t) => t && t.ref === noteGenerationRef(recordingId));
-    if (task) aiQueueService.cancel(task.id);
+    controller.abort(); // la señal llega a la cola (queueMeta.signal) y cancela la tarea
     return true;
   }
 

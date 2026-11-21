@@ -14,16 +14,18 @@ const { useNoteGeneration } = await import('../../hooks/useNoteGeneration.js');
 describe('useNoteGeneration', () => {
   let root, container, api;
 
+  const onCompleted = vi.fn();
   function Harness({ recordingId }) {
-    api = useNoteGeneration(recordingId);
+    api = useNoteGeneration(recordingId, { onCompleted });
     return null;
   }
   async function mount(recordingId) {
     container = document.createElement('div');
     document.body.append(container);
     root = createRoot(container);
-    await act(async () => root.render(<Harness recordingId={recordingId} />));
+    await rerender(recordingId);
   }
+  const rerender = (recordingId) => act(async () => root.render(<Harness recordingId={recordingId} />));
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -62,5 +64,21 @@ describe('useNoteGeneration', () => {
     await mount(3);
     await act(async () => { noteGenerationStore.start({ recordingId: 99, templateSlug: 'a' }); });
     expect(api.isGenerating).toBe(false);
+  });
+
+  it('calls onCompleted when a generation finishes while mounted', async () => {
+    generateFromTemplate.mockResolvedValue({ noteId: 1 });
+    await mount(1);
+    await act(async () => { await api.start('a'); });
+    expect(onCompleted).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call onCompleted just for switching to a recording with earlier completions', async () => {
+    generateFromTemplate.mockResolvedValue({ noteId: 1 });
+    await act(async () => { await noteGenerationStore.start({ recordingId: 20, templateSlug: 'a' }); });
+    await mount(10);
+    onCompleted.mockClear();
+    await rerender(20); // cambia de grabación sin remontar
+    expect(onCompleted).not.toHaveBeenCalled();
   });
 });

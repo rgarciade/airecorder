@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { noteGenerationStore } from '../services/noteGenerationStore';
 
 /**
@@ -6,15 +6,28 @@ import { noteGenerationStore } from '../services/noteGenerationStore';
  * El estado vive en `noteGenerationStore`, así que sobrevive al desmontaje del componente.
  *
  * @param {number|null} recordingId - ID numérico (SQLite) de la grabación
+ * @param {{ onCompleted?: () => void }} [options] - `onCompleted` se invoca cuando termina una nota
+ *   de esta grabación mientras el componente está montado (no al cambiar de grabación)
  * @returns {{ isGenerating: boolean, error: string|null, completedCount: number,
  *   start: (templateSlug: string) => Promise<void>, cancel: () => void, dismissError: () => void }}
  */
-export function useNoteGeneration(recordingId) {
+export function useNoteGeneration(recordingId, { onCompleted } = {}) {
   const [state, setState] = useState(() => noteGenerationStore.getRecordingState(recordingId));
 
   useEffect(() => noteGenerationStore.subscribe(() => {
     setState(noteGenerationStore.getRecordingState(recordingId));
   }), [recordingId]);
+
+  const seenRef = useRef({ recordingId, count: state.completedCount });
+  const onCompletedRef = useRef(onCompleted);
+  useEffect(() => { onCompletedRef.current = onCompleted; });
+  useEffect(() => {
+    const seen = seenRef.current;
+    const count = noteGenerationStore.getRecordingState(recordingId).completedCount;
+    const prevCount = seen.recordingId === recordingId ? seen.count : count; // cambio de grabación: rebase
+    seenRef.current = { recordingId, count };
+    if (count !== prevCount) onCompletedRef.current?.();
+  }, [recordingId, state.completedCount]);
 
   const start = useCallback((templateSlug) => noteGenerationStore.start({ recordingId, templateSlug }), [recordingId]);
   const cancel = useCallback(() => noteGenerationStore.cancel(recordingId), [recordingId]);

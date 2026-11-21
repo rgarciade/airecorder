@@ -31,6 +31,12 @@ describe('generateFromTemplate', () => {
     expect(callProvider.mock.calls[0][1].queueMeta).toMatchObject({ type: 'note', ref: 'note:1', name: 'Generar notas: Daily' });
   });
 
+  it('passes the abort signal to the queue so cancelling also works before the task is enqueued', async () => {
+    const ac = new AbortController();
+    await generateFromTemplate({ recordingId: 1, templateSlug: 'daily', signal: ac.signal });
+    expect(callProvider.mock.calls[0][1].queueMeta.signal).toBe(ac.signal);
+  });
+
   it('throws a cancelled error and does not call the provider if already aborted', async () => {
     const ac = new AbortController();
     ac.abort();

@@ -200,16 +200,14 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   // Template Modal
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [notesTabRefresh, setNotesTabRefresh] = useState(0);
-  const noteGeneration = useNoteGeneration(currentRecordingDbId);
-  const noteCompletedCountRef = useRef(noteGeneration.completedCount);
   // Nota terminada mientras esta pantalla está montada: recargar y mostrar la pestaña Notas.
   // Si terminó estando el usuario en otra pantalla, NotesTab ya carga las notas al montarse.
-  useEffect(() => {
-    if (noteGeneration.completedCount === noteCompletedCountRef.current) return;
-    noteCompletedCountRef.current = noteGeneration.completedCount;
-    setActiveTab('notes');
-    setNotesTabRefresh(prev => prev + 1);
-  }, [noteGeneration.completedCount]);
+  const noteGeneration = useNoteGeneration(currentRecordingDbId, {
+    onCompleted: () => {
+      setActiveTab('notes');
+      setNotesTabRefresh(prev => prev + 1);
+    },
+  });
   
   // Ref para evitar indexación o generación duplicada en mount
   const isIndexingRef = useRef(false);

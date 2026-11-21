@@ -9,11 +9,11 @@ const { noteGenerationStore, noteGenerationRef } = await import('../../services/
 // Sustituto de generateFromTemplate: encola una tarea real (como hace callProvider) con el
 // queueMeta recibido, para comprobar que la cancelación llega a la cola de IA.
 function queuedGeneration(deferred) {
-  generateFromTemplate.mockImplementation(({ queueMeta }) =>
+  generateFromTemplate.mockImplementation(({ queueMeta, signal }) =>
     aiQueueService.enqueue((signal) => new Promise((res, rej) => {
       signal.addEventListener('abort', () => rej(signal.reason));
       deferred.promise.then(res);
-    }), queueMeta).then(() => ({ noteId: 7, contentMd: 'x' })));
+    }), { ...queueMeta, signal }).then(() => ({ noteId: 7, contentMd: 'x' })));
 }
 
 function defer() {

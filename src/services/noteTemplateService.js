@@ -38,6 +38,14 @@ function getExpertPrompt(expertId, lang) {
   return resolver(lang);
 }
 
+function throwIfAborted(signal) {
+  if (signal?.aborted) {
+    const err = new Error('Cancelado por el usuario');
+    err.cancelled = true;
+    throw err;
+  }
+}
+
 /**
  * Genera notas estructuradas a partir de un template aplicado a una grabación.
  *
@@ -51,14 +59,6 @@ function getExpertPrompt(expertId, lang) {
  * @returns {Promise<{noteId: number, contentMd: string}>}
  * @throws {Error} Si el template no existe o falla la generación
  */
-function throwIfAborted(signal) {
-  if (signal?.aborted) {
-    const err = new Error('Cancelado por el usuario');
-    err.cancelled = true;
-    throw err;
-  }
-}
-
 export async function generateFromTemplate({ recordingId, templateSlug, lang = 'es', queueMeta = {}, signal }) {
   throwIfAborted(signal);
   // 1. Obtener template por slug
@@ -113,7 +113,8 @@ export async function generateFromTemplate({ recordingId, templateSlug, lang = '
     queueMeta: {
       name: `Generar notas: ${template.name}`,
       type: 'template-generation',
-      ...queueMeta
+      ...queueMeta,
+      signal
     }
   });
 

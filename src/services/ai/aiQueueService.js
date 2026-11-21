@@ -117,7 +117,7 @@ class AiQueueService {
    * Encola una llamada a la IA.
    * @param {Function} taskFn - Función async que realiza la llamada real al proveedor.
    *   Recibe un AbortSignal como único argumento para poder cancelar la tarea en curso.
-   * @param {Object} meta - Metadatos: { name, type, engine, prompt? }
+   * @param {Object} meta - Metadatos: { name, type, engine, prompt?, ref?, signal? }
    *   - prompt: texto del prompt enviado (se guarda en el historial para inspección)
    * @returns {Promise} Se resuelve/rechaza con el resultado cuando la tarea se ejecuta.
    */
@@ -145,6 +145,16 @@ class AiQueueService {
         _reject: reject,
         _fn: taskFn,
       };
+      // meta.signal: cancelación desde fuera. Ya abortada → no entra en la cola; si se aborta
+      // después (pendiente o en curso) se cancela la tarea. Cubre el hueco previo al encolado.
+      const { signal } = meta;
+      if (signal?.aborted) {
+        const err = new Error('Cancelado por el usuario');
+        err.cancelled = true;
+        reject(err);
+        return;
+      }
+      signal?.addEventListener('abort', () => this.cancel(task.id), { once: true });
       this._queue.push(task);
       this._notify();
       this._processNext();
