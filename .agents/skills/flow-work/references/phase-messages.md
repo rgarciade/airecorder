@@ -25,26 +25,21 @@ What is wrong with it:
 ```
 #42 Export recordings to CSV · research done (3 of 8) · next: plan
 
-I need one decision from you, and your OK to write the plan.
+I need 1 answer from you. Then I write the plan.
 
-The task adds a button that downloads the list of recordings as a CSV file.
+Adds a button that downloads the recordings list as a CSV file. Fits in one session.
+The list screen already loads everything the file needs, so no new query.
 
-- The list screen already loads everything the file needs
-  (src/pages/Recordings.jsx:48), so no new query is required.
-- Dates are formatted in three places, and the issue only mentions one. Besides
-  the list, the detail screen (src/pages/RecordingDetail.jsx:112) and the email
-  summary (electron/mailer.js:30) format them too. The file has to follow one of
-  them, or it will show dates differently from the screen.
-- The task fits in one session.
+1. Dates are formatted in 3 places (the list, the detail screen and the email
+   summary), and the issue mentions only one. The file has to follow one of
+   them, or it will show dates differently from the screen. Which format?
+   a) ISO (2026-11-04 17:30): sortable in any spreadsheet. Recommended.
+   b) The screen's format (4 Nov, 17:30): familiar, but sorted as text.
 
-Question 1. Which date format goes in the file?
-People open this file in a spreadsheet, and a date written as text cannot be
-sorted there.
-  a) ISO (2026-11-04 17:30): sortable in any spreadsheet. Recommended.
-  b) The format the screen uses (4 Nov, 17:30): familiar, but sorted as text.
-
-Once you answer, I write the plan. A plain "OK" accepts option a.
+"OK" accepts a. Where the 3 places are: in the research note (link).
 ```
+
+A message like this is about 10 lines. When the user needs more to decide, 15 is fine; what must not happen is a wall of text, or a short message that leaves out what the user needs.
 
 ## The plan, in one round
 
@@ -144,16 +139,16 @@ The files, parameters and channels stay in the plan record, one link away.
 
 ## A review finding
 
-One line per finding, written so the user can decide without opening the file.
+One line per finding, written so the user can decide without opening the file. Four columns and short cells, so the table does not collapse into a vertical layout in a narrow terminal.
 
 **Cryptic:**
 
 ```
-| 3 | must fix | src/services/csv.js:22 | Unescaped quotes | Escape per RFC 4180 |
+| 3 | must fix | `csv.js:22` · Unescaped quotes | Escape per RFC 4180 |
 ```
 
 **Clear:**
 
 ```
-| 3 | must fix | src/services/csv.js:22 | A title that contains a double quote breaks the row: the spreadsheet reads it as two columns and shifts every value after it. | Double the quotes inside the value, as the CSV format requires. |
+| 3 | must fix | `csv.js:22` · A title with a double quote breaks the row: every value after it shifts one column. | Double the quotes inside the value. |
 ```

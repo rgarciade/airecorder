@@ -79,11 +79,13 @@ If the spec is missing, skip the Spec sub-agent and note this in the final repor
 
 The full reports stay in the notes. Show the user one table per axis, under `## Standards` and `## Spec` headings, with one short line per finding:
 
-| # | Level | Where | Finding | Proposed fix |
-|---|---|---|---|---|
-| 1 | must fix | `path:line` | One full sentence: what is wrong and what happens if it stays | One line |
+| # | Level | Finding | Proposed fix |
+|---|---|---|---|
+| 1 | must fix | `path:line` · what is wrong and what happens if it stays | One line |
 
 Write each finding for a user who has not opened the file: plain words, no reviewer shorthand, and any name from the code explained the first time it appears.
+
+Keep the table narrow so the terminal does not fall back to a vertical "key: value" layout, which is hard to scan: four columns, with the location at the start of the finding, and at most about 12 words each in `Finding` and `Proposed fix`. Longer detail stays in the notes.
 
 - Order each table by level, **must fix** first, then **optional**.
 - Number the findings once, across both tables: Standards first (1, 2, 3…), then Spec carrying on (4, 5…). The number is the finding's name from here on: in the selector, in the fix brief and in the commit summary.
