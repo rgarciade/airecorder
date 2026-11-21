@@ -194,6 +194,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // RAG
   indexRecording: (recordingId) => ipcRenderer.invoke('index-recording', recordingId),
   searchRecording: (recordingId, query, topK) => ipcRenderer.invoke('search-recording', recordingId, query, topK),
+  searchProject: (recordingIds, query, topKPerRecording) => ipcRenderer.invoke('search-project', recordingIds, query, topKPerRecording),
   getRagStatus: (recordingId) => ipcRenderer.invoke('get-rag-status', recordingId),
   deleteRagIndex: (recordingId) => ipcRenderer.invoke('delete-rag-index', recordingId),
   ragReindexAll: () => ipcRenderer.invoke('rag:reindex-all'),

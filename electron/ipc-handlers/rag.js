@@ -41,6 +41,35 @@ module.exports.registerRagHandlers = () => {
     }
   });
 
+  // Búsqueda unificada en varias grabaciones: un solo provider y un solo embedding de la query
+  ipcMain.handle('search-project', async (event, recordingIds, query, topKPerRecording) => {
+    try {
+      const baseOutputDir = await getRecordingsPath();
+      const recordings = [];
+      const failedById = new Map();
+      for (const recordingId of recordingIds || []) {
+        try {
+          const folderName = await getFolderPathFromId(recordingId);
+          recordings.push({ recordingId, recordingPath: path.join(baseOutputDir, folderName) });
+        } catch (error) {
+          failedById.set(recordingId, { recordingId, success: false, chunks: [], error: error.message || 'No se pudo resolver la ruta de la grabación' });
+        }
+      }
+
+      const searched = recordings.length > 0
+        ? await ragService.searchProject(recordings, query, topKPerRecording || 5)
+        : [];
+      const searchedById = new Map(searched.map((r) => [r.recordingId, r]));
+
+      // Resultados en el orden de entrada
+      const results = (recordingIds || []).map((id) => failedById.get(id) || searchedById.get(id));
+      return { success: true, results };
+    } catch (error) {
+      console.error('[RAG] Error en búsqueda de proyecto:', error);
+      return { success: false, error: error.message || 'Error desconocido en búsqueda RAG de proyecto' };
+    }
+  });
+
   ipcMain.handle('get-rag-status', async (event, recordingId) => {
     try {
       const folderName = await getFolderPathFromId(recordingId);
