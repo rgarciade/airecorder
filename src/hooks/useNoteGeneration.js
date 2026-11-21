@@ -6,12 +6,14 @@ import { noteGenerationStore } from '../services/noteGenerationStore';
  * El estado vive en `noteGenerationStore`, así que sobrevive al desmontaje del componente.
  *
  * @param {number|null} recordingId - ID numérico (SQLite) de la grabación
- * @param {{ onCompleted?: () => void }} [options] - `onCompleted` se invoca cuando termina una nota
- *   de esta grabación mientras el componente está montado (no al cambiar de grabación)
+ * @param {{ onCompleted?: () => void, lang?: string }} [options]
+ *   - `lang`: idioma en que se genera la nota (el de la UI; por defecto 'es')
+ *   - `onCompleted`: se invoca cuando termina una nota de esta grabación mientras el componente
+ *     está montado (no al cambiar de grabación)
  * @returns {{ isGenerating: boolean, error: string|null, completedCount: number,
  *   start: (templateSlug: string) => Promise<void>, cancel: () => void, dismissError: () => void }}
  */
-export function useNoteGeneration(recordingId, { onCompleted } = {}) {
+export function useNoteGeneration(recordingId, { onCompleted, lang } = {}) {
   const [state, setState] = useState(() => noteGenerationStore.getRecordingState(recordingId));
 
   useEffect(() => noteGenerationStore.subscribe(() => {
@@ -29,7 +31,7 @@ export function useNoteGeneration(recordingId, { onCompleted } = {}) {
     if (count !== prevCount) onCompletedRef.current?.();
   }, [recordingId, state.completedCount]);
 
-  const start = useCallback((templateSlug) => noteGenerationStore.start({ recordingId, templateSlug }), [recordingId]);
+  const start = useCallback((templateSlug) => noteGenerationStore.start({ recordingId, templateSlug, lang }), [recordingId, lang]);
   const cancel = useCallback(() => noteGenerationStore.cancel(recordingId), [recordingId]);
   const dismissError = useCallback(() => noteGenerationStore.dismissError(recordingId), [recordingId]);
 

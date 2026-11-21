@@ -203,6 +203,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
   // Nota terminada mientras esta pantalla está montada: recargar y mostrar la pestaña Notas.
   // Si terminó estando el usuario en otra pantalla, NotesTab ya carga las notas al montarse.
   const noteGeneration = useNoteGeneration(currentRecordingDbId, {
+    lang: uiLanguage,
     onCompleted: () => {
       setActiveTab('notes');
       setNotesTabRefresh(prev => prev + 1);

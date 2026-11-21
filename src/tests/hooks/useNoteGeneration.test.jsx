@@ -15,8 +15,9 @@ describe('useNoteGeneration', () => {
   let root, container, api;
 
   const onCompleted = vi.fn();
+  let harnessLang;
   function Harness({ recordingId }) {
-    api = useNoteGeneration(recordingId, { onCompleted });
+    api = useNoteGeneration(recordingId, { onCompleted, lang: harnessLang });
     return null;
   }
   async function mount(recordingId) {
@@ -80,5 +81,13 @@ describe('useNoteGeneration', () => {
     onCompleted.mockClear();
     await rerender(20); // cambia de grabación sin remontar
     expect(onCompleted).not.toHaveBeenCalled();
+  });
+
+  it('generates the note in the given UI language', async () => {
+    generateFromTemplate.mockResolvedValue({ noteId: 1 });
+    harnessLang = 'en';
+    await mount(1);
+    await act(async () => { await api.start('a'); });
+    expect(generateFromTemplate.mock.calls[0][0]).toMatchObject({ lang: 'en' });
   });
 });
