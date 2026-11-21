@@ -37,6 +37,15 @@ const electronMocks = {
   getAllWindows: vi.fn(() => []),
 };
 
+// settingsWriter escribe de forma asíncrona (mkdir + writeFile a .tmp + rename)
+// vía fs.promises; se espía ahí en vez de fs.writeFileSync.
+function mockAtomicWrite() {
+  vi.spyOn(fs.promises, 'mkdir').mockResolvedValue(undefined);
+  const writeSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
+  const renameSpy = vi.spyOn(fs.promises, 'rename').mockResolvedValue(undefined);
+  return { writeSpy, renameSpy };
+}
+
 let originalElectronEntry;
 let originalPathsEntry;
 
@@ -165,27 +174,29 @@ describe('updateChecker', () => {
       expect(updateChecker._isVersionIgnored('9.9.9')).toBe(false);
     });
 
-    it('_ignoreVersion persiste ignoredUpdateVersion preservando el resto de settings', () => {
+    it('_ignoreVersion persiste ignoredUpdateVersion preservando el resto de settings', async () => {
       vi.spyOn(fs, 'existsSync').mockReturnValue(true);
       vi.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify({ theme: 'dark' }));
-      const writeSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
+      const { writeSpy, renameSpy } = mockAtomicWrite();
 
       updateChecker._ignoreVersion('3.0.0');
 
+      await vi.waitFor(() => expect(renameSpy).toHaveBeenCalled());
       expect(writeSpy).toHaveBeenCalledWith(
-        SETTINGS_PATH,
-        JSON.stringify({ theme: 'dark', ignoredUpdateVersion: '3.0.0' }, null, 2),
-        'utf8'
+        expect.stringContaining(`${SETTINGS_PATH}.tmp-`),
+        JSON.stringify({ theme: 'dark', ignoredUpdateVersion: '3.0.0' }, null, 2)
       );
+      expect(renameSpy).toHaveBeenCalledWith(expect.stringContaining(`${SETTINGS_PATH}.tmp-`), SETTINGS_PATH);
     });
 
-    it('_ignoreVersion no lanza si falla la escritura a disco', () => {
+    it('_ignoreVersion no lanza si falla la escritura a disco', async () => {
       vi.spyOn(fs, 'existsSync').mockReturnValue(false);
-      vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {
-        throw new Error('EACCES');
-      });
-      vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(fs.promises, 'mkdir').mockResolvedValue(undefined);
+      vi.spyOn(fs.promises, 'writeFile').mockRejectedValue(new Error('EACCES'));
+      vi.spyOn(fs.promises, 'unlink').mockResolvedValue(undefined);
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       expect(() => updateChecker._ignoreVersion('3.0.0')).not.toThrow();
+      await vi.waitFor(() => expect(errorSpy).toHaveBeenCalled());
     });
   });
 
@@ -458,14 +469,14 @@ describe('updateChecker', () => {
       updateChecker.mainWindow = { webContents: {} };
       electronMocks.showMessageBox.mockResolvedValue({ response: 2 });
       vi.spyOn(fs, 'existsSync').mockReturnValue(false);
-      const writeSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
+      const { writeSpy, renameSpy } = mockAtomicWrite();
 
       await updateChecker._showUpdateDialog(updateInfo);
 
+      await vi.waitFor(() => expect(renameSpy).toHaveBeenCalled());
       expect(writeSpy).toHaveBeenCalledWith(
-        SETTINGS_PATH,
-        expect.stringContaining('"ignoredUpdateVersion": "2.0.0"'),
-        'utf8'
+        expect.stringContaining(`${SETTINGS_PATH}.tmp-`),
+        expect.stringContaining('"ignoredUpdateVersion": "2.0.0"')
       );
       expect(electronMocks.openExternal).not.toHaveBeenCalled();
     });
