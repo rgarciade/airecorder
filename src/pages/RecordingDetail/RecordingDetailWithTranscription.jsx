@@ -21,7 +21,8 @@ import { buildContextInfo, estimateHistoryTokens, CHARS_PER_TOKEN } from '../../
 import { normalizeChatHistory } from '../../services/chat/chatHistory';
 import { useChatCommands } from '../../hooks/useChatCommands';
 import { checkModelVisionSupport } from '../../services/ai/huggingFaceService';
-import { generateFromTemplate } from '../../services/noteTemplateService';
+import { useNoteGeneration } from '../../hooks/useNoteGeneration';
+import NoteGenerationIndicator from './components/NoteGenerationIndicator/NoteGenerationIndicator';
 import {
   buildRegenerationProviderOverrides,
   canUseRegenerationProvider,
@@ -198,8 +199,16 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
 
   // Template Modal
   const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [isGeneratingNote, setIsGeneratingNote] = useState(false);
   const [notesTabRefresh, setNotesTabRefresh] = useState(0);
+  // Nota terminada mientras esta pantalla está montada: recargar y mostrar la pestaña Notas.
+  // Si terminó estando el usuario en otra pantalla, NotesTab ya carga las notas al montarse.
+  const noteGeneration = useNoteGeneration(currentRecordingDbId, {
+    lang: uiLanguage,
+    onCompleted: () => {
+      setActiveTab('notes');
+      setNotesTabRefresh(prev => prev + 1);
+    },
+  });
   
   // Ref para evitar indexación o generación duplicada en mount
   const isIndexingRef = useRef(false);
@@ -1649,37 +1658,11 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
     }
   };
 
-  const handleGenerateFromTemplate = async (templateSlug) => {
+  // La generación corre en segundo plano (cola de IA + noteGenerationStore): no bloquea la UI.
+  const handleGenerateFromTemplate = (templateSlug) => {
     if (!currentRecordingDbId) return;
-    
     setShowTemplateModal(false);
-    setIsGeneratingNote(true);
-
-    try {
-      const result = await generateFromTemplate({
-        recordingId: currentRecordingDbId,
-        templateSlug,
-        lang: 'es'
-      });
-
-      // Switch to notes tab to show the generated note
-      setActiveTab('notes');
-
-      // Force NotesTab to reload by incrementing refresh counter
-      setNotesTabRefresh(prev => prev + 1);
-
-      // Show success feedback
-      console.log('Note generated:', result.noteId);
-    } catch (error) {
-      if (error.cancelled) {
-        console.log('Generación de nota cancelada por el usuario');
-      } else {
-        console.error('Error generating from template:', error);
-        alert('Error generating note: ' + error.message);
-      }
-    } finally {
-      setIsGeneratingNote(false);
-    }
+    noteGeneration.start(templateSlug);
   };
 
   // --- RENDER ---
@@ -2084,6 +2067,7 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
             key={`notes-${currentRecordingDbId}-${notesTabRefresh}`}
             recordingId={currentRecordingDbId}
             onGenerateClick={handleOpenTemplateModal}
+            isGenerating={noteGeneration.isGenerating}
           />
         )}
         {activeTab === 'schema' && (
@@ -2473,32 +2457,12 @@ export default function RecordingDetailWithTranscription({ recording, onBack, on
         onCreateCustom={handleCreateCustomTemplate}
       />
 
-      {/* Generating Note Indicator - Non-blocking */}
-      {isGeneratingNote && (
-        <div 
-          className={styles.modalOverlay} 
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setIsGeneratingNote(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') setIsGeneratingNote(false);
-          }}
-          tabIndex={-1}
-        >
-          <div className={styles.modalContent} style={{ textAlign: 'center', minWidth: 300 }}>
-            <div className={styles.spinning} style={{ margin: '0 auto 16px' }}></div>
-            <p className={styles.modalTitle}>Generando nota...</p>
-            <p className={styles.modalText}>Esto puede tomar unos segundos.</p>
-            <button 
-              className={styles.cancelButton} 
-              onClick={() => setIsGeneratingNote(false)}
-              style={{ marginTop: 16 }}
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
-      )}
+      <NoteGenerationIndicator
+        isGenerating={noteGeneration.isGenerating}
+        error={noteGeneration.error}
+        onCancel={noteGeneration.cancel}
+        onDismissError={noteGeneration.dismissError}
+      />
 
     </div>
   );

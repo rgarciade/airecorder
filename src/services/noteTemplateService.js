@@ -38,6 +38,14 @@ function getExpertPrompt(expertId, lang) {
   return resolver(lang);
 }
 
+function throwIfAborted(signal) {
+  if (signal?.aborted) {
+    const err = new Error('Cancelado por el usuario');
+    err.cancelled = true;
+    throw err;
+  }
+}
+
 /**
  * Genera notas estructuradas a partir de un template aplicado a una grabación.
  *
@@ -46,10 +54,13 @@ function getExpertPrompt(expertId, lang) {
  * @param {number} params.recordingId - ID de la grabación en la base de datos
  * @param {string} params.templateSlug - Slug del template a usar
  * @param {string} [params.lang='es'] - Código de idioma para el prompt
+ * @param {Object} [params.queueMeta] - Metadatos extra para la tarea de la cola de IA (type, ref…)
+ * @param {AbortSignal} [params.signal] - Si se aborta, no se llama al proveedor ni se guarda la nota
  * @returns {Promise<{noteId: number, contentMd: string}>}
  * @throws {Error} Si el template no existe o falla la generación
  */
-export async function generateFromTemplate({ recordingId, templateSlug, lang = 'es' }) {
+export async function generateFromTemplate({ recordingId, templateSlug, lang = 'es', queueMeta = {}, signal }) {
+  throwIfAborted(signal);
   // 1. Obtener template por slug
   const template = await window.electronAPI.templates.getBySlug(templateSlug);
   if (!template) {
@@ -94,14 +105,21 @@ export async function generateFromTemplate({ recordingId, templateSlug, lang = '
   const systemPrompt = buildTemplateSystemPrompt(templateWithSections, lang, specialtyPrompt);
   const userContent = buildTemplateUserContent(transcript, existingSummary);
 
+  throwIfAborted(signal);
+
   // 7. Llamar al proveedor de IA
   const result = await callProvider(userContent, {
     systemPrompt,
     queueMeta: {
       name: `Generar notas: ${template.name}`,
-      type: 'template-generation'
+      type: 'template-generation',
+      ...queueMeta,
+      signal
     }
   });
+
+  // Cancelado mientras la tarea corría (p. ej. antes de entrar en la cola): no se guarda nada
+  throwIfAborted(signal);
 
   const contentMd = result.text;
 

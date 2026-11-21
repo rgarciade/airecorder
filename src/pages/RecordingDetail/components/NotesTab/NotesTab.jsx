@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { MdAdd, MdContentCopy, MdEdit, MdDelete, MdCheck, MdPictureAsPdf, MdDescription } from 'react-icons/md';
 import styles from './NotesTab.module.css';
 
-export default function NotesTab({ recordingId, onGenerateClick }) {
+export default function NotesTab({ recordingId, onGenerateClick, isGenerating = false }) {
   const { i18n } = useTranslation();
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -133,6 +133,7 @@ export default function NotesTab({ recordingId, onGenerateClick }) {
         <button 
           className={styles.generateBtn}
           onClick={onGenerateClick}
+          disabled={isGenerating}
         >
           <MdAdd size={18} />
           {isSpanish ? 'Generar desde plantilla' : 'Generate from template'}
@@ -148,6 +149,7 @@ export default function NotesTab({ recordingId, onGenerateClick }) {
           <button 
             className={styles.generateBtn}
             onClick={onGenerateClick}
+            disabled={isGenerating}
           >
             <MdAdd size={18} />
             {isSpanish ? 'Generar desde plantilla' : 'Generate from template'}

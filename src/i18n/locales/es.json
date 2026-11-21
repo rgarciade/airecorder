@@ -1203,6 +1203,13 @@
     }
   },
   "templates": {
+    "noteGeneration": {
+      "generating": "Generando nota…",
+      "generatingHint": "Puedes seguir usando la app; la nota aparecerá en la pestaña Notas.",
+      "cancel": "Cancelar",
+      "error": "No se pudo generar la nota: {{message}}",
+      "dismiss": "Cerrar"
+    },
     "modal": {
       "title": "Generar notas desde plantilla",
       "useButton": "Usar",
