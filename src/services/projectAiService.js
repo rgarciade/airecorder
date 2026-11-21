@@ -426,15 +426,20 @@ class ProjectAiService {
         let schemasBlock = await this._buildSchemasContext(candidateRecIds, recordingTitles);
 
         const baseSystem = await buildSystemPrompt(FEATURE_TYPES.CHAT, projectRagSystemPrompt([], options.extraContext || ''));
+        // Partes fijas del presupuesto. Las definiciones de tools (function-calling
+        // nativo, ver tools/index.js) viajan SIEMPRE al proveedor junto al prompt, así
+        // que también consumen ventana de contexto: se cuentan aquí para que el
+        // presupuesto de chunks no haga exceder el límite real del modelo.
         const fixedTokens =
           estimateTextTokens(baseSystem) +
           estimateTextTokens(schemasBlock) +
           estimateTextTokens(summaryFallbackBlock) +
           estimateHistoryTokens(chatHistory) +
           estimateTextTokens(question) +
+          estimateTextTokens(JSON.stringify(options.tools || [])) +
           RESPONSE_RESERVE_TOKENS; // hueco para la respuesta del modelo
         const tokenBudget = computeChunkTokenBudget({ contextTokenLimit, fixedTokens, ragMode });
-        const { selected: allChunks, includedRecordingIds } = selectChunksWithinBudget(candidateChunks, { tokenBudget });
+        const { selected: selectedChunks, includedRecordingIds } = selectChunksWithinBudget(candidateChunks, { tokenBudget });
 
         // Con chunks candidatos pero ninguno seleccionado: grabación excluida (sin resumen)
         candidateRecIds.forEach(recId => {
@@ -444,9 +449,9 @@ class ProjectAiService {
           schemasBlock = await this._buildSchemasContext(includedRecordingIds, recordingTitles);
         }
 
-        console.log(`[ProjectAI V2] RAG: ${allChunks.length}/${candidateChunks.length} chunks (presupuesto ${tokenBudget} tokens) de ${includedRecordingIds.length}/${recordingIds.length} grabaciones`);
+        console.log(`[ProjectAI V2] RAG: ${selectedChunks.length}/${candidateChunks.length} chunks (presupuesto ${tokenBudget} tokens) de ${includedRecordingIds.length}/${recordingIds.length} grabaciones`);
 
-        let systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, projectRagSystemPrompt(allChunks, options.extraContext || ''));
+        let systemContent = await buildSystemPrompt(FEATURE_TYPES.CHAT, projectRagSystemPrompt(selectedChunks, options.extraContext || ''));
         if (schemasBlock) systemContent += `\n\n${schemasBlock}`;
         if (summaryFallbackBlock) systemContent += `\n\n${summaryFallbackBlock}`;
         const historyMessages = mapHistoryToMessages(chatHistory);
@@ -456,7 +461,7 @@ class ProjectAiService {
           { role: 'user', content: question },
         ];
 
-        const contextInfo = { ...buildContextInfo({ mode: 'rag', systemContent, history: chatHistory, chunksUsed: allChunks.length }), perRecordingMode };
+        const contextInfo = { ...buildContextInfo({ mode: 'rag', systemContent, history: chatHistory, chunksUsed: selectedChunks.length }), perRecordingMode };
         let answer = '';
         // `options.tools`/`options.toolContext` (function-calling nativo, ver
         // tools/index.js) viajan a través de `options` — solo los agrega el call

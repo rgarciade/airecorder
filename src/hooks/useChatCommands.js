@@ -42,6 +42,9 @@ import { findChatCommand } from '../services/chat/chatCommands';
  * @param {string} [params.projectId] - Scope 'project': usado por /tareas y /buscar.
  * @param {string} [params.chatId] - Scope 'project': chat activo, usado por /buscar
  *   (`projectChatService.generateAiResponse`).
+ * @param {number} [params.contextTokenLimit] - Scope 'project': ventana de contexto del
+ *   modelo activo (maxContextLength de la página), que /buscar necesita para calcular el
+ *   presupuesto de chunks — sin ella el presupuesto asume siempre 8000 tokens.
  * @returns {{ runCommand: (name: string, args?: string) => Promise<{success: boolean, error?: string, cancelled?: boolean}> }}
  */
 export function useChatCommands({
@@ -58,6 +61,7 @@ export function useChatCommands({
   ragRecordingId,
   projectId,
   chatId,
+  contextTokenLimit,
 }) {
   const runCommand = useCallback(async (name, args) => {
     // Guardia de re-entrancy centralizada: cubre tanto el input de texto (que ya
@@ -84,6 +88,7 @@ export function useChatCommands({
       ragRecordingId,
       projectId,
       chatId,
+      contextTokenLimit,
     };
 
     // Comandos marcados `runsInBackground` (/tareas, /nota — ver chatCommands.js) NO
@@ -117,7 +122,7 @@ export function useChatCommands({
     }
   }, [
     isBusy, setBusy, scope, lang, model, getHistory, replaceHistory, t,
-    onCompacted, recordingId, ragRecordingId, projectId, chatId,
+    onCompacted, recordingId, ragRecordingId, projectId, chatId, contextTokenLimit,
   ]);
 
   return { runCommand };

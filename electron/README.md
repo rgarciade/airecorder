@@ -121,6 +121,8 @@ window.electronAPI.searchProject(recordingIds, query, topKPerRecording)
 
 Si falla resolver la ruta de un id, esa grabación sale como `success:false` y el resto se busca igualmente. El handler delega en `ragService.searchProject()`: las grabaciones indexadas con otro modelo de embeddings se reindexan en secuencia y después se busca en paralelo (`Promise.allSettled`, un fallo no afecta a las demás). Los chunks que solo aparecen en la búsqueda FTS llevan `keywordOnly: true`.
 
+Nota sobre el error sistémico «No hay provider de embeddings disponible»: `ragService` no lo tiene hardcodeado — lo lee de la constante compartida `electron/utils/ragErrors.json` (`NO_EMBEDDING_PROVIDER_ERROR`), el mismo módulo que importa el hook de auto-indexado del renderer (`src/hooks/useRagAutoIndexQueue.js`), de modo que la comparación de la cola y el texto devuelto no pueden desincronizarse. Vive dentro de `electron/` (no en `src/`) porque el empaquetado sólo distribuye `dist/` + `electron-dist/` (copia literal de `electron/`, vía `scripts/prepare-electron.js`): un `require` a `src/` no existiría en la app empaquetada.
+
 ### IPC: RAG — Reindexado masivo
 
 Se añadió el handler `rag:reindex-all` en `electron/ipc-handlers/rag.js` para reindexar todas las grabaciones que ya tienen un índice RAG (`vectordb/`) usando el modelo de embeddings actualmente configurado.

@@ -16,7 +16,6 @@ import EpicsTab from '../RecordingDetail/components/EpicsTab/EpicsTab';
 import ProjectKanbanBoard from './components/ProjectKanbanBoard/ProjectKanbanBoard';
 import ProjectAttachmentsTab from './components/ProjectAttachmentsTab/ProjectAttachmentsTab';
 import { MdArrowBack, MdRefresh, MdFormatListBulleted, MdGridView } from 'react-icons/md';
-import ragService from '../../services/ragService';
 import ContextBar from '../../components/ContextBar/ContextBar';
 import { getSettings, updateSettings } from '../../services/settingsService';
 import { getAvailableModels, checkModelSupportsStreaming } from '../../services/ai/ollamaProvider';
@@ -26,7 +25,9 @@ import chatPendingService from '../../services/chatPendingService';
 import { getAttachments } from '../../services/attachmentsService';
 import ChannelPickerModal from '../../components/ChannelPickerModal/ChannelPickerModal';
 import WikiTab from './components/WikiTab/WikiTab';
+import RecordingModeBadge from './components/RecordingModeBadge/RecordingModeBadge';
 import { useChatCommands } from '../../hooks/useChatCommands';
+import { useRagAutoIndexQueue } from '../../hooks/useRagAutoIndexQueue';
 import { estimateHistoryTokens } from '../../services/chat/chatTokens';
 import { ALL_TOOLS, executeConfirmedAction } from '../../services/ai/tools';
 
@@ -40,12 +41,6 @@ const KIMI_CHAT_MODELS = [
   { value: 'kimi-k2-turbo-preview', label: 'Kimi K2 Turbo' },
   { value: 'kimi-k2.5', label: 'Kimi K2.5' },
 ];
-
-// Debe coincidir exactamente con el error que devuelve electron/services/ragService.js
-// cuando no hay ningún provider de embeddings disponible: es un fallo sistémico (no
-// depende de la grabación concreta), así que el resto de la cola de indexación se corta
-// en vez de seguir intentando llamadas condenadas de antemano una por una.
-const EMBEDDINGS_PROVIDER_UNAVAILABLE_ERROR = 'No hay provider de embeddings disponible';
 
 export default function ProjectDetail({ project, onBack, onNavigateToRecording: navigateToRecordingProp }) {
   const { t, i18n } = useTranslation();
@@ -82,12 +77,18 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
 
   // Estados para RAG de proyecto
   const [isRegenerating, setIsRegenerating] = useState(false);
-  const [ragStatuses, setRagStatuses] = useState({}); // { [recId]: null|false|true|'skipped' }
-  const [ragTotalChunks, setRagTotalChunks] = useState({}); // { [recId]: number }
-  const [ragIndexingProgress, setRagIndexingProgress] = useState(null); // { current, total, title } | null mientras la cola secuencial está activa
   const [lastContextInfo, setLastContextInfo] = useState(null);
   const [maxContextLength, setMaxContextLength] = useState(8000);
   const [ragMode, setRagMode] = useState('auto'); // 'auto' | 'detallado'
+
+  // Cola secuencial de auto-indexado RAG del chat activo (estado + efecto + guardas).
+  // Extraída a hook para no engordar la página: ver src/hooks/useRagAutoIndexQueue.js.
+  const {
+    ragStatuses,
+    ragTotalChunks,
+    ragIndexingProgress,
+    reindexAll: reindexRagQueue,
+  } = useRagAutoIndexQueue({ activeChatId, chats, recordingSummaries });
 
   // Estados para adjuntos del contexto del chat
   const [projectContextAttachments, setProjectContextAttachments] = useState([]);
@@ -315,73 +316,6 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
 
     return () => unsubscribe();
   }, [activeChatId, loadChatHistory]);
-
-  // Auto-indexar grabaciones del chat activo cuando cambia el chat seleccionado.
-  // Las grabaciones aún no indexadas se procesan de una en una (no en paralelo) para poder
-  // mostrar una barra de progreso con el título y la posición en la cola (RagIndexingBar vía ContextBar).
-  useEffect(() => {
-    if (!activeChatId) return;
-    const chat = chats.find(c => c.id === activeChatId);
-    if (!chat?.contexto?.length) return;
-
-    const pendingRecIds = chat.contexto.filter(recId => ragStatuses[recId] === undefined);
-    if (pendingRecIds.length === 0) return;
-
-    (async () => {
-      // Chequeo de estado en paralelo (barato, solo lectura): separa lo ya indexado de lo que hay que encolar
-      const toIndex = [];
-      await Promise.all(pendingRecIds.map(async (recId) => {
-        const statusResult = await ragService.getStatus(recId);
-        if (statusResult.indexed) {
-          setRagStatuses(prev => ({ ...prev, [recId]: true }));
-          setRagTotalChunks(prev => ({ ...prev, [recId]: statusResult.totalChunks || 0 }));
-        } else {
-          toIndex.push(recId);
-        }
-      }));
-
-      if (toIndex.length === 0) return;
-
-      // Marcar toda la cola como pendiente de indexar de inmediato: mantiene el chat
-      // deshabilitado (isAnyIndexing) durante toda la duración de la cola, no solo mientras
-      // se procesa el elemento actual.
-      setRagStatuses(prev => {
-        const next = { ...prev };
-        toIndex.forEach(id => { next[id] = false; });
-        return next;
-      });
-
-      for (let i = 0; i < toIndex.length; i++) {
-        const recId = toIndex[i];
-        const recording = recordingSummaries.find(r => r.id === recId);
-        setRagIndexingProgress({ current: i + 1, total: toIndex.length, title: recording?.title || `Grabación ${recId}` });
-
-        const result = await ragService.indexRecording(recId);
-
-        if (result.skippedRag) {
-          setRagStatuses(prev => ({ ...prev, [recId]: 'skipped' }));
-        } else if (result.indexed) {
-          setRagStatuses(prev => ({ ...prev, [recId]: true }));
-          setRagTotalChunks(prev => ({ ...prev, [recId]: result.totalChunks || 0 }));
-        } else if (result.error === EMBEDDINGS_PROVIDER_UNAVAILABLE_ERROR) {
-          // Fallo sistémico: el resto de la cola fallaría igual. Se corta aquí y las pendientes
-          // vuelven a "no comprobado" (undefined) para poder reintentarse en una futura selección
-          // de chat, en vez de quedar bloqueadas en false para siempre.
-          setRagStatuses(prev => {
-            const next = { ...prev, [recId]: null };
-            toIndex.slice(i + 1).forEach(id => { delete next[id]; });
-            return next;
-          });
-          break;
-        } else {
-          setRagStatuses(prev => ({ ...prev, [recId]: null }));
-        }
-      }
-
-      setRagIndexingProgress(null);
-    })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- auto-indexado RAG solo al cambiar chat/contexto; ragStatuses se actualiza dentro del efecto y relanzaría la indexación
-  }, [activeChatId, chats, recordingSummaries]);
 
   // Cargar adjuntos del contexto del chat activo
   useEffect(() => {
@@ -672,6 +606,9 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
     // /buscar delega en projectChatService.generateAiResponse, que necesita el chat
     // activo para resolver sus recordingIds/recordingTitles internamente.
     chatId: activeChatId,
+    // Ventana de contexto del modelo activo: /buscar la necesita para el presupuesto
+    // de chunks (sin ella el presupuesto asume siempre 8000 tokens).
+    contextTokenLimit: maxContextLength,
   });
 
   const handleCompactChat = async () => {
@@ -693,25 +630,10 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
   const handleReIndexRAG = async () => {
     const chat = chats.find(c => c.id === activeChatId);
     if (!chat?.contexto?.length) return;
-    const recordingIds = chat.contexto;
-
-    // Marcar todas como indexando
-    const indexingState = {};
-    recordingIds.forEach(id => { indexingState[id] = false; });
-    setRagStatuses(prev => ({ ...prev, ...indexingState }));
-
-    for (const recId of recordingIds) {
-      await ragService.deleteIndex(recId);
-      const result = await ragService.indexRecording(recId);
-      if (result.skippedRag) {
-        setRagStatuses(prev => ({ ...prev, [recId]: 'skipped' }));
-      } else if (result.indexed) {
-        setRagStatuses(prev => ({ ...prev, [recId]: true }));
-        setRagTotalChunks(prev => ({ ...prev, [recId]: result.totalChunks || 0 }));
-      } else {
-        setRagStatuses(prev => ({ ...prev, [recId]: null }));
-      }
-    }
+    // Misma cola del hook que el auto-indexado: progreso en ContextBar y corte
+    // en el error sistémico (sin provider de embeddings). Borra cada índice antes
+    // de reindexar para forzar el proceso completo.
+    await reindexRagQueue(chat.contexto);
   };
 
   const handleProjectAttachmentsChange = (newAttachments) => {
@@ -1317,21 +1239,11 @@ export default function ProjectDetail({ project, onBack, onNavigateToRecording: 
                       {activeChat.contexto.map(recId => {
                         const recording = recordingSummaries.find(r => r.id === recId);
                         if (!recording) return null;
-                        const mode = lastContextInfo?.perRecordingMode?.[recId];
 
                         return (
                           <div key={recId} className={styles.chatContextItem}>
                             <span className={styles.chatContextItemName}>• {recording.title || `Grabación ${recId}`}</span>
-                            {mode && (
-                              <span
-                                className={`${styles.chatContextItemBadge} ${
-                                  mode === 'rag' ? styles.badgeRag : mode === 'summary' ? styles.badgeSummary : mode === 'excluded' ? styles.badgeExcluded : styles.badgeUnavailable
-                                }`}
-                                title={t(`contextBar.sourceBadge.${mode}Tooltip`)}
-                              >
-                                {t(`contextBar.sourceBadge.${mode}`)}
-                              </span>
-                            )}
+                            <RecordingModeBadge mode={lastContextInfo?.perRecordingMode?.[recId]} />
                           </div>
                         );
                       })}

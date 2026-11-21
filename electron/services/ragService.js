@@ -5,6 +5,13 @@ const embeddingService = require("./embeddingService");
 const { resolveSpeakersInText } = require("./speakerResolver");
 const dbService = require("../database/dbService");
 const { getRecordingsPath } = require("../utils/paths");
+// Constante compartida main ↔ renderer (electron/utils): el texto exacto del error
+// sistémico se define UNA sola vez — la cola de auto-indexado del chat de
+// proyecto compara contra esta misma constante, sin copias que se puedan
+// desincronizar. Vive dentro de electron/ (no en src/) porque el empaquetado
+// sólo distribuye dist/ + electron-dist/ (copia literal de electron/): un
+// require a src/ no existiría en la app empaquetada y tumbaría ragService.
+const { NO_EMBEDDING_PROVIDER_ERROR } = require("../utils/ragErrors.json");
 
 // Umbral: transcripciones menores a este valor no usan RAG
 const MIN_TEXT_LENGTH_FOR_RAG = 8000; // ~2000 tokens
@@ -247,7 +254,7 @@ async function indexRecording(recordingPath) {
       indexed: false,
       skippedRag: false,
       totalChunks: 0,
-      error: "No hay provider de embeddings disponible",
+      error: NO_EMBEDDING_PROVIDER_ERROR,
     };
   }
 
@@ -373,7 +380,7 @@ async function searchRecording(recordingPath, query, topK = 10) {
   // Detectar provider
   const provider = await embeddingService.detectEmbeddingProvider();
   if (!provider) {
-    throw new Error("No hay provider de embeddings disponible para búsqueda");
+    throw new Error(`${NO_EMBEDDING_PROVIDER_ERROR} para búsqueda`);
   }
 
   // Verificar si el modelo de embeddings cambió desde la indexación
@@ -582,7 +589,7 @@ async function searchProject(recordings, query, topKPerRecording = 5) {
   let queryVector;
   try {
     provider = await embeddingService.detectEmbeddingProvider();
-    if (!provider) return failAll('No hay provider de embeddings disponible');
+    if (!provider) return failAll(NO_EMBEDDING_PROVIDER_ERROR);
     queryVector = await embeddingService.embed(query, provider);
   } catch (error) {
     return failAll(error.message || 'Error generando el embedding de la consulta');
@@ -695,7 +702,7 @@ async function reindexAllRecordings({
       total: 0,
       lastEmbeddingModelId: null,
       results: [],
-      error: 'No hay provider de embeddings disponible',
+      error: NO_EMBEDDING_PROVIDER_ERROR,
     };
   }
 
